@@ -11,3 +11,16 @@ export default function Index() {
         </>
     );
 }
+
+Index.layout = {
+    breadcrumbs: [
+        {
+            title: 'System / Administration',
+            href: '#',
+        },
+        {
+            title: 'Audit Logs',
+            href: '/audit-logs',
+        },
+    ],
+};

@@ -11,3 +11,16 @@ export default function Index() {
         </>
     );
 }
+
+Index.layout = {
+    breadcrumbs: [
+        {
+            title: 'Personnel Files',
+            href: '#',
+        },
+        {
+            title: 'Offices',
+            href: '/offices',
+        },
+    ],
+};
