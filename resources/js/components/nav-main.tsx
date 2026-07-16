@@ -42,7 +42,7 @@ export function NavMain({ sections = [] }: { sections: NavSection[] }) {
 
     return (
         <SidebarGroup className="px-2 py-0">
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+            <SidebarGroupLabel className="tracking-widest">NAVIGATION</SidebarGroupLabel>
             <SidebarMenu>
                 {sections.map((section) => {
                     const isSectionActive = section.items.some(
