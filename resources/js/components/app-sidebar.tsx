@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
     FolderGit2,
@@ -73,6 +73,7 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { url } = usePage();
     const [searchQuery, setSearchQuery] = useState('');
     const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -85,6 +86,11 @@ export function AppSidebar() {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Clear search whenever navigation happens (e.g. clicking a search result)
+    useEffect(() => {
+        setSearchQuery('');
+    }, [url]);
 
     return (
         <Sidebar 
