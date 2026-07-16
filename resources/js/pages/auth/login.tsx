@@ -48,18 +48,7 @@ export default function Login({ status, canResetPassword }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Forgot your password?
-                                        </TextLink>
-                                    )}
-                                </div>
+                                <Label htmlFor="password">Password</Label>
                                 <PasswordInput
                                     id="password"
                                     name="password"
@@ -76,6 +65,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     id="remember"
                                     name="remember"
                                     tabIndex={3}
+                                    className="border-white/40 data-[state=checked]:!bg-[#FFC15E] data-[state=checked]:!border-[#FFC15E] data-[state=checked]:[&_svg]:text-[#4a0f14]"
                                 />
                                 <Label htmlFor="remember">Remember me</Label>
                             </div>
@@ -92,9 +82,9 @@ export default function Login({ status, canResetPassword }: Props) {
                             </Button>
                         </div>
 
-                        <div className="text-center text-sm text-muted-foreground">
+                        <div className="text-center text-sm text-white/80">
                             Don't have an account?{' '}
-                            <TextLink href={register()} tabIndex={5}>
+                            <TextLink href={register()} tabIndex={5} className="text-[#F5A623] hover:text-[#FFC15E]">
                                 Sign up
                             </TextLink>
                         </div>

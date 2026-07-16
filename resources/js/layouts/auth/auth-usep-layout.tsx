@@ -10,18 +10,11 @@ interface AuthLayoutProps {
 
 export default function AuthUsepLayout({ children, title, description }: PropsWithChildren<AuthLayoutProps>) {
     return (
-        <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-[linear-gradient(to_top_right,#370001_5%,#891C23_35%,#DC3845_95%)] p-6 md:p-10">
-            {/* Noise overlay */}
-            <div
-                className="pointer-events-none absolute inset-0 z-0 opacity-100 mix-blend-overlay"
-                style={{
-                    backgroundImage:
-                        "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-                    backgroundRepeat: 'repeat',
-                }}
-            />
-            
-
+        <div
+            className="relative flex min-h-svh items-center justify-center overflow-hidden bg-cover bg-center p-6 md:p-10"
+            style={{ backgroundImage: "url('/images/Login.png')" }}
+        >
+        
             {/* Content */}
             <div className="relative z-10 flex w-full max-w-6xl flex-col items-center justify-between gap-12 md:flex-row">
                 <div className="max-w-sm text-center text-white md:pr-8 md:text-left">
@@ -65,8 +58,6 @@ export default function AuthUsepLayout({ children, title, description }: PropsWi
                             [&_button[type='submit']]:!border-none
                         "
                     >
-
-                        
                         {children}
                     </div>
                 </div>
