@@ -60,14 +60,19 @@ export default function Login({ status, canResetPassword }: Props) {
                                 <InputError message={errors.password} />
                             </div>
 
-                            <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="remember"
                                     name="remember"
                                     tabIndex={3}
-                                    className="border-white/40 data-[state=checked]:!bg-[#FFC15E] data-[state=checked]:!border-[#FFC15E] data-[state=checked]:[&_svg]:text-[#4a0f14]"
+                                    className="border-white/40 data-[state=checked]:!border-[#0075FF] data-[state=checked]:!bg-[#0075FF] data-[state=checked]:[&_svg]:text-white"
                                 />
-                                <Label htmlFor="remember">Remember me</Label>
+                                <Label
+                                    htmlFor="remember"
+                                    className="cursor-pointer"
+                                >
+                                    Remember me
+                                </Label>
                             </div>
 
                             <Button
@@ -84,7 +89,7 @@ export default function Login({ status, canResetPassword }: Props) {
 
                         <div className="text-center text-sm text-white/80">
                             Don't have an account?{' '}
-                            <TextLink href={register()} tabIndex={5} className="text-[#F5A623] hover:text-[#FFC15E]">
+                            <TextLink href={register()} tabIndex={5} className="text-[#0075FF] hover:text-[#3D94FF]">
                                 Sign up
                             </TextLink>
                         </div>
@@ -102,5 +107,5 @@ export default function Login({ status, canResetPassword }: Props) {
 }
 
 Login.layout = {
-    title: 'Log in to your account'
+    title: 'Log in to your account',
 };
