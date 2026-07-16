@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
     Collapsible,
     CollapsibleContent,
@@ -35,21 +36,52 @@ function hrefToUrl(href: NavItem['href']) {
     return (href as { url?: string })?.url ?? '#';
 }
 
-export function NavMain({ sections = [] }: { sections: NavSection[] }) {
+export function NavMain({
+    sections = [],
+    searchQuery = '',
+}: {
+    sections: NavSection[];
+    searchQuery?: string;
+}) {
     const page = usePage();
     const { state, isMobile } = useSidebar();
     const isCollapsed = state === 'collapsed' && !isMobile;
 
+    const initiallyOpen = sections.find((section) =>
+        section.items.some((item) => hrefToUrl(item.href) === page.url),
+    )?.title;
+
+    const [openSection, setOpenSection] = useState<string | undefined>(initiallyOpen);
+
+    const query = searchQuery.trim().toLowerCase();
+    const isSearching = query.length > 0;
+
+    const filteredSections = sections
+        .map((section) => ({
+            ...section,
+            items: isSearching
+                ? section.items.filter((item) => item.title.toLowerCase().includes(query))
+                : section.items,
+        }))
+        .filter((section) => !isSearching || section.items.length > 0);
+
     return (
         <SidebarGroup className="px-2 py-0">
-            <SidebarGroupLabel className="tracking-widest">NAVIGATION</SidebarGroupLabel>
+            <SidebarGroupLabel className="tracking-widest">
+                NAVIGATION
+            </SidebarGroupLabel>
+            <div className="mx-2 mb-2 border-b border-white/10" />
+
             <SidebarMenu>
-                {sections.map((section) => {
+                {filteredSections.length === 0 && (
+                    <p className="px-2 py-3 text-sm text-white/50">No modules found.</p>
+                )}
+
+                {filteredSections.map((section) => {
                     const isSectionActive = section.items.some(
                         (item) => hrefToUrl(item.href) === page.url,
                     );
 
-                    // ICON-COLLAPSED MODE -> flyout dropdown instead of inline accordion
                     if (isCollapsed) {
                         return (
                             <SidebarMenuItem key={section.title}>
@@ -78,12 +110,18 @@ export function NavMain({ sections = [] }: { sections: NavSection[] }) {
                         );
                     }
 
-                    // EXPANDED MODE -> inline accordion, same as before
+                    const isOpen = isSearching ? true : openSection === section.title;
+
                     return (
                         <Collapsible
                             key={section.title}
                             asChild
-                            defaultOpen={isSectionActive}
+                            open={isOpen}
+                            onOpenChange={(open) => {
+                                if (!isSearching) {
+                                    setOpenSection(open ? section.title : undefined);
+                                }
+                            }}
                             className="group/collapsible"
                         >
                             <SidebarMenuItem>

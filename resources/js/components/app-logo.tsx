@@ -9,7 +9,7 @@ export default function AppLogo() {
             <div className="ml-1.5 flex flex-col justify-center text-left">
                 {/* System Name */}
                 <span 
-                    className="text-white block text-sm font-semibold tracking-tight leading-[1.1]"
+                    className="text-white block text-sm font-semibold tracking-normal leading-[1.1]"
                     style={{ wordSpacing: '-1px' }}
                 >
                     Supply Management <br/>
