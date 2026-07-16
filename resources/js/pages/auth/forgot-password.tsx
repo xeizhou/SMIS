@@ -43,7 +43,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     className="w-full"
                                     disabled={processing}
                                     data-test="email-password-reset-link-button"
-                                >
+                                >w
                                     {processing && (
                                         <LoaderCircle className="h-4 w-4 animate-spin" />
                                     )}
