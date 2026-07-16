@@ -11,3 +11,16 @@ export default function Index() {
         </>
     );
 }
+
+Index.layout = {
+    breadcrumbs: [
+        {
+            title: 'Stock Management',
+            href: '#',
+        },
+        {
+            title: 'Stock Items',
+            href: '/stock-items',
+        },
+    ],
+};
