@@ -21,6 +21,7 @@ use App\Http\Controllers\EmployeeFileLocatorController;
 use App\Http\Controllers\OfficesController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\AuditLogsController;
+use App\Http\Controllers\SupplierController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -60,6 +61,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/iar', [IARController::class, 'index'])->name('iar.index');
 
+    Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
+    Route::post('/supplier', [SupplierController::class, 'store'])->name('supplier.store');
+
     Route::get('/clearance', [ClearanceController::class, 'index'])->name('clearance.index');
 
     Route::get('/fund-clusters', [FundClustersController::class, 'index'])->name('fund-clusters.index');
@@ -68,6 +72,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/employee-file-locator', [EmployeeFileLocatorController::class, 'index'])->name('employee-file-locator.index');
 
     Route::get('/offices', [OfficesController::class, 'index'])->name('offices.index');
+    Route::post('/offices', [OfficesController::class, 'store'])->name('offices.store');
 
     // System/Admin Monitoring
     Route::get('/users', [UsersController::class, 'index'])->name('users.index');

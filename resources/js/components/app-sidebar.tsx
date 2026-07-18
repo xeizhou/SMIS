@@ -51,6 +51,7 @@ const procurementNavItems: NavItem[] = [
     { title: 'PO Letter Monitoring', href: '/po-letter-monitoring' },
     { title: 'Deliveries', href: '/deliveries' },
     { title: 'IAR', href: '/iar' },
+    { title: 'Supplier List', href: '/supplier' },
     { title: 'Fund Clusters', href: '/fund-clusters' },
 ];
 
