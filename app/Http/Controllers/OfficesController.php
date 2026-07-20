@@ -97,4 +97,5 @@ class OfficesController extends Controller
 
         return back()->with('success', 'Office deleted successfully.');
     }
+
 }
