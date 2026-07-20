@@ -27,7 +27,7 @@ class RRPPEController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        $data = $query->latest()->get();
+        $data = $query->latest()->paginate(10)->withQueryString();
         return Inertia::render('rrppe-monitoring/index', [
             'data' => $data,
             'filters' => $request->only(['search', 'status'])
@@ -51,7 +51,7 @@ class RRPPEController extends Controller
 
         RRPPEMonitoring::create($validated);
 
-        return redirect()->back()->with('success', 'RRPPE record created successfully.');
+        return redirect()->back()->with('success', 'RRPPE record added successfully.');
     }
 
     public function update(Request $request, $id)

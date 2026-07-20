@@ -1,4 +1,4 @@
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, PlusCircle, Pencil, Trash2, Eye } from 'lucide-react';
@@ -16,8 +16,8 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
+import RrppeForm from '@/components/rrppe-monitoring/rrppe-form';
 
 export type RRPPEMonitoring = {
     id: number;
@@ -45,12 +45,20 @@ const formatCurrency = (amount: number | string | null | undefined) => {
     }).format(num);
 };
 
-export default function Index({ data = [], filters = {} }: { data?: RRPPEMonitoring[], filters?: any }) {
+export type PaginatedRRPPE = {
+    data: RRPPEMonitoring[];
+    links: {
+        url: string | null;
+        label: string;
+        active: boolean;
+    }[];
+};
+
+export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, filters?: any }) {
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [viewItem, setViewItem] = useState<RRPPEMonitoring | null>(null);
-    const [editingId, setEditingId] = useState<number | null>(null);
     const [itemToDelete, setItemToDelete] = useState<number | null>(null);
 
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
@@ -66,53 +74,30 @@ export default function Index({ data = [], filters = {} }: { data?: RRPPEMonitor
         return () => clearTimeout(timeout);
     }, [searchQuery, statusFilter]);
 
-    const { data: formData, setData, post, put, reset, processing, errors, clearErrors } = useForm({
-        rrppe_no: '',
-        date_received: '',
-        item_description: '',
-        quantity: 1,
-        property_no: '',
-        end_user_name: '',
-        cost: '',
-        status: '',
-        area: '',
-        remarks: '',
-    });
+    const [selectedItem, setSelectedItem] = useState<RRPPEMonitoring | null>(null);
 
     const openAddModal = () => {
-        clearErrors();
-        setData({
-            rrppe_no: '',
-            date_received: '',
-            item_description: '',
-            quantity: 1,
-            property_no: '',
-            end_user_name: '',
-            cost: '',
-            status: '',
-            area: '',
-            remarks: '',
-        });
-        setEditingId(null);
+        setSelectedItem(null);
         setIsFormModalOpen(true);
     };
 
     const openEditModal = (item: RRPPEMonitoring) => {
-        clearErrors();
-        setData({
-            rrppe_no: item.rrppe_no,
-            date_received: item.date_received,
-            item_description: item.item_description,
-            quantity: item.quantity,
-            property_no: item.property_no,
-            end_user_name: item.end_user_name || '',
-            cost: item.cost ? item.cost.toString() : '',
-            status: item.status || '',
-            area: item.area || '',
-            remarks: item.remarks || '',
-        });
-        setEditingId(item.id);
+        setSelectedItem(item);
         setIsFormModalOpen(true);
+    };
+
+    const handleClear = () => {
+        setSearchQuery('');
+        setStatusFilter('all');
+        router.get('/rrppe-monitoring', {}, { preserveState: true, replace: true });
+    };
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        router.get('/rrppe-monitoring', { search: searchQuery, status: statusFilter }, {
+            preserveState: true,
+            replace: true,
+        });
     };
 
     const openViewModal = (item: RRPPEMonitoring) => {
@@ -136,19 +121,6 @@ export default function Index({ data = [], filters = {} }: { data?: RRPPEMonitor
         }
     };
 
-    const submit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (editingId) {
-            put(`/rrppe-monitoring/${editingId}`, {
-                onSuccess: () => setIsFormModalOpen(false),
-            });
-        } else {
-            post('/rrppe-monitoring', {
-                onSuccess: () => setIsFormModalOpen(false),
-            });
-        }
-    };
-
     return (
         <>
             <Head title="RRPPE Monitoring" />
@@ -163,10 +135,13 @@ export default function Index({ data = [], filters = {} }: { data?: RRPPEMonitor
                     </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex flex-1 items-center gap-2 w-full sm:w-auto">
-                        <div className="relative w-full sm:max-w-xs">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <form
+                    onSubmit={handleSearch}
+                    className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+                >
+                    <div className="flex flex-wrap gap-2 flex-1">
+                        <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
+                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 type="text"
                                 placeholder="Search..."
@@ -176,7 +151,7 @@ export default function Index({ data = [], filters = {} }: { data?: RRPPEMonitor
                             />
                         </div>
                         <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val)}>
-                            <SelectTrigger className="w-[180px] bg-white dark:bg-gray-900 hidden sm:flex">
+                            <SelectTrigger className="w-[200px] bg-white dark:bg-gray-900">
                                 <SelectValue placeholder="All Statuses" />
                             </SelectTrigger>
                             <SelectContent>
@@ -185,16 +160,23 @@ export default function Index({ data = [], filters = {} }: { data?: RRPPEMonitor
                                 <SelectItem value="SERVICEABLE">SERVICEABLE</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button variant="secondary" className="bg-[#f0ece1] text-gray-800 hover:bg-[#e0dccf] border-0 hidden sm:flex">
+                        <Button type="submit" variant="secondary">
                             Search
+                        </Button>
+                        <Button type="button" variant="ghost" onClick={handleClear}>
+                            Clear
                         </Button>
                     </div>
 
-                    <Button onClick={openAddModal} className="bg-[#5c1c20] hover:bg-[#4a1215] text-white w-full sm:w-auto">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Add New Data
+                    <Button
+                        type="button"
+                        onClick={openAddModal}
+                        className="w-full lg:w-auto text-white"
+                        style={{ backgroundColor: '#612A35' }}
+                    >
+                        Add RRPPE
                     </Button>
-                </div>
+                </form>
 
                 <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
                     <table className="w-full text-left text-sm whitespace-nowrap">
@@ -214,8 +196,8 @@ export default function Index({ data = [], filters = {} }: { data?: RRPPEMonitor
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                            {data.length > 0 ? (
-                                data.map((item) => (
+                            {data.data.length > 0 ? (
+                                data.data.map((item) => (
                                     <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
                                         <td className="px-4 py-3">{item.rrppe_no}</td>
                                         <td className="px-4 py-3">{item.date_received}</td>
@@ -248,136 +230,52 @@ export default function Index({ data = [], filters = {} }: { data?: RRPPEMonitor
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
-                                        No data found.
+                                    <td colSpan={11} className="px-6 py-16 text-center">
+                                        <p className="text-base font-medium text-muted-foreground">
+                                            No RRPPE added yet.
+                                        </p>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            Click <strong>&quot;Add RRPPE&quot;</strong>{' '}
+                                            to create your first entry.
+                                        </p>
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
+
+                {data.data.length > 0 && (
+                    <div className="flex items-center justify-center gap-1 flex-wrap mt-4">
+                        {data.links.map((link, i) => (
+                            <Link
+                                key={i}
+                                href={link.url ?? '#'}
+                                preserveScroll
+                                preserveState
+                                className={
+                                    'px-3 py-1.5 rounded-md text-sm border transition-colors ' +
+                                    (link.active
+                                        ? 'bg-[#612A35] text-white border-[#612A35]'
+                                        : 'bg-card text-foreground border-border hover:bg-muted/50') +
+                                    (!link.url
+                                        ? ' opacity-40 pointer-events-none'
+                                        : '')
+                                }
+                                dangerouslySetInnerHTML={{
+                                    __html: link.label,
+                                }}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
 
-            {/* Form Modal */}
-            <Dialog open={isFormModalOpen} onOpenChange={setIsFormModalOpen}>
-                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>{editingId ? 'Edit' : 'Add'} RRPPE Record</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="rrppe_no">RRPPE No. *</Label>
-                            <Input
-                                id="rrppe_no"
-                                value={formData.rrppe_no}
-                                onChange={(e) => setData('rrppe_no', e.target.value)}
-                                required
-                            />
-                            {errors.rrppe_no && <p className="text-sm text-red-500">{errors.rrppe_no}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="date_received">Date Received *</Label>
-                            <Input
-                                id="date_received"
-                                type="date"
-                                value={formData.date_received}
-                                onChange={(e) => setData('date_received', e.target.value)}
-                                required
-                            />
-                            {errors.date_received && <p className="text-sm text-red-500">{errors.date_received}</p>}
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="item_description">Item Description *</Label>
-                            <Input
-                                id="item_description"
-                                value={formData.item_description}
-                                onChange={(e) => setData('item_description', e.target.value)}
-                                required
-                            />
-                            {errors.item_description && <p className="text-sm text-red-500">{errors.item_description}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="quantity">Quantity *</Label>
-                            <Input
-                                id="quantity"
-                                type="number"
-                                min="1"
-                                value={formData.quantity}
-                                onChange={(e) => setData('quantity', parseInt(e.target.value))}
-                                required
-                            />
-                            {errors.quantity && <p className="text-sm text-red-500">{errors.quantity}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="property_no">Property No. *</Label>
-                            <Input
-                                id="property_no"
-                                value={formData.property_no}
-                                onChange={(e) => setData('property_no', e.target.value)}
-                                required
-                            />
-                            {errors.property_no && <p className="text-sm text-red-500">{errors.property_no}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="end_user_name">End User Name</Label>
-                            <Input
-                                id="end_user_name"
-                                value={formData.end_user_name}
-                                onChange={(e) => setData('end_user_name', e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="cost">Cost</Label>
-                            <Input
-                                id="cost"
-                                type="number"
-                                step="0.01"
-                                value={formData.cost}
-                                onChange={(e) => setData('cost', e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="status">Status</Label>
-                            <Select 
-                                value={formData.status} 
-                                onValueChange={(value) => setData('status', value)}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                                <SelectContent className="w-[var(--radix-select-trigger-width)]">
-                                    <SelectItem value="UNSERVICEABLE">UNSERVICEABLE</SelectItem>
-                                    <SelectItem value="SERVICEABLE">SERVICEABLE</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="area">Area</Label>
-                            <Input
-                                id="area"
-                                value={formData.area}
-                                onChange={(e) => setData('area', e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="remarks">Remarks</Label>
-                            <Input
-                                id="remarks"
-                                value={formData.remarks}
-                                onChange={(e) => setData('remarks', e.target.value)}
-                            />
-                        </div>
-                        <div className="md:col-span-2 flex justify-end gap-3 mt-4">
-                            <Button type="button" variant="outline" onClick={() => setIsFormModalOpen(false)}>
-                                Cancel
-                            </Button>
-                            <Button type="submit" disabled={processing} className="bg-[#5c1c20] hover:bg-[#4a1215] text-white">
-                                {editingId ? 'Update' : 'Save'} Record
-                            </Button>
-                        </div>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            <RrppeForm
+                open={isFormModalOpen}
+                onOpenChange={setIsFormModalOpen}
+                item={selectedItem}
+            />
 
             {/* View Modal */}
             <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
