@@ -31,22 +31,28 @@ export function UserMenuContent({ user }: Props) {
                     <UserInfo user={user} showEmail={true} />
                 </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-white/10" />
             <DropdownMenuGroup>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem
+                    asChild
+                    className="text-white focus:bg-white/10 focus:text-white"
+                >
                     <Link
                         className="block w-full cursor-pointer"
                         href={edit()}
                         prefetch
                         onClick={cleanup}
                     >
-                        <Settings className="mr-2" />
+                        <Settings className="mr-2 text-white/80" />
                         Settings
                     </Link>
                 </DropdownMenuItem>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
+            <DropdownMenuSeparator className="bg-white/10" />
+            <DropdownMenuItem
+                asChild
+                className="text-white focus:bg-white/10 focus:text-white"
+            >
                 <Link
                     className="block w-full cursor-pointer"
                     href={logout()}
@@ -54,7 +60,7 @@ export function UserMenuContent({ user }: Props) {
                     onClick={handleLogout}
                     data-test="logout-button"
                 >
-                    <LogOut className="mr-2" />
+                    <LogOut className="mr-2 text-white/80" />
                     Log out
                 </Link>
             </DropdownMenuItem>

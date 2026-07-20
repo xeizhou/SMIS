@@ -65,11 +65,9 @@ export function NavMain({
         const activeSection = sections.find((section) =>
             section.items.some((item) => hrefToUrl(item.href) === page.url),
         );
-        if (activeSection) {
-            setOpenSection(activeSection.title);
-        }
+        setOpenSection(activeSection ? activeSection.title : undefined);
     }
-    }, [page.url, searchQuery]);
+}, [page.url, searchQuery]);
 
     const filteredSections = sections
         .map((section) => ({
