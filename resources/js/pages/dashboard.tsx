@@ -5,6 +5,7 @@ import { CalendarButton } from '@/calendar/components/calendar-button';
 import { StatCard } from '@/components/stat-card';
 import { DueDeliveries, type DueDelivery } from '@/components/due-deliveries';
 import { PoLettersStatusChart, type POLetterStatusRow } from '@/components/po-letter-status-chart';
+import { RecentActivity, type RecentActivityRow } from '@/components/recent-activity';
 import { dashboard } from '@/routes';
 
 type DashboardPageProps = {
@@ -81,6 +82,10 @@ export default function Dashboard() {
 
                     <div className="md:col-span-3">
                         <PoLettersStatusChart data={poLettersStatus} />
+                    </div>
+                    
+                    <div className="md:col-span-4">
+                        <RecentActivity />
                     </div>
                 </div>
             </div>
