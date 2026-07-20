@@ -68,7 +68,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/iar', [IARController::class, 'index'])->name('iar.index');
 
     Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
-    Route::post('/supplier', [SupplierController::class, 'store'])->name('supplier.store');
+    Route::post('/supplier', [SupplierController::class, 'store']);
+    Route::put('/supplier/{supplier}', [SupplierController::class, 'update']);
+    Route::delete('/supplier/{supplier}', [SupplierController::class, 'destroy']);
 
     Route::get('/clearance', [ClearanceController::class, 'index'])->name('clearance.index');
 
@@ -79,6 +81,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/offices', [OfficesController::class, 'index'])->name('offices.index');
     Route::post('/offices', [OfficesController::class, 'store'])->name('offices.store');
+    Route::put('/offices/{office}', [OfficesController::class, 'update']);
+    Route::delete('/offices/{office}', [OfficesController::class, 'destroy'])->name('offices.destroy');
 
     // System/Admin Monitoring
     Route::get('/users', [UsersController::class, 'index'])->name('users.index');

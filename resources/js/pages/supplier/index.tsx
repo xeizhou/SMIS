@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Pencil, Trash2 } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -10,7 +10,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useState } from 'react';
-import SupplierForm from '@/components/suppliers/supplieraddform';
+import SupplierAddForm from '@/components/suppliers/supplieraddform';
+import SupplierEditForm from '@/components/suppliers/suppliereditform';
 
 interface Supplier {
     supplier_id: number;
@@ -46,6 +47,19 @@ export default function Index({
     const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [editOpen, setEditOpen] = useState(false);
+    const [selectedSupplier, setSelectedSupplier] =
+        useState<Supplier | null>(null);
+
+    const handleDelete = (supplierId: number) => {
+        if (!confirm('Are you sure you want to delete this supplier?')) {
+            return;
+        }
+
+        router.delete(`/supplier/${supplierId}`, {
+            preserveScroll: true,
+        });
+    };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -198,6 +212,9 @@ export default function Index({
                                 <th className="px-4 py-3 text-center font-semibold text-white">
                                     Status
                                 </th>
+                                <th className="px-4 py-3 text-center font-semibold text-white">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
 
@@ -205,7 +222,7 @@ export default function Index({
                             {suppliers.data.length === 0 ? (
                                 <tr>
                                     <td
-                                        colSpan={5}
+                                        colSpan={6}
                                         className="px-6 py-16 text-center"
                                     >
                                         <p className="text-base font-medium text-muted-foreground">
@@ -253,6 +270,26 @@ export default function Index({
                                                 {supplier.status.charAt(0).toUpperCase() + supplier.status.slice(1)}
                                             </span>
                                         </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center justify-center gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedSupplier(supplier);
+                                                        setEditOpen(true);
+                                                    }}
+                                                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+
+                                                <button
+                                                    onClick={() => handleDelete(supplier.supplier_id)}
+                                                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -286,9 +323,15 @@ export default function Index({
                 )}
             </div>
 
-            <SupplierForm
+            <SupplierAddForm
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
+            />
+
+            <SupplierEditForm
+                open={editOpen}
+                onOpenChange={setEditOpen}
+                supplier={selectedSupplier}
             />
         </>
     );
