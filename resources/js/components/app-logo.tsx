@@ -3,16 +3,15 @@ import AppLogoIcon from '@/components/app-logo-icon';
 export default function AppLogo() {
     return (
         <>
-            <div className="flex aspect-square size-8 items-center justify-center rounded-md">
+            <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-md">
                 <AppLogoIcon className="h-full w-full object-contain" />
             </div>
-            <div className="ml-1.5 flex flex-col justify-center text-left">
-                {/* System Name */}
-                <span 
-                    className="text-white block text-sm font-semibold tracking-normal leading-[1.1]"
+            <div className="ml-1.5 flex flex-col justify-center overflow-hidden text-left transition-all duration-150 ease-linear group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-translate-x-2 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:w-0">
+                <span
+                    className="block w-[150px] shrink-0 text-sm leading-[1.1] font-semibold tracking-normal whitespace-nowrap text-white"
                     style={{ wordSpacing: '-1px' }}
                 >
-                    Supply Management <br/>
+                    Supply Management <br />
                     Inventory System
                 </span>
             </div>
