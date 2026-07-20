@@ -76,7 +76,7 @@ const emptyForm = {
     supplier_name: '',
     contact_number: '',
     email_address: '',
-    status: 'active',
+    status: '',
 };
 
 export default function SupplierForm({
@@ -169,7 +169,7 @@ export default function SupplierForm({
                             }
                         >
                             <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select status" />
+                                <SelectValue placeholder="-- Select Status --" />
                             </SelectTrigger>
 
                             <SelectContent>
