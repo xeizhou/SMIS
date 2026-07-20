@@ -13,6 +13,9 @@ class Supplier extends Model
 
     protected $fillable = [
         'supplier_name',
+        'contact_number',
+        'email_address',
+        'status',
     ];
 
     public function servePos(): HasMany

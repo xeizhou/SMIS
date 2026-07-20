@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('po_number', 50)->nullable();
 
             $table->foreignId('supplier_id')->nullable()
-                ->constrained('supplier_list')
+                ->constrained('supplier_list', 'supplier_id')
                 ->nullOnDelete();
 
             $table->date('delivery_date')->nullable();

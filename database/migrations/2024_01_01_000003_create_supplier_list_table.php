@@ -10,8 +10,17 @@ return new class extends Migration
     {
         Schema::create('supplier_list', function (Blueprint $table) {
             $table->id('supplier_id');
+
             $table->string('supplier_name', 255)->unique();
-            // NOTE: source SQL has no created_at/updated_at for this table — omitted to match.
+
+            $table->string('contact_number', 20)->nullable();
+
+            $table->string('email_address')->nullable();
+
+            $table->enum('status', [
+                'active',
+                'inactive',
+            ])->default('active');
         });
     }
 

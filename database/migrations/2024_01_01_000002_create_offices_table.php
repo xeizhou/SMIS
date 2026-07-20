@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('office_code', 20)->primary();
             $table->string('office_name', 150)->nullable();
             $table->string('entity_name', 255)->nullable();
-            // NOTE: source SQL has no created_at/updated_at for this table — omitted to match.
+            $table->string('office_head', 150)->nullable();
         });
     }
 
