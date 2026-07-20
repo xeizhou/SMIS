@@ -166,7 +166,7 @@ export function AppSidebar() {
                         searchQuery={searchQuery}
                         sections={[
                             {
-                                title: 'Property',
+                                title: 'Assets',
                                 icon: Archive,
                                 items: platformNavItems,
                             },

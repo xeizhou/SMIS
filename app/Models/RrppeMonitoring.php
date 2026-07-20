@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class RrppeMonitoring extends Model
+class RRPPEMonitoring extends Model
 {
-    protected $table = 'rrppe_monitoring';
+    protected $table = 'RRPPE_Monitoring';
 
     protected $fillable = [
         'rrppe_no',
@@ -19,10 +19,5 @@ class RrppeMonitoring extends Model
         'status',
         'area',
         'remarks',
-    ];
-
-    protected $casts = [
-        'date_received' => 'date',
-        'cost' => 'decimal:2',
     ];
 }
