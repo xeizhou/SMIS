@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import {
     Dialog,
@@ -27,11 +27,31 @@ interface FundCluster {
     fund_description: string;
 }
 
+interface Office {
+    office_code: string;
+    office_name: string;
+    entity_name: string;
+}
+
+interface Transaction {
+    transactionID: number;
+    transaction_type: string;
+    fund_cluster: string;
+    transaction_date: string;
+    item_name: string;
+    unitID: number;
+    reference: string;
+    quantity: number;
+    office_code: string;
+}
+
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    transaction: Transaction | null;
     units: Unit[];
     fundClusters: FundCluster[];
+    offices: Office[];
 }
 
 interface FieldProps {
@@ -83,31 +103,48 @@ function Field({
 }
 
 const emptyForm = {
-    stock_no: '',
+    transaction_type: '',
+    fund_cluster: '',
+    transaction_date: '',
     item_name: '',
-    description: '',
     unitID: '',
-    on_hand_quantity: '0',
-    re_order_point: '0',
-    fund_cluster_id: '',
-    remarks: '',
+    reference: '',
+    quantity: '0',
+    office_code: '',
 };
 
-export default function StockItemAddForm({
+export default function TransactionEditForm({
     open,
     onOpenChange,
+    transaction,
     units,
     fundClusters,
+    offices,
 }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        if (transaction) {
+            setData({
+                transaction_type: transaction.transaction_type,
+                fund_cluster: transaction.fund_cluster,
+                transaction_date: transaction.transaction_date?.slice(0, 10) ?? '',
+                item_name: transaction.item_name,
+                unitID: String(transaction.unitID),
+                reference: transaction.reference,
+                quantity: String(transaction.quantity),
+                office_code: transaction.office_code,
+            });
+            setErrors({});
+        }
+    }, [transaction]);
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
         const { name, value, type } = e.target;
 
-        // Prevent negative numbers for quantity/threshold fields
         if (type === 'number' && value !== '' && Number(value) < 0) {
             return;
         }
@@ -120,15 +157,18 @@ export default function StockItemAddForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        router.post('/stock-items', data, {
+        if (!transaction) return;
+
+        router.put(`/transaction-logs/${transaction.transactionID}`, data, {
             onSuccess: () => {
                 onOpenChange(false);
-                setData(emptyForm);
                 setErrors({});
             },
             onError: (errors) => setErrors(errors),
         });
     };
+
+    if (!transaction) return null;
 
     return (
         <Dialog
@@ -138,22 +178,49 @@ export default function StockItemAddForm({
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>
-                        New Stock Item
+                        Edit Transaction #{transaction.transactionID}
                     </DialogTitle>
                 </DialogHeader>
                 <form
                     onSubmit={handleSubmit}
                     className="mt-4 space-y-4"
                 >
+                    <div>
+                        <label className={labelClass}>
+                            Transaction Type
+                            <span className="text-red-500"> *</span>
+                        </label>
+                        <Select
+                            value={data.transaction_type}
+                            onValueChange={(value) =>
+                                setData({ ...data, transaction_type: value })
+                            }
+                        >
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="-- Select Type --" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ISSUE">ISSUE</SelectItem>
+                                <SelectItem value="RECEIVE">RECEIVE</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {errors.transaction_type && (
+                            <p className="mt-1 text-xs text-red-500">
+                                {errors.transaction_type}
+                            </p>
+                        )}
+                    </div>
+
                     <Field
-                        label="Stock No."
-                        name="stock_no"
-                        value={data.stock_no}
+                        label="Transaction Date"
+                        name="transaction_date"
+                        type="date"
+                        value={data.transaction_date}
                         onChange={handleChange}
-                        error={errors.stock_no}
+                        error={errors.transaction_date}
                         required
-                        placeholder="e.g. STK-001"
                     />
+
                     <Field
                         label="Item Name"
                         name="item_name"
@@ -163,18 +230,11 @@ export default function StockItemAddForm({
                         required
                         placeholder="e.g. Bond Paper A4"
                     />
-                    <Field
-                        label="Description"
-                        name="description"
-                        value={data.description}
-                        onChange={handleChange}
-                        error={errors.description}
-                        placeholder="e.g. 70gsm, 500 sheets per ream"
-                    />
 
                     <div>
                         <label className={labelClass}>
                             Unit
+                            <span className="text-red-500"> *</span>
                         </label>
                         <Select
                             value={data.unitID}
@@ -200,35 +260,36 @@ export default function StockItemAddForm({
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <Field
-                            label="On Hand Qty"
-                            name="on_hand_quantity"
-                            type="number"
-                            min="0"
-                            value={data.on_hand_quantity}
-                            onChange={handleChange}
-                            error={errors.on_hand_quantity}
-                        />
-                        <Field
-                            label="Re-order Point"
-                            name="re_order_point"
-                            type="number"
-                            min="0"
-                            value={data.re_order_point}
-                            onChange={handleChange}
-                            error={errors.re_order_point}
-                        />
-                    </div>
+                    <Field
+                        label="Quantity"
+                        name="quantity"
+                        type="number"
+                        min="0"
+                        value={data.quantity}
+                        onChange={handleChange}
+                        error={errors.quantity}
+                        required
+                    />
+
+                    <Field
+                        label="Reference"
+                        name="reference"
+                        value={data.reference}
+                        onChange={handleChange}
+                        error={errors.reference}
+                        required
+                        placeholder="e.g. RIS No. or PO No."
+                    />
 
                     <div>
                         <label className={labelClass}>
                             Fund Cluster
+                            <span className="text-red-500"> *</span>
                         </label>
                         <Select
-                            value={data.fund_cluster_id}
+                            value={data.fund_cluster}
                             onValueChange={(value) =>
-                                setData({ ...data, fund_cluster_id: value })
+                                setData({ ...data, fund_cluster: value })
                             }
                         >
                             <SelectTrigger className="w-full">
@@ -242,21 +303,41 @@ export default function StockItemAddForm({
                                 ))}
                             </SelectContent>
                         </Select>
-                        {errors.fund_cluster_id && (
+                        {errors.fund_cluster && (
                             <p className="mt-1 text-xs text-red-500">
-                                {errors.fund_cluster_id}
+                                {errors.fund_cluster}
                             </p>
                         )}
                     </div>
 
-                    <Field
-                        label="Remarks"
-                        name="remarks"
-                        value={data.remarks}
-                        onChange={handleChange}
-                        error={errors.remarks}
-                        placeholder="Optional notes"
-                    />
+                    <div>
+                        <label className={labelClass}>
+                            Office
+                            <span className="text-red-500"> *</span>
+                        </label>
+                        <Select
+                            value={data.office_code}
+                            onValueChange={(value) =>
+                                setData({ ...data, office_code: value })
+                            }
+                        >
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="-- Select Office --" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {offices.map((office) => (
+                                    <SelectItem key={office.office_code} value={office.office_code}>
+                                        {office.office_code} - {office.office_name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {errors.office_code && (
+                            <p className="mt-1 text-xs text-red-500">
+                                {errors.office_code}
+                            </p>
+                        )}
+                    </div>
 
                     <div className="flex justify-end gap-3 pt-2">
                         <Button
@@ -270,7 +351,7 @@ export default function StockItemAddForm({
                             type="submit"
                             style={{ backgroundColor: '#612A35' }}
                         >
-                            Save Stock Item
+                            Update Transaction
                         </Button>
                     </div>
                 </form>

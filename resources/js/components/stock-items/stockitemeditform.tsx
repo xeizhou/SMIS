@@ -57,6 +57,7 @@ interface FieldProps {
     required?: boolean;
     placeholder?: string;
     type?: string;
+    min?: string;
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
@@ -70,6 +71,7 @@ function Field({
     required = false,
     placeholder = '',
     type = 'text',
+    min,
 }: FieldProps) {
     return (
         <div>
@@ -83,6 +85,7 @@ function Field({
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                min={min}
             />
             {error && (
                 <p className="mt-1 text-xs text-red-500">
@@ -131,9 +134,16 @@ export default function StockItemEditForm({
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
+        const { name, value, type } = e.target;
+
+        // Prevent negative numbers for quantity/threshold fields
+        if (type === 'number' && value !== '' && Number(value) < 0) {
+            return;
+        }
+
         setData({
             ...data,
-            [e.target.name]: e.target.value,
+            [name]: value,
         });
     };
 
@@ -218,6 +228,7 @@ export default function StockItemEditForm({
                             label="On Hand Qty"
                             name="on_hand_quantity"
                             type="number"
+                            min="0"
                             value={data.on_hand_quantity}
                             onChange={handleChange}
                             error={errors.on_hand_quantity}
@@ -226,6 +237,7 @@ export default function StockItemEditForm({
                             label="Re-order Point"
                             name="re_order_point"
                             type="number"
+                            min="0"
                             value={data.re_order_point}
                             onChange={handleChange}
                             error={errors.re_order_point}

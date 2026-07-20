@@ -43,7 +43,7 @@ export default function StockItemDeleteModal({ open, onOpenChange, stockNo }: Pr
                     </p>
                 </div>
 
-                <DialogFooter className="gap-2 sm:gap-0">
+                <DialogFooter className="gap-2 sm:gap-2">
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>

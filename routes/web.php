@@ -48,6 +48,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/for-disposal-monitoring', [ForDisposalController::class, 'index'])->name('for-disposal-monitoring.index');
 
     Route::get('/transaction-logs', [TransactionLogsController::class, 'index'])->name('transaction-logs.index');
+    Route::post('/transaction-logs', [TransactionLogsController::class, 'store'])->name('transaction-logs.store');
+    Route::put('/transaction-logs/{transaction}', [TransactionLogsController::class, 'update'])->name('transaction-logs.update');
+    Route::delete('/transaction-logs/{transaction}', [TransactionLogsController::class, 'destroy'])->name('transaction-logs.destroy');
 
     Route::get('/bona-vida-monitoring', [BonaVidaController::class, 'index'])->name('bona-vida-monitoring.index');
 
