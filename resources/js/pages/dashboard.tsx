@@ -1,23 +1,37 @@
-// QUERY FOR DUE DELIVERY
-// 'deliveries' => Delivery::whereNotNull('due_date')
-//     ->where('due_date', '>=', now())
-//     ->orderBy('due_date')
-//     ->with('supplier:supplier_id,supplier_name')
-//     ->get(['delivery_id', 'po_number', 'due_date', 'status', 'end_user', 'supplier_id']),
-
-
-import { Head, usePage } from '@inertiajs/react';
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
+import { Head, usePage, router } from '@inertiajs/react';
+import { useState } from 'react';
+import { RefreshCw, ClipboardCheck, FileText, Truck } from 'lucide-react';
 import { CalendarButton } from '@/calendar/components/calendar-button';
+import { StatCard } from '@/components/stat-card';
 import { DueDeliveries, type DueDelivery } from '@/components/due-deliveries';
+import { PoLettersStatusChart, type POLetterStatusRow } from '@/components/po-letter-status-chart';
 import { dashboard } from '@/routes';
 
 type DashboardPageProps = {
     deliveries?: DueDelivery[];
+    poLettersStatus?: POLetterStatusRow[];
+    pendingInspections?: number;
+    pendingClearances?: number;
+    pendingDeliveries?: number;
 };
 
 export default function Dashboard() {
-    const { deliveries } = usePage<DashboardPageProps>().props;
+    const {
+        deliveries,
+        poLettersStatus,
+        pendingInspections,
+        pendingClearances,
+        pendingDeliveries,
+    } = usePage<DashboardPageProps>().props;
+
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        router.reload({
+            onFinish: () => setIsRefreshing(false),
+        });
+    };
 
     return (
         <>
@@ -25,27 +39,49 @@ export default function Dashboard() {
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-semibold">Welcome to Dashboard, User!</h1>
-                    <CalendarButton />
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                            className="flex items-center gap-1.5 rounded-md border border-sidebar-border/70 px-3 py-1.5 text-sm text-neutral-600 transition hover:bg-neutral-100 disabled:opacity-50 dark:border-sidebar-border dark:text-neutral-300 dark:hover:bg-neutral-800"
+                        >
+                            <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </button>
+                        <CalendarButton />
+                    </div>
                 </div>
 
                 <div className="grid auto-rows-min gap-4 md:grid-cols-4">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
+                    <StatCard
+                        label="Pending Inspections (P.I.R)"
+                        value={pendingInspections ?? 42}
+                        change="+ 5 last week"
+                        icon={ClipboardCheck}
+                        iconClassName="bg-amber-100 text-amber-600"
+                    />
+                    <StatCard
+                        label="Pending Clearances"
+                        value={pendingClearances ?? 18}
+                        change="+ 5 last week"
+                        icon={FileText}
+                        iconClassName="bg-rose-100 text-rose-500"
+                    />
+                    <StatCard
+                        label="Pending Deliveries"
+                        value={pendingDeliveries ?? 15}
+                        change="+ 5 last week"
+                        icon={Truck}
+                        iconClassName="bg-blue-100 text-blue-500"
+                    />
 
                     <div className="row-span-1 md:row-span-2">
                         <DueDeliveries deliveries={deliveries} />
                     </div>
-                </div>
 
-                <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+                    <div className="md:col-span-3">
+                        <PoLettersStatusChart data={poLettersStatus} />
+                    </div>
                 </div>
             </div>
         </>
