@@ -17,6 +17,7 @@ class Office extends Model
         'office_code',
         'office_name',
         'entity_name',
+        'office_head',
     ];
 
     public function clearances(): HasMany

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id('pir_id');
 
             $table->foreignId('supplier_id')
-                ->constrained('supplier_list')
+                ->constrained('supplier_list', 'supplier_id')
                 ->restrictOnDelete();
 
             $table->string('po_number', 50);

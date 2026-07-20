@@ -9,6 +9,7 @@ interface Office {
     office_code: string;
     office_name: string;
     entity_name: string;
+    office_head: string;
 }
 
 interface PaginatedOffices {
@@ -152,6 +153,9 @@ export default function Index({
                                 <th className="px-4 py-3 text-left font-semibold text-white">
                                     Entity Name
                                 </th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">
+                                    Office Head
+                                </th>
                             </tr>
                         </thead>
 
@@ -159,7 +163,7 @@ export default function Index({
                             {offices.data.length === 0 ? (
                                 <tr>
                                     <td
-                                        colSpan={3}
+                                        colSpan={4}
                                         className="px-6 py-16 text-center"
                                     >
                                         <p className="text-base font-medium text-muted-foreground">
@@ -188,6 +192,9 @@ export default function Index({
 
                                         <td className="px-4 py-3">
                                             {office.entity_name}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {office.office_head}
                                         </td>
                                     </tr>
                                 ))

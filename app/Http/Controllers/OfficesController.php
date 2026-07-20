@@ -17,8 +17,9 @@ class OfficesController extends Controller
 
             $query->where(function ($q) use ($search) {
                 $q->where('office_code', 'like', "%{$search}%")
-                  ->orWhere('office_name', 'like', "%{$search}%")
-                  ->orWhere('entity_name', 'like', "%{$search}%");
+                ->orWhere('office_name', 'like', "%{$search}%")
+                ->orWhere('entity_name', 'like', "%{$search}%")
+                ->orWhere('office_head', 'like', "%{$search}%");
             });
         }
 
@@ -52,6 +53,11 @@ class OfficesController extends Controller
                 'nullable',
                 'string',
                 'max:255',
+            ],
+            'office_head' => [
+                'nullable',
+                'string',
+                'max:150',
             ],
         ]);
 

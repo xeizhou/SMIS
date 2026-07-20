@@ -112,41 +112,41 @@ export default function Index({
                             />
                         </div>
 
-                            <Select
-                                value={status}
-                                onValueChange={(value) => {
-                                    setStatus(value);
+                                <Select
+                                        value={status}
+                                        onValueChange={(value) => {
+                                            setStatus(value);
 
-                                    router.get(
-                                        '/supplier',
-                                        {
-                                            search,
-                                            status: value,
-                                        },
-                                        {
-                                            preserveState: true,
-                                            preserveScroll: true,
-                                            replace: true,
-                                        }
-                                    );
-                                }}
-                            >
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="All Statuses" />
-                            </SelectTrigger>
+                                            router.get(
+                                                '/supplier',
+                                                {
+                                                    search,
+                                                    status: value,
+                                                },
+                                                {
+                                                    preserveState: true,
+                                                    preserveScroll: true,
+                                                    replace: true,
+                                                }
+                                            );
+                                        }}
+                                    >
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="All Statuses" />
+                                    </SelectTrigger>
 
-                            <SelectContent>
-                                <SelectItem value="all">
-                                    All Statuses
-                                </SelectItem>
-                                <SelectItem value="active">
-                                    Active
-                                </SelectItem>
-                                <SelectItem value="inactive">
-                                    Inactive
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            All Statuses
+                                        </SelectItem>
+                                        <SelectItem value="active">
+                                            Active
+                                        </SelectItem>
+                                        <SelectItem value="inactive">
+                                            Inactive
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
 
                         <Button type="submit" variant="secondary">
                             Search

@@ -63,6 +63,7 @@ const emptyForm = {
     office_code: '',
     office_name: '',
     entity_name: '',
+    office_head: '',
 };
 
 export default function OfficeAddForm({
@@ -137,6 +138,15 @@ export default function OfficeAddForm({
                         onChange={handleChange}
                         error={errors.entity_name}
                         placeholder="e.g. University of Southeastern Philippines"
+                    />
+
+                    <Field
+                        label="Office Head"
+                        name="office_head"
+                        value={data.office_head}
+                        onChange={handleChange}
+                        error={errors.office_head}
+                        placeholder="e.g. Juan Dela Cruz"
                     />
 
                     <div className="flex justify-end gap-3 pt-2">

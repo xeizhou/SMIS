@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('reference_no', 50)->nullable();
 
             $table->foreignId('supplier_id')
-                ->constrained('supplier_list')
+                ->constrained('supplier_list', 'supplier_id')
                 ->restrictOnDelete();
 
             $table->string('po_number', 50);
