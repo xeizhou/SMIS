@@ -21,6 +21,8 @@ use App\Http\Controllers\EmployeeFileLocatorController;
 use App\Http\Controllers\OfficesController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\AuditLogsController;
+use App\Http\Controllers\SupplierController;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -54,12 +56,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // Purchase Order Monitoring
     Route::get('/purchase-orders', [PurchaseOrdersController::class, 'index'])->name('purchase-orders.index');
+    Route::post('/purchase-orders', [PurchaseOrdersController::class, 'store'])->name('purchase-orders.store');
 
     Route::get('/po-letter-monitoring', [POLetterMonitoringController::class, 'index'])->name('po-letter-monitoring.index');
 
     Route::get('/deliveries', [DeliveriesController::class, 'index'])->name('deliveries.index');
 
     Route::get('/iar', [IARController::class, 'index'])->name('iar.index');
+
+    Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
+    Route::post('/supplier', [SupplierController::class, 'store'])->name('supplier.store');
 
     Route::get('/clearance', [ClearanceController::class, 'index'])->name('clearance.index');
 
@@ -69,11 +75,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/employee-file-locator', [EmployeeFileLocatorController::class, 'index'])->name('employee-file-locator.index');
 
     Route::get('/offices', [OfficesController::class, 'index'])->name('offices.index');
+    Route::post('/offices', [OfficesController::class, 'store'])->name('offices.store');
 
     // System/Admin Monitoring
     Route::get('/users', [UsersController::class, 'index'])->name('users.index');
     Route::get('/audit-logs', [AuditLogsController::class, 'index'])->name('audit-logs.index');
 
+    // Calendar
+    Route::get('/calendar', function () {
+    return Inertia::render('calendar/index');
+    })->name('calendar.index');
 
 });
 

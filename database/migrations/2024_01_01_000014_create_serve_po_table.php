@@ -30,7 +30,7 @@ return new class extends Migration
             $table->string('uacs_object_code', 50)->nullable();
 
             $table->foreignId('supplier_id')->nullable()
-                ->constrained('supplier_list')
+                ->constrained('supplier_list', 'supplier_id')
                 ->nullOnDelete();
 
             $table->string('end_user', 150)->nullable();

@@ -51,16 +51,33 @@ export function NavMain({
         section.items.some((item) => hrefToUrl(item.href) === page.url),
     )?.title;
 
-    const [openSection, setOpenSection] = useState<string | undefined>(initiallyOpen);
+    const [openSection, setOpenSection] = useState<string | undefined>(
+        initiallyOpen,
+    );
 
     const query = searchQuery.trim().toLowerCase();
     const isSearching = query.length > 0;
+
+    // Keep the accordion synced to whatever section contains the current page,
+    // e.g. after navigating from a search result.
+    useEffect(() => {
+    if (!isSearching) {
+        const activeSection = sections.find((section) =>
+            section.items.some((item) => hrefToUrl(item.href) === page.url),
+        );
+        if (activeSection) {
+            setOpenSection(activeSection.title);
+        }
+    }
+    }, [page.url, searchQuery]);
 
     const filteredSections = sections
         .map((section) => ({
             ...section,
             items: isSearching
-                ? section.items.filter((item) => item.title.toLowerCase().includes(query))
+                ? section.items.filter((item) =>
+                      item.title.toLowerCase().includes(query),
+                  )
                 : section.items,
         }))
         .filter((section) => !isSearching || section.items.length > 0);
@@ -74,7 +91,9 @@ export function NavMain({
 
             <SidebarMenu>
                 {filteredSections.length === 0 && (
-                    <p className="px-2 py-3 text-sm text-white/50">No modules found.</p>
+                    <p className="px-2 py-3 text-sm text-white/50">
+                        No modules found.
+                    </p>
                 )}
 
                 {filteredSections.map((section) => {
@@ -88,16 +107,25 @@ export function NavMain({
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <SidebarMenuButton
-                                            tooltip={{ children: section.title }}
+                                            tooltip={{
+                                                children: section.title,
+                                            }}
                                             isActive={isSectionActive}
                                         >
                                             {section.icon && <section.icon />}
                                             <span>{section.title}</span>
                                         </SidebarMenuButton>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent side="right" align="start" className="min-w-48">
+                                    <DropdownMenuContent
+                                        side="right"
+                                        align="start"
+                                        className="min-w-48"
+                                    >
                                         {section.items.map((item) => (
-                                            <DropdownMenuItem key={item.title} asChild>
+                                            <DropdownMenuItem
+                                                key={item.title}
+                                                asChild
+                                            >
                                                 <Link href={item.href} prefetch>
                                                     {item.icon && <item.icon />}
                                                     <span>{item.title}</span>
@@ -110,7 +138,9 @@ export function NavMain({
                         );
                     }
 
-                    const isOpen = isSearching ? true : openSection === section.title;
+                    const isOpen = isSearching
+                        ? true
+                        : openSection === section.title;
 
                     return (
                         <Collapsible
@@ -119,7 +149,9 @@ export function NavMain({
                             open={isOpen}
                             onOpenChange={(open) => {
                                 if (!isSearching) {
-                                    setOpenSection(open ? section.title : undefined);
+                                    setOpenSection(
+                                        open ? section.title : undefined,
+                                    );
                                 }
                             }}
                             className="group/collapsible"
@@ -135,19 +167,30 @@ export function NavMain({
                                         <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                                     </SidebarMenuButton>
                                 </CollapsibleTrigger>
-                                <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+                                <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
                                     <SidebarMenuSub>
                                         {section.items.map((item) => {
                                             const url = hrefToUrl(item.href);
                                             return (
-                                                <SidebarMenuSubItem key={item.title}>
+                                                <SidebarMenuSubItem
+                                                    key={item.title}
+                                                >
                                                     <SidebarMenuSubButton
                                                         asChild
-                                                        isActive={url === page.url}
+                                                        isActive={
+                                                            url === page.url
+                                                        }
                                                     >
-                                                        <Link href={item.href} prefetch>
-                                                            {item.icon && <item.icon />}
-                                                            <span>{item.title}</span>
+                                                        <Link
+                                                            href={item.href}
+                                                            prefetch
+                                                        >
+                                                            {item.icon && (
+                                                                <item.icon />
+                                                            )}
+                                                            <span>
+                                                                {item.title}
+                                                            </span>
                                                         </Link>
                                                     </SidebarMenuSubButton>
                                                 </SidebarMenuSubItem>

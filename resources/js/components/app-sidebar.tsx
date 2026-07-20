@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
     FolderGit2,
@@ -24,6 +24,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 
 import { dashboard } from '@/routes';
@@ -50,6 +51,7 @@ const procurementNavItems: NavItem[] = [
     { title: 'PO Letter Monitoring', href: '/po-letter-monitoring' },
     { title: 'Deliveries', href: '/deliveries' },
     { title: 'IAR', href: '/iar' },
+    { title: 'Supplier List', href: '/supplier' },
     { title: 'Fund Clusters', href: '/fund-clusters' },
 ];
 
@@ -73,6 +75,9 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { url } = usePage();
+    const { state, isMobile } = useSidebar();
+    const isCollapsed = state === 'collapsed' && !isMobile;
     const [searchQuery, setSearchQuery] = useState('');
     const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -85,6 +90,18 @@ export function AppSidebar() {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Clear search whenever navigation happens (e.g. clicking a search result)
+    useEffect(() => {
+        setSearchQuery('');
+    }, [url]);
+
+    // Also clear search when the sidebar itself collapses
+    useEffect(() => {
+        if (isCollapsed) {
+            setSearchQuery('');
+        }
+    }, [isCollapsed]);
 
     return (
         <Sidebar 
@@ -131,16 +148,18 @@ export function AppSidebar() {
                         </SidebarMenuItem>
                     </SidebarMenu>
 
-                    <div className="relative px-1">
-                        <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/50" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search module..."
-                            className="h-9 w-full rounded-lg border border-white/15 bg-white/5 pl-9 pr-3 text-sm text-white placeholder:text-white/50 outline-none focus:border-white/30"
-                        />
-                    </div>
+                    {!isCollapsed && (
+                        <div className="relative px-1">
+                            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/50" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search module..."
+                                className="h-9 w-full rounded-lg border border-white/15 bg-white/5 pl-9 pr-3 text-sm text-white placeholder:text-white/50 outline-none focus:border-white/30"
+                            />
+                        </div>
+                    )}
                 </SidebarHeader>
                 <SidebarContent>
                     <NavMain

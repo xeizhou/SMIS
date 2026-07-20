@@ -76,4 +76,9 @@ class ServePo extends Model
     {
         return $this->hasMany(PirMonitoring::class, 'po_number', 'po_number');
     }
+
+    public function office(): BelongsTo
+    {
+        return $this->belongsTo(Office::class, 'end_user', 'office_code');
+    }
 }
