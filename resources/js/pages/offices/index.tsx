@@ -1,9 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import OfficeAddForm from '@/components/offices/officeaddform';
+import OfficeEditForm from '@/components/offices/officeeditform';
 
 interface Office {
     office_code: string;
@@ -36,6 +37,19 @@ export default function Index({
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [editOpen, setEditOpen] = useState(false);
+    const [selectedOffice, setSelectedOffice] =
+    useState<Office | null>(null);
+
+    const handleDelete = (officeCode: string) => {
+        if (!confirm('Are you sure you want to delete this office?')) {
+            return;
+        }
+
+        router.delete(`/offices/${officeCode}`, {
+            preserveScroll: true,
+        });
+    };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -153,8 +167,13 @@ export default function Index({
                                 <th className="px-4 py-3 text-left font-semibold text-white">
                                     Entity Name
                                 </th>
+
                                 <th className="px-4 py-3 text-left font-semibold text-white">
                                     Office Head
+                                </th>
+
+                                <th className="px-4 py-3 text-center font-semibold text-white">
+                                    Actions
                                 </th>
                             </tr>
                         </thead>
@@ -163,7 +182,7 @@ export default function Index({
                             {offices.data.length === 0 ? (
                                 <tr>
                                     <td
-                                        colSpan={4}
+                                        colSpan={5}
                                         className="px-6 py-16 text-center"
                                     >
                                         <p className="text-base font-medium text-muted-foreground">
@@ -193,8 +212,30 @@ export default function Index({
                                         <td className="px-4 py-3">
                                             {office.entity_name}
                                         </td>
+
                                         <td className="px-4 py-3">
                                             {office.office_head}
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center justify-center gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedOffice(office);
+                                                        setEditOpen(true);
+                                                    }}
+                                                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+
+                                                <button
+                                                    onClick={() => handleDelete(office.office_code)}
+                                                    className="text-red-500 hover:text-red-700 transition-colors"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -233,6 +274,12 @@ export default function Index({
             <OfficeAddForm
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
+            />
+
+            <OfficeEditForm
+                open={editOpen}
+                onOpenChange={setEditOpen}
+                office={selectedOffice}
             />
         </>
     );

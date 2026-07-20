@@ -18,8 +18,8 @@ class SupplierController extends Controller
 
             $query->where(function ($q) use ($search) {
                 $q->where('supplier_name', 'like', "%{$search}%")
-                  ->orWhere('contact_number', 'like', "%{$search}%")
-                  ->orWhere('email_address', 'like', "%{$search}%");
+                    ->orWhere('contact_number', 'like', "%{$search}%")
+                    ->orWhere('email_address', 'like', "%{$search}%");
             });
         }
 
@@ -69,5 +69,42 @@ class SupplierController extends Controller
         Supplier::create($validated);
 
         return back()->with('success', 'Supplier added successfully.');
+    }
+
+    public function update(Request $request, Supplier $supplier)
+    {
+        $validated = $request->validate([
+            'supplier_name' => [
+                'required',
+                'string',
+                'max:255',
+                'unique:supplier_list,supplier_name,' . $supplier->supplier_id . ',supplier_id',
+            ],
+            'contact_number' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
+            'email_address' => [
+                'nullable',
+                'email',
+                'max:255',
+            ],
+            'status' => [
+                'required',
+                'in:active,inactive',
+            ],
+        ]);
+
+        $supplier->update($validated);
+
+        return back()->with('success', 'Supplier updated successfully.');
+    }
+
+    public function destroy(Supplier $supplier)
+    {
+        $supplier->delete();
+
+        return back()->with('success', 'Supplier deleted successfully.');
     }
 }

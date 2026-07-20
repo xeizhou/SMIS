@@ -11,7 +11,7 @@ class Office extends Model
     protected $primaryKey = 'office_code';
     protected $keyType = 'string';
     public $incrementing = false;
-    public $timestamps = false; // source table has no created_at/updated_at
+    public $timestamps = false;
 
     protected $fillable = [
         'office_code',
@@ -19,6 +19,11 @@ class Office extends Model
         'entity_name',
         'office_head',
     ];
+
+    public function getRouteKeyName(): string
+    {
+        return 'office_code';
+    }
 
     public function clearances(): HasMany
     {
