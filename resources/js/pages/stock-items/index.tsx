@@ -11,6 +11,9 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
+import { Pencil, Trash2, Eye } from 'lucide-react';
+import StockItemViewForm from '@/components/stock-items/stockitemviewform';
+import StockItemEditForm from '@/components/stock-items/stockitemeditform';
 
 interface Unit {
     unitID: number;
@@ -66,6 +69,9 @@ export default function Index({
     const [search, setSearch] = useState(filters.search ?? '');
     const [fundClusterId, setFundClusterId] = useState(filters.fund_cluster_id ?? 'all'); 
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [viewOpen, setViewOpen] = useState(false);
+    const [editOpen, setEditOpen] = useState(false);
+    const [selectedStock, setSelectedStock] = useState<StockItem | null>(null);
 
     const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +98,24 @@ const handleClear = () => {
             replace: true,
         }
     );
+};
+
+const handleView = (stock: StockItem) => {
+    setSelectedStock(stock);
+    setViewOpen(true);
+};
+
+const handleEdit = (stock: StockItem) => {
+    setSelectedStock(stock);
+    setEditOpen(true);
+};
+
+const handleDelete = (stock: StockItem) => {
+    if (confirm(`Delete stock item "${stock.item_name}"?`)) {
+        router.delete(`/stock-items/${stock.stock_no}`, {
+            preserveScroll: true,
+        });
+    }
 };
 
     return (
@@ -191,12 +215,13 @@ const handleClear = () => {
                                 <th className="px-4 py-3 text-center font-semibold text-white">Re-order Point</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Fund Cluster</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Remarks</th>
+                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {stockItems.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-16 text-center">
+                                    <td colSpan={9} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No stock items added yet.
                                         </p>
@@ -219,6 +244,36 @@ const handleClear = () => {
                                         <td className="px-4 py-3 text-center">{stock.re_order_point}</td>
                                         <td className="px-4 py-3">{stock.fund_cluster?.fund_description ?? '—'}</td>
                                         <td className="px-4 py-3">{stock.remarks ?? '—'}</td>
+
+                                        <td className="px-4 py-3 text-center">
+            <div className="flex items-center justify-center gap-3">
+                <button
+                    type="button"
+                    onClick={() => handleEdit(stock)}
+                    className="text-blue-600 hover:text-blue-800"
+                    title="Edit"
+                >
+                    <Pencil className="size-4" />
+                </button>
+                <button
+                    type="button"
+                    onClick={() => handleDelete(stock)}
+                    className="text-red-600 hover:text-red-800"
+                    title="Delete"
+                >
+                    <Trash2 className="size-4" />
+                </button>
+                <button
+                    type="button"
+                    onClick={() => handleView(stock)}
+                    className="text-foreground hover:text-muted-foreground"
+                    title="View"
+                >
+                    <Eye className="size-4" />
+                </button>
+            </div>
+        </td>
+
                                     </tr>
                                 ))
                             )}
@@ -249,11 +304,24 @@ const handleClear = () => {
             </div>
 
             <StockItemAddForm
-                open={dialogOpen}
-                onOpenChange={setDialogOpen}
-                units={units}
-                fundClusters={fundClusters}
-            />
+    open={dialogOpen}
+    onOpenChange={setDialogOpen}
+    units={units}
+    fundClusters={fundClusters}
+/>
+<StockItemViewForm
+    open={viewOpen}
+    onOpenChange={setViewOpen}
+    stock={selectedStock}
+/>
+
+<StockItemEditForm
+    open={editOpen}
+    onOpenChange={setEditOpen}
+    stock={selectedStock}
+    units={units}
+    fundClusters={fundClusters}
+/>
         </>
     );
 }

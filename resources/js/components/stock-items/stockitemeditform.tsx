@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import {
     Dialog,
@@ -27,9 +27,23 @@ interface FundCluster {
     fund_description: string;
 }
 
+interface StockItem {
+    stock_no: string;
+    item_name: string;
+    description: string | null;
+    unitID: number | null;
+    on_hand_quantity: number;
+    re_order_point: number;
+    fund_cluster_id: string | null;
+    remarks: string | null;
+    unit: Unit | null;
+    fund_cluster: FundCluster | null;
+}
+
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    stock: StockItem | null;
     units: Unit[];
     fundClusters: FundCluster[];
 }
@@ -80,7 +94,6 @@ function Field({
 }
 
 const emptyForm = {
-    stock_no: '',
     item_name: '',
     description: '',
     unitID: '',
@@ -90,14 +103,30 @@ const emptyForm = {
     remarks: '',
 };
 
-export default function StockItemAddForm({
+export default function StockItemEditForm({
     open,
     onOpenChange,
+    stock,
     units,
     fundClusters,
 }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        if (stock) {
+            setData({
+                item_name: stock.item_name,
+                description: stock.description ?? '',
+                unitID: stock.unitID ? String(stock.unitID) : '',
+                on_hand_quantity: String(stock.on_hand_quantity),
+                re_order_point: String(stock.re_order_point),
+                fund_cluster_id: stock.fund_cluster_id ?? '',
+                remarks: stock.remarks ?? '',
+            });
+            setErrors({});
+        }
+    }, [stock]);
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement>
@@ -110,15 +139,18 @@ export default function StockItemAddForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        router.post('/stock-items', data, {
+        if (!stock) return;
+
+        router.put(`/stock-items/${stock.stock_no}`, data, {
             onSuccess: () => {
                 onOpenChange(false);
-                setData(emptyForm);
                 setErrors({});
             },
             onError: (errors) => setErrors(errors),
         });
     };
+
+    if (!stock) return null;
 
     return (
         <Dialog
@@ -128,22 +160,13 @@ export default function StockItemAddForm({
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>
-                        New Stock Item
+                        Edit Stock Item — {stock.stock_no}
                     </DialogTitle>
                 </DialogHeader>
                 <form
                     onSubmit={handleSubmit}
                     className="mt-4 space-y-4"
                 >
-                    <Field
-                        label="Stock No."
-                        name="stock_no"
-                        value={data.stock_no}
-                        onChange={handleChange}
-                        error={errors.stock_no}
-                        required
-                        placeholder="e.g. STK-001"
-                    />
                     <Field
                         label="Item Name"
                         name="item_name"
@@ -258,7 +281,7 @@ export default function StockItemAddForm({
                             type="submit"
                             style={{ backgroundColor: '#612A35' }}
                         >
-                            Save Stock Item
+                            Update Stock Item
                         </Button>
                     </div>
                 </form>
