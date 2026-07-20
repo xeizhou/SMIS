@@ -54,6 +54,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Stock Items Monitoring
     Route::get('/stock-items', [StockItemsController::class, 'index'])->name('stock-items.index');
     Route::post('/stock-items', [StockItemsController::class, 'store'])->name('stock-items.store');
+    Route::put('/stock-items/{stockItem}', [StockItemsController::class, 'update'])->name('stock-items.update');
+    Route::delete('/stock-items/{stockItem}', [StockItemsController::class, 'destroy'])->name('stock-items.destroy');
 
     Route::get('/units', [UnitsController::class, 'index'])->name('units.index');
     
