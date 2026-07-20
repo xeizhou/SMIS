@@ -75,6 +75,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/clearance', [ClearanceController::class, 'index'])->name('clearance.index');
 
     Route::get('/fund-clusters', [FundClustersController::class, 'index'])->name('fund-clusters.index');
+    Route::post('/fund-clusters', [FundClustersController::class, 'store'])->name('fund-clusters.store');
+    Route::put('/fund-clusters/{fundCluster}', [FundClustersController::class, 'update'])->name('fund-clusters.update');
+    Route::delete('/fund-clusters/{fundCluster}', [FundClustersController::class, 'destroy'])->name('fund-clusters.destroy');
 
     // Human Resource Monitoring
     Route::get('/employee-file-locator', [EmployeeFileLocatorController::class, 'index'])->name('employee-file-locator.index');
