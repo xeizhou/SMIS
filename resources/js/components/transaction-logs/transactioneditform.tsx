@@ -36,7 +36,12 @@ interface Office {
 interface Transaction {
     transactionID: number;
     transaction_type: string;
-    fund_cluster: string;
+    // NOTE: this field gets clobbered server-side by the `fundCluster` relation
+    // (Eloquent snake-cases the relation name to `fund_cluster`, overwriting the
+    // raw FK column of the same name in the JSON payload). Don't read the id from
+    // this field — use `fund_cluster_detail` instead.
+    fund_cluster: string | FundCluster;
+    fund_cluster_detail?: FundCluster;
     transaction_date: string;
     item_name: string;
     unitID: number;
@@ -126,9 +131,19 @@ export default function TransactionEditForm({
 
     useEffect(() => {
         if (transaction) {
+            // fund_cluster_detail is the safe copy of the relation; transaction.fund_cluster
+            // itself may be clobbered (object) or, if the backend ever stops eager-loading
+            // the relation, the plain string id — handle both defensively.
+            const fundClusterId =
+                transaction.fund_cluster_detail?.fund_cluster_id ??
+                (typeof transaction.fund_cluster === 'string'
+                    ? transaction.fund_cluster
+                    : transaction.fund_cluster?.fund_cluster_id) ??
+                '';
+
             setData({
                 transaction_type: transaction.transaction_type,
-                fund_cluster: transaction.fund_cluster,
+                fund_cluster: fundClusterId,
                 transaction_date: transaction.transaction_date?.slice(0, 10) ?? '',
                 item_name: transaction.item_name,
                 unitID: String(transaction.unitID),
