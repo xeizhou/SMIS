@@ -1,13 +1,259 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
+import { useState } from 'react';
+import StockItemAddForm from '@/components/stock-items/stockitemaddform';
+import {
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem,
+} from '@/components/ui/select';
 
-export default function Index() {
+interface Unit {
+    unitID: number;
+    unit_name: string;
+    unit_short_name: string;
+}
+
+interface FundCluster {
+    fund_cluster_id: string;
+    fund_description: string;
+}
+
+interface StockItem {
+    stock_no: string;
+    item_name: string;
+    description: string | null;
+    unitID: number | null;
+    on_hand_quantity: number;
+    re_order_point: number;
+    fund_cluster_id: string | null;
+    remarks: string | null;
+    unit: Unit | null;
+    fund_cluster: FundCluster | null;
+}
+
+interface PaginatedStockItems {
+    data: StockItem[];
+    links: {
+        url: string | null;
+        label: string;
+        active: boolean;
+    }[];
+}
+
+interface Filters {
+    search: string | null;
+    fund_cluster_id: string | null;
+}
+
+interface Props {
+    stockItems: PaginatedStockItems;
+    units: Unit[];
+    fundClusters: FundCluster[];
+    filters: Filters;
+}
+
+export default function Index({
+    stockItems,
+    units,
+    fundClusters,
+    filters,
+}: Props) {
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [fundClusterId, setFundClusterId] = useState(filters.fund_cluster_id ?? 'all'); 
+    const [dialogOpen, setDialogOpen] = useState(false);
+
+    const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.get(
+        '/stock-items',
+        { search, fund_cluster_id: fundClusterId },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        }
+    );
+};
+
+const handleClear = () => {
+    setSearch('');
+    setFundClusterId('all');
+    router.get(
+        '/stock-items',
+        {},
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        }
+    );
+};
+
     return (
         <>
-            <Head title="Test Page" />
+            <Head title="Stock Items" />
+            <div className="p-4 space-y-6 sm:p-6">
+                {/* Header */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-foreground">
+                            Stock Items
+                        </h1>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Manage stock item inventory records.
+                        </p>
+                    </div>
+                </div>
 
-            <div className="p-6">
-                <h1 className="text-2xl font-bold">Test Page for Stock Items</h1>
+                {/* Search */}
+                <form
+                    onSubmit={handleSearch}
+                    className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+                >
+                    <div className="flex flex-wrap gap-2 flex-1">
+                        <div className="relative w-full max-w-sm">
+                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                placeholder="Search stock items..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+
+<Select
+            value={fundClusterId}
+            onValueChange={(value) => {
+                setFundClusterId(value);
+                router.get(
+                    '/stock-items',
+                    { search, fund_cluster_id: value },
+                    {
+                        preserveState: true,
+                        preserveScroll: true,
+                        replace: true,
+                    }
+                );
+            }}
+        >
+            <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="All Fund Clusters" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">All Fund Clusters</SelectItem>
+                {fundClusters.map((fc) => (
+                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
+                        {fc.fund_cluster_id} - {fc.fund_description}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+                        
+                        <Button type="submit" variant="secondary">
+                            Search
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={handleClear}
+                        >
+                            Clear
+                        </Button>
+                    </div>
+                    <Button
+                        type="button"
+                        onClick={() => setDialogOpen(true)}
+                        className="w-full lg:w-auto"
+                        style={{ backgroundColor: '#612A35' }}
+                    >
+                        Add Stock Item
+                    </Button>
+                </form>
+
+                {/* Table */}
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                    <table className="w-full text-sm">
+                        <thead
+                            className="border-b"
+                            style={{ backgroundColor: '#370001' }}
+                        >
+                            <tr>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Stock No.</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Item Name</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Description</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Unit</th>
+                                <th className="px-4 py-3 text-center font-semibold text-white">On Hand</th>
+                                <th className="px-4 py-3 text-center font-semibold text-white">Re-order Point</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Fund Cluster</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {stockItems.data.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} className="px-6 py-16 text-center">
+                                        <p className="text-base font-medium text-muted-foreground">
+                                            No stock items added yet.
+                                        </p>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            Click <strong>"Add Stock Item"</strong> to create your first entry.
+                                        </p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                stockItems.data.map((stock) => (
+                                    <tr
+                                        key={stock.stock_no}
+                                        className="border-b transition-colors hover:bg-muted/40"
+                                    >
+                                        <td className="px-4 py-3">{stock.stock_no}</td>
+                                        <td className="px-4 py-3">{stock.item_name}</td>
+                                        <td className="px-4 py-3">{stock.description ?? '—'}</td>
+                                        <td className="px-4 py-3">{stock.unit?.unit_short_name ?? '—'}</td>
+                                        <td className="px-4 py-3 text-center">{stock.on_hand_quantity}</td>
+                                        <td className="px-4 py-3 text-center">{stock.re_order_point}</td>
+                                        <td className="px-4 py-3">{stock.fund_cluster?.fund_description ?? '—'}</td>
+                                        <td className="px-4 py-3">{stock.remarks ?? '—'}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {stockItems.data.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-1 p-4">
+                        {stockItems.links.map((link, i) => (
+                            <Link
+                                key={i}
+                                href={link.url ?? '#'}
+                                preserveState
+                                preserveScroll
+                                className={
+                                    'rounded-lg border px-4 py-2 text-sm font-medium transition-colors ' +
+                                    (link.active
+                                        ? 'border-[#612A35] bg-[#612A35] text-white'
+                                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100') +
+                                    (!link.url ? ' pointer-events-none opacity-40' : '')
+                                }
+                                dangerouslySetInnerHTML={{ __html: link.label }}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
+
+            <StockItemAddForm
+                open={dialogOpen}
+                onOpenChange={setDialogOpen}
+                units={units}
+                fundClusters={fundClusters}
+            />
         </>
     );
 }
@@ -15,7 +261,7 @@ export default function Index() {
 Index.layout = {
     breadcrumbs: [
         {
-            title: 'Stock Management',
+            title: 'Supply Management',
             href: '#',
         },
         {
