@@ -14,6 +14,7 @@ import {
 import { Pencil, Trash2, Eye } from 'lucide-react';
 import StockItemViewForm from '@/components/stock-items/stockitemviewform';
 import StockItemEditForm from '@/components/stock-items/stockitemeditform';
+import StockItemDeleteModal from '@/components/stock-items/stockitemdeletemodal';
 
 interface Unit {
     unitID: number;
@@ -72,6 +73,8 @@ export default function Index({
     const [viewOpen, setViewOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [selectedStock, setSelectedStock] = useState<StockItem | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [stockToDelete, setStockToDelete] = useState<string | null>(null);
 
     const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,12 +113,9 @@ const handleEdit = (stock: StockItem) => {
     setEditOpen(true);
 };
 
-const handleDelete = (stock: StockItem) => {
-    if (confirm(`Delete stock item "${stock.item_name}"?`)) {
-        router.delete(`/stock-items/${stock.stock_no}`, {
-            preserveScroll: true,
-        });
-    }
+const openDeleteModal = (stockNo: string) => {
+    setStockToDelete(stockNo);
+    setIsDeleteModalOpen(true);
 };
 
     return (
@@ -257,7 +257,7 @@ const handleDelete = (stock: StockItem) => {
                 </button>
                 <button
                     type="button"
-                    onClick={() => handleDelete(stock)}
+                    onClick={() => openDeleteModal(stock.stock_no)}
                     className="text-red-600 hover:text-red-800"
                     title="Delete"
                 >
@@ -304,25 +304,32 @@ const handleDelete = (stock: StockItem) => {
             </div>
 
             <StockItemAddForm
-    open={dialogOpen}
-    onOpenChange={setDialogOpen}
-    units={units}
-    fundClusters={fundClusters}
-/>
-<StockItemViewForm
-    open={viewOpen}
-    onOpenChange={setViewOpen}
-    stock={selectedStock}
-/>
+                open={dialogOpen}
+                onOpenChange={setDialogOpen}
+                units={units}
+                fundClusters={fundClusters}
+            />
+            <StockItemViewForm
+                open={viewOpen}
+                onOpenChange={setViewOpen}
+                stock={selectedStock}
+            />
 
-<StockItemEditForm
-    open={editOpen}
-    onOpenChange={setEditOpen}
-    stock={selectedStock}
-    units={units}
-    fundClusters={fundClusters}
-/>
+            <StockItemEditForm
+                open={editOpen}
+                onOpenChange={setEditOpen}
+                stock={selectedStock}
+                units={units}
+                fundClusters={fundClusters}
+            />
+            <StockItemDeleteModal
+                open={isDeleteModalOpen}
+                onOpenChange={setIsDeleteModalOpen}
+                stockNo={stockToDelete}
+        />
         </>
+
+        
     );
 }
 

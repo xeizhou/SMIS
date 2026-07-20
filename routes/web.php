@@ -58,6 +58,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/stock-items/{stockItem}', [StockItemsController::class, 'destroy'])->name('stock-items.destroy');
 
     Route::get('/units', [UnitsController::class, 'index'])->name('units.index');
+    Route::post('/units', [UnitsController::class, 'store'])->name('units.store');
+    Route::put('/units/{unit}', [UnitsController::class, 'update'])->name('units.update');
+    Route::delete('/units/{unit}', [UnitsController::class, 'destroy'])->name('units.destroy');
     
     // Purchase Order Monitoring
     Route::get('/purchase-orders', [PurchaseOrdersController::class, 'index'])->name('purchase-orders.index');
