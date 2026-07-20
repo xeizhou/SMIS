@@ -5,6 +5,7 @@
     import { useState } from 'react';
     import FundClusterAddForm from '@/components/fundclusters/fundclusteraddform';
     import FundClusterEditForm from '@/components/fundclusters/fundclustereditform';
+    import FundClusterDeleteModal from '@/components/fundclusters/fundclusterdeletemodal';
 
     interface FundCluster {
         fund_cluster_id: string;
@@ -34,6 +35,8 @@
         const [dialogOpen, setDialogOpen] = useState(false);
         const [editOpen, setEditOpen] = useState(false);
         const [selectedFundCluster, setSelectedFundCluster] = useState<FundCluster | null>(null);
+        const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+        const [fundClusterToDelete, setFundClusterToDelete] = useState<string | null>(null);
 
         const handleSearch = (e: React.FormEvent) => {
             e.preventDefault();
@@ -66,13 +69,10 @@
             setEditOpen(true);
         };
 
-        const handleDelete = (fundCluster: FundCluster) => {
-            if (confirm(`Delete fund cluster "${fundCluster.fund_cluster_id}"?`)) {
-                router.delete(`/fund-clusters/${fundCluster.fund_cluster_id}`, {
-                    preserveScroll: true,
-                });
-            }
-        };
+        const openDeleteModal = (id: string) => {
+    setFundClusterToDelete(id);
+    setIsDeleteModalOpen(true);
+};
 
         return (
             <>
@@ -171,7 +171,7 @@
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={() => handleDelete(fc)}
+                                                        onClick={() => openDeleteModal(fc.fund_cluster_id)}
                                                         className="text-red-600 hover:text-red-800"
                                                         title="Delete"
                                                     >
@@ -217,6 +217,12 @@
                     open={editOpen}
                     onOpenChange={setEditOpen}
                     fundCluster={selectedFundCluster}
+                />
+
+                <FundClusterDeleteModal
+                    open={isDeleteModalOpen}
+                    onOpenChange={setIsDeleteModalOpen}
+                    fundClusterId={fundClusterToDelete}
                 />
             </>
         );
