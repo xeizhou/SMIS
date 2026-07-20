@@ -18,7 +18,7 @@ export function CalendarButton() {
           Calendar
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[95vw] sm:max-w-[95vw]">
+      <DialogContent className="max-w-[90vw] sm:max-w-[90vw] h-[90vh] overflow-y-auto">
         <QueryClientProvider client={queryClient}>
           <DndProviderWrapper>
             <ClientContainer />
