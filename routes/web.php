@@ -22,6 +22,7 @@ use App\Http\Controllers\OfficesController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\AuditLogsController;
 use App\Http\Controllers\SupplierController;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -79,6 +80,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/users', [UsersController::class, 'index'])->name('users.index');
     Route::get('/audit-logs', [AuditLogsController::class, 'index'])->name('audit-logs.index');
 
+    // Calendar
+    Route::get('/calendar', function () {
+    return Inertia::render('calendar/index');
+    })->name('calendar.index');
 
 });
 
