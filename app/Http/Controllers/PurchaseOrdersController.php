@@ -96,4 +96,51 @@ class PurchaseOrdersController extends Controller
 
         return redirect()->back();
     }
+
+    /**
+     * Update the specified purchase order.
+     */
+    public function update(Request $request, ServePo $servePo): RedirectResponse
+    {
+        $validated = $request->validate([
+            'po_date' => ['nullable', 'date'],
+            'po_received_date' => ['nullable', 'date'],
+            'inclusive_date' => ['nullable', 'string', 'max:100'],
+            'due_date' => ['nullable', 'date'],
+            'pr_number' => ['nullable', 'string', 'max:50'],
+            'pr_date' => ['nullable', 'date'],
+            'philgeps_reference_no' => ['nullable', 'string', 'max:50'],
+            'mode_of_procurement' => ['nullable', 'string', 'max:100'],
+            'total_amount_abc' => ['nullable', 'numeric', 'min:0'],
+            'total_amount_po' => ['nullable', 'numeric', 'min:0'],
+            'fund_cluster_id' => ['nullable', 'exists:fund_clusters,fund_cluster_id'],
+            'ors_burs_no' => ['nullable', 'string', 'max:50'],
+            'ors_burs_date' => ['nullable', 'date'],
+            'responsibility_center' => ['nullable', 'string', 'max:100'],
+            'uacs_object_code' => ['nullable', 'string', 'max:50'],
+            'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
+            'end_user' => ['nullable', 'string', 'exists:offices,office_code'],
+            'date_forwarded_to_smu' => ['nullable', 'date'],
+            'coa_processed_date' => ['nullable', 'date'],
+            'date_forwarded_frontdesk' => ['nullable', 'date'],
+        ]);
+
+        $validated['total_amount_abc'] ??= 0;
+        $validated['total_amount_po'] ??= 0;
+        $validated['total_amount_diff'] = $validated['total_amount_abc'] - $validated['total_amount_po'];
+
+        $servePo->update($validated);
+
+        return redirect()->back();
+    }
+
+    /**
+     * Remove the specified purchase order.
+     */
+    public function destroy(ServePo $purchaseOrder): RedirectResponse
+    {
+        $purchaseOrder->delete();
+
+        return redirect()->back();
+    }
 }

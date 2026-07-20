@@ -11,6 +11,9 @@ import {
 } from '@/components/ui/select';
 import { useState } from 'react';
 import PurchaseOrderAddForm from '@/components/purchase-order/poaddform';
+import PurchaseOrderEditForm from '@/components/purchase-order/poeditform';
+import PurchaseOrderDeleteModal from '@/components/purchase-order/podeletemodal';
+import PurchaseOrderViewForm from '@/components/purchase-order/poviewform';
 
 interface Supplier {
     supplier_id: number;
@@ -30,12 +33,27 @@ interface Office {
 interface PurchaseOrder {
     po_number: string;
     po_date: string | null;
+    po_received_date: string | null;
+    inclusive_date: string | null;
     due_date: string | null;
+    pr_number: string | null;
+    pr_date: string | null;
+    philgeps_reference_no: string | null;
     mode_of_procurement: string | null;
+    total_amount_abc: string | number | null;
     total_amount_po: string | number;
+    total_amount_diff: string | number | null;
     fund_cluster_id: string | null;
+    ors_burs_no: string | null;
+    ors_burs_date: string | null;
+    responsibility_center: string | null;
+    uacs_object_code: string | null;
+    fund_cluster: FundCluster | null;
     supplier_id: number | null;
     end_user: string | null;
+    date_forwarded_to_smu: string | null;
+    coa_processed_date: string | null;
+    date_forwarded_frontdesk: string | null;
     supplier: Supplier | null;
     fundCluster: FundCluster | null;
     office: Office | null;
@@ -95,7 +113,12 @@ export default function Index({
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [fundCluster, setFundCluster] = useState(filters.fund_cluster ?? 'all');
-    const [dialogOpen, setDialogOpen] = useState(false);
+    const [addDialogOpen, setAddDialogOpen] = useState(false);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [viewDialogOpen, setViewDialogOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
+    const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
 
     const runSearch = (nextFundCluster?: string) => {
         router.get(
@@ -140,17 +163,19 @@ export default function Index({
         );
     };
 
-    // Stubs — wire these up once the view/edit/delete flows exist.
-    const handleView = (po: PurchaseOrder) => {
-        console.log('view', po.po_number);
+    const handleEdit = (po: PurchaseOrder) => {
+        setSelectedPO(po);
+        setEditDialogOpen(true);
     };
 
-    const handleEdit = (po: PurchaseOrder) => {
-        console.log('edit', po.po_number);
+    const handleView = (po: PurchaseOrder) => {
+        setSelectedPO(po);
+        setViewDialogOpen(true);
     };
 
     const handleDelete = (po: PurchaseOrder) => {
-        console.log('delete', po.po_number);
+        setPoToDelete(po);
+        setDeleteDialogOpen(true);
     };
 
     return (
@@ -179,7 +204,7 @@ export default function Index({
                         <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
                             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                placeholder="Search PO #, PR #, PhilGEPS ref, supplier..."
+                                placeholder="Search PO"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="pl-9"
@@ -218,7 +243,7 @@ export default function Index({
 
                     <Button
                         type="button"
-                        onClick={() => setDialogOpen(true)}
+                        onClick={() => setAddDialogOpen(true)}
                         className="w-full lg:w-auto"
                         style={{ backgroundColor: '#612A35' }}
                     >
@@ -293,7 +318,7 @@ export default function Index({
                                             {po.office?.office_name ?? '—'}
                                         </td>
                                         <td className="px-4 py-3">
-                                            {po.fundCluster?.fund_cluster_id ?? '—'}
+                                            {po.fund_cluster?.fund_cluster_id ?? '—'}
                                         </td>
                                         <td className="px-4 py-3">
                                             {po.mode_of_procurement ?? '—'}
@@ -308,36 +333,31 @@ export default function Index({
                                             {formatCurrency(po.total_amount_po)}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <Button
+                                            <div className="flex items-center justify-center gap-3">
+                                                <button
                                                     type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="size-8"
-                                                    onClick={() => handleView(po)}
-                                                >
-                                                    <Eye className="size-4" />
-                                                </Button>
-
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="size-8"
                                                     onClick={() => handleEdit(po)}
+                                                    className="text-blue-600 hover:text-blue-800"
+                                                    title="Edit"
                                                 >
                                                     <Pencil className="size-4" />
-                                                </Button>
-
-                                                <Button
+                                                </button>
+                                                <button
                                                     type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="size-8 text-red-500 hover:text-red-600"
                                                     onClick={() => handleDelete(po)}
+                                                    className="text-red-600 hover:text-red-800"
+                                                    title="Delete"
                                                 >
                                                     <Trash2 className="size-4" />
-                                                </Button>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleView(po)}
+                                                    className="text-foreground hover:text-muted-foreground"
+                                                    title="View"
+                                                >
+                                                    <Eye className="size-4" />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -370,11 +390,32 @@ export default function Index({
             </div>
 
             <PurchaseOrderAddForm
-                open={dialogOpen}
-                onOpenChange={setDialogOpen}
+                open={addDialogOpen}
+                onOpenChange={setAddDialogOpen}
                 suppliers={suppliers}
                 fundClusters={fundClusters}
                 offices={offices}
+            />
+
+            <PurchaseOrderEditForm
+                open={editDialogOpen}
+                onOpenChange={setEditDialogOpen}
+                purchaseOrder={selectedPO}
+                suppliers={suppliers}
+                fundClusters={fundClusters}
+                offices={offices}
+            />
+
+            <PurchaseOrderViewForm
+                open={viewDialogOpen}
+                onOpenChange={setViewDialogOpen}
+                purchaseOrder={selectedPO}
+            />
+
+            <PurchaseOrderDeleteModal
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                poNumber={poToDelete?.po_number ?? null}
             />
         </>
     );
