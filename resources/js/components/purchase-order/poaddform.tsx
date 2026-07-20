@@ -50,7 +50,7 @@ interface FieldProps {
     type?: string;
 }
 
-const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+const labelClass = 'mb-1 block text-sm text-foreground';
 
 // Defined outside the parent component so it doesn't remount (and drop
 // focus) on every parent re-render.
@@ -214,268 +214,264 @@ export default function PurchaseOrderAddForm({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+            <DialogContent
+                    className="w-[95vw] max-h-[90vh] overflow-y-auto"
+                    style={{ maxWidth: '896px' }}
+                >
                 <DialogHeader>
                     <DialogTitle>New Purchase Order</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4 space-y-6">
-                    {/* Basic Details */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-foreground">
-                            Basic Details
-                        </h3>
-
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <form onSubmit={handleSubmit} className="mt-4">
+                    <div className="grid grid-cols-2 gap-10 w-full">
+                        {/* Left column */}
+                        <div className="space-y-5">
                             <Field
-                                label="PO Number"
+                                label="Purchase Order No."
                                 name="po_number"
                                 value={data.po_number}
                                 onChange={handleChange}
                                 error={errors.po_number}
                                 required
-                                placeholder="e.g. PO-2026-001"
                             />
 
-                            <SelectField
-                                label="Supplier"
-                                value={data.supplier_id}
-                                onChange={handleSelectChange('supplier_id')}
-                                error={errors.supplier_id}
-                                placeholder="Select supplier"
-                                options={suppliers.map((s) => ({
-                                    value: String(s.supplier_id),
-                                    label: s.supplier_name,
-                                }))}
-                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field
+                                    label="PO Date"
+                                    name="po_date"
+                                    type="date"
+                                    value={data.po_date}
+                                    onChange={handleChange}
+                                    error={errors.po_date}
+                                />
 
-                            <Field
-                                label="PO Date"
-                                name="po_date"
-                                type="date"
-                                value={data.po_date}
-                                onChange={handleChange}
-                                error={errors.po_date}
-                            />
+                                <Field
+                                    label="PO Received Date"
+                                    name="po_received_date"
+                                    type="date"
+                                    value={data.po_received_date}
+                                    onChange={handleChange}
+                                    error={errors.po_received_date}
+                                />
+                            </div>
 
-                            <Field
-                                label="PO Received Date"
-                                name="po_received_date"
-                                type="date"
-                                value={data.po_received_date}
-                                onChange={handleChange}
-                                error={errors.po_received_date}
-                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field
+                                    label="Due Date"
+                                    name="due_date"
+                                    type="date"
+                                    value={data.due_date}
+                                    onChange={handleChange}
+                                    error={errors.due_date}
+                                />
 
-                            <Field
-                                label="Inclusive Date"
-                                name="inclusive_date"
-                                value={data.inclusive_date}
-                                onChange={handleChange}
-                                error={errors.inclusive_date}
-                                placeholder="e.g. Jan 1 - Jan 15, 2026"
-                            />
+                                <Field
+                                    label="PR No."
+                                    name="pr_number"
+                                    value={data.pr_number}
+                                    onChange={handleChange}
+                                    error={errors.pr_number}
+                                />
+                            </div>
 
-                            <Field
-                                label="Due Date"
-                                name="due_date"
-                                type="date"
-                                value={data.due_date}
-                                onChange={handleChange}
-                                error={errors.due_date}
-                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field
+                                    label="PR Date"
+                                    name="pr_date"
+                                    type="date"
+                                    value={data.pr_date}
+                                    onChange={handleChange}
+                                    error={errors.pr_date}
+                                />
 
-                            <Field
-                                label="Mode of Procurement"
-                                name="mode_of_procurement"
-                                value={data.mode_of_procurement}
-                                onChange={handleChange}
-                                error={errors.mode_of_procurement}
-                                placeholder="e.g. Small Value Procurement"
-                            />
+                                <Field
+                                    label="Philgeps Reference No."
+                                    name="philgeps_reference_no"
+                                    value={data.philgeps_reference_no}
+                                    onChange={handleChange}
+                                    error={errors.philgeps_reference_no}
+                                />
+                            </div>
 
-                            <SelectField
-                                label="End User (Office)"
-                                value={data.end_user}
-                                onChange={handleSelectChange('end_user')}
-                                error={errors.end_user}
-                                placeholder="Select office"
-                                options={offices.map((o) => ({
-                                    value: o.office_code,
-                                    label: o.office_code,
-                                }))}
-                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <SelectField
+                                    label="Mode of Procurement"
+                                    value={data.mode_of_procurement}
+                                    onChange={handleSelectChange('mode_of_procurement')}
+                                    error={errors.mode_of_procurement}
+                                    placeholder="Select Mode of Procurement"
+                                    options={[
+                                        {
+                                            value: 'SMALL VALUE PROCUREMENT',
+                                            label: 'SMALL VALUE PROCUREMENT',
+                                        },
+                                        {
+                                            value: 'PUBLIC BIDDING',
+                                            label: 'PUBLIC BIDDING',
+                                        },
+                                        {
+                                            value: 'SHOPPING',
+                                            label: 'SHOPPING',
+                                        },
+                                    ]}
+                                />
+
+                                <Field
+                                    label="Inclusive Date"
+                                    name="inclusive_date"
+                                    value={data.inclusive_date}
+                                    onChange={handleChange}
+                                    error={errors.inclusive_date}
+                                    placeholder="e.g. Jan 1 - Jan 15, 2026"
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Reference Numbers */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-foreground">
-                            Reference Numbers
-                        </h3>
+                        {/* Right column */}
+                        <div className="space-y-5">
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field
+                                    label="Total Amount ABC"
+                                    name="total_amount_abc"
+                                    type="number"
+                                    value={data.total_amount_abc}
+                                    onChange={handleChange}
+                                    error={errors.total_amount_abc}
+                                />
 
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <Field
-                                label="PR Number"
-                                name="pr_number"
-                                value={data.pr_number}
-                                onChange={handleChange}
-                                error={errors.pr_number}
-                            />
+                                <Field
+                                    label="Total Amount PO"
+                                    name="total_amount_po"
+                                    type="number"
+                                    value={data.total_amount_po}
+                                    onChange={handleChange}
+                                    error={errors.total_amount_po}
+                                />
+                            </div>
 
-                            <Field
-                                label="PR Date"
-                                name="pr_date"
-                                type="date"
-                                value={data.pr_date}
-                                onChange={handleChange}
-                                error={errors.pr_date}
-                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className={labelClass}>
+                                        Total Amount Difference
+                                    </label>
 
-                            <Field
-                                label="PhilGEPS Reference No."
-                                name="philgeps_reference_no"
-                                value={data.philgeps_reference_no}
-                                onChange={handleChange}
-                                error={errors.philgeps_reference_no}
-                            />
-                        </div>
-                    </div>
+                                    <Input
+                                        value={diff.toFixed(2)}
+                                        disabled
+                                        className="bg-muted text-muted-foreground"
+                                    />
+                                </div>
 
-                    {/* Amounts */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-foreground">
-                            Amounts
-                        </h3>
+                                <SelectField
+                                    label="Fund Cluster"
+                                    value={data.fund_cluster_id}
+                                    onChange={handleSelectChange('fund_cluster_id')}
+                                    error={errors.fund_cluster_id}
+                                    placeholder="Select"
+                                    options={fundClusters.map((fc) => ({
+                                        value: fc.fund_cluster_id,
+                                        label: fc.fund_cluster_id,
+                                    }))}
+                                />
+                            </div>
 
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            <Field
-                                label="ABC Amount"
-                                name="total_amount_abc"
-                                type="number"
-                                value={data.total_amount_abc}
-                                onChange={handleChange}
-                                error={errors.total_amount_abc}
-                                placeholder="0.00"
-                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field
+                                    label="ORS/BUR No."
+                                    name="ors_burs_no"
+                                    value={data.ors_burs_no}
+                                    onChange={handleChange}
+                                    error={errors.ors_burs_no}
+                                />
 
-                            <Field
-                                label="PO Amount"
-                                name="total_amount_po"
-                                type="number"
-                                value={data.total_amount_po}
-                                onChange={handleChange}
-                                error={errors.total_amount_po}
-                                placeholder="0.00"
-                            />
+                                <Field
+                                    label="ORS/BURS Date"
+                                    name="ors_burs_date"
+                                    type="date"
+                                    value={data.ors_burs_date}
+                                    onChange={handleChange}
+                                    error={errors.ors_burs_date}
+                                />
+                            </div>
 
-                            <div>
-                                <label className={labelClass}>
-                                    Difference (ABC − PO)
-                                </label>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field
+                                    label="Responsibility Center"
+                                    name="responsibility_center"
+                                    value={data.responsibility_center}
+                                    onChange={handleChange}
+                                    error={errors.responsibility_center}
+                                />
 
-                                <Input
-                                    value={diff.toFixed(2)}
-                                    disabled
-                                    className="bg-muted text-muted-foreground"
+                                <Field
+                                    label="UACS Object Code"
+                                    name="uacs_object_code"
+                                    value={data.uacs_object_code}
+                                    onChange={handleChange}
+                                    error={errors.uacs_object_code}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <SelectField
+                                    label="Supplier"
+                                    value={data.supplier_id}
+                                    onChange={handleSelectChange('supplier_id')}
+                                    error={errors.supplier_id}
+                                    placeholder="Select"
+                                    options={suppliers.map((s) => ({
+                                        value: String(s.supplier_id),
+                                        label: s.supplier_name,
+                                    }))}
+                                />
+
+                                <SelectField
+                                    label="End User"
+                                    value={data.end_user}
+                                    onChange={handleSelectChange('end_user')}
+                                    error={errors.end_user}
+                                    placeholder="Select"
+                                    options={offices.map((o) => ({
+                                        value: o.office_code,
+                                        label: o.office_code,
+                                    }))}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field
+                                    label="Date forwarded to SMU"
+                                    name="date_forwarded_to_smu"
+                                    type="date"
+                                    value={data.date_forwarded_to_smu}
+                                    onChange={handleChange}
+                                    error={errors.date_forwarded_to_smu}
+                                />
+
+                                <Field
+                                    label="COA Processed Date"
+                                    name="coa_processed_date"
+                                    type="date"
+                                    value={data.coa_processed_date}
+                                    onChange={handleChange}
+                                    error={errors.coa_processed_date}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field
+                                    label="Date Forwarded to Frontdesk"
+                                    name="date_forwarded_frontdesk"
+                                    type="date"
+                                    value={data.date_forwarded_frontdesk}
+                                    onChange={handleChange}
+                                    error={errors.date_forwarded_frontdesk}
                                 />
                             </div>
                         </div>
                     </div>
 
-                    {/* Fund & Accounting */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-foreground">
-                            Fund &amp; Accounting
-                        </h3>
-
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <SelectField
-                                label="Fund Cluster"
-                                value={data.fund_cluster_id}
-                                onChange={handleSelectChange('fund_cluster_id')}
-                                error={errors.fund_cluster_id}
-                                placeholder="Select fund cluster"
-                                options={fundClusters.map((fc) => ({
-                                    value: fc.fund_cluster_id,
-                                    label: fc.fund_description
-                                        ? `${fc.fund_cluster_id} — ${fc.fund_description}`
-                                        : fc.fund_cluster_id,
-                                }))}
-                            />
-
-                            <Field
-                                label="ORS/BURS No."
-                                name="ors_burs_no"
-                                value={data.ors_burs_no}
-                                onChange={handleChange}
-                                error={errors.ors_burs_no}
-                            />
-
-                            <Field
-                                label="ORS/BURS Date"
-                                name="ors_burs_date"
-                                type="date"
-                                value={data.ors_burs_date}
-                                onChange={handleChange}
-                                error={errors.ors_burs_date}
-                            />
-
-                            <Field
-                                label="Responsibility Center"
-                                name="responsibility_center"
-                                value={data.responsibility_center}
-                                onChange={handleChange}
-                                error={errors.responsibility_center}
-                            />
-
-                            <Field
-                                label="UACS Object Code"
-                                name="uacs_object_code"
-                                value={data.uacs_object_code}
-                                onChange={handleChange}
-                                error={errors.uacs_object_code}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Routing */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-foreground">
-                            Routing
-                        </h3>
-
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            <Field
-                                label="Forwarded to SMU"
-                                name="date_forwarded_to_smu"
-                                type="date"
-                                value={data.date_forwarded_to_smu}
-                                onChange={handleChange}
-                                error={errors.date_forwarded_to_smu}
-                            />
-
-                            <Field
-                                label="COA Processed Date"
-                                name="coa_processed_date"
-                                type="date"
-                                value={data.coa_processed_date}
-                                onChange={handleChange}
-                                error={errors.coa_processed_date}
-                            />
-
-                            <Field
-                                label="Forwarded to Frontdesk"
-                                name="date_forwarded_frontdesk"
-                                type="date"
-                                value={data.date_forwarded_frontdesk}
-                                onChange={handleChange}
-                                error={errors.date_forwarded_frontdesk}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-2">
+                    <div className="mt-8 flex justify-end gap-3">
                         <Button
                             type="button"
                             variant="outline"
@@ -487,9 +483,9 @@ export default function PurchaseOrderAddForm({
                         <Button
                             type="submit"
                             disabled={processing}
-                            style={{ backgroundColor: '#612A35' }}
+                            style={{ backgroundColor: '#370001' }}
                         >
-                            {processing ? 'Saving...' : 'Save Purchase Order'}
+                            {processing ? 'Saving...' : 'Save New Data'}
                         </Button>
                     </div>
                 </form>

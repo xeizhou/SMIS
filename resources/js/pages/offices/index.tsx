@@ -5,6 +5,7 @@ import { Search, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import OfficeAddForm from '@/components/offices/officeaddform';
 import OfficeEditForm from '@/components/offices/officeeditform';
+import OfficeDeleteModal from '@/components/offices/officedeletemodal';
 
 interface Office {
     office_code: string;
@@ -41,14 +42,9 @@ export default function Index({
     const [selectedOffice, setSelectedOffice] =
     useState<Office | null>(null);
 
-    const handleDelete = (officeCode: string) => {
-        if (!confirm('Are you sure you want to delete this office?')) {
-            return;
-        }
-
-        router.delete(`/offices/${officeCode}`, {
-            preserveScroll: true,
-        });
+    const handleDelete = (office: Office) => {
+        setSelectedOfficeCode(office.office_code);
+        setDeleteOpen(true);
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -80,6 +76,9 @@ export default function Index({
             }
         );
     };
+
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [selectedOfficeCode, setSelectedOfficeCode] = useState<string | null>(null);
 
     return (
         <>
@@ -230,7 +229,7 @@ export default function Index({
                                                 </button>
 
                                                 <button
-                                                    onClick={() => handleDelete(office.office_code)}
+                                                    onClick={() => handleDelete(office)}
                                                     className="text-red-500 hover:text-red-700 transition-colors"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -280,6 +279,12 @@ export default function Index({
                 open={editOpen}
                 onOpenChange={setEditOpen}
                 office={selectedOffice}
+            />
+
+            <OfficeDeleteModal
+                open={deleteOpen}
+                onOpenChange={setDeleteOpen}
+                officeCode={selectedOfficeCode}
             />
         </>
     );

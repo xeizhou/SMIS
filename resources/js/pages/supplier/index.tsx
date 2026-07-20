@@ -12,6 +12,7 @@ import {
 import { useState } from 'react';
 import SupplierAddForm from '@/components/suppliers/supplieraddform';
 import SupplierEditForm from '@/components/suppliers/suppliereditform';
+import SupplierDeleteModal from '@/components/suppliers/supplierdeletemodal';
 
 interface Supplier {
     supplier_id: number;
@@ -51,14 +52,9 @@ export default function Index({
     const [selectedSupplier, setSelectedSupplier] =
         useState<Supplier | null>(null);
 
-    const handleDelete = (supplierId: number) => {
-        if (!confirm('Are you sure you want to delete this supplier?')) {
-            return;
-        }
-
-        router.delete(`/supplier/${supplierId}`, {
-            preserveScroll: true,
-        });
+    const handleDelete = (supplier: Supplier) => {
+        setSelectedSupplierId(supplier.supplier_id);
+        setDeleteOpen(true);
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -92,6 +88,9 @@ export default function Index({
             }
         );
     };
+
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [selectedSupplierId, setSelectedSupplierId] = useState<number | null>(null);
 
     return (
         <>
@@ -283,8 +282,8 @@ export default function Index({
                                                 </button>
 
                                                 <button
-                                                    onClick={() => handleDelete(supplier.supplier_id)}
-                                                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                                    onClick={() => handleDelete(supplier)}
+                                                    className="text-red-500 hover:text-red-700 transition-colors"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
@@ -332,6 +331,11 @@ export default function Index({
                 open={editOpen}
                 onOpenChange={setEditOpen}
                 supplier={selectedSupplier}
+            />
+            <SupplierDeleteModal
+                open={deleteOpen}
+                onOpenChange={setDeleteOpen}
+                supplierId={selectedSupplierId}
             />
         </>
     );
