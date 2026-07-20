@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import {
     Dialog,
@@ -31,9 +31,34 @@ interface Office {
     office_name: string;
 }
 
+interface PurchaseOrder {
+    po_number: string;
+    po_date: string | null;
+    po_received_date: string | null;
+    inclusive_date: string | null;
+    due_date: string | null;
+    pr_number: string | null;
+    pr_date: string | null;
+    philgeps_reference_no: string | null;
+    mode_of_procurement: string | null;
+    total_amount_abc: string | number | null;
+    total_amount_po: string | number | null;
+    fund_cluster_id: string | null;
+    ors_burs_no: string | null;
+    ors_burs_date: string | null;
+    responsibility_center: string | null;
+    uacs_object_code: string | null;
+    supplier_id: number | string | null;
+    end_user: string | null;
+    date_forwarded_to_smu: string | null;
+    coa_processed_date: string | null;
+    date_forwarded_frontdesk: string | null;
+}
+
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    purchaseOrder: PurchaseOrder | null;
     suppliers: Supplier[];
     fundClusters: FundCluster[];
     offices: Office[];
@@ -159,6 +184,60 @@ const emptyForm = {
     date_forwarded_frontdesk: '',
 };
 
+function toDateInputValue(value: string | null): string {
+    if (!value) return '';
+
+    // Already in YYYY-MM-DD form
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+    // ISO timestamp (e.g. "2026-01-15T00:00:00.000000Z") — just slice it
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+
+    // Fallback: let the Date constructor try, guard against Invalid Date
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '';
+
+    return parsed.toISOString().slice(0, 10);
+}
+
+function toFormData(po: PurchaseOrder | null): typeof emptyForm {
+    if (!po) return emptyForm;
+
+    return {
+        po_number: po.po_number ?? '',
+        po_date: toDateInputValue(po.po_date),
+        po_received_date: toDateInputValue(po.po_received_date),
+        inclusive_date: po.inclusive_date ?? '',
+        due_date: toDateInputValue(po.due_date),
+        pr_number: po.pr_number ?? '',
+        pr_date: toDateInputValue(po.pr_date),
+        philgeps_reference_no: po.philgeps_reference_no ?? '',
+        mode_of_procurement: po.mode_of_procurement ?? '',
+        total_amount_abc:
+            po.total_amount_abc === null || po.total_amount_abc === undefined
+                ? ''
+                : String(po.total_amount_abc),
+        total_amount_po:
+            po.total_amount_po === null || po.total_amount_po === undefined
+                ? ''
+                : String(po.total_amount_po),
+        fund_cluster_id: po.fund_cluster_id ?? '',
+        ors_burs_no: po.ors_burs_no ?? '',
+        ors_burs_date: toDateInputValue(po.ors_burs_date),
+        responsibility_center: po.responsibility_center ?? '',
+        uacs_object_code: po.uacs_object_code ?? '',
+        supplier_id:
+            po.supplier_id === null || po.supplier_id === undefined
+                ? ''
+                : String(po.supplier_id),
+        end_user: po.end_user ?? '',
+        date_forwarded_to_smu: toDateInputValue(po.date_forwarded_to_smu),
+        coa_processed_date: toDateInputValue(po.coa_processed_date),
+        date_forwarded_frontdesk: toDateInputValue(po.date_forwarded_frontdesk),
+    };
+}
+
 function calculateDiff(abc: string, po: string) {
     const abcValue = parseFloat(abc);
     const poValue = parseFloat(po);
@@ -166,16 +245,17 @@ function calculateDiff(abc: string, po: string) {
     const safeAbc = Number.isNaN(abcValue) ? 0 : abcValue;
     const safePo = Number.isNaN(poValue) ? 0 : poValue;
 
-    return safePo- safeAbc;
+    return safePo - safeAbc;
 }
 
 function calculateResponsibilityCenter(fundClusterId: string, endUser: string) {
     return [fundClusterId, endUser].filter(Boolean).join(' ');
 }
 
-export default function PurchaseOrderAddForm({
+export default function PurchaseOrderEditForm({
     open,
     onOpenChange,
+    purchaseOrder,
     suppliers,
     fundClusters,
     offices,
@@ -183,6 +263,14 @@ export default function PurchaseOrderAddForm({
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+
+    // Re-sync form state whenever a different PO is opened for editing.
+    useEffect(() => {
+        if (open) {
+            setData(toFormData(purchaseOrder));
+            setErrors({});
+        }
+    }, [open, purchaseOrder]);
 
     const diff = calculateDiff(data.total_amount_abc, data.total_amount_po);
     const responsibilityCenter = calculateResponsibilityCenter(data.fund_cluster_id, data.end_user);
@@ -203,10 +291,13 @@ export default function PurchaseOrderAddForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!purchaseOrder) return;
+
         setProcessing(true);
 
-        router.post(
-            '/purchase-orders',
+        router.put(
+            `/purchase-orders/${encodeURIComponent(purchaseOrder.po_number)}`,
             {
                 ...data,
                 total_amount_diff: diff,
@@ -215,7 +306,6 @@ export default function PurchaseOrderAddForm({
             {
                 onSuccess: () => {
                     onOpenChange(false);
-                    setData(emptyForm);
                     setErrors({});
                 },
                 onError: (errors) => setErrors(errors),
@@ -231,21 +321,28 @@ export default function PurchaseOrderAddForm({
                     style={{ maxWidth: '900px' }}
                 >
                 <DialogHeader>
-                    <DialogTitle>New Purchase Order</DialogTitle>
+                    <DialogTitle>Edit Purchase Order</DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="mt-4">
                     <div className="grid grid-cols-2 gap-10 w-full">
                         {/* Left column */}
                         <div className="space-y-5">
-                            <Field
-                                label="Purchase Order No."
-                                name="po_number"
-                                value={data.po_number}
-                                onChange={handleChange}
-                                error={errors.po_number}
-                                required
-                            />
+                            <div>
+                                <label className={labelClass}>
+                                    Purchase Order No.
+                                </label>
+
+                                <Input
+                                    value={data.po_number}
+                                    disabled
+                                    className="bg-muted text-muted-foreground"
+                                />
+
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    PO Number cannot be changed after creation.
+                                </p>
+                            </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <Field
@@ -495,7 +592,7 @@ export default function PurchaseOrderAddForm({
                             disabled={processing}
                             style={{ backgroundColor: '#370001' }}
                         >
-                            {processing ? 'Saving...' : 'Save New Data'}
+                            {processing ? 'Saving...' : 'Update Data'}
                         </Button>
                     </div>
                 </form>
