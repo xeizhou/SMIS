@@ -36,6 +36,12 @@ function hrefToUrl(href: NavItem['href']) {
     return (href as { url?: string })?.url ?? '#';
 }
 
+// Strips the query string (and hash) so that /units?search=abc
+// still matches the nav item pointing to /units.
+function stripQuery(url: string) {
+    return url.split('?')[0].split('#')[0];
+}
+
 export function NavMain({
     sections = [],
     searchQuery = '',
@@ -47,8 +53,10 @@ export function NavMain({
     const { state, isMobile } = useSidebar();
     const isCollapsed = state === 'collapsed' && !isMobile;
 
+    const currentPath = stripQuery(page.url);
+
     const initiallyOpen = sections.find((section) =>
-        section.items.some((item) => hrefToUrl(item.href) === page.url),
+        section.items.some((item) => hrefToUrl(item.href) === currentPath),
     )?.title;
 
     const [openSection, setOpenSection] = useState<string | undefined>(
@@ -59,15 +67,18 @@ export function NavMain({
     const isSearching = query.length > 0;
 
     // Keep the accordion synced to whatever section contains the current page,
-    // e.g. after navigating from a search result.
+    // e.g. after navigating from a search result, or after searching/filtering
+    // within a page (which only changes the query string, not the path).
     useEffect(() => {
-    if (!isSearching) {
-        const activeSection = sections.find((section) =>
-            section.items.some((item) => hrefToUrl(item.href) === page.url),
-        );
-        setOpenSection(activeSection ? activeSection.title : undefined);
-    }
-}, [page.url, searchQuery]);
+        if (!isSearching) {
+            const activeSection = sections.find((section) =>
+                section.items.some(
+                    (item) => hrefToUrl(item.href) === currentPath,
+                ),
+            );
+            setOpenSection(activeSection ? activeSection.title : undefined);
+        }
+    }, [currentPath, searchQuery]);
 
     const filteredSections = sections
         .map((section) => ({
@@ -96,7 +107,7 @@ export function NavMain({
 
                 {filteredSections.map((section) => {
                     const isSectionActive = section.items.some(
-                        (item) => hrefToUrl(item.href) === page.url,
+                        (item) => hrefToUrl(item.href) === currentPath,
                     );
 
                     if (isCollapsed) {
@@ -176,7 +187,7 @@ export function NavMain({
                                                     <SidebarMenuSubButton
                                                         asChild
                                                         isActive={
-                                                            url === page.url
+                                                            url === currentPath
                                                         }
                                                     >
                                                         <Link
