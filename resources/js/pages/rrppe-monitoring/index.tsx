@@ -63,17 +63,6 @@ export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, fi
 
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
-
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            router.get('/rrppe-monitoring', { search: searchQuery, status: statusFilter }, {
-                preserveState: true,
-                replace: true,
-            });
-        }, 300);
-        return () => clearTimeout(timeout);
-    }, [searchQuery, statusFilter]);
-
     const [selectedItem, setSelectedItem] = useState<RRPPEMonitoring | null>(null);
 
     const openAddModal = () => {
@@ -89,13 +78,14 @@ export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, fi
     const handleClear = () => {
         setSearchQuery('');
         setStatusFilter('all');
-        router.get('/rrppe-monitoring', {}, { preserveState: true, replace: true });
+        router.get('/rrppe-monitoring', {}, { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         router.get('/rrppe-monitoring', { search: searchQuery, status: statusFilter }, {
             preserveState: true,
+            preserveScroll: true,
             replace: true,
         });
     };
@@ -150,7 +140,14 @@ export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, fi
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
-                        <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val)}>
+                        <Select value={statusFilter} onValueChange={(val) => {
+                            setStatusFilter(val);
+                            router.get('/rrppe-monitoring', { search: searchQuery, status: val }, {
+                                preserveState: true,
+                                preserveScroll: true,
+                                replace: true,
+                            });
+                        }}>
                             <SelectTrigger className="w-[200px] bg-white dark:bg-gray-900">
                                 <SelectValue placeholder="All Statuses" />
                             </SelectTrigger>
