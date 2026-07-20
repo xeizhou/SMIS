@@ -1,7 +1,12 @@
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Search, Pencil, Trash2, Eye } from 'lucide-react';
+import { useState } from 'react';
+import RrppeAddForm from '@/components/rrppe-monitoring/rrppe-add-form';
+import RrppeDeleteModal from '@/components/rrppe-monitoring/rrppe-delete-modal';
+import RrppeEditForm from '@/components/rrppe-monitoring/rrppe-edit-form';
+import RrppeViewModal from '@/components/rrppe-monitoring/rrppe-view-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, PlusCircle, Pencil, Trash2, Eye } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -9,15 +14,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from '@/components/ui/dialog';
-import { useState, useEffect } from 'react';
-import RrppeForm from '@/components/rrppe-monitoring/rrppe-form';
 
 export type RRPPEMonitoring = {
     id: number;
@@ -36,9 +32,16 @@ export type RRPPEMonitoring = {
 };
 
 const formatCurrency = (amount: number | string | null | undefined) => {
-    if (amount === null || amount === undefined || amount === '') return '-';
+    if (amount === null || amount === undefined || amount === '') {
+return '-';
+}
+
     const num = Number(amount);
-    if (isNaN(num)) return '-';
+
+    if (isNaN(num)) {
+return '-';
+}
+
     return new Intl.NumberFormat('en-PH', {
         style: 'currency',
         currency: 'PHP',
@@ -55,7 +58,8 @@ export type PaginatedRRPPE = {
 };
 
 export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, filters?: any }) {
-    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [viewItem, setViewItem] = useState<RRPPEMonitoring | null>(null);
@@ -67,12 +71,12 @@ export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, fi
 
     const openAddModal = () => {
         setSelectedItem(null);
-        setIsFormModalOpen(true);
+        setIsAddModalOpen(true);
     };
 
     const openEditModal = (item: RRPPEMonitoring) => {
         setSelectedItem(item);
-        setIsFormModalOpen(true);
+        setIsEditModalOpen(true);
     };
 
     const handleClear = () => {
@@ -98,17 +102,6 @@ export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, fi
     const openDeleteModal = (id: number) => {
         setItemToDelete(id);
         setIsDeleteModalOpen(true);
-    };
-
-    const confirmDelete = () => {
-        if (itemToDelete) {
-            router.delete(`/rrppe-monitoring/${itemToDelete}`, {
-                onSuccess: () => {
-                    setIsDeleteModalOpen(false);
-                    setItemToDelete(null);
-                }
-            });
-        }
     };
 
     return (
@@ -268,85 +261,28 @@ export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, fi
                 )}
             </div>
 
-            <RrppeForm
-                open={isFormModalOpen}
-                onOpenChange={setIsFormModalOpen}
+            <RrppeAddForm
+                open={isAddModalOpen}
+                onOpenChange={setIsAddModalOpen}
+            />
+
+            <RrppeEditForm
+                open={isEditModalOpen}
+                onOpenChange={setIsEditModalOpen}
                 item={selectedItem}
             />
 
-            {/* View Modal */}
-            <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-                <DialogContent className="sm:max-w-xl">
-                    <DialogHeader>
-                        <DialogTitle>View RRPPE Record</DialogTitle>
-                    </DialogHeader>
-                    {viewItem && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6 py-4">
-                            <div>
-                                <h4 className="text-sm font-semibold text-gray-500">RRPPE No.</h4>
-                                <p className="mt-1 text-gray-900 dark:text-gray-100">{viewItem.rrppe_no}</p>
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-semibold text-gray-500">Date Received</h4>
-                                <p className="mt-1 text-gray-900 dark:text-gray-100">{viewItem.date_received}</p>
-                            </div>
-                            <div className="md:col-span-2">
-                                <h4 className="text-sm font-semibold text-gray-500">Item Description</h4>
-                                <p className="mt-1 text-gray-900 dark:text-gray-100">{viewItem.item_description}</p>
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-semibold text-gray-500">Quantity</h4>
-                                <p className="mt-1 text-gray-900 dark:text-gray-100">{viewItem.quantity}</p>
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-semibold text-gray-500">Property No.</h4>
-                                <p className="mt-1 text-gray-900 dark:text-gray-100">{viewItem.property_no}</p>
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-semibold text-gray-500">End User Name</h4>
-                                <p className="mt-1 text-gray-900 dark:text-gray-100">{viewItem.end_user_name || '-'}</p>
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-semibold text-gray-500">Cost</h4>
-                                <p className="mt-1 text-gray-900 dark:text-gray-100">{formatCurrency(viewItem.cost)}</p>
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-semibold text-gray-500">Status</h4>
-                                <p className="mt-1 text-gray-900 dark:text-gray-100">{viewItem.status || '-'}</p>
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-semibold text-gray-500">Area</h4>
-                                <p className="mt-1 text-gray-900 dark:text-gray-100">{viewItem.area || '-'}</p>
-                            </div>
-                            <div className="md:col-span-2">
-                                <h4 className="text-sm font-semibold text-gray-500">Remarks</h4>
-                                <p className="mt-1 text-gray-900 dark:text-gray-100">{viewItem.remarks || '-'}</p>
-                            </div>
-                        </div>
-                    )}
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <RrppeViewModal
+                open={isViewModalOpen}
+                onOpenChange={setIsViewModalOpen}
+                item={viewItem}
+            />
 
-            {/* Delete Modal */}
-            <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Confirm Deletion</DialogTitle>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <p className="text-gray-700 dark:text-gray-300">
-                            Are you sure you want to delete this record? This action cannot be undone.
-                        </p>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>
-                        <Button variant="destructive" onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white">Delete</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <RrppeDeleteModal 
+                open={isDeleteModalOpen} 
+                onOpenChange={setIsDeleteModalOpen} 
+                itemId={itemToDelete} 
+            />
         </>
     );
 }
