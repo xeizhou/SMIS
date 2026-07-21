@@ -43,6 +43,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/rrsp-monitoring/{rrsp}', [RRSPController::class, 'destroy'])->name('rrsp-monitoring.destroy');
 
     Route::get('/regspi-monitoring', [RegSPIController::class, 'index'])->name('regspi-monitoring.index');
+    Route::post('/regspi-monitoring', [RegSPIController::class, 'store'])->name('regspi-monitoring.store');
+    Route::put('/regspi-monitoring/{regspi}', [RegSPIController::class, 'update'])->name('regspi-monitoring.update');
+    Route::delete('/regspi-monitoring/{regspi}', [RegSPIController::class, 'destroy'])->name('regspi-monitoring.destroy');
 
     Route::get('/itr-ptr-monitoring', [ITRPTRController::class, 'index'])->name('itr-ptr-monitoring.index');
 
@@ -75,6 +78,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/purchase-orders/{purchaseOrder}', [PurchaseOrdersController::class, 'destroy'])->name('purchase-orders.destroy');
 
     Route::get('/po-letter-monitoring', [POLetterMonitoringController::class, 'index'])->name('po-letter-monitoring.index');
+    Route::post('/po-letter-monitoring', [POLetterMonitoringController::class, 'store'])->name('po-letter-monitoring.store');
+    Route::put('/po-letter-monitoring/{poLetterMonitoring}', [POLetterMonitoringController::class, 'update'])->name('po-letter-monitoring.update');
+    Route::delete('/po-letter-monitoring/{poLetterMonitoring}', [POLetterMonitoringController::class, 'destroy'])->name('po-letter-monitoring.destroy');
 
     Route::get('/deliveries', [DeliveriesController::class, 'index'])->name('deliveries.index');
 

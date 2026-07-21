@@ -48,8 +48,9 @@ interface Filters {
 interface Props {
     rrspMonitorings: PaginatedRrspMonitoring;
     filters: Filters;
-    statuses: string[];
 }
+
+const STATUS_OPTIONS = ['Serviceable', 'Unserviceable'];
 
 function formatCurrency(value: number | null) {
     if (value === null) return '—';
@@ -72,7 +73,7 @@ function formatDate(value: string | null) {
     });
 }
 
-export default function Index({ rrspMonitorings, filters, statuses }: Props) {
+export default function Index({ rrspMonitorings, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -184,7 +185,7 @@ export default function Index({ rrspMonitorings, filters, statuses }: Props) {
 
                             <SelectContent>
                                 <SelectItem value="all">All Statuses</SelectItem>
-                                {statuses.map((s) => (
+                                {STATUS_OPTIONS.map((s) => (
                                     <SelectItem key={s} value={s}>
                                         {s}
                                     </SelectItem>

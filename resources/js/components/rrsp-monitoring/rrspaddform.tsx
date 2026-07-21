@@ -63,6 +63,7 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                             <Input
                                 required
                                 id="rrspNo"
+                                placeholder="e.g. 2025-03-0001"
                                 value={data.rrspNo}
                                 onChange={(e) => setData('rrspNo', e.target.value)}
                             />
@@ -93,6 +94,7 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                             <Label htmlFor="itemDescription">Item Description</Label>
                             <Input
                                 id="itemDescription"
+                                placeholder="e.g. Dual Core CPU, AOC Motherboard, 2pcs 256 Memory Card w/ HDD & DVD Writer"
                                 value={data.itemDescription}
                                 onChange={(e) =>
                                     setData('itemDescription', e.target.value)
@@ -111,6 +113,7 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                                 id="quantity"
                                 type="number"
                                 min="0"
+                                placeholder="e.g. 1"
                                 value={data.quantity}
                                 onChange={(e) => setData('quantity', e.target.value)}
                             />
@@ -125,6 +128,7 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                             <Label htmlFor="propertyNo">Property No</Label>
                             <Input
                                 id="propertyNo"
+                                placeholder="e.g. 223-01-08-00-0000"
                                 value={data.propertyNo}
                                 onChange={(e) => setData('propertyNo', e.target.value)}
                             />
@@ -134,6 +138,7 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                             <Label htmlFor="endUserName">End User</Label>
                             <Input
                                 id="endUserName"
+                                placeholder="e.g. Pier Lolita D. Sy"
                                 value={data.endUserName}
                                 onChange={(e) =>
                                     setData('endUserName', e.target.value)
@@ -145,6 +150,7 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                             <Label htmlFor="area">Area</Label>
                             <Input
                                 id="area"
+                                placeholder="e.g. Records Section"
                                 value={data.area}
                                 onChange={(e) => setData('area', e.target.value)}
                             />
@@ -157,6 +163,7 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                                 type="number"
                                 step="0.01"
                                 min="0"
+                                placeholder="e.g. 15000.00"
                                 value={data.cost}
                                 onChange={(e) => setData('cost', e.target.value)}
                             />

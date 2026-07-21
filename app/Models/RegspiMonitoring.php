@@ -14,6 +14,7 @@ class RegspiMonitoring extends Model
         'month_year',
         'ics_no',
         'rrsp_no',
+        'fund_cluster_id',
         'semi_expendable_property_no',
         'item_description',
         'estimated_useful_life',
@@ -36,5 +37,10 @@ class RegspiMonitoring extends Model
     public function rrspMonitoring(): BelongsTo
     {
         return $this->belongsTo(RrspMonitoring::class, 'rrsp_no', 'rrsp_no');
+    }
+
+    public function fundCluster(): BelongsTo
+    {
+        return $this->belongsTo(FundCluster::class, 'fund_cluster_id', 'fund_cluster_id');
     }
 }
