@@ -31,6 +31,7 @@ class PoLetterMonitoring extends Model
     protected $casts = [
         'po_date' => 'date',
         'date_received_by_supplier' => 'date',
+        'delivery_term' => 'integer',
         'due_date' => 'date',
         'date_received_by_smu' => 'date',
         'date_forwarded_to_ovpad' => 'date',

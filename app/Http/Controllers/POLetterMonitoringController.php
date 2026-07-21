@@ -48,7 +48,7 @@ class POLetterMonitoringController extends Controller
             'suppliers' => Supplier::select('supplier_id', 'supplier_name')
                 ->orderBy('supplier_name')
                 ->get(),
-            'poNumbers' => ServePo::select('po_number')
+            'poNumbers' => ServePo::select('po_number', 'po_received_date', 'due_date')
                 ->orderBy('po_number')
                 ->get(),
         ]);
@@ -65,7 +65,7 @@ class POLetterMonitoringController extends Controller
             'po_number' => ['required', 'string', 'exists:serve_po,po_number'],
             'po_date' => ['required', 'date'],
             'date_received_by_supplier' => ['nullable', 'date'],
-            'delivery_term' => ['nullable', 'string', 'max:50'],
+            'delivery_term' => ['nullable', 'integer', 'min:0'],
             'due_date' => ['nullable', 'date'],
             'office_end_user' => ['required', 'string', 'max:100'],
             'type_of_letter' => ['required', 'string', 'in:EXTENSION,WAIVER,CANCELLATION,REPLACEMENT/ALTERNATIVE OFFER'],
@@ -94,7 +94,7 @@ class POLetterMonitoringController extends Controller
             'po_number' => ['required', 'string', 'exists:serve_po,po_number'],
             'po_date' => ['required', 'date'],
             'date_received_by_supplier' => ['nullable', 'date'],
-            'delivery_term' => ['nullable', 'string', 'max:50'],
+            'delivery_term' => ['nullable', 'integer', 'min:0'],
             'due_date' => ['nullable', 'date'],
             'office_end_user' => ['required', 'string', 'max:100'],
             'type_of_letter' => ['required', 'string', 'in:EXTENSION,WAIVER,CANCELLATION,REPLACEMENT/ALTERNATIVE OFFER'],
