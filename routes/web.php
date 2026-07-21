@@ -83,6 +83,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/po-letter-monitoring/{poLetterMonitoring}', [POLetterMonitoringController::class, 'destroy'])->name('po-letter-monitoring.destroy');
 
     Route::get('/deliveries', [DeliveriesController::class, 'index'])->name('deliveries.index');
+    Route::post('/deliveries', [DeliveriesController::class, 'store'])->name('deliveries.store');
+    Route::put('/deliveries/{delivery}', [DeliveriesController::class, 'update'])->name('deliveries.update');
+    Route::delete('/deliveries/{delivery}', [DeliveriesController::class, 'destroy'])->name('deliveries.destroy');
 
     Route::get('/iar', [IARController::class, 'index'])->name('iar.index');
 

@@ -38,6 +38,8 @@ class Delivery extends Model
         'delivery_date' => 'date',
         'po_date_received' => 'date',
         'due_date' => 'date',
+        'delivery_term' => 'integer',
+        'no_of_days_ld' => 'integer',
         'data_entry_timestamp' => 'datetime',
         'total_amount_delivered' => 'decimal:2',
         'po_total_amount' => 'decimal:2',
