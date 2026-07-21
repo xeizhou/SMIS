@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     Dialog,
@@ -17,21 +17,40 @@ interface Props {
 
 export default function FundClusterDeleteModal({ open, onOpenChange, fundClusterId }: Props) {
     const [processing, setProcessing] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const confirmDelete = () => {
         if (!fundClusterId) return;
 
         setProcessing(true);
+        setErrorMessage(null);
+
         router.delete(`/fund-clusters/${fundClusterId}`, {
-            onSuccess: () => {
-                onOpenChange(false);
+            onSuccess: (page) => {
+                const errors = (page.props.errors as Record<string, string>) ?? {};
+                if (errors.delete) {
+                    setErrorMessage(errors.delete);
+                } else {
+                    onOpenChange(false);
+                }
+            },
+            onError: (errors) => {
+                if (errors.delete) {
+                    setErrorMessage(errors.delete);
+                }
             },
             onFinish: () => setProcessing(false),
         });
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog
+            open={open}
+            onOpenChange={(next) => {
+                onOpenChange(next);
+                if (!next) setErrorMessage(null);
+            }}
+        >
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="text-red-600">Delete Fund Cluster</DialogTitle>
@@ -41,6 +60,11 @@ export default function FundClusterDeleteModal({ open, onOpenChange, fundCluster
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                         Are you sure you want to delete this fund cluster? This action cannot be undone.
                     </p>
+                    {errorMessage && (
+                        <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+                            {errorMessage}
+                        </p>
+                    )}
                 </div>
 
                 <DialogFooter className="gap-2 sm:gap-2">

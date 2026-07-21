@@ -10,10 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Select,
-    SelectTrigger,
-    SelectValue,
     SelectContent,
     SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 
 interface Unit {
@@ -53,8 +53,10 @@ interface FieldProps {
     min?: string;
 }
 
-const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+const labelClass = 'mb-1 block text-sm text-foreground';
 
+// Defined outside the parent component so it doesn't remount (and drop
+// focus) on every parent re-render.
 function Field({
     label,
     name,
@@ -72,22 +74,70 @@ function Field({
                 {label}
                 {required && <span className="text-red-500"> *</span>}
             </label>
+
             <Input
-                name={name}
                 type={type}
+                name={name}
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
                 min={min}
             />
-            {error && (
-                <p className="mt-1 text-xs text-red-500">
-                    {error}
-                </p>
-            )}
+
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </div>
     );
 }
+
+interface SelectFieldProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+}
+
+function SelectField({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Select...',
+    options,
+}: SelectFieldProps) {
+    return (
+        <div>
+            <label className={labelClass}>
+                {label}
+                {required && <span className="text-red-500"> *</span>}
+            </label>
+
+            <Select value={value} onValueChange={onChange}>
+                <SelectTrigger className="w-full">
+                    <SelectValue placeholder={placeholder} />
+                </SelectTrigger>
+
+                <SelectContent>
+                    {options.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+const TRANSACTION_TYPE_OPTIONS = [
+    { value: 'ISSUE', label: 'ISSUE' },
+    { value: 'RECEIVE', label: 'RECEIVE' },
+];
 
 const emptyForm = {
     transaction_type: '',
@@ -109,10 +159,9 @@ export default function TransactionAddForm({
 }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [processing, setProcessing] = useState(false);
 
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement>
-    ) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target;
 
         if (type === 'number' && value !== '' && Number(value) < 0) {
@@ -125,8 +174,17 @@ export default function TransactionAddForm({
         });
     };
 
+    const handleSelectChange = (name: string) => (value: string) => {
+        setData({
+            ...data,
+            [name]: value,
+        });
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        setProcessing(true);
+
         router.post('/transaction-logs', data, {
             onSuccess: () => {
                 onOpenChange(false);
@@ -134,179 +192,120 @@ export default function TransactionAddForm({
                 setErrors({});
             },
             onError: (errors) => setErrors(errors),
+            onFinish: () => setProcessing(false),
         });
     };
 
     return (
-        <Dialog
-            open={open}
-            onOpenChange={onOpenChange}
-        >
-            <DialogContent className="max-w-md">
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent
+                className="w-[95vw] max-h-[90vh] overflow-y-auto"
+                style={{ maxWidth: '700px' }}
+            >
                 <DialogHeader>
-                    <DialogTitle>
-                        New Transaction
-                    </DialogTitle>
+                    <DialogTitle>New Transaction</DialogTitle>
                 </DialogHeader>
-                <form
-                    onSubmit={handleSubmit}
-                    className="mt-4 space-y-4"
-                >
-                    <div>
-                        <label className={labelClass}>
-                            Transaction Type
-                            <span className="text-red-500"> *</span>
-                        </label>
-                        <Select
-                            value={data.transaction_type}
-                            onValueChange={(value) =>
-                                setData({ ...data, transaction_type: value })
-                            }
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="-- Select Type --" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="ISSUE">ISSUE</SelectItem>
-                                <SelectItem value="RECEIVE">RECEIVE</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {errors.transaction_type && (
-                            <p className="mt-1 text-xs text-red-500">
-                                {errors.transaction_type}
-                            </p>
-                        )}
+
+                <form onSubmit={handleSubmit} className="mt-4">
+                    <div className="grid grid-cols-2 gap-10 w-full">
+                        {/* Left column */}
+                        <div className="space-y-5">
+                            <SelectField
+                                label="Transaction Type"
+                                value={data.transaction_type}
+                                onChange={handleSelectChange('transaction_type')}
+                                error={errors.transaction_type}
+                                required
+                                placeholder="-- Select Type --"
+                                options={TRANSACTION_TYPE_OPTIONS}
+                            />
+
+                            <Field
+                                label="Transaction Date"
+                                name="transaction_date"
+                                type="date"
+                                value={data.transaction_date}
+                                onChange={handleChange}
+                                error={errors.transaction_date}
+                                required
+                            />
+
+                            <Field
+                                label="Item Name"
+                                name="item_name"
+                                value={data.item_name}
+                                onChange={handleChange}
+                                error={errors.item_name}
+                                required
+                                placeholder="e.g. Bond Paper A4"
+                            />
+
+                            <SelectField
+                                label="Unit"
+                                value={data.unitID}
+                                onChange={handleSelectChange('unitID')}
+                                error={errors.unitID}
+                                required
+                                placeholder="-- Select Unit --"
+                                options={units.map((unit) => ({
+                                    value: String(unit.unitID),
+                                    label: `${unit.unit_name} (${unit.unit_short_name})`,
+                                }))}
+                            />
+                        </div>
+
+                        {/* Right column */}
+                        <div className="space-y-5">
+                            <Field
+                                label="Quantity"
+                                name="quantity"
+                                type="number"
+                                min="0"
+                                value={data.quantity}
+                                onChange={handleChange}
+                                error={errors.quantity}
+                                required
+                            />
+
+                            <Field
+                                label="Reference"
+                                name="reference"
+                                value={data.reference}
+                                onChange={handleChange}
+                                error={errors.reference}
+                                required
+                                placeholder="e.g. RIS No. or PO No."
+                            />
+
+                            <SelectField
+                                label="Fund Cluster"
+                                value={data.fund_cluster}
+                                onChange={handleSelectChange('fund_cluster')}
+                                error={errors.fund_cluster}
+                                required
+                                placeholder="-- Select Fund Cluster --"
+                                options={fundClusters.map((fc) => ({
+                                    value: fc.fund_cluster_id,
+                                    label: `${fc.fund_cluster_id} - ${fc.fund_description}`,
+                                }))}
+                            />
+
+                            <SelectField
+                                label="Office"
+                                value={data.office_code}
+                                onChange={handleSelectChange('office_code')}
+                                error={errors.office_code}
+                                required
+                                placeholder="-- Select Office --"
+                                options={offices.map((office) => ({
+                                    value: office.office_code,
+                                    label: `${office.office_code} - ${office.office_name}`,
+                                }))}
+                            />
+                        </div>
                     </div>
 
-                    <Field
-                        label="Transaction Date"
-                        name="transaction_date"
-                        type="date"
-                        value={data.transaction_date}
-                        onChange={handleChange}
-                        error={errors.transaction_date}
-                        required
-                    />
-
-                    <Field
-                        label="Item Name"
-                        name="item_name"
-                        value={data.item_name}
-                        onChange={handleChange}
-                        error={errors.item_name}
-                        required
-                        placeholder="e.g. Bond Paper A4"
-                    />
-
-                    <div>
-                        <label className={labelClass}>
-                            Unit
-                            <span className="text-red-500"> *</span>
-                        </label>
-                        <Select
-                            value={data.unitID}
-                            onValueChange={(value) =>
-                                setData({ ...data, unitID: value })
-                            }
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="-- Select Unit --" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {units.map((unit) => (
-                                    <SelectItem key={unit.unitID} value={String(unit.unitID)}>
-                                        {unit.unit_name} ({unit.unit_short_name})
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {errors.unitID && (
-                            <p className="mt-1 text-xs text-red-500">
-                                {errors.unitID}
-                            </p>
-                        )}
-                    </div>
-
-                    <Field
-                        label="Quantity"
-                        name="quantity"
-                        type="number"
-                        min="0"
-                        value={data.quantity}
-                        onChange={handleChange}
-                        error={errors.quantity}
-                        required
-                    />
-
-                    <Field
-                        label="Reference"
-                        name="reference"
-                        value={data.reference}
-                        onChange={handleChange}
-                        error={errors.reference}
-                        required
-                        placeholder="e.g. RIS No. or PO No."
-                    />
-
-                    <div>
-                        <label className={labelClass}>
-                            Fund Cluster
-                            <span className="text-red-500"> *</span>
-                        </label>
-                        <Select
-                            value={data.fund_cluster}
-                            onValueChange={(value) =>
-                                setData({ ...data, fund_cluster: value })
-                            }
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="-- Select Fund Cluster --" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {fundClusters.map((fc) => (
-                                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
-                                        {fc.fund_cluster_id} - {fc.fund_description}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {errors.fund_cluster && (
-                            <p className="mt-1 text-xs text-red-500">
-                                {errors.fund_cluster}
-                            </p>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className={labelClass}>
-                            Office
-                            <span className="text-red-500"> *</span>
-                        </label>
-                        <Select
-                            value={data.office_code}
-                            onValueChange={(value) =>
-                                setData({ ...data, office_code: value })
-                            }
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="-- Select Office --" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {offices.map((office) => (
-                                    <SelectItem key={office.office_code} value={office.office_code}>
-                                        {office.office_code} - {office.office_name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {errors.office_code && (
-                            <p className="mt-1 text-xs text-red-500">
-                                {errors.office_code}
-                            </p>
-                        )}
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-2">
+                    <div className="mt-8 flex justify-end gap-3">
                         <Button
                             type="button"
                             variant="outline"
@@ -314,11 +313,13 @@ export default function TransactionAddForm({
                         >
                             Cancel
                         </Button>
+
                         <Button
                             type="submit"
+                            disabled={processing}
                             style={{ backgroundColor: '#612A35' }}
                         >
-                            Save Transaction
+                            {processing ? 'Saving...' : 'Save Transaction'}
                         </Button>
                     </div>
                 </form>
