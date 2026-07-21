@@ -23,6 +23,8 @@ interface Supplier {
 
 interface PoNumberOption {
     po_number: string;
+    po_received_date?: string | null;
+    due_date?: string | null;
 }
 
 interface PoLetterRecord {
@@ -32,7 +34,7 @@ interface PoLetterRecord {
     po_number: string;
     po_date: string | null;
     date_received_by_supplier: string | null;
-    delivery_term: string | null;
+    delivery_term: string | number | null;
     due_date: string | null;
     office_end_user: string;
     type_of_letter: string;
@@ -169,7 +171,7 @@ const emptyForm = {
     remarks: '',
 };
 
-function toDateInputValue(value: string | null): string {
+function toDateInputValue(value: string | null | undefined): string {
     if (!value) return '';
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
@@ -183,6 +185,16 @@ function toDateInputValue(value: string | null): string {
     return parsed.toISOString().slice(0, 10);
 }
 
+function daysBetween(startDate: string, endDate: string) {
+    if (!startDate || !endDate) return 0;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const diff = end.getTime() - start.getTime();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
 function toFormData(poLetter: PoLetterRecord | null) {
     if (!poLetter) return emptyForm;
 
@@ -192,7 +204,7 @@ function toFormData(poLetter: PoLetterRecord | null) {
         po_number: poLetter.po_number ?? '',
         po_date: toDateInputValue(poLetter.po_date),
         date_received_by_supplier: toDateInputValue(poLetter.date_received_by_supplier),
-        delivery_term: poLetter.delivery_term ?? '',
+        delivery_term: poLetter.delivery_term === null || poLetter.delivery_term === undefined ? '' : String(poLetter.delivery_term),
         due_date: toDateInputValue(poLetter.due_date),
         office_end_user: poLetter.office_end_user ?? '',
         type_of_letter: poLetter.type_of_letter ?? '',
@@ -219,13 +231,39 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
     }, [open, poLetter]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setData({
-            ...data,
-            [e.target.name]: e.target.value,
+        const { name, value } = e.target;
+
+        setData((prev) => {
+            const next = { ...prev, [name]: value };
+
+            if (name === 'date_received_by_supplier' || name === 'due_date') {
+                next.delivery_term = String(daysBetween(next.date_received_by_supplier, next.due_date));
+            }
+
+            return next;
         });
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
+        if (name === 'po_number') {
+            const chosenPo = poNumbers.find((item) => item.po_number === value) ?? null;
+
+            const dateReceivedBySupplier = chosenPo?.po_received_date
+                ? toDateInputValue(chosenPo.po_received_date)
+                : data.date_received_by_supplier;
+            const dueDate = chosenPo?.due_date ? toDateInputValue(chosenPo.due_date) : data.due_date;
+
+            setData({
+                ...data,
+                po_number: value,
+                date_received_by_supplier: dateReceivedBySupplier,
+                due_date: dueDate,
+                delivery_term: String(daysBetween(dateReceivedBySupplier, dueDate)),
+            });
+
+            return;
+        }
+
         setData({
             ...data,
             [name]: value,
@@ -238,9 +276,14 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
 
         setProcessing(true);
 
+        const payload = {
+            ...data,
+            delivery_term: Number(data.delivery_term) || 0,
+        };
+
         router.put(
             `/po-letter-monitoring/${encodeURIComponent(String(poLetter.id))}`,
-            data,
+            payload,
             {
                 onSuccess: () => {
                     onOpenChange(false);
@@ -313,11 +356,13 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                         />
 
                         <Field
-                            label="Delivery Term"
+                            label="Delivery Term (days)"
                             name="delivery_term"
+                            type="number"
                             value={data.delivery_term}
                             onChange={handleChange}
                             error={errors.delivery_term}
+                            placeholder="Auto-calculated from PO dates"
                         />
 
                         <Field

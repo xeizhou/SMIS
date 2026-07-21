@@ -38,7 +38,7 @@ interface DeliveryRecord {
     supplier?: SupplierOption | null;
     delivery_date: string | null;
     po_date_received: string | null;
-    delivery_term: string | null;
+    delivery_term: string | number | null;
     due_date: string | null;
     no_of_days_ld: number | string | null;
     received_by_1: string | null;
@@ -182,6 +182,16 @@ function toDateInputValue(value: string | null) {
     return parsed.toISOString().slice(0, 10);
 }
 
+function daysBetween(startDate: string, endDate: string) {
+    if (!startDate || !endDate) return 0;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const diff = end.getTime() - start.getTime();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
 function toFormData(delivery: DeliveryRecord | null) {
     if (!delivery) return emptyForm;
 
@@ -191,7 +201,7 @@ function toFormData(delivery: DeliveryRecord | null) {
         supplier_name: delivery.supplier?.supplier_name ?? '',
         delivery_date: toDateInputValue(delivery.delivery_date),
         po_date_received: toDateInputValue(delivery.po_date_received),
-        delivery_term: delivery.delivery_term ?? '',
+        delivery_term: delivery.delivery_term === null || delivery.delivery_term === undefined ? '' : String(delivery.delivery_term),
         due_date: toDateInputValue(delivery.due_date),
         no_of_days_ld: delivery.no_of_days_ld === null || delivery.no_of_days_ld === undefined ? '' : String(delivery.no_of_days_ld),
         received_by_1: delivery.received_by_1 ?? '',
@@ -204,16 +214,6 @@ function toFormData(delivery: DeliveryRecord | null) {
         po_total_amount: delivery.po_total_amount === null || delivery.po_total_amount === undefined ? '' : String(delivery.po_total_amount),
         folder_link: delivery.folder_link ?? '',
     };
-}
-
-function calculateLdDays(deliveryDate: string, dueDate: string) {
-    if (!deliveryDate || !dueDate) return 0;
-
-    const delivery = new Date(deliveryDate);
-    const due = new Date(dueDate);
-
-    const diff = delivery.getTime() - due.getTime();
-    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
 export default function DeliveryEditForm({ open, onOpenChange, delivery, purchaseOrders, statuses }: Props) {
@@ -229,18 +229,31 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
     }, [open, delivery]);
 
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
-    const computedLdDays = calculateLdDays(data.delivery_date, data.due_date);
+    const computedLdDays = daysBetween(data.due_date, data.delivery_date);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setData({
-            ...data,
-            [e.target.name]: e.target.value,
+        const { name, value } = e.target;
+
+        setData((prev) => {
+            const next = { ...prev, [name]: value };
+
+            if (name === 'po_date_received' || name === 'due_date') {
+                next.delivery_term = String(daysBetween(next.po_date_received, next.due_date));
+            }
+
+            return next;
         });
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
         if (name === 'po_number') {
             const chosenPo = purchaseOrders.find((item) => item.po_number === value) ?? null;
+
+            const poDateReceived = chosenPo?.po_received_date
+                ? toDateInputValue(chosenPo.po_received_date)
+                : data.po_date_received;
+            const dueDate = chosenPo?.due_date ? toDateInputValue(chosenPo.due_date) : data.due_date;
+
             setData({
                 ...data,
                 po_number: value,
@@ -248,8 +261,9 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                 supplier_name: chosenPo?.supplier?.supplier_name ?? '',
                 po_total_amount: chosenPo?.total_amount_po != null ? String(chosenPo.total_amount_po) : '',
                 end_user: chosenPo?.end_user ?? '',
-                due_date: chosenPo?.due_date ? toDateInputValue(chosenPo.due_date) : data.due_date,
-                po_date_received: chosenPo?.po_received_date ? toDateInputValue(chosenPo.po_received_date) : data.po_date_received,
+                due_date: dueDate,
+                po_date_received: poDateReceived,
+                delivery_term: String(daysBetween(poDateReceived, dueDate)),
             });
             return;
         }
@@ -269,6 +283,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
         const { supplier_name, ...rest } = data;
         const payload = {
             ...rest,
+            delivery_term: Number(rest.delivery_term) || 0,
             no_of_days_ld: computedLdDays,
             po_total_amount: rest.po_total_amount || (selectedPo?.total_amount_po != null ? String(selectedPo.total_amount_po) : ''),
             end_user: rest.end_user || (selectedPo?.end_user ?? ''),
@@ -322,7 +337,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
 
                         <Field label="Date of Delivery" name="delivery_date" type="date" value={data.delivery_date} onChange={handleChange} error={errors.delivery_date} />
                         <Field label="PO Date Received" name="po_date_received" type="date" value={data.po_date_received} onChange={handleChange} error={errors.po_date_received} />
-                        <Field label="Delivery Term" name="delivery_term" value={data.delivery_term} onChange={handleChange} error={errors.delivery_term} placeholder="e.g. FOB Destination" />
+                        <Field label="Delivery Term (days)" name="delivery_term" type="number" value={data.delivery_term} onChange={handleChange} error={errors.delivery_term} placeholder="Auto-calculated from PO dates" />
                         <Field label="Due Date" name="due_date" type="date" value={data.due_date} onChange={handleChange} error={errors.due_date} />
                         <Field label="No. of Days (LD)" name="no_of_days_ld" type="number" value={String(computedLdDays)} onChange={handleChange} error={errors.no_of_days_ld} readOnly disabled />
                         <Field label="Received By (1)" name="received_by_1" value={data.received_by_1} onChange={handleChange} error={errors.received_by_1} placeholder="e.g. Alvin B." />
