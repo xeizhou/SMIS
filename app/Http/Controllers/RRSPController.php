@@ -127,9 +127,10 @@ class RRSPController extends Controller
         return back()->with('success', 'RRSP record updated successfully.');
     }
 
-    public function destroy(RrspMonitoring $rrsp)
+    public function destroy(Request $request, $rrsp)
     {
-        $rrsp->delete();
+        $record = RrspMonitoring::where('rrsp_no', $rrsp)->firstOrFail();
+        $record->delete();
 
         return back()->with('success', 'RRSP record deleted successfully.');
     }
