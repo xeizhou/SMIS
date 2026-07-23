@@ -22,6 +22,7 @@ interface Office {
 
 interface PurchaseOrder {
     po_number: string;
+    item_description: string | null;
     po_date: string | null;
     po_received_date: string | null;
     inclusive_date: string | null;
@@ -129,6 +130,13 @@ return null;
                             <Detail label="Due Date" value={formatDate(po.due_date)} />
                             <Detail label="Inclusive Date" value={po.inclusive_date ?? '—'} />
                             <Detail label="Mode of Procurement" value={po.mode_of_procurement ?? '—'} />
+                        </div>
+
+                        <div className="mt-4">
+                            <p className={labelClass}>Item Description</p>
+                            <p className={valueClass + ' whitespace-pre-wrap'}>
+                                {po.item_description ?? '—'}
+                            </p>
                         </div>
                     </section>
 

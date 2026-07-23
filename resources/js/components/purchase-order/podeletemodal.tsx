@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -15,23 +15,43 @@ interface Props {
     poNumber: string | null;
 }
 
+interface FlashProps {
+    success?: string;
+    error?: string;
+}
+
 export default function PurchaseOrderDeleteModal({
     open,
     onOpenChange,
     poNumber,
 }: Props) {
     const [processing, setProcessing] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (open) {
+            setErrorMessage(null);
+        }
+    }, [open]);
 
     const confirmDelete = () => {
         if (!poNumber) {
-return;
-}
+            return;
+        }
 
         setProcessing(true);
+        setErrorMessage(null);
 
         router.delete(`/purchase-orders/${encodeURIComponent(poNumber)}`, {
-            onSuccess: () => {
-                onOpenChange(false);
+            preserveScroll: true,
+            onSuccess: (page) => {
+                const flash = page.props.flash as FlashProps;
+
+                if (flash?.error) {
+                    setErrorMessage(flash.error);
+                } else {
+                    onOpenChange(false);
+                }
             },
             onFinish: () => {
                 setProcessing(false);
@@ -60,6 +80,12 @@ return;
                         )}
                         ? This action cannot be undone.
                     </p>
+
+                    {errorMessage && (
+                        <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+                            {errorMessage}
+                        </p>
+                    )}
                 </div>
 
                 <DialogFooter className="gap-2 sm:gap-2">

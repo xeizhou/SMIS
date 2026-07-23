@@ -150,10 +150,8 @@ const TYPE_OPTIONS = [
 ];
 
 const STATUS_OPTIONS = [
-    { value: 'PENDING', label: 'PENDING' },
-    { value: 'RECEIVED', label: 'RECEIVED' },
-    { value: 'FORWARDED', label: 'FORWARDED' },
-    { value: 'COMPLETED', label: 'COMPLETED' },
+    { value: 'APPROVED', label: 'APPROVED' },
+    { value: 'DISAPPROVED', label: 'DISAPPROVED' },
 ];
 
 const emptyForm = {
