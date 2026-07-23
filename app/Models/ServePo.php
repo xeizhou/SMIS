@@ -9,8 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ServePo extends Model
 {
     protected $table = 'serve_po';
+
     protected $primaryKey = 'po_number';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [

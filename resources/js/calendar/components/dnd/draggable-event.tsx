@@ -1,11 +1,11 @@
+import { parseISO, differenceInMilliseconds } from "date-fns";
 import { memo, useRef, useEffect, useCallback } from "react";
 import { useDrag } from "react-dnd";
 import { getEmptyImage } from "react-dnd-html5-backend";
-import { parseISO, differenceInMilliseconds } from "date-fns";
-
-import { cn } from "@/lib/utils";
 
 import type { IEvent } from "@/calendar/interfaces";
+import { cn } from "@/lib/utils";
+
 
 export const ItemTypes = {
   EVENT: "event",
@@ -26,6 +26,7 @@ export const DraggableEvent = memo(({ event, children }: DraggableEventProps) =>
     const start = parseISO(event.startDate);
     const end = parseISO(event.endDate);
     const durationMs = differenceInMilliseconds(end, start);
+
     return { event, children, width, height, durationMs };
   }, [event, children]);
 

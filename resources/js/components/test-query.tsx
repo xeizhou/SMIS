@@ -1,7 +1,7 @@
+import { QueryErrorBoundary } from '@/components/error-boundary'
+import { EventsLoading } from '@/components/loading-states'
 import { useEvents } from '@/hooks/use-events'
 import { useUsers } from '@/hooks/use-users'
-import { EventsLoading } from '@/components/loading-states'
-import { QueryErrorBoundary } from '@/components/error-boundary'
 
 // Test component to verify TanStack Query setup
 export function TestQuery() {

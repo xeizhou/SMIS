@@ -1,29 +1,29 @@
-import { parseISO } from "date-fns";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { parseISO } from "date-fns";
+import type { TimeValue } from "react-aria-components";
+import { useForm } from "react-hook-form";
+import type { SubmitHandler } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
-import { useDisclosure } from "@/hooks/use-disclosure";
-import { useUsers } from "@/hooks/use-users";
-import { useUpdateEvent } from "@/hooks/use-events";
-
-import { Input } from "@/components/ui/input";
+import { FormMessageTranslated } from "@/calendar/components/form-message-translated";
+import type { IEvent } from "@/calendar/interfaces";
+import { eventSchema } from "@/calendar/schemas";
+import type { TEventFormData } from "@/calendar/schemas";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogHeader, DialogClose, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Form, FormField, FormLabel, FormItem, FormControl } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SingleDayPicker } from "@/components/ui/single-day-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { TimeInput } from "@/components/ui/time-input";
-import { SingleDayPicker } from "@/components/ui/single-day-picker";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Form, FormField, FormLabel, FormItem, FormControl } from "@/components/ui/form";
-import { FormMessageTranslated } from "@/calendar/components/form-message-translated";
-import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogHeader, DialogClose, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useDisclosure } from "@/hooks/use-disclosure";
+import { useUpdateEvent } from "@/hooks/use-events";
+import { useUsers } from "@/hooks/use-users";
 
-import { eventSchema } from "@/calendar/schemas";
 
-import type { IEvent } from "@/calendar/interfaces";
-import type { TimeValue } from "react-aria-components";
-import type { TEventFormData } from "@/calendar/schemas";
-import type { SubmitHandler } from "react-hook-form";
+
 
 interface IProps {
   children: React.ReactNode;
@@ -54,7 +54,9 @@ export function EditEventDialog({ children, event }: IProps) {
     try {
       const user = users.find(user => user.id === values.user);
 
-      if (!user) throw new Error("User not found");
+      if (!user) {
+throw new Error("User not found");
+}
 
       const startDateTime = new Date(values.startDate);
       startDateTime.setHours(values.startTime.hour, values.startTime.minute);

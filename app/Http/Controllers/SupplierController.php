@@ -78,7 +78,7 @@ class SupplierController extends Controller
                 'required',
                 'string',
                 'max:255',
-                'unique:supplier_list,supplier_name,' . $supplier->supplier_id . ',supplier_id',
+                'unique:supplier_list,supplier_name,'.$supplier->supplier_id.',supplier_id',
             ],
             'contact_number' => [
                 'nullable',

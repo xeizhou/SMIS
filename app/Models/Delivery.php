@@ -8,9 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Delivery extends Model
 {
     protected $table = 'delivery';
+
     protected $primaryKey = 'delivery_id';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
+
     public $timestamps = false; // source table tracks data_entry_timestamp instead
 
     protected $fillable = [

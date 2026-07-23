@@ -1,5 +1,5 @@
-import { useMemo } from "react";
 import { parseISO, startOfDay, startOfWeek, endOfWeek, addDays, differenceInDays, isBefore, isAfter } from "date-fns";
+import { useMemo } from "react";
 
 import { MonthEventBadge } from "@/calendar/components/month-view/month-event-badge";
 
@@ -35,7 +35,11 @@ export function WeekViewMultiDayEventsRow({ selectedDate, multiDayEvents }: IPro
       })
       .sort((a, b) => {
         const startDiff = a.adjustedStart.getTime() - b.adjustedStart.getTime();
-        if (startDiff !== 0) return startDiff;
+
+        if (startDiff !== 0) {
+return startDiff;
+}
+
         return b.endIndex - b.startIndex - (a.endIndex - a.startIndex);
       });
   }, [multiDayEvents, weekStart, weekEnd]);

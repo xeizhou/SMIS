@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Supplier extends Model
 {
     protected $table = 'supplier_list';
+
     protected $primaryKey = 'supplier_id';
+
     public $timestamps = false; // source table has no created_at/updated_at
 
     protected $fillable = [

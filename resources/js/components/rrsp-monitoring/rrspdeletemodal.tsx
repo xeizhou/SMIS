@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -7,7 +8,6 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 
 interface Props {
     open: boolean;
@@ -23,7 +23,9 @@ export default function RrspDeleteModal({
     const [processing, setProcessing] = useState(false);
 
     const confirmDelete = () => {
-        if (!rrspNo) return;
+        if (!rrspNo) {
+return;
+}
 
         setProcessing(true);
 

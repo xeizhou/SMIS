@@ -69,11 +69,15 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 function formatCurrency(value: string | number | null | undefined) {
-    if (value === null || value === undefined) return '—';
+    if (value === null || value === undefined) {
+return '—';
+}
 
     const numeric = typeof value === 'string' ? parseFloat(value) : value;
 
-    if (Number.isNaN(numeric)) return '—';
+    if (Number.isNaN(numeric)) {
+return '—';
+}
 
     return numeric.toLocaleString('en-PH', {
         style: 'currency',
@@ -82,7 +86,9 @@ function formatCurrency(value: string | number | null | undefined) {
 }
 
 function formatDate(value: string | null) {
-    if (!value) return '—';
+    if (!value) {
+return '—';
+}
 
     return new Date(value).toLocaleDateString('en-PH', {
         year: 'numeric',
@@ -96,7 +102,9 @@ export default function PurchaseOrderViewForm({
     onOpenChange,
     purchaseOrder,
 }: Props) {
-    if (!purchaseOrder) return null;
+    if (!purchaseOrder) {
+return null;
+}
 
     const po = purchaseOrder;
 

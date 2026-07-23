@@ -1,11 +1,11 @@
     import { Head, Link, router } from '@inertiajs/react';
-    import { Button } from '@/components/ui/button';
-    import { Input } from '@/components/ui/input';
     import { Search, Pencil, Trash2} from 'lucide-react';
     import { useState } from 'react';
     import FundClusterAddForm from '@/components/fundclusters/fundclusteraddform';
-    import FundClusterEditForm from '@/components/fundclusters/fundclustereditform';
     import FundClusterDeleteModal from '@/components/fundclusters/fundclusterdeletemodal';
+    import FundClusterEditForm from '@/components/fundclusters/fundclustereditform';
+    import { Button } from '@/components/ui/button';
+    import { Input } from '@/components/ui/input';
 
     interface FundCluster {
         fund_cluster_id: string;

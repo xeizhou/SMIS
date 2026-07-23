@@ -1,7 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import PurchaseOrderAddForm from '@/components/purchase-order/poaddform';
+import PurchaseOrderDeleteModal from '@/components/purchase-order/podeletemodal';
+import PurchaseOrderEditForm from '@/components/purchase-order/poeditform';
+import PurchaseOrderViewForm from '@/components/purchase-order/poviewform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -9,11 +14,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { useState } from 'react';
-import PurchaseOrderAddForm from '@/components/purchase-order/poaddform';
-import PurchaseOrderEditForm from '@/components/purchase-order/poeditform';
-import PurchaseOrderDeleteModal from '@/components/purchase-order/podeletemodal';
-import PurchaseOrderViewForm from '@/components/purchase-order/poviewform';
 
 interface Supplier {
     supplier_id: number;
@@ -82,11 +82,15 @@ interface Props {
 }
 
 function formatCurrency(value: string | number | null) {
-    if (value === null) return '—';
+    if (value === null) {
+return '—';
+}
 
     const numeric = typeof value === 'string' ? parseFloat(value) : value;
 
-    if (Number.isNaN(numeric)) return '—';
+    if (Number.isNaN(numeric)) {
+return '—';
+}
 
     return numeric.toLocaleString('en-PH', {
         style: 'currency',
@@ -95,7 +99,9 @@ function formatCurrency(value: string | number | null) {
 }
 
 function formatDate(value: string | null) {
-    if (!value) return '—';
+    if (!value) {
+return '—';
+}
 
     return new Date(value).toLocaleDateString('en-PH', {
         year: 'numeric',

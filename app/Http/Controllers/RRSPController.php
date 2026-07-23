@@ -99,7 +99,7 @@ class RRSPController extends Controller
     public function update(Request $request, RrspMonitoring $rrsp)
     {
         $validated = $request->validate([
-            'rrspNo' => 'required|string|max:255|unique:rrsp_monitoring,rrsp_no,' . $rrsp->id,
+            'rrspNo' => 'required|string|max:255|unique:rrsp_monitoring,rrsp_no,'.$rrsp->id,
             'dateReceived' => 'nullable|date',
             'itemDescription' => 'required|string',
             'quantity' => 'required|integer|min:1',

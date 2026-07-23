@@ -16,11 +16,11 @@ class UnitsController extends Controller
         $search = $request->input('search');
 
         $units = Unit::when($search, function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('unit_name', 'like', "%{$search}%")
-                      ->orWhere('unit_short_name', 'like', "%{$search}%");
-                });
-            })
+            $query->where(function ($q) use ($search) {
+                $q->where('unit_name', 'like', "%{$search}%")
+                    ->orWhere('unit_short_name', 'like', "%{$search}%");
+            });
+        })
             ->orderBy('unit_name')
             ->paginate(10)
             ->withQueryString();

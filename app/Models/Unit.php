@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Unit extends Model
 {
     protected $table = 'units';
+
     protected $primaryKey = 'unitID';
+
     public $timestamps = false; // source table has no created_at/updated_at
 
     protected $fillable = [

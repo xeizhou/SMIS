@@ -1,3 +1,6 @@
+import { Link, usePage } from '@inertiajs/react';
+import { ChevronRight  } from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
     Collapsible,
@@ -21,9 +24,7 @@ import {
     SidebarMenuSubItem,
     useSidebar,
 } from '@/components/ui/sidebar';
-import { type NavItem } from '@/types';
-import { Link, usePage } from '@inertiajs/react';
-import { ChevronRight, type LucideIcon } from 'lucide-react';
+import type {NavItem} from '@/types';
 
 export interface NavSection {
     title: string;
@@ -32,7 +33,10 @@ export interface NavSection {
 }
 
 function hrefToUrl(href: NavItem['href']) {
-    if (typeof href === 'string') return href;
+    if (typeof href === 'string') {
+return href;
+}
+
     return (href as { url?: string })?.url ?? '#';
 }
 
@@ -180,6 +184,7 @@ export function NavMain({
                                     <SidebarMenuSub>
                                         {section.items.map((item) => {
                                             const url = hrefToUrl(item.href);
+
                                             return (
                                                 <SidebarMenuSubItem
                                                     key={item.title}

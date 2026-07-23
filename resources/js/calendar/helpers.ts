@@ -26,11 +26,11 @@ import {
   isWithinInterval,
 } from "date-fns";
 
+import i18n from "i18next";
 import type { ICalendarCell, IEvent } from "@/calendar/interfaces";
 import type { TCalendarView, TVisibleHours, TWorkingHours } from "@/calendar/types";
-import { getDateLocale } from "@/lib/date-locale";
 import { formatDate, formatDateRange } from "@/lib/date-formats";
-import i18n from "i18next";
+import { getDateLocale } from "@/lib/date-locale";
 
 // ================ Header helper functions ================ //
 
@@ -104,6 +104,7 @@ export function getEventsCount(events: IEvent[], date: Date, view: TCalendarView
 
 export function getCurrentEvents(events: IEvent[]) {
   const now = new Date();
+
   return events.filter(event => isWithinInterval(now, { start: parseISO(event.startDate), end: parseISO(event.endDate) })) || null;
 }
 
@@ -115,6 +116,7 @@ export function groupEvents(dayEvents: IEvent[]) {
     const eventStart = parseISO(event.startDate);
 
     let placed = false;
+
     for (const group of groups) {
       const lastEventInGroup = group[group.length - 1];
       const lastEventEnd = parseISO(lastEventInGroup.endDate);
@@ -126,7 +128,9 @@ export function groupEvents(dayEvents: IEvent[]) {
       }
     }
 
-    if (!placed) groups.push([event]);
+    if (!placed) {
+groups.push([event]);
+}
   }
 
   return groups;
@@ -158,6 +162,7 @@ export function getEventBlockStyle(event: IEvent, day: Date, groupIndex: number,
 export function isWorkingHour(day: Date, hour: number, workingHours: TWorkingHours) {
   const dayIndex = day.getDay() as keyof typeof workingHours;
   const dayHours = workingHours[dayIndex];
+
   return hour >= dayHours.from && hour < dayHours.to;
 }
 
@@ -169,8 +174,14 @@ export function getVisibleHours(visibleHours: TVisibleHours, singleDayEvents: IE
     const startHour = parseISO(event.startDate).getHours();
     const endTime = parseISO(event.endDate);
     const endHour = endTime.getHours() + (endTime.getMinutes() > 0 ? 1 : 0);
-    if (startHour < earliestEventHour) earliestEventHour = startHour;
-    if (endHour > latestEventHour) latestEventHour = endHour;
+
+    if (startHour < earliestEventHour) {
+earliestEventHour = startHour;
+}
+
+    if (endHour > latestEventHour) {
+latestEventHour = endHour;
+}
   });
 
   latestEventHour = Math.min(latestEventHour, 24);
@@ -191,6 +202,7 @@ export function getCalendarCells(selectedDate: Date): ICalendarCell[] {
   const getFirstDayOfMonth = (year: number, month: number) => {
     const firstDay = new Date(year, month, 1);
     const weekStart = startOfWeek(firstDay, { locale });
+
     return differenceInDays(firstDay, weekStart);
   };
 
@@ -235,6 +247,7 @@ export function calculateMonthEventPositions(multiDayEvents: IEvent[], singleDay
     ...multiDayEvents.sort((a, b) => {
       const aDuration = differenceInDays(parseISO(a.endDate), parseISO(a.startDate));
       const bDuration = differenceInDays(parseISO(b.endDate), parseISO(b.startDate));
+
       return bDuration - aDuration || parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime();
     }),
     ...singleDayEvents.sort((a, b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime()),
@@ -254,6 +267,7 @@ export function calculateMonthEventPositions(multiDayEvents: IEvent[], singleDay
       if (
         eventDays.every(day => {
           const dayPositions = occupiedPositions[startOfDay(day).toISOString()];
+
           return dayPositions && !dayPositions[i];
         })
       ) {
@@ -278,6 +292,7 @@ export function getMonthCellEvents(date: Date, events: IEvent[], eventPositions:
   const eventsForDate = events.filter(event => {
     const eventStart = parseISO(event.startDate);
     const eventEnd = parseISO(event.endDate);
+
     return (date >= eventStart && date <= eventEnd) || isSameDay(date, eventStart) || isSameDay(date, eventEnd);
   });
 
@@ -288,8 +303,14 @@ export function getMonthCellEvents(date: Date, events: IEvent[], eventPositions:
       isMultiDay: event.startDate !== event.endDate,
     }))
     .sort((a, b) => {
-      if (a.isMultiDay && !b.isMultiDay) return -1;
-      if (!a.isMultiDay && b.isMultiDay) return 1;
+      if (a.isMultiDay && !b.isMultiDay) {
+return -1;
+}
+
+      if (!a.isMultiDay && b.isMultiDay) {
+return 1;
+}
+
       return a.position - b.position;
     });
 }

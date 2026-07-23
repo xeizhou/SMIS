@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class RegspiMonitoring extends Model
 {
     protected $table = 'regspi_monitoring';
+
     protected $primaryKey = 'regspi_id';
 
     protected $fillable = [

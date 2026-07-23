@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -149,7 +149,10 @@ export default function StockItemEditForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!stock) return;
+
+        if (!stock) {
+return;
+}
 
         router.put(`/stock-items/${stock.stock_no}`, data, {
             onSuccess: () => {
@@ -160,7 +163,9 @@ export default function StockItemEditForm({
         });
     };
 
-    if (!stock) return null;
+    if (!stock) {
+return null;
+}
 
     return (
         <Dialog

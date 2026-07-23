@@ -1,19 +1,19 @@
 import { cva } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
 import { differenceInMinutes, parseISO } from "date-fns";
+import type { HTMLAttributes } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useCalendarPreferences } from "@/stores/calendar-store";
-import { getDateLocale } from "@/lib/date-locale";
-import { formatTimeRange } from "@/lib/date-formats";
-
-import { DraggableEvent } from "@/calendar/components/dnd/draggable-event";
 import { EventDetailsDialog } from "@/calendar/components/dialogs/event-details-dialog";
+import { DraggableEvent } from "@/calendar/components/dnd/draggable-event";
+import type { IEvent } from "@/calendar/interfaces";
+import { formatTimeRange } from "@/lib/date-formats";
+import { getDateLocale } from "@/lib/date-locale";
+
 
 import { cn } from "@/lib/utils";
 
-import type { HTMLAttributes } from "react";
-import type { IEvent } from "@/calendar/interfaces";
-import type { VariantProps } from "class-variance-authority";
+import { useCalendarPreferences } from "@/stores/calendar-store";
 
 const calendarWeekEventCardVariants = cva(
   "flex select-none flex-col gap-0.5 truncate whitespace-nowrap rounded-md border px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -66,7 +66,10 @@ export function EventBlock({ event, className }: IProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      if (e.currentTarget instanceof HTMLElement) e.currentTarget.click();
+
+      if (e.currentTarget instanceof HTMLElement) {
+e.currentTarget.click();
+}
     }
   };
 

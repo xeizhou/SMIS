@@ -1,11 +1,11 @@
 import { useTranslation } from "react-i18next";
 
-import { useCalendarUser } from "@/stores/calendar-store";
-import { useUsers } from "@/hooks/use-users";
 
-import { AvatarGroup } from "@/components/ui/avatar-group";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarGroup } from "@/components/ui/avatar-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useUsers } from "@/hooks/use-users";
+import { useCalendarUser } from "@/stores/calendar-store";
 
 export function UserSelect() {
   const { selectedUserId, setSelectedUserId } = useCalendarUser();

@@ -20,7 +20,9 @@ export function ToggleTheme() {
     setMounted(true);
   }, []);
 
-  if (!mounted) return <Skeleton className="size-9" />;
+  if (!mounted) {
+return <Skeleton className="size-9" />;
+}
 
   return (
     <Button variant="ghost" size="icon" onClick={toggleTheme}>

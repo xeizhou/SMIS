@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class EmployeeFileLocator extends Model
 {
     protected $table = 'employee_file_locator';
+
     protected $primaryKey = 'efr_id';
 
     protected $fillable = [

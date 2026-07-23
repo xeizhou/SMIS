@@ -79,7 +79,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Error logging is handled by the application's error tracking service
-    // eslint-disable-next-line no-console
+     
     console.error('Error boundary caught an error:', error, errorInfo)
     const { onError } = this.props
     onError?.(error, errorInfo)
@@ -95,6 +95,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     
     if (hasError && error) {
       const Fallback = fallback || ErrorFallback
+
       return (
         <Fallback 
           error={error} 

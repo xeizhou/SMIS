@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PirMonitoring extends Model
 {
     protected $table = 'pir_monitoring';
+
     protected $primaryKey = 'pir_id';
 
     protected $fillable = [

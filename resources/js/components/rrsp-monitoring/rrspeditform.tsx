@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Dialog,
     DialogContent,
@@ -10,6 +8,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface RrspMonitoring {
     id: string;
@@ -66,7 +66,9 @@ export default function RrspEditForm({ open, onOpenChange, rrsp }: Props) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!rrsp) return;
+        if (!rrsp) {
+return;
+}
 
         put(`/rrsp-monitoring/${rrsp.id}`, {
             preserveScroll: true,

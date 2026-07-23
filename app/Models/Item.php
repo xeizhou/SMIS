@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Item extends Model
 {
     protected $table = 'items';
+
     protected $primaryKey = 'stockID';
+
     public $timestamps = false; // source table has no created_at/updated_at
 
     protected $fillable = [

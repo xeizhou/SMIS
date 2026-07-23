@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 interface FundCluster {
@@ -94,7 +94,10 @@ export default function FundClusterEditForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!fundCluster) return;
+
+        if (!fundCluster) {
+return;
+}
 
         router.put(`/fund-clusters/${fundCluster.fund_cluster_id}`, data, {
             onSuccess: () => {
@@ -105,7 +108,9 @@ export default function FundClusterEditForm({
         });
     };
 
-    if (!fundCluster) return null;
+    if (!fundCluster) {
+return null;
+}
 
     return (
         <Dialog

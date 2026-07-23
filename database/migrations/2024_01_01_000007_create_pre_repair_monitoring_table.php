@@ -14,7 +14,7 @@ return new class extends Migration
      * because for_disposal_monitoring's foreign key depends on it.
      *
      * Composite FK: Laravel's foreignId()->constrained() only supports
-     * single-column references, so the (transaction_no, property_no) => 
+     * single-column references, so the (transaction_no, property_no) =>
      * itr_ptr_monitoring(transaction_no, property_no) relationship is
      * declared with $table->foreign([...])->references([...])->on(...).
      */

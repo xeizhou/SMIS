@@ -417,6 +417,7 @@ export function getDateFormat(language: string, formatKey: DateFormatKey): strin
   // Type guard to check if langKey is a supported language
   if (langKey in dateFormats) {
     const typedLangKey = langKey as SupportedLanguage;
+
     return dateFormats[typedLangKey][formatKey];
   }
 
@@ -429,6 +430,7 @@ export function getDateFormat(language: string, formatKey: DateFormatKey): strin
  */
 export function formatDate(date: Date, formatKey: DateFormatKey, language: string, locale: Locale): string {
   const formatPattern = getDateFormat(language, formatKey);
+
   return dateFnsFormat(date, formatPattern, { locale });
 }
 
@@ -452,6 +454,7 @@ export function formatDateRange(startDate: Date, endDate: Date, language: string
         return `${dateFnsFormat(startDate, "yyyy년 M월 d일", { locale })} - ${dateFnsFormat(endDate, "M월 d일", { locale })}`;
       }
     }
+
     return `${dateFnsFormat(startDate, formatPattern, { locale })} - ${dateFnsFormat(endDate, formatPattern, { locale })}`;
   }
 
@@ -464,6 +467,7 @@ export function formatDateRange(startDate: Date, endDate: Date, language: string
         return `${dateFnsFormat(startDate, "yyyy年M月d日", { locale })}～${dateFnsFormat(endDate, "M月d日", { locale })}`;
       }
     }
+
     return `${dateFnsFormat(startDate, formatPattern, { locale })}～${dateFnsFormat(endDate, formatPattern, { locale })}`;
   }
 
@@ -476,18 +480,22 @@ export function formatDateRange(startDate: Date, endDate: Date, language: string
         return `${dateFnsFormat(startDate, "yyyy年M月d日", { locale })}-${dateFnsFormat(endDate, "M月d日", { locale })}`;
       }
     }
+
     return `${dateFnsFormat(startDate, formatPattern, { locale })}-${dateFnsFormat(endDate, formatPattern, { locale })}`;
   }
 
   if (language === "de" || language === "nl" || language === "da" || language === "no" || language === "nb") {
     // German/Dutch/Danish/Norwegian style with dash
     const separator = language === "de" ? " – " : " - ";
+
     if (startYear === endYear) {
       if (startMonth === endMonth) {
         return `${dateFnsFormat(startDate, "d.", { locale })}${separator}${dateFnsFormat(endDate, "d. MMMM yyyy", { locale })}`;
       }
+
       return `${dateFnsFormat(startDate, "d. MMM", { locale })}${separator}${dateFnsFormat(endDate, "d. MMM yyyy", { locale })}`;
     }
+
     return `${dateFnsFormat(startDate, formatPattern, { locale })}${separator}${dateFnsFormat(endDate, formatPattern, { locale })}`;
   }
 
@@ -496,15 +504,18 @@ export function formatDateRange(startDate: Date, endDate: Date, language: string
     if (startYear === endYear && startMonth === endMonth) {
       return `Du ${dateFnsFormat(startDate, "d", { locale })} au ${dateFnsFormat(endDate, "d MMMM yyyy", { locale })}`;
     }
+
     return `Du ${dateFnsFormat(startDate, formatPattern, { locale })} au ${dateFnsFormat(endDate, formatPattern, { locale })}`;
   }
 
   if (language === "es" || language === "it") {
     // Spanish/Italian style
     const separator = language === "es" ? " al " : " al ";
+
     if (startYear === endYear && startMonth === endMonth) {
       return `${dateFnsFormat(startDate, "d", { locale })}${separator}${dateFnsFormat(endDate, "d 'de' MMMM 'de' yyyy", { locale })}`;
     }
+
     return `${dateFnsFormat(startDate, formatPattern, { locale })}${separator}${dateFnsFormat(endDate, formatPattern, { locale })}`;
   }
 
@@ -513,15 +524,18 @@ export function formatDateRange(startDate: Date, endDate: Date, language: string
     if (startYear === endYear && startMonth === endMonth) {
       return `${dateFnsFormat(startDate, "d", { locale })} a ${dateFnsFormat(endDate, "d 'de' MMMM 'de' yyyy", { locale })}`;
     }
+
     return `${dateFnsFormat(startDate, formatPattern, { locale })} a ${dateFnsFormat(endDate, formatPattern, { locale })}`;
   }
 
   if (language === "ru" || language === "pl" || language === "cs") {
     // Russian/Polish/Czech style
     const separator = " – ";
+
     if (startYear === endYear && startMonth === endMonth) {
       return `${dateFnsFormat(startDate, "d", { locale })}${separator}${dateFnsFormat(endDate, "d MMMM yyyy", { locale })}`;
     }
+
     return `${dateFnsFormat(startDate, formatPattern, { locale })}${separator}${dateFnsFormat(endDate, formatPattern, { locale })}`;
   }
 
@@ -530,6 +544,7 @@ export function formatDateRange(startDate: Date, endDate: Date, language: string
     if (startYear === endYear && startMonth === endMonth) {
       return `${dateFnsFormat(startDate, "yyyy. MMM d.", { locale })}-${dateFnsFormat(endDate, "d.", { locale })}`;
     }
+
     return `${dateFnsFormat(startDate, formatPattern, { locale })} – ${dateFnsFormat(endDate, formatPattern, { locale })}`;
   }
 
@@ -538,8 +553,10 @@ export function formatDateRange(startDate: Date, endDate: Date, language: string
     if (startMonth === endMonth) {
       return `${dateFnsFormat(startDate, "MMM d", { locale })} - ${dateFnsFormat(endDate, "d, yyyy", { locale })}`;
     }
+
     return `${dateFnsFormat(startDate, "MMM d", { locale })} - ${dateFnsFormat(endDate, "MMM d, yyyy", { locale })}`;
   }
+
   return `${dateFnsFormat(startDate, formatPattern, { locale })} - ${dateFnsFormat(endDate, formatPattern, { locale })}`;
 }
 
@@ -599,18 +616,23 @@ export function formatTimeRange(startDate: Date, endDate: Date, language: string
   if (langKey === "ja") {
     return `${startTime}～${endTime}`; // Wave dash
   }
+
   if (langKey === "zh") {
     return `${startTime}-${endTime}`; // Hyphen
   }
+
   if (langKey === "de" || langKey === "ru" || langKey === "pl" || langKey === "cs") {
     return `${startTime} – ${endTime}`; // En dash
   }
+
   if (langKey === "fr") {
     return `${startTime} à ${endTime}`; // "à" (to)
   }
+
   if (langKey === "es" || langKey === "it") {
     return `${startTime} a ${endTime}`; // "a" (to)
   }
+
   if (langKey === "pt") {
     return `${startTime} às ${endTime}`; // "às" (at/to)
   }

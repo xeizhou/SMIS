@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
 import { router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -157,7 +157,9 @@ const emptyForm = {
 };
 
 function toFormData(regspi: RegSPIRecord | null) {
-    if (!regspi) return emptyForm;
+    if (!regspi) {
+return emptyForm;
+}
 
     return {
         month_year: regspi.month_year ?? '',
@@ -226,7 +228,10 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps, fund
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!regspi) return;
+
+        if (!regspi) {
+return;
+}
 
         setProcessing(true);
 
