@@ -310,7 +310,7 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
 Index.layout = {
     breadcrumbs: [
         {
-            title: 'Property',
+            title: 'Procurement',
             href: '#',
         },
         {
