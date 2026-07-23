@@ -26,6 +26,9 @@ interface PoLetterRecord {
     supplier?: {
         supplier_name?: string | null;
     } | null;
+    serve_po?: {
+        item_description?: string | null;
+    } | null;
 }
 
 interface Props {
@@ -81,6 +84,10 @@ return null;
                             <Detail label="PO Date" value={formatDate(poLetter.po_date)} />
                             <Detail label="Date Received by Supplier" value={formatDate(poLetter.date_received_by_supplier)} />
                             <Detail label="Delivery Term" value={poLetter.delivery_term ?? '—'} />
+                            <Detail
+                                label="Item Description"
+                                value={poLetter.serve_po?.item_description ?? '—'}
+                            />
                         </div>
                     </section>
 

@@ -22,26 +22,27 @@ class POLetterMonitoringController extends Controller
         $type = $request->string('type')->toString() ?: null;
 
         $poLetters = PoLetterMonitoring::query()
-            ->with([
-                'supplier:supplier_id,supplier_name',
-                // Needed so date_received_by_supplier / due_date /
-                // delivery_term accessors resolve without N+1 queries.
-                'servePo:po_number,po_received_date,due_date',
-            ])
-            ->when($search, function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('reference_no', 'like', "%{$search}%")
-                        ->orWhere('po_number', 'like', "%{$search}%")
-                        ->orWhere('office_end_user', 'like', "%{$search}%")
-                        ->orWhere('received_by', 'like', "%{$search}%")
-                        ->orWhereHas('supplier', fn ($supplierQuery) => $supplierQuery->where('supplier_name', 'like', "%{$search}%"));
-                });
-            })
-            ->when($status, fn ($query, $status) => $query->where('status_of_the_letter', $status))
-            ->when($type, fn ($query, $type) => $query->where('type_of_letter', $type))
-            ->orderByDesc('created_at')
-            ->paginate(10)
-            ->withQueryString();
+        ->with([
+            'supplier:supplier_id,supplier_name',
+            // Needed so date_received_by_supplier / due_date /
+            // delivery_term / item_description accessors resolve
+            // without N+1 queries.
+            'servePo:po_number,po_received_date,due_date,item_description',
+        ])
+        ->when($search, function ($query, $search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('reference_no', 'like', "%{$search}%")
+                    ->orWhere('po_number', 'like', "%{$search}%")
+                    ->orWhere('office_end_user', 'like', "%{$search}%")
+                    ->orWhere('received_by', 'like', "%{$search}%")
+                    ->orWhereHas('supplier', fn ($supplierQuery) => $supplierQuery->where('supplier_name', 'like', "%{$search}%"));
+            });
+        })
+        ->when($status, fn ($query, $status) => $query->where('status_of_the_letter', $status))
+        ->when($type, fn ($query, $type) => $query->where('type_of_letter', $type))
+        ->orderByDesc('created_at')
+        ->paginate(10)
+        ->withQueryString();
 
         return Inertia::render('po-letter-monitoring/index', [
             'poLetters' => $poLetters,
