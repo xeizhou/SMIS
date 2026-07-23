@@ -22,7 +22,12 @@ class POLetterMonitoringController extends Controller
         $type = $request->string('type')->toString() ?: null;
 
         $poLetters = PoLetterMonitoring::query()
-            ->with(['supplier:supplier_id,supplier_name'])
+            ->with([
+                'supplier:supplier_id,supplier_name',
+                // Needed so date_received_by_supplier / due_date /
+                // delivery_term accessors resolve without N+1 queries.
+                'servePo:po_number,po_received_date,due_date',
+            ])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('reference_no', 'like', "%{$search}%")
@@ -48,7 +53,7 @@ class POLetterMonitoringController extends Controller
             'suppliers' => Supplier::select('supplier_id', 'supplier_name')
                 ->orderBy('supplier_name')
                 ->get(),
-            'poNumbers' => ServePo::select('po_number', 'po_received_date', 'due_date')
+            'poNumbers' => ServePo::select('po_number', 'supplier_id', 'po_received_date', 'due_date')
                 ->orderBy('po_number')
                 ->get(),
         ]);

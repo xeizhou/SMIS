@@ -197,31 +197,25 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
     }, [open]);
 
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
+
+    // No. of Days (LD) = how late delivery_date is compared to the PO's
+    // due_date. Not PO-derived — depends on delivery_date, which the user
+    // controls, so it's recalculated live here rather than pulled from
+    // the PO directly.
     const computedLdDays = daysBetween(data.due_date, data.delivery_date);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
 
-        setData((prev) => {
-            const next = { ...prev, [name]: value };
-
-            // Keep delivery_term in sync if the user manually edits the dates
-            if (name === 'po_date_received' || name === 'due_date') {
-                next.delivery_term = String(daysBetween(next.po_date_received, next.due_date));
-            }
-
-            return next;
-        });
+        setData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
         if (name === 'po_number') {
             const chosenPo = purchaseOrders.find((item) => item.po_number === value) ?? null;
 
-            const poDateReceived = chosenPo?.po_received_date
-                ? toDateInputValue(chosenPo.po_received_date)
-                : data.po_date_received;
-            const dueDate = chosenPo?.due_date ? toDateInputValue(chosenPo.due_date) : data.due_date;
+            const poDateReceived = toDateInputValue(chosenPo?.po_received_date ?? null);
+            const dueDate = toDateInputValue(chosenPo?.due_date ?? null);
 
             setData({
                 ...data,
@@ -320,31 +314,34 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                         <Field
                             label="PO Date Received"
                             name="po_date_received"
-                            type="date"
                             value={data.po_date_received}
                             onChange={handleChange}
                             error={errors.po_date_received}
-                            placeholder="Select date"
+                            placeholder="Auto-filled from selected PO"
+                            readOnly
+                            disabled
                         />
 
                         <Field
                             label="Delivery Term (days)"
                             name="delivery_term"
-                            type="number"
                             value={data.delivery_term}
                             onChange={handleChange}
                             error={errors.delivery_term}
                             placeholder="Auto-calculated from PO dates"
+                            readOnly
+                            disabled
                         />
 
                         <Field
                             label="Due Date"
                             name="due_date"
-                            type="date"
                             value={data.due_date}
                             onChange={handleChange}
                             error={errors.due_date}
-                            placeholder="Select date"
+                            placeholder="Auto-filled from selected PO"
+                            readOnly
+                            disabled
                         />
 
                         <Field

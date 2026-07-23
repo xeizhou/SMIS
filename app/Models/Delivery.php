@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -40,13 +41,16 @@ class Delivery extends Model
 
     protected $casts = [
         'delivery_date' => 'date',
-        'po_date_received' => 'date',
-        'due_date' => 'date',
-        'delivery_term' => 'integer',
-        'no_of_days_ld' => 'integer',
         'data_entry_timestamp' => 'datetime',
         'total_amount_delivered' => 'decimal:2',
         'po_total_amount' => 'decimal:2',
+        // po_date_received, due_date, delivery_term, and no_of_days_ld are
+        // intentionally NOT cast here — they're computed live via the
+        // accessors below, sourced from the linked ServePo (and, for
+        // no_of_days_ld, from this delivery's own delivery_date). The raw
+        // columns still exist and are still written on store()/update(),
+        // but reads always go through the accessors so these values never
+        // go stale when the parent PO's dates change.
     ];
 
     public function servePo(): BelongsTo
@@ -57,5 +61,71 @@ class Delivery extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
+
+    /**
+     * Always reflects the linked PO's current po_received_date.
+     */
+    protected function poDateReceived(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->servePo?->po_received_date,
+        );
+    }
+
+    /**
+     * Always reflects the linked PO's current due_date.
+     */
+    protected function dueDate(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->servePo?->due_date,
+        );
+    }
+
+    /**
+     * Always recalculated from the linked PO's current dates. Null when
+     * either date is missing.
+     */
+    protected function deliveryTerm(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $received = $this->servePo?->po_received_date;
+                $due = $this->servePo?->due_date;
+
+                if (! $received || ! $due) {
+                    return null;
+                }
+
+                return max(0, $received->diffInDays($due));
+            },
+        );
+    }
+
+    /**
+     * Days late = how far delivery_date (actual) fell past due_date
+     * (from the linked PO). Not a PO snapshot — depends on the delivery
+     * itself, so it's null until delivery_date is set, and 0 if delivered
+     * on time or early.
+     */
+    protected function noOfDaysLd(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $delivered = $this->delivery_date;
+                $due = $this->servePo?->due_date;
+
+                if (! $delivered || ! $due) {
+                    return null;
+                }
+
+                if ($delivered->lessThanOrEqualTo($due)) {
+                    return 0;
+                }
+
+                return $due->diffInDays($delivered);
+            },
+        );
     }
 }

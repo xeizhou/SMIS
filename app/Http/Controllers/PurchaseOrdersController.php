@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Delivery;
 use App\Models\FundCluster;
 use App\Models\Office;
+use App\Models\PirMonitoring;
+use App\Models\PoLetterMonitoring;
 use App\Models\ServePo;
 use App\Models\Supplier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -99,10 +104,23 @@ class PurchaseOrdersController extends Controller
 
     /**
      * Update the specified purchase order.
+     *
+     * po_number is the primary key, and it's user-editable in the edit form.
+     * Renaming it must cascade to every child table that references it
+     * (delivery, po_letter_monitoring, pir_monitoring) since those FKs are
+     * not all set to ON UPDATE CASCADE at the DB level. We defer FK
+     * enforcement for the transaction so the rename can happen in one
+     * atomic operation regardless of update order.
      */
     public function update(Request $request, ServePo $servePo): RedirectResponse
     {
         $validated = $request->validate([
+            'po_number' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('serve_po', 'po_number')->ignore($servePo->po_number, 'po_number'),
+            ],
             'po_date' => ['nullable', 'date'],
             'po_received_date' => ['nullable', 'date'],
             'inclusive_date' => ['nullable', 'string', 'max:100'],
@@ -129,7 +147,24 @@ class PurchaseOrdersController extends Controller
         $validated['total_amount_po'] ??= 0;
         $validated['total_amount_diff'] = $validated['total_amount_abc'] - $validated['total_amount_po'];
 
-        $servePo->update($validated);
+        $oldPoNumber = $servePo->po_number;
+        $newPoNumber = $validated['po_number'];
+        $poNumberChanged = $oldPoNumber !== $newPoNumber;
+
+        DB::transaction(function () use ($servePo, $validated, $oldPoNumber, $newPoNumber, $poNumberChanged) {
+            if ($poNumberChanged) {
+                // Defer FK checks for this transaction only — lets us update
+                // parent + children in any order without tripping the
+                // inconsistent ON UPDATE rules across the child tables.
+                DB::statement('PRAGMA defer_foreign_keys = ON');
+
+                Delivery::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
+                PoLetterMonitoring::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
+                PirMonitoring::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
+            }
+
+            $servePo->update($validated);
+        });
 
         return redirect()->back();
     }
