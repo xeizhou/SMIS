@@ -49,10 +49,15 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 function formatCurrency(value: string | number | null | undefined) {
-    if (value === null || value === undefined) return '—';
+    if (value === null || value === undefined) {
+return '—';
+}
 
     const numeric = typeof value === 'string' ? parseFloat(value) : value;
-    if (Number.isNaN(numeric)) return '—';
+
+    if (Number.isNaN(numeric)) {
+return '—';
+}
 
     return numeric.toLocaleString('en-PH', {
         style: 'currency',
@@ -61,7 +66,9 @@ function formatCurrency(value: string | number | null | undefined) {
 }
 
 export default function RegSPIViewForm({ open, onOpenChange, regspi }: Props) {
-    if (!regspi) return null;
+    if (!regspi) {
+return null;
+}
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

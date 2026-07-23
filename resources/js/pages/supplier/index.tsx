@@ -1,7 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { Search, Pencil, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import SupplierAddForm from '@/components/suppliers/supplieraddform';
+import SupplierDeleteModal from '@/components/suppliers/supplierdeletemodal';
+import SupplierEditForm from '@/components/suppliers/suppliereditform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Pencil, Trash2 } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -9,10 +13,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { useState } from 'react';
-import SupplierAddForm from '@/components/suppliers/supplieraddform';
-import SupplierEditForm from '@/components/suppliers/suppliereditform';
-import SupplierDeleteModal from '@/components/suppliers/supplierdeletemodal';
 
 interface Supplier {
     supplier_id: number;

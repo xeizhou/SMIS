@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Transaction;
-use App\Models\Unit;
 use App\Models\FundCluster;
 use App\Models\Office;
+use App\Models\Transaction;
+use App\Models\Unit;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -15,43 +15,44 @@ class TransactionLogsController extends Controller
      * Display the Transaction Logs page.
      */
     public function index(Request $request)
-        {
-            $search = $request->input('search');
+    {
+        $search = $request->input('search');
 
-            $query = Transaction::with(['unit', 'fundCluster', 'office'])
-                ->when($search, function ($q) use ($search) {
-                    $q->where(function ($sub) use ($search) {
-                        $sub->where('item_name', 'like', "%{$search}%")
-                            ->orWhere('reference', 'like', "%{$search}%");
-                    });
+        $query = Transaction::with(['unit', 'fundCluster', 'office'])
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('item_name', 'like', "%{$search}%")
+                        ->orWhere('reference', 'like', "%{$search}%");
                 });
-
-            if ($request->filled('transaction_type') && $request->transaction_type !== 'all') {
-                $query->where('transaction_type', $request->transaction_type);
-            }
-
-            $transactions = $query->orderBy('transaction_date', 'desc')
-                ->paginate(10)
-                ->withQueryString();
-
-            // Avoid key collision: relation "fundCluster" snake-cases to "fund_cluster",
-            // which clobbers the raw FK column of the same name in JSON output.
-            $transactions->getCollection()->transform(function ($transaction) {
-                $transaction->fund_cluster_detail = $transaction->fundCluster;
-                return $transaction;
             });
 
-            return Inertia::render('transaction-logs/index', [
-                'transactions' => $transactions,
-                'units' => Unit::orderBy('unit_name')->get(),
-                'fundClusters' => FundCluster::orderBy('fund_cluster_id')->get(),
-                'offices' => Office::orderBy('office_name')->get(),
-                'filters' => [
-                    'search' => $search,
-                    'transaction_type' => $request->input('transaction_type', 'all'),
-                ],
-            ]);
+        if ($request->filled('transaction_type') && $request->transaction_type !== 'all') {
+            $query->where('transaction_type', $request->transaction_type);
         }
+
+        $transactions = $query->orderBy('transaction_date', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        // Avoid key collision: relation "fundCluster" snake-cases to "fund_cluster",
+        // which clobbers the raw FK column of the same name in JSON output.
+        $transactions->getCollection()->transform(function ($transaction) {
+            $transaction->fund_cluster_detail = $transaction->fundCluster;
+
+            return $transaction;
+        });
+
+        return Inertia::render('transaction-logs/index', [
+            'transactions' => $transactions,
+            'units' => Unit::orderBy('unit_name')->get(),
+            'fundClusters' => FundCluster::orderBy('fund_cluster_id')->get(),
+            'offices' => Office::orderBy('office_name')->get(),
+            'filters' => [
+                'search' => $search,
+                'transaction_type' => $request->input('transaction_type', 'all'),
+            ],
+        ]);
+    }
 
     /**
      * Store a newly created transaction.

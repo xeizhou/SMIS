@@ -1,11 +1,11 @@
 import { differenceInDays, parseISO, startOfDay } from "date-fns";
 import { useTranslation } from "react-i18next";
-import { getDateLocale } from "@/lib/date-locale";
-import { formatDate } from "@/lib/date-formats";
 
 import { AgendaEventCard } from "@/calendar/components/agenda-view/agenda-event-card";
 
 import type { IEvent } from "@/calendar/interfaces";
+import { formatDate } from "@/lib/date-formats";
+import { getDateLocale } from "@/lib/date-locale";
 
 interface IProps {
   date: Date;
@@ -33,6 +33,7 @@ export function AgendaDayGroup({ date, events, multiDayEvents }: IProps) {
 
             const eventTotalDays = differenceInDays(eventEnd, eventStart) + 1;
             const eventCurrentDay = differenceInDays(currentDate, eventStart) + 1;
+
             return <AgendaEventCard key={event.id} event={event} eventCurrentDay={eventCurrentDay} eventTotalDays={eventTotalDays} />;
           })}
 

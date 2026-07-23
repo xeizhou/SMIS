@@ -83,7 +83,7 @@ class DeliveriesController extends Controller
             'folder_link' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $validated['delivery_id'] = now()->format('YmdHis') . '-' . substr(md5(uniqid()), 0, 6);
+        $validated['delivery_id'] = now()->format('YmdHis').'-'.substr(md5(uniqid()), 0, 6);
         $validated['total_amount_delivered'] ??= 0;
         $validated['po_total_amount'] ??= 0;
 

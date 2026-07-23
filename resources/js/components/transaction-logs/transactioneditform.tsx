@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -226,7 +226,10 @@ export default function TransactionEditForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!transaction) return;
+
+        if (!transaction) {
+return;
+}
 
         setProcessing(true);
 
@@ -240,7 +243,9 @@ export default function TransactionEditForm({
         });
     };
 
-    if (!transaction) return null;
+    if (!transaction) {
+return null;
+}
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

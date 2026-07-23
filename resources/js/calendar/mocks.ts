@@ -1,5 +1,5 @@
-import type { TEventColor } from "@/calendar/types";
 import type { IEvent, IUser } from "@/calendar/interfaces";
+import type { TEventColor } from "@/calendar/types";
 
 // ================================== //
 

@@ -12,6 +12,7 @@ export class NavigationUtils {
   static isValidDateString(dateString: string): boolean {
     try {
       const date = parseISO(dateString)
+
       return isValid(date)
     } catch {
       return false
@@ -39,6 +40,7 @@ export class NavigationUtils {
     if (!this.isValidDateString(dateString)) {
       return null
     }
+
     return parseISO(dateString)
   }
 
@@ -67,8 +69,14 @@ export function useCalendarNavigation() {
       : undefined
 
     const params: Record<string, string> = {}
-    if (dateParam) params.date = dateParam
-    if (options?.userId) params.userId = options.userId
+
+    if (dateParam) {
+params.date = dateParam
+}
+
+    if (options?.userId) {
+params.userId = options.userId
+}
 
     router.get(`/calendar/${view}`, params, {
       replace: options?.replace,

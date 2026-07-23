@@ -22,8 +22,14 @@ export const useEvents = (filters: Record<string, unknown> = {}) => {
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
     retry: (failureCount, error) => {
       // Retry up to 3 times for network errors, but not for 4xx errors
-      if (failureCount >= 3) return false;
-      if (error instanceof Error && error.message.includes('4')) return false;
+      if (failureCount >= 3) {
+return false;
+}
+
+      if (error instanceof Error && error.message.includes('4')) {
+return false;
+}
+
       return true;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -62,7 +68,10 @@ export const useCreateEvent = () => {
       }
 
       queryClient.setQueriesData<IEvent[]>({ queryKey: eventKeys.lists() }, (old) => {
-        if (!old) return [optimisticEvent]
+        if (!old) {
+return [optimisticEvent]
+}
+
         return [...old, optimisticEvent]
       })
 
@@ -71,8 +80,12 @@ export const useCreateEvent = () => {
     onSuccess: (createdEvent, _variables, _context) => {
       // Persist created event in all lists without invalidating to mock source
       queryClient.setQueriesData<IEvent[]>({ queryKey: eventKeys.lists() }, (old) => {
-        if (!old) return [createdEvent]
+        if (!old) {
+return [createdEvent]
+}
+
         const exists = old.some((e) => e.id === createdEvent.id)
+
         return exists ? old : [...old, createdEvent]
       })
     },
@@ -106,7 +119,10 @@ export const useUpdateEvent = () => {
 
       // Optimistically update all list queries
       queryClient.setQueriesData<IEvent[]>({ queryKey: eventKeys.lists() }, (old) => {
-        if (!old) return old
+        if (!old) {
+return old
+}
+
         return old.map(event => (event.id === updatedEvent.id ? updatedEvent : event))
       })
 
@@ -127,6 +143,7 @@ export const useUpdateEvent = () => {
           queryClient.setQueryData(key, data)
         }
       }
+
       if (context?.previousDetail) {
         queryClient.setQueryData(eventKeys.detail(updatedEvent.id), context.previousDetail)
       }
@@ -189,6 +206,7 @@ export const useBulkUpdateEvents = () => {
     mutationFn: async (events: IEvent[]) => {
       // Process multiple updates in parallel
       const updatePromises = events.map(event => updateEvent(event))
+
       return Promise.all(updatePromises)
     },
     onSuccess: () => {

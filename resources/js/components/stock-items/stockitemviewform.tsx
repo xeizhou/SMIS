@@ -48,7 +48,9 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 export default function StockItemViewForm({ open, onOpenChange, stock }: Props) {
-    if (!stock) return null;
+    if (!stock) {
+return null;
+}
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

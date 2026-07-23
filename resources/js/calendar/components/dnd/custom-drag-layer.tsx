@@ -1,10 +1,10 @@
 import { memo } from "react";
 import { useDragLayer } from "react-dnd";
 
+import type { XYCoord } from "react-dnd";
 import { DragPreview } from "@/calendar/components/dnd/drag-preview";
 
 import type { IEvent } from "@/calendar/interfaces";
-import type { XYCoord } from "react-dnd";
 
 interface IDragItem {
   event: IEvent;

@@ -1,11 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Search, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import OfficeAddForm from '@/components/offices/officeaddform';
-import OfficeEditForm from '@/components/offices/officeeditform';
 import OfficeDeleteModal from '@/components/offices/officedeletemodal';
+import OfficeEditForm from '@/components/offices/officeeditform';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface Office {
     office_code: string;

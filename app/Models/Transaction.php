@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Transaction extends Model
 {
     protected $table = 'transactions';
+
     protected $primaryKey = 'transactionID';
+
     public $timestamps = false; // source table has no created_at/updated_at
 
     protected $fillable = [

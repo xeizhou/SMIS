@@ -7,6 +7,7 @@ import PreRepairEditForm from '@/components/pre-repair-monitoring/pre-repair-edi
 import PreRepairViewModal from '@/components/pre-repair-monitoring/pre-repair-view-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import type { ITRPTRMonitoring } from '@/pages/itr-ptr-monitoring/index';
 
 export type PreRepairMonitoring = {
     id: number;
@@ -49,7 +50,7 @@ return '-';
     }).format(num);
 };
 
-export default function Index({ data = { data: [], links: [] }, filters = {} }: { data?: PaginatedPreRepair, filters?: any }) {
+export default function Index({ data = { data: [], links: [] }, filters = {}, itrPtrs = [] }: { data?: PaginatedPreRepair, filters?: any, itrPtrs?: ITRPTRMonitoring[] }) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -232,12 +233,14 @@ export default function Index({ data = { data: [], links: [] }, filters = {} }: 
             <PreRepairAddForm
                 open={isAddModalOpen}
                 onOpenChange={setIsAddModalOpen}
+                itrPtrs={itrPtrs}
             />
 
             <PreRepairEditForm
                 open={isEditModalOpen}
                 onOpenChange={setIsEditModalOpen}
                 item={selectedItem}
+                itrPtrs={itrPtrs}
             />
 
             <PreRepairViewModal

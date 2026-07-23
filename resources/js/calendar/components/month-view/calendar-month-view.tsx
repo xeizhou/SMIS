@@ -1,14 +1,14 @@
-import { useMemo } from "react";
 import { format, startOfWeek, addDays } from "date-fns";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useCalendarDate } from "@/stores/calendar-store";
 
 import { DayCell } from "@/calendar/components/month-view/day-cell";
 import { getCalendarCells, calculateMonthEventPositions } from "@/calendar/helpers";
+import type { IEvent } from "@/calendar/interfaces";
 import { getDateLocale } from "@/lib/date-locale";
 
-import type { IEvent } from "@/calendar/interfaces";
+import { useCalendarDate } from "@/stores/calendar-store";
 
 interface IProps {
   singleDayEvents: IEvent[];
@@ -32,8 +32,10 @@ export function CalendarMonthView({ singleDayEvents, multiDayEvents }: IProps) {
   // Generate week days based on locale
   const weekDays = useMemo(() => {
     const weekStart = startOfWeek(new Date(), { locale });
+
     return Array.from({ length: 7 }, (_, i) => {
       const day = addDays(weekStart, i);
+
       return format(day, "EEE", { locale });
     });
   }, [locale]);

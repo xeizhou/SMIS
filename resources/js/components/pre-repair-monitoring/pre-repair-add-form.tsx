@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    itrPtrs: any[];
 }
 
 interface FieldProps {
@@ -20,7 +21,7 @@ interface FieldProps {
     name: string;
     value: string;
     onChange: (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => void;
     error?: string;
     required?: boolean;
@@ -100,17 +101,41 @@ const emptyForm = {
     location: '',
 };
 
-export default function PreRepairAddForm({ open, onOpenChange }: Props) {
+export default function PreRepairAddForm({ open, onOpenChange, itrPtrs }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => {
+        const { name, value } = e.target;
+        
+        if (name === 'transaction_no') {
+            const selectedItr = itrPtrs.find((itr) => itr.transaction_no === value);
+            if (selectedItr) {
+                let condition = selectedItr.condition_of_ppe || '';
+                if (condition.toLowerCase() === 'serviceable') condition = 'Serviceable';
+                if (condition.toLowerCase() === 'unserviceable') condition = 'Unserviceable';
+
+                setData({
+                    ...data,
+                    transaction_no: value,
+                    property_no: selectedItr.property_no || '',
+                    description: selectedItr.description || '',
+                    amount: selectedItr.amount ? selectedItr.amount.toString() : '',
+                    condition_of_ppe: condition,
+                    location: selectedItr.location || '',
+                    from_accountable_officer: selectedItr.from_accountable_officer || '',
+                    to_accountable_officer: selectedItr.to_accountable_officer || '',
+                });
+                return;
+            }
+        }
+        
         setData({
             ...data,
-            [e.target.name]: e.target.value,
+            [name]: value,
         });
     };
 
@@ -138,14 +163,26 @@ export default function PreRepairAddForm({ open, onOpenChange }: Props) {
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-6">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <Field
-                            label="Transaction No."
-                            name="transaction_no"
-                            value={data.transaction_no}
-                            onChange={handleChange}
-                            error={errors.transaction_no}
-                            required
-                        />
+                        <div>
+                            <label className={labelClass}>
+                                Transaction No.
+                                <span className="text-red-500"> *</span>
+                            </label>
+                            <select
+                                name="transaction_no"
+                                value={data.transaction_no}
+                                onChange={handleChange}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">Select Transaction No.</option>
+                                {itrPtrs.map((itr) => (
+                                    <option key={itr.id} value={itr.transaction_no}>
+                                        {itr.transaction_no} - {itr.property_no}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.transaction_no && <p className="mt-1 text-xs text-red-500">{errors.transaction_no}</p>}
+                        </div>
                         <Field
                             label="Pre-Repair No."
                             name="pre_repair_no"
@@ -181,14 +218,23 @@ export default function PreRepairAddForm({ open, onOpenChange }: Props) {
                             error={errors.amount}
                             required
                         />
-                        <Field
-                            label="Condition of PPE"
-                            name="condition_of_ppe"
-                            value={data.condition_of_ppe}
-                            onChange={handleChange}
-                            error={errors.condition_of_ppe}
-                            required
-                        />
+                        <div>
+                            <label className={labelClass}>
+                                Condition of PPE
+                                <span className="text-red-500"> *</span>
+                            </label>
+                            <select
+                                name="condition_of_ppe"
+                                value={data.condition_of_ppe}
+                                onChange={handleChange}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">Select Condition</option>
+                                <option value="Serviceable">Serviceable</option>
+                                <option value="Unserviceable">Unserviceable</option>
+                            </select>
+                            {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
+                        </div>
                         <Field
                             label="Location"
                             name="location"

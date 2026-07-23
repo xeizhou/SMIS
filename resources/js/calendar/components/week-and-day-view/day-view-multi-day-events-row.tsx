@@ -28,10 +28,13 @@ export function DayViewMultiDayEventsRow({ selectedDate, multiDayEvents }: IProp
     .sort((a, b) => {
       const durationA = differenceInDays(parseISO(a.endDate), parseISO(a.startDate));
       const durationB = differenceInDays(parseISO(b.endDate), parseISO(b.startDate));
+
       return durationB - durationA;
     });
 
-  if (multiDayEventsInDay.length === 0) return null;
+  if (multiDayEventsInDay.length === 0) {
+return null;
+}
 
   return (
     <div className="flex border-b">

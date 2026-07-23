@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 interface Unit {
@@ -97,7 +97,10 @@ export default function UnitEditForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!unit) return;
+
+        if (!unit) {
+return;
+}
 
         router.put(`/units/${unit.unitID}`, data, {
             onSuccess: () => {
@@ -108,7 +111,9 @@ export default function UnitEditForm({
         });
     };
 
-    if (!unit) return null;
+    if (!unit) {
+return null;
+}
 
     return (
         <Dialog

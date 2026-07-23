@@ -2,21 +2,21 @@ import { startOfWeek, addDays, format, parseISO, isSameDay, areIntervalsOverlapp
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useCalendarDate, useCalendarPreferences } from "@/stores/calendar-store";
-import { getDateLocale } from "@/lib/date-locale";
 
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { AddEventDialog } from "@/calendar/components/dialogs/add-event-dialog";
-import { EventBlock } from "@/calendar/components/week-and-day-view/event-block";
 import { DroppableTimeBlock } from "@/calendar/components/dnd/droppable-time-block";
 import { CalendarTimeline } from "@/calendar/components/week-and-day-view/calendar-time-line";
+import { EventBlock } from "@/calendar/components/week-and-day-view/event-block";
 import { WeekViewMultiDayEventsRow } from "@/calendar/components/week-and-day-view/week-view-multi-day-events-row";
 
-import { cn } from "@/lib/utils";
 import { groupEvents, getEventBlockStyle, isWorkingHour, getVisibleHours } from "@/calendar/helpers";
 
 import type { IEvent } from "@/calendar/interfaces";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { getDateLocale } from "@/lib/date-locale";
+import { cn } from "@/lib/utils";
+import { useCalendarDate, useCalendarPreferences } from "@/stores/calendar-store";
 
 interface IProps {
   singleDayEvents: IEvent[];
@@ -38,6 +38,7 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
     () =>
       hours.map(h => {
         const date = new Date().setHours(h, 0, 0, 0);
+
         return format(new Date(date), i18n.language === "ko" ? "HH시" : "hh a", { locale });
       }),
     [hours, locale, i18n.language]
@@ -51,6 +52,7 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
   const dayEventsMap = useMemo(() => {
     return weekDays.map(day => {
       const dayEvents = parsedSingleDayEvents.filter(pe => isSameDay(pe.start, day) || isSameDay(pe.end, day)).map(pe => pe.event);
+
       return dayEvents;
     });
   }, [parsedSingleDayEvents, weekDays]);
@@ -152,7 +154,9 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
                               )
                           );
 
-                          if (!hasOverlap) style = { ...style, width: "100%", left: "0%" };
+                          if (!hasOverlap) {
+style = { ...style, width: "100%", left: "0%" };
+}
 
                           return (
                             <div key={event.id} className="absolute p-1" style={style}>

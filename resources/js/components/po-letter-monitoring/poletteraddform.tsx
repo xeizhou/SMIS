@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
 import { router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -176,26 +176,39 @@ const emptyForm = {
 };
 
 function toDateInputValue(value: string | null | undefined) {
-    if (!value) return '';
+    if (!value) {
+return '';
+}
 
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+return value;
+}
 
     const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (match) return match[1];
+
+    if (match) {
+return match[1];
+}
 
     const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return '';
+
+    if (Number.isNaN(parsed.getTime())) {
+return '';
+}
 
     return parsed.toISOString().slice(0, 10);
 }
 
 function daysBetween(startDate: string, endDate: string) {
-    if (!startDate || !endDate) return 0;
+    if (!startDate || !endDate) {
+return 0;
+}
 
     const start = new Date(startDate);
     const end = new Date(endDate);
 
     const diff = end.getTime() - start.getTime();
+
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 

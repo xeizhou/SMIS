@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import {
     Bar,
@@ -8,7 +9,6 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
-import { ChevronDown } from 'lucide-react';
 
 export type POLetterStatusRow = {
     type: 'Extension' | 'Waiver' | 'Cancellation' | 'Replacement';

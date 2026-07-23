@@ -21,6 +21,7 @@ export const queryClient = new QueryClient({
         if (error instanceof Error && error.message.includes('4')) {
           return false
         }
+
         // Retry up to 3 times for other errors
         return failureCount < 3
       },
@@ -36,6 +37,7 @@ export const queryClient = new QueryClient({
         if (error instanceof Error && error.message.includes('4')) {
           return false
         }
+
         // Retry once for network errors
         return failureCount < 1
       },

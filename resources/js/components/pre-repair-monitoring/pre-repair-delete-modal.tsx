@@ -41,12 +41,16 @@ return;
                 </DialogHeader>
                 
                 <div className="py-4">
+                    <p className="font-semibold text-red-600 text-sm mb-2">Warning: Cascading Deletion</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete this record? This action cannot be undone.
+                        Are you sure you want to delete this record? <strong>Deleting this Pre-Repair record will also automatically delete all linked For Disposal records.</strong>
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                        This action cannot be undone.
                     </p>
                 </div>
                 
-                <DialogFooter className="gap-2 sm:gap-0">
+                <DialogFooter className="gap-3 sm:space-x-2">
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>

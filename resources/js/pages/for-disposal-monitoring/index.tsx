@@ -7,6 +7,7 @@ import ForDisposalEditForm from '@/components/for-disposal-monitoring/for-dispos
 import ForDisposalViewModal from '@/components/for-disposal-monitoring/for-disposal-view-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import type { PreRepairMonitoring } from '@/pages/pre-repair-monitoring/index';
 
 export type ForDisposalMonitoring = {
     id: number;
@@ -49,7 +50,7 @@ return '-';
     }).format(num);
 };
 
-export default function Index({ data = { data: [], links: [] }, filters = {} }: { data?: PaginatedForDisposal, filters?: any }) {
+export default function Index({ data = { data: [], links: [] }, filters = {}, preRepairs = [] }: { data?: PaginatedForDisposal, filters?: any, preRepairs?: PreRepairMonitoring[] }) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -232,12 +233,14 @@ export default function Index({ data = { data: [], links: [] }, filters = {} }: 
             <ForDisposalAddForm
                 open={isAddModalOpen}
                 onOpenChange={setIsAddModalOpen}
+                preRepairs={preRepairs}
             />
 
             <ForDisposalEditForm
                 open={isEditModalOpen}
                 onOpenChange={setIsEditModalOpen}
                 item={selectedItem}
+                preRepairs={preRepairs}
             />
 
             <ForDisposalViewModal

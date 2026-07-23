@@ -1,24 +1,24 @@
-import { Calendar, Clock, User } from "lucide-react";
 import { parseISO, areIntervalsOverlapping, format } from "date-fns";
+import { Calendar, Clock, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { useCalendarDate, useCalendarUser, useCalendarPreferences } from "@/stores/calendar-store";
-import { getDateLocale } from "@/lib/date-locale";
-import { formatDate, formatTimeRange } from "@/lib/date-formats";
 
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { SingleCalendar } from "@/components/ui/single-calendar";
 
 import { AddEventDialog } from "@/calendar/components/dialogs/add-event-dialog";
-import { EventBlock } from "@/calendar/components/week-and-day-view/event-block";
 import { DroppableTimeBlock } from "@/calendar/components/dnd/droppable-time-block";
 import { CalendarTimeline } from "@/calendar/components/week-and-day-view/calendar-time-line";
 import { DayViewMultiDayEventsRow } from "@/calendar/components/week-and-day-view/day-view-multi-day-events-row";
+import { EventBlock } from "@/calendar/components/week-and-day-view/event-block";
 
-import { cn } from "@/lib/utils";
 import { groupEvents, getEventBlockStyle, isWorkingHour, getCurrentEvents, getVisibleHours } from "@/calendar/helpers";
 
 import type { IEvent } from "@/calendar/interfaces";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { SingleCalendar } from "@/components/ui/single-calendar";
+import { formatDate, formatTimeRange } from "@/lib/date-formats";
+import { getDateLocale } from "@/lib/date-locale";
+import { cn } from "@/lib/utils";
+import { useCalendarDate, useCalendarUser, useCalendarPreferences } from "@/stores/calendar-store";
 
 interface IProps {
   singleDayEvents: IEvent[];
@@ -38,6 +38,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 
   const dayEvents = singleDayEvents.filter(event => {
     const eventDate = parseISO(event.startDate);
+
     return (
       eventDate.getDate() === selectedDate.getDate() &&
       eventDate.getMonth() === selectedDate.getMonth() &&
@@ -132,7 +133,9 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
                         )
                     );
 
-                    if (!hasOverlap) style = { ...style, width: "100%", left: "0%" };
+                    if (!hasOverlap) {
+style = { ...style, width: "100%", left: "0%" };
+}
 
                     return (
                       <div key={event.id} className="absolute p-1" style={style}>

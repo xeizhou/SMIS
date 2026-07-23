@@ -1,5 +1,5 @@
-import { CALENDAR_ITENS_MOCK, USERS_MOCK } from "@/calendar/mocks";
 import type { IEvent, IUser } from "@/calendar/interfaces";
+import { CALENDAR_ITENS_MOCK, USERS_MOCK } from "@/calendar/mocks";
 
 // API Client with error handling and retry logic
 class ApiClient {
@@ -40,9 +40,10 @@ class ApiClient {
     } catch (error) {
       // Log error for debugging in development
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
+         
         console.error(`API request failed for ${endpoint}:`, error);
       }
+
       throw error;
     }
   }
@@ -80,6 +81,7 @@ export const getEvents = async (): Promise<IEvent[]> => {
   
   // Simulate network delay for better UX testing
   await new Promise(resolve => setTimeout(resolve, 300));
+
   return CALENDAR_ITENS_MOCK;
 };
 
@@ -127,6 +129,7 @@ export const getUsers = async (): Promise<IUser[]> => {
   
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 200));
+
   return USERS_MOCK;
 };
 

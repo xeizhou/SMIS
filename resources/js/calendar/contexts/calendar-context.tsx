@@ -51,7 +51,10 @@ export function CalendarProvider({ children, users, events }: { children: React.
   const [localEvents, setLocalEvents] = useState<IEvent[]>(events);
 
   const handleSelectDate = (date: Date | undefined) => {
-    if (!date) return;
+    if (!date) {
+return;
+}
+
     setSelectedDate(date);
   };
 
@@ -81,6 +84,10 @@ export function CalendarProvider({ children, users, events }: { children: React.
 
 export function useCalendar(): ICalendarContext {
   const context = useContext(CalendarContext);
-  if (!context) throw new Error("useCalendar must be used within a CalendarProvider.");
+
+  if (!context) {
+throw new Error("useCalendar must be used within a CalendarProvider.");
+}
+
   return context;
 }

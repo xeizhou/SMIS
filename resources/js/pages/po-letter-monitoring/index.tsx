@@ -1,7 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import PoLetterAddForm from '@/components/po-letter-monitoring/poletteraddform';
+import PoLetterDeleteModal from '@/components/po-letter-monitoring/poletterdeletemodal';
+import PoLetterEditForm from '@/components/po-letter-monitoring/polettereditform';
+import PoLetterViewForm from '@/components/po-letter-monitoring/poletterviewform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -9,11 +14,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { useState } from 'react';
-import PoLetterAddForm from '@/components/po-letter-monitoring/poletteraddform';
-import PoLetterEditForm from '@/components/po-letter-monitoring/polettereditform';
-import PoLetterViewForm from '@/components/po-letter-monitoring/poletterviewform';
-import PoLetterDeleteModal from '@/components/po-letter-monitoring/poletterdeletemodal';
 
 interface Supplier {
     supplier_id: number;
@@ -70,7 +70,9 @@ interface Props {
 }
 
 function formatDate(value: string | null) {
-    if (!value) return '—';
+    if (!value) {
+return '—';
+}
 
     return new Date(value).toLocaleDateString('en-PH', {
         year: 'numeric',

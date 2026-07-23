@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class FundCluster extends Model
 {
     protected $table = 'fund_clusters';
+
     protected $primaryKey = 'fund_cluster_id';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [

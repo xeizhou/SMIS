@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -7,7 +8,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 
 interface Props {
     open: boolean;
@@ -23,7 +23,9 @@ export default function SupplierDeleteModal({
     const [processing, setProcessing] = useState(false);
 
     const confirmDelete = () => {
-        if (!supplierId) return;
+        if (!supplierId) {
+return;
+}
 
         setProcessing(true);
 

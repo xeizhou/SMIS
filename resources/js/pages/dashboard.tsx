@@ -1,11 +1,14 @@
 import { Head, usePage, router } from '@inertiajs/react';
-import { useState } from 'react';
 import { RefreshCw, ClipboardCheck, FileText, Truck } from 'lucide-react';
+import { useState } from 'react';
 import { CalendarButton } from '@/calendar/components/calendar-button';
+import { DueDeliveries  } from '@/components/due-deliveries';
+import type {DueDelivery} from '@/components/due-deliveries';
+import { PoLettersStatusChart  } from '@/components/po-letter-status-chart';
+import type {POLetterStatusRow} from '@/components/po-letter-status-chart';
+import { RecentActivity  } from '@/components/recent-activity';
+import type {RecentActivityRow} from '@/components/recent-activity';
 import { StatCard } from '@/components/stat-card';
-import { DueDeliveries, type DueDelivery } from '@/components/due-deliveries';
-import { PoLettersStatusChart, type POLetterStatusRow } from '@/components/po-letter-status-chart';
-import { RecentActivity, type RecentActivityRow } from '@/components/recent-activity';
 import { dashboard } from '@/routes';
 
 type DashboardPageProps = {

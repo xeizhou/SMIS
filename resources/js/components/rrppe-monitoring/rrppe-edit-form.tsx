@@ -133,7 +133,7 @@ export default function RrppeEditForm({ open, onOpenChange, item }: Props) {
         if (open && item) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setErrors({});
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+             
             setData({
                 rrppe_no: item.rrppe_no || '',
                 date_received: item.date_received || '',

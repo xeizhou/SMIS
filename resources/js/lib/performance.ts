@@ -16,6 +16,7 @@ export class PerformanceMonitor {
     if (!PerformanceMonitor.instance) {
       PerformanceMonitor.instance = new PerformanceMonitor();
     }
+
     return PerformanceMonitor.instance;
   }
 
@@ -32,17 +33,22 @@ export class PerformanceMonitor {
    * End measuring and log the result
    */
   endMeasure(name: string): number | null {
-    if (typeof performance === 'undefined') return null;
+    if (typeof performance === 'undefined') {
+return null;
+}
 
     const startTime = this.metrics.get(name);
-    if (!startTime) return null;
+
+    if (!startTime) {
+return null;
+}
 
     const duration = performance.now() - startTime;
     this.metrics.delete(name);
 
     if (__DEV__) {
       // Performance logging in development mode
-      // eslint-disable-next-line no-console
+       
       console.log(`⚡ ${name}: ${duration.toFixed(2)}ms`);
     }
 
@@ -76,12 +82,15 @@ export class PerformanceMonitor {
    */
   async measureAsync<T>(name: string, operation: () => Promise<T>): Promise<T> {
     this.startMeasure(name);
+
     try {
       const result = await operation();
       this.endMeasure(name);
+
       return result;
     } catch (error) {
       this.endMeasure(name);
+
       throw error;
     }
   }
@@ -90,20 +99,22 @@ export class PerformanceMonitor {
    * Log bundle size information (development only)
    */
   logBundleInfo(): void {
-    if (!__DEV__ || typeof navigator === 'undefined') return;
+    if (!__DEV__ || typeof navigator === 'undefined') {
+return;
+}
 
     // Log memory usage if available
     if ('memory' in performance) {
       const memory = (performance as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
-      // eslint-disable-next-line no-console
+       
       console.group('📦 Bundle Performance');
-      // eslint-disable-next-line no-console
+       
       console.log(`Used JS Heap: ${(memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`);
-      // eslint-disable-next-line no-console
+       
       console.log(`Total JS Heap: ${(memory.totalJSHeapSize / 1024 / 1024).toFixed(2)} MB`);
-      // eslint-disable-next-line no-console
+       
       console.log(`Heap Limit: ${(memory.jsHeapSizeLimit / 1024 / 1024).toFixed(2)} MB`);
-      // eslint-disable-next-line no-console
+       
       console.groupEnd();
     }
   }
@@ -112,7 +123,9 @@ export class PerformanceMonitor {
    * Monitor Core Web Vitals
    */
   monitorWebVitals(): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+return;
+}
 
     // Largest Contentful Paint
     if ('PerformanceObserver' in window) {
@@ -120,8 +133,9 @@ export class PerformanceMonitor {
         const observer = new PerformanceObserver((list) => {
           const entries = list.getEntries();
           const lastEntry = entries[entries.length - 1];
+
           if (__DEV__) {
-            // eslint-disable-next-line no-console
+             
             console.log(`🎯 LCP: ${lastEntry.startTime.toFixed(2)}ms`);
           }
         });
@@ -138,8 +152,9 @@ export class PerformanceMonitor {
       const measureFID = (event: Event) => {
         if (firstInputDelay === null) {
           firstInputDelay = performance.now() - (event as Event & { timeStamp: number }).timeStamp;
+
           if (__DEV__) {
-            // eslint-disable-next-line no-console
+             
             console.log(`⚡ FID: ${firstInputDelay.toFixed(2)}ms`);
           }
         }

@@ -1,7 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import RrspAddForm from '@/components/rrsp-monitoring/rrspaddform';
+import RrspDeleteModal from '@/components/rrsp-monitoring/rrspdeletemodal';
+import RrspEditForm from '@/components/rrsp-monitoring/rrspeditform';
+import RrspViewForm from '@/components/rrsp-monitoring/rrspviewform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -9,11 +14,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { useState } from 'react';
-import RrspAddForm from '@/components/rrsp-monitoring/rrspaddform';
-import RrspEditForm from '@/components/rrsp-monitoring/rrspeditform';
-import RrspDeleteModal from '@/components/rrsp-monitoring/rrspdeletemodal';
-import RrspViewForm from '@/components/rrsp-monitoring/rrspviewform';
 
 interface RrspMonitoring {
     id: string;
@@ -53,9 +53,13 @@ interface Props {
 const STATUS_OPTIONS = ['Serviceable', 'Unserviceable'];
 
 function formatCurrency(value: number | null) {
-    if (value === null) return '—';
+    if (value === null) {
+return '—';
+}
 
-    if (Number.isNaN(value)) return '—';
+    if (Number.isNaN(value)) {
+return '—';
+}
 
     return value.toLocaleString('en-PH', {
         style: 'currency',
@@ -64,7 +68,9 @@ function formatCurrency(value: number | null) {
 }
 
 function formatDate(value: string | null) {
-    if (!value) return '—';
+    if (!value) {
+return '—';
+}
 
     return new Date(value).toLocaleDateString('en-PH', {
         year: 'numeric',

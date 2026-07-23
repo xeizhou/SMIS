@@ -9,8 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class StockItem extends Model
 {
     protected $table = 'stock_items';
+
     protected $primaryKey = 'stock_no';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [

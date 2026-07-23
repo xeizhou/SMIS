@@ -22,7 +22,7 @@ interface FieldProps {
     name: string;
     value: string;
     onChange: (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => void;
     error?: string;
     required?: boolean;
@@ -106,6 +106,7 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     useEffect(() => {
         if (open && item) {
@@ -129,7 +130,7 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
     }, [open, item]);
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => {
         setData({
             ...data,
@@ -137,10 +138,16 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
         });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
 
         if (!item) {
+            return;
+        }
+
+        // If not already confirmed, check if PKs changed
+        if (e && (data.transaction_no !== item.transaction_no || data.property_no !== item.property_no)) {
+            setShowConfirmModal(true);
             return;
         }
 
@@ -149,6 +156,8 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
         router.put(`/itr-ptr-monitoring/${item.id}`, data, {
             onSuccess: () => {
                 onOpenChange(false);
+                router.reload();
+                router.clearHistory();
             },
             onError: (errors) => setErrors(errors),
             onFinish: () => setProcessing(false),
@@ -216,14 +225,23 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                             error={errors.claimed_by}
                             required
                         />
-                        <Field
-                            label="Condition of PPE"
-                            name="condition_of_ppe"
-                            value={data.condition_of_ppe}
-                            onChange={handleChange}
-                            error={errors.condition_of_ppe}
-                            required
-                        />
+                        <div>
+                            <label className={labelClass}>
+                                Condition of PPE
+                                <span className="text-red-500"> *</span>
+                            </label>
+                            <select
+                                name="condition_of_ppe"
+                                value={data.condition_of_ppe}
+                                onChange={handleChange}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">Select Condition</option>
+                                <option value="Serviceable">Serviceable</option>
+                                <option value="Unserviceable">Unserviceable</option>
+                            </select>
+                            {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
+                        </div>
                         <Field
                             label="From Accountable Officer"
                             name="from_accountable_officer"
@@ -278,6 +296,42 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                     </div>
                 </form>
             </DialogContent>
+            
+            {/* Confirmation Modal */}
+            <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Confirm Update</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 text-sm text-foreground">
+                        <p className="font-semibold text-red-600">Warning:</p>
+                        <p>Changing the <strong>Transaction No.</strong> or <strong>Property No.</strong> will also modify all linked records in Pre-Repair and For Disposal.</p>
+                        <p className="mt-2">Are you sure you want to proceed with this change?</p>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowConfirmModal(false)}
+                            disabled={processing}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                setShowConfirmModal(false);
+                                handleSubmit();
+                            }}
+                            disabled={processing}
+                            style={{ backgroundColor: '#612A35' }}
+                            className="text-white"
+                        >
+                            {processing ? 'Updating...' : 'Yes, Proceed'}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Dialog>
     );
 }

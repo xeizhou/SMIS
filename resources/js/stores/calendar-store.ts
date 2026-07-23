@@ -110,12 +110,14 @@ export const useCalendarStore = create<CalendarState>()(
 export const useCalendarView = () => {
   const currentView = useCalendarStore((state) => state.currentView);
   const setCurrentView = useCalendarStore((state) => state.setCurrentView);
+
   return { currentView, setCurrentView };
 };
 
 export const useCalendarDate = () => {
   const selectedDate = useCalendarStore((state) => state.selectedDate);
   const setSelectedDate = useCalendarStore((state) => state.setSelectedDate);
+
   return { selectedDate, setSelectedDate };
 };
 
@@ -124,6 +126,7 @@ export const useCalendarUser = () => {
   const setSelectedUserId = useCalendarStore((state) => state.setSelectedUserId);
   const users = useCalendarStore((state) => state.users);
   const setUsers = useCalendarStore((state) => state.setUsers);
+
   return { selectedUserId, setSelectedUserId, users, setUsers };
 };
 
@@ -134,11 +137,13 @@ export const useCalendarPreferences = () => {
   const setWorkingHours = useCalendarStore((state) => state.setWorkingHours);
   const visibleHours = useCalendarStore((state) => state.visibleHours);
   const setVisibleHours = useCalendarStore((state) => state.setVisibleHours);
+
   return { badgeVariant, setBadgeVariant, workingHours, setWorkingHours, visibleHours, setVisibleHours };
 };
 
 export const useCalendarEvents = () => {
   const events = useCalendarStore((state) => state.events);
   const setEvents = useCalendarStore((state) => state.setEvents);
+
   return { events, setEvents };
 };

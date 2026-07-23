@@ -1,5 +1,5 @@
-import { enUS, ko, ja, zhCN, zhTW, de, fr, es, it, ptBR, pt, ru, nl, arSA, hi, th, vi, id as idLocale, sv, fi, da, nb, pl, cs, hu, tr } from "date-fns/locale";
 import type { Locale } from "date-fns";
+import { enUS, ko, ja, zhCN, zhTW, de, fr, es, it, ptBR, pt, ru, nl, arSA, hi, th, vi, id as idLocale, sv, fi, da, nb, pl, cs, hu, tr } from "date-fns/locale";
 
 export const getDateLocale = (language: string): Locale => {
   switch (language) {

@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { Info, Moon } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { useCalendarPreferences } from "@/stores/calendar-store";
+import { Info, Moon } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +11,7 @@ import type { TimeValue } from "@/components/ui/time-input";
 import { TooltipContent } from "@/components/ui/tooltip";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useCalendarPreferences } from "@/stores/calendar-store";
 
 const getDaysOfWeek = (t: TFunction) => [
   { index: 0, name: t("weekdays.sunday") },
@@ -37,11 +37,17 @@ export function ChangeWorkingHoursInput() {
   };
 
   const handleTimeChange = (dayId: number, timeType: "from" | "to", value: TimeValue | null) => {
-    if (!value) return;
+    if (!value) {
+return;
+}
 
     setLocalWorkingHours(prev => {
       const updatedDay = { ...prev[dayId], [timeType]: value.hour };
-      if (timeType === "to" && value.hour === 0 && updatedDay.from === 0) updatedDay.to = 24;
+
+      if (timeType === "to" && value.hour === 0 && updatedDay.from === 0) {
+updatedDay.to = 24;
+}
+
       return { ...prev, [dayId]: updatedDay };
     });
   };

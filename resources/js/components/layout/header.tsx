@@ -1,7 +1,7 @@
 import { ArrowUpRight, Calendar } from "lucide-react";
 
-import { ToggleTheme } from "@/components/layout/change-theme";
 import { LanguageSelector } from "@/components/language-selector";
+import { ToggleTheme } from "@/components/layout/change-theme";
 
 export function Header() {
   return (

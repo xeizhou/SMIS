@@ -1,7 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { Search, Pencil, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import TransactionAddForm from '@/components/transaction-logs/transactionaddform';
+import TransactionDeleteModal from '@/components/transaction-logs/transactiondeletemodal';
+import TransactionEditForm from '@/components/transaction-logs/transactioneditform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Pencil, Trash2 } from 'lucide-react';
 import {
     Select,
     SelectTrigger,
@@ -9,10 +13,6 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
-import { useState } from 'react';
-import TransactionAddForm from '@/components/transaction-logs/transactionaddform';
-import TransactionEditForm from '@/components/transaction-logs/transactioneditform';
-import TransactionDeleteModal from '@/components/transaction-logs/transactiondeletemodal';
 
 interface Unit {
     unitID: number;
@@ -69,9 +69,16 @@ interface Props {
 }
 
 function formatDate(dateString: string) {
-    if (!dateString) return '—';
+    if (!dateString) {
+return '—';
+}
+
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
+
+    if (isNaN(date.getTime())) {
+return dateString;
+}
+
     return date.toLocaleDateString('en-PH', {
         year: 'numeric',
         month: 'short',

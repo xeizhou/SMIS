@@ -1,7 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import RegSPIAddForm from '@/components/regspi-monitoring/regspiaddform';
+import RegSPIDeleteModal from '@/components/regspi-monitoring/regspideletemodal';
+import RegSPIEditForm from '@/components/regspi-monitoring/regspieditform';
+import RegSPIViewForm from '@/components/regspi-monitoring/regspiviewform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -9,11 +14,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { useState } from 'react';
-import RegSPIAddForm from '@/components/regspi-monitoring/regspiaddform';
-import RegSPIEditForm from '@/components/regspi-monitoring/regspieditform';
-import RegSPIViewForm from '@/components/regspi-monitoring/regspiviewform';
-import RegSPIDeleteModal from '@/components/regspi-monitoring/regspideletemodal';
 
 interface RegSPIRecord {
     regspi_id: number;
@@ -71,11 +71,15 @@ interface Props {
 }
 
 function formatCurrency(value: string | number | null) {
-    if (value === null) return '—';
+    if (value === null) {
+return '—';
+}
 
     const numeric = typeof value === 'string' ? parseFloat(value) : value;
 
-    if (Number.isNaN(numeric)) return '—';
+    if (Number.isNaN(numeric)) {
+return '—';
+}
 
     return numeric.toLocaleString('en-PH', {
         style: 'currency',

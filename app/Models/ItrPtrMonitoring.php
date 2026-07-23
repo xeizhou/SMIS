@@ -24,8 +24,8 @@ class ItrPtrMonitoring extends Model
     ];
 
     protected $casts = [
-        'date_release' => 'date',
-        'date_received' => 'date',
+        'date_release' => 'date:Y-m-d',
+        'date_received' => 'date:Y-m-d',
         'amount' => 'decimal:2',
     ];
 
