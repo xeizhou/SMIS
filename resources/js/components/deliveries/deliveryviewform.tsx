@@ -30,6 +30,9 @@ interface DeliveryRecord {
     total_amount_delivered: string | number | null;
     po_total_amount: string | number | null;
     folder_link: string | null;
+    serve_po?: {
+        item_description: string | null;
+    } | null;
 }
 
 interface Props {
@@ -97,6 +100,7 @@ return null;
                         <p className={sectionTitleClass}>Delivery Information</p>
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                             <Detail label="PO Number" value={delivery.po_number} />
+                            <Detail label="Item Description" value={delivery.serve_po?.item_description ?? '—'} />
                             <Detail label="Supplier" value={delivery.supplier?.supplier_name ?? '—'} />
                             <Detail label="Date of Delivery" value={formatDate(delivery.delivery_date)} />
                             <Detail label="PO Date Received" value={formatDate(delivery.po_date_received)} />

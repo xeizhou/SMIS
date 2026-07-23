@@ -22,7 +22,10 @@ class DeliveriesController extends Controller
         $poNumber = $request->string('po_number')->toString() ?: null;
 
         $deliveries = Delivery::query()
-            ->with(['supplier:supplier_id,supplier_name', 'servePo:po_number,total_amount_po,end_user,due_date,po_received_date,supplier_id'])
+            ->with([
+                'supplier:supplier_id,supplier_name',
+                'servePo:po_number,total_amount_po,end_user,due_date,po_received_date,supplier_id,item_description',
+            ])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('delivery_id', 'like', "%{$search}%")

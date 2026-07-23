@@ -45,6 +45,9 @@ interface PoLetterRecord {
     supplier?: {
         supplier_name?: string | null;
     } | null;
+    serve_po?: {
+        item_description?: string | null;
+    } | null;
 }
 
 interface PaginatedPoLetters {
@@ -145,6 +148,7 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
     };
 
     const handleView = (record: PoLetterRecord) => {
+        console.log('record.servePo:', record.servePo);
         setSelectedPoLetter(record);
         setViewDialogOpen(true);
     };

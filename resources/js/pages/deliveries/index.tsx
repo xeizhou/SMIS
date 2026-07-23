@@ -50,12 +50,13 @@ interface DeliveryRecord {
     total_amount_delivered: string | number | null;
     po_total_amount: string | number | null;
     folder_link: string | null;
-    servePo?: {
+    serve_po?: {
         po_number: string;
         total_amount_po: string | number | null;
         end_user: string | null;
         due_date: string | null;
         po_received_date: string | null;
+        item_description: string | null;
     } | null;
 }
 
