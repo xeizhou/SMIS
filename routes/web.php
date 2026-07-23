@@ -48,10 +48,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/regspi-monitoring/{regspi}', [RegSPIController::class, 'destroy'])->name('regspi-monitoring.destroy');
 
     Route::get('/itr-ptr-monitoring', [ITRPTRController::class, 'index'])->name('itr-ptr-monitoring.index');
+    Route::post('/itr-ptr-monitoring', [ITRPTRController::class, 'store'])->name('itr-ptr-monitoring.store');
+    Route::put('/itr-ptr-monitoring/{id}', [ITRPTRController::class, 'update'])->name('itr-ptr-monitoring.update');
+    Route::delete('/itr-ptr-monitoring/{id}', [ITRPTRController::class, 'destroy'])->name('itr-ptr-monitoring.destroy');
 
     Route::get('/pre-repair-monitoring', [PreRepairController::class, 'index'])->name('pre-repair-monitoring.index');
+    Route::post('/pre-repair-monitoring', [PreRepairController::class, 'store'])->name('pre-repair-monitoring.store');
+    Route::put('/pre-repair-monitoring/{id}', [PreRepairController::class, 'update'])->name('pre-repair-monitoring.update');
+    Route::delete('/pre-repair-monitoring/{id}', [PreRepairController::class, 'destroy'])->name('pre-repair-monitoring.destroy');
 
     Route::get('/for-disposal-monitoring', [ForDisposalController::class, 'index'])->name('for-disposal-monitoring.index');
+    Route::post('/for-disposal-monitoring', [ForDisposalController::class, 'store'])->name('for-disposal-monitoring.store');
+    Route::put('/for-disposal-monitoring/{id}', [ForDisposalController::class, 'update'])->name('for-disposal-monitoring.update');
+    Route::delete('/for-disposal-monitoring/{id}', [ForDisposalController::class, 'destroy'])->name('for-disposal-monitoring.destroy');
 
     Route::get('/transaction-logs', [TransactionLogsController::class, 'index'])->name('transaction-logs.index');
     Route::post('/transaction-logs', [TransactionLogsController::class, 'store'])->name('transaction-logs.store');
