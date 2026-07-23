@@ -97,6 +97,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/deliveries/{delivery}', [DeliveriesController::class, 'destroy'])->name('deliveries.destroy');
 
     Route::get('/iar', [IARController::class, 'index'])->name('iar.index');
+    Route::post('/iar', [IARController::class, 'store'])->name('iar.store');
+    Route::put('/iar/{pirMonitoring}', [IARController::class, 'update'])->name('iar.update');
+    Route::delete('/iar/{pirMonitoring}', [IARController::class, 'destroy'])->name('iar.destroy');
 
     Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
     Route::post('/supplier', [SupplierController::class, 'store']);
