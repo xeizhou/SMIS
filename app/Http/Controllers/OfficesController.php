@@ -17,9 +17,9 @@ class OfficesController extends Controller
 
             $query->where(function ($q) use ($search) {
                 $q->where('office_code', 'like', "%{$search}%")
-                ->orWhere('office_name', 'like', "%{$search}%")
-                ->orWhere('entity_name', 'like', "%{$search}%")
-                ->orWhere('office_head', 'like', "%{$search}%");
+                    ->orWhere('office_name', 'like', "%{$search}%")
+                    ->orWhere('entity_name', 'like', "%{$search}%")
+                    ->orWhere('office_head', 'like', "%{$search}%");
             });
         }
 
@@ -67,7 +67,7 @@ class OfficesController extends Controller
     }
 
     public function update(Request $request, Office $office)
-    {   
+    {
         $validated = $request->validate([
             'office_name' => [
                 'required',
@@ -97,5 +97,4 @@ class OfficesController extends Controller
 
         return back()->with('success', 'Office deleted successfully.');
     }
-
 }

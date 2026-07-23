@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    preRepairs: any[];
 }
 
 interface FieldProps {
@@ -20,7 +21,7 @@ interface FieldProps {
     name: string;
     value: string;
     onChange: (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => void;
     error?: string;
     required?: boolean;
@@ -100,17 +101,42 @@ const emptyForm = {
     location: '',
 };
 
-export default function ForDisposalAddForm({ open, onOpenChange }: Props) {
+export default function ForDisposalAddForm({ open, onOpenChange, preRepairs }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => {
+        const { name, value } = e.target;
+        
+        if (name === 'pre_repair_no') {
+            const selectedPre = preRepairs.find((pre) => pre.pre_repair_no === value);
+            if (selectedPre) {
+                let condition = selectedPre.condition_of_ppe || '';
+                if (condition.toLowerCase() === 'serviceable') condition = 'Serviceable';
+                if (condition.toLowerCase() === 'unserviceable') condition = 'Unserviceable';
+
+                setData({
+                    ...data,
+                    pre_repair_no: value,
+                    transaction_no: selectedPre.transaction_no || '',
+                    property_no: selectedPre.property_no || '',
+                    description: selectedPre.description || '',
+                    amount: selectedPre.amount ? selectedPre.amount.toString() : '',
+                    condition_of_ppe: condition,
+                    location: selectedPre.location || '',
+                    from_accountable_officer: selectedPre.from_accountable_officer || '',
+                    to_accountable_officer: selectedPre.to_accountable_officer || '',
+                });
+                return;
+            }
+        }
+        
         setData({
             ...data,
-            [e.target.name]: e.target.value,
+            [name]: value,
         });
     };
 
@@ -146,14 +172,26 @@ export default function ForDisposalAddForm({ open, onOpenChange }: Props) {
                             error={errors.transaction_no}
                             required
                         />
-                        <Field
-                            label="Pre-Repair No."
-                            name="pre_repair_no"
-                            value={data.pre_repair_no}
-                            onChange={handleChange}
-                            error={errors.pre_repair_no}
-                            required
-                        />
+                        <div>
+                            <label className={labelClass}>
+                                Pre-Repair No.
+                                <span className="text-red-500"> *</span>
+                            </label>
+                            <select
+                                name="pre_repair_no"
+                                value={data.pre_repair_no}
+                                onChange={handleChange}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">Select Pre-Repair No.</option>
+                                {preRepairs.map((pre) => (
+                                    <option key={pre.id} value={pre.pre_repair_no}>
+                                        {pre.pre_repair_no} - {pre.property_no}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.pre_repair_no && <p className="mt-1 text-xs text-red-500">{errors.pre_repair_no}</p>}
+                        </div>
 
                         <TextareaField
                             label="Description"
@@ -181,14 +219,23 @@ export default function ForDisposalAddForm({ open, onOpenChange }: Props) {
                             error={errors.amount}
                             required
                         />
-                        <Field
-                            label="Condition of PPE"
-                            name="condition_of_ppe"
-                            value={data.condition_of_ppe}
-                            onChange={handleChange}
-                            error={errors.condition_of_ppe}
-                            required
-                        />
+                        <div>
+                            <label className={labelClass}>
+                                Condition of PPE
+                                <span className="text-red-500"> *</span>
+                            </label>
+                            <select
+                                name="condition_of_ppe"
+                                value={data.condition_of_ppe}
+                                onChange={handleChange}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">Select Condition</option>
+                                <option value="Serviceable">Serviceable</option>
+                                <option value="Unserviceable">Unserviceable</option>
+                            </select>
+                            {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
+                        </div>
                         <Field
                             label="Location"
                             name="location"

@@ -1,14 +1,14 @@
-import { useMemo } from "react";
-import { CalendarX2 } from "lucide-react";
 import { parseISO, format, endOfDay, startOfDay, isSameMonth } from "date-fns";
+import { CalendarX2 } from "lucide-react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useCalendarDate } from "@/stores/calendar-store";
 
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { AgendaDayGroup } from "@/calendar/components/agenda-view/agenda-day-group";
 
 import type { IEvent } from "@/calendar/interfaces";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useCalendarDate } from "@/stores/calendar-store";
 
 interface IProps {
   singleDayEvents: IEvent[];
@@ -24,7 +24,10 @@ export function CalendarAgendaView({ singleDayEvents, multiDayEvents }: IProps) 
 
     singleDayEvents.forEach(event => {
       const eventDate = parseISO(event.startDate);
-      if (!isSameMonth(eventDate, selectedDate)) return;
+
+      if (!isSameMonth(eventDate, selectedDate)) {
+return;
+}
 
       const dateKey = format(eventDate, "yyyy-MM-dd");
 
@@ -52,6 +55,7 @@ export function CalendarAgendaView({ singleDayEvents, multiDayEvents }: IProps) 
 
           allDates.get(dateKey)?.multiDayEvents.push(event);
         }
+
         currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
       }
     });

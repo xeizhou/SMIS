@@ -16,11 +16,11 @@ class FundClustersController extends Controller
         $search = $request->input('search');
 
         $fundClusters = FundCluster::when($search, function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('fund_cluster_id', 'like', "%{$search}%")
-                      ->orWhere('fund_description', 'like', "%{$search}%");
-                });
-            })
+            $query->where(function ($q) use ($search) {
+                $q->where('fund_cluster_id', 'like', "%{$search}%")
+                    ->orWhere('fund_description', 'like', "%{$search}%");
+            });
+        })
             ->orderBy('fund_cluster_id')
             ->paginate(10)
             ->withQueryString();

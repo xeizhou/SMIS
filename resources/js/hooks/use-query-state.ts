@@ -60,6 +60,7 @@ export const useAnyLoading = (...queries: UseQueryResult<unknown>[]): boolean =>
 // Utility function to check if any queries have errors
 export const useAnyError = (...queries: UseQueryResult<unknown>[]): Error | null => {
   const errorQuery = queries.find(query => query.isError)
+
   return errorQuery?.error || null
 }
 
@@ -81,6 +82,7 @@ export const useCombinedQueryState = <T extends Record<string, UseQueryResult<un
 
   const data = Object.keys(queries).reduce((acc, key) => {
     acc[key as keyof T] = queries[key as keyof T].data
+
     return acc
   }, {} as Record<keyof T, unknown>) as { [K in keyof T]: T[K] extends UseQueryResult<infer U> ? U : never }
 

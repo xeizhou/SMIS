@@ -1,11 +1,11 @@
-import { useMemo } from "react";
 import { addMonths, startOfYear } from "date-fns";
+import { useMemo } from "react";
 
-import { useCalendarDate } from "@/stores/calendar-store";
 
 import { YearViewMonth } from "@/calendar/components/year-view/year-view-month";
 
 import type { IEvent } from "@/calendar/interfaces";
+import { useCalendarDate } from "@/stores/calendar-store";
 
 interface IProps {
   allEvents: IEvent[];
@@ -16,6 +16,7 @@ export function CalendarYearView({ allEvents }: IProps) {
 
   const months = useMemo(() => {
     const yearStart = startOfYear(selectedDate);
+
     return Array.from({ length: 12 }, (_, i) => addMonths(yearStart, i));
   }, [selectedDate]);
 

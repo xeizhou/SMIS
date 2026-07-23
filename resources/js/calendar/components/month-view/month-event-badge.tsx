@@ -1,18 +1,18 @@
 import { cva } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
 import { endOfDay, isSameDay, parseISO, startOfDay } from "date-fns";
 import { useTranslation } from "react-i18next";
 
-import { useCalendarPreferences } from "@/stores/calendar-store";
-import { getDateLocale } from "@/lib/date-locale";
-import { formatTime } from "@/lib/date-formats";
-
-import { DraggableEvent } from "@/calendar/components/dnd/draggable-event";
 import { EventDetailsDialog } from "@/calendar/components/dialogs/event-details-dialog";
+import { DraggableEvent } from "@/calendar/components/dnd/draggable-event";
+import type { IEvent } from "@/calendar/interfaces";
+import { formatTime } from "@/lib/date-formats";
+import { getDateLocale } from "@/lib/date-locale";
+
 
 import { cn } from "@/lib/utils";
 
-import type { IEvent } from "@/calendar/interfaces";
-import type { VariantProps } from "class-variance-authority";
+import { useCalendarPreferences } from "@/stores/calendar-store";
 
 const eventBadgeVariants = cva(
   "mx-1 flex size-auto h-6.5 select-none items-center justify-between gap-1.5 truncate whitespace-nowrap rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -67,7 +67,9 @@ export function MonthEventBadge({ event, cellDate, eventCurrentDay, eventTotalDa
   const itemStart = startOfDay(parseISO(event.startDate));
   const itemEnd = endOfDay(parseISO(event.endDate));
 
-  if (cellDate < itemStart || cellDate > itemEnd) return null;
+  if (cellDate < itemStart || cellDate > itemEnd) {
+return null;
+}
 
   let position: "first" | "middle" | "last" | "none" | undefined;
 
@@ -94,7 +96,10 @@ export function MonthEventBadge({ event, cellDate, eventCurrentDay, eventTotalDa
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      if (e.currentTarget instanceof HTMLElement) e.currentTarget.click();
+
+      if (e.currentTarget instanceof HTMLElement) {
+e.currentTarget.click();
+}
     }
   };
 

@@ -1,7 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import DeliveryAddForm from '@/components/deliveries/deliveryaddform';
+import DeliveryDeleteModal from '@/components/deliveries/deliverydeletemodal';
+import DeliveryEditForm from '@/components/deliveries/deliveryeditform';
+import DeliveryViewForm from '@/components/deliveries/deliveryviewform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -9,11 +14,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { useState } from 'react';
-import DeliveryAddForm from '@/components/deliveries/deliveryaddform';
-import DeliveryEditForm from '@/components/deliveries/deliveryeditform';
-import DeliveryViewForm from '@/components/deliveries/deliveryviewform';
-import DeliveryDeleteModal from '@/components/deliveries/deliverydeletemodal';
 
 interface Supplier {
     supplier_id: number;
@@ -83,9 +83,16 @@ interface Props {
 }
 
 function formatCurrency(value: string | number | null) {
-    if (value === null) return '—';
+    if (value === null) {
+return '—';
+}
+
     const numeric = typeof value === 'string' ? parseFloat(value) : value;
-    if (Number.isNaN(numeric)) return '—';
+
+    if (Number.isNaN(numeric)) {
+return '—';
+}
+
     return numeric.toLocaleString('en-PH', {
         style: 'currency',
         currency: 'PHP',
@@ -93,7 +100,10 @@ function formatCurrency(value: string | number | null) {
 }
 
 function formatDate(value: string | null) {
-    if (!value) return '—';
+    if (!value) {
+return '—';
+}
+
     return new Date(value).toLocaleDateString('en-PH', {
         year: 'numeric',
         month: 'short',

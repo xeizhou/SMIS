@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCalendarPreferences } from "@/stores/calendar-store";
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function ChangeBadgeVariantInput() {
   const { t } = useTranslation('calendar');

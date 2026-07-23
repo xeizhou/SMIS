@@ -1,13 +1,12 @@
-import { useMemo, Suspense, lazy } from "react";
 import { Link, usePage } from "@inertiajs/react";
 import { Columns, Grid3x3, List, Plus, Grid2x2, CalendarRange } from "lucide-react";
+import { useMemo, Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@/components/ui/button";
 
-import { UserSelect } from "@/calendar/components/header/user-select";
-import { TodayButton } from "@/calendar/components/header/today-button";
 import { DateNavigator } from "@/calendar/components/header/date-navigator";
+import { TodayButton } from "@/calendar/components/header/today-button";
+import { UserSelect } from "@/calendar/components/header/user-select";
 
 // Lazy load dialog component
 const AddEventDialog = lazy(() =>
@@ -18,6 +17,7 @@ const AddEventDialog = lazy(() =>
 
 import type { IEvent } from "@/calendar/interfaces";
 import type { TCalendarView } from "@/calendar/types";
+import { Button } from "@/components/ui/button";
 
 interface IProps {
   events: IEvent[];
@@ -32,12 +32,14 @@ export function CalendarHeader({ events }: IProps) {
     const viewSegment = pathSegments[pathSegments.length - 1];
 
     const validViews: TCalendarView[] = ["month", "week", "day", "year", "agenda"];
+
     if (validViews.includes(viewSegment as TCalendarView)) {
       return viewSegment as TCalendarView;
     }
 
     return "month" as TCalendarView;
   }, [url]);
+
   return (
     <div className="flex flex-col gap-4 border-b p-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex items-center gap-3">

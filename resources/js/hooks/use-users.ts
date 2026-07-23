@@ -21,8 +21,14 @@ export const useUsers = () => {
     gcTime: 30 * 60 * 1000, // 30 minutes
     retry: (failureCount, error) => {
       // Retry up to 2 times for network errors, but not for 4xx errors
-      if (failureCount >= 2) return false;
-      if (error instanceof Error && error.message.includes('4')) return false;
+      if (failureCount >= 2) {
+return false;
+}
+
+      if (error instanceof Error && error.message.includes('4')) {
+return false;
+}
+
       return true;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),

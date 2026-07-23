@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -185,24 +185,36 @@ const emptyForm = {
 };
 
 function toDateInputValue(value: string | null): string {
-    if (!value) return '';
+    if (!value) {
+return '';
+}
 
     // Already in YYYY-MM-DD form
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+return value;
+}
 
     // ISO timestamp (e.g. "2026-01-15T00:00:00.000000Z") — just slice it
     const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (match) return match[1];
+
+    if (match) {
+return match[1];
+}
 
     // Fallback: let the Date constructor try, guard against Invalid Date
     const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return '';
+
+    if (Number.isNaN(parsed.getTime())) {
+return '';
+}
 
     return parsed.toISOString().slice(0, 10);
 }
 
 function toFormData(po: PurchaseOrder | null): typeof emptyForm {
-    if (!po) return emptyForm;
+    if (!po) {
+return emptyForm;
+}
 
     return {
         po_number: po.po_number ?? '',
@@ -292,7 +304,9 @@ export default function PurchaseOrderEditForm({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!purchaseOrder) return;
+        if (!purchaseOrder) {
+return;
+}
 
         setProcessing(true);
 

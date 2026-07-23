@@ -1,8 +1,8 @@
 import { formatDate } from "date-fns";
 import { useTranslation } from "react-i18next";
 
-import { useCalendarDate } from "@/stores/calendar-store";
 import { getDateLocale } from "@/lib/date-locale";
+import { useCalendarDate } from "@/stores/calendar-store";
 
 export function TodayButton() {
   const { i18n } = useTranslation('calendar');

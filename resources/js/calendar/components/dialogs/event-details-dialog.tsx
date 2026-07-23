@@ -1,14 +1,14 @@
 import { parseISO } from "date-fns";
 import { Calendar, Clock, Text, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { getDateLocale } from "@/lib/date-locale";
-import { formatDate } from "@/lib/date-formats";
 
-import { Button } from "@/components/ui/button";
 import { EditEventDialog } from "@/calendar/components/dialogs/edit-event-dialog";
+import type { IEvent } from "@/calendar/interfaces";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-import type { IEvent } from "@/calendar/interfaces";
+import { formatDate } from "@/lib/date-formats";
+import { getDateLocale } from "@/lib/date-locale";
 
 interface IProps {
   event: IEvent;

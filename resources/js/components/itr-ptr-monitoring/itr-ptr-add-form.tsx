@@ -20,7 +20,7 @@ interface FieldProps {
     name: string;
     value: string;
     onChange: (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => void;
     error?: string;
     required?: boolean;
@@ -108,7 +108,7 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
     const [processing, setProcessing] = useState(false);
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => {
         setData({
             ...data,
@@ -192,14 +192,23 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                             error={errors.claimed_by}
                             required
                         />
-                        <Field
-                            label="Condition of PPE"
-                            name="condition_of_ppe"
-                            value={data.condition_of_ppe}
-                            onChange={handleChange}
-                            error={errors.condition_of_ppe}
-                            required
-                        />
+                        <div>
+                            <label className={labelClass}>
+                                Condition of PPE
+                                <span className="text-red-500"> *</span>
+                            </label>
+                            <select
+                                name="condition_of_ppe"
+                                value={data.condition_of_ppe}
+                                onChange={handleChange}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">Select Condition</option>
+                                <option value="Serviceable">Serviceable</option>
+                                <option value="Unserviceable">Unserviceable</option>
+                            </select>
+                            {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
+                        </div>
                         <Field
                             label="From Accountable Officer"
                             name="from_accountable_officer"

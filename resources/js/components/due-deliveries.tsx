@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { RefreshCw } from 'lucide-react';
+import { useState } from 'react';
 
 export type DueDelivery = {
     delivery_id: string;
@@ -25,6 +25,7 @@ const MOCK_DELIVERIES: DueDelivery[] = [
 
 function formatDayMonth(dateStr: string) {
     const date = new Date(dateStr);
+
     return {
         day: date.getDate().toString().padStart(2, '0'),
         month: date.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
@@ -38,9 +39,18 @@ function daysUntil(dateStr: string) {
     due.setHours(0, 0, 0, 0);
     const diff = Math.round((due.getTime() - today.getTime()) / 86400000);
 
-    if (diff < 0) return { text: `${Math.abs(diff)}d overdue`, urgent: true };
-    if (diff === 0) return { text: 'Due today', urgent: true };
-    if (diff === 1) return { text: 'Due tomorrow', urgent: true };
+    if (diff < 0) {
+return { text: `${Math.abs(diff)}d overdue`, urgent: true };
+}
+
+    if (diff === 0) {
+return { text: 'Due today', urgent: true };
+}
+
+    if (diff === 1) {
+return { text: 'Due tomorrow', urgent: true };
+}
+
     return { text: `Due in ${diff} days`, urgent: diff <= 3 };
 }
 

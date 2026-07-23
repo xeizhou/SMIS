@@ -48,7 +48,9 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 function formatDate(value: string | null) {
-    if (!value) return '—';
+    if (!value) {
+return '—';
+}
 
     return new Date(value).toLocaleDateString('en-PH', {
         year: 'numeric',
@@ -58,7 +60,9 @@ function formatDate(value: string | null) {
 }
 
 export default function PoLetterViewForm({ open, onOpenChange, poLetter }: Props) {
-    if (!poLetter) return null;
+    if (!poLetter) {
+return null;
+}
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

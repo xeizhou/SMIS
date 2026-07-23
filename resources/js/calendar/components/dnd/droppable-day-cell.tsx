@@ -1,12 +1,12 @@
 import { memo, useCallback, useMemo } from "react";
 import { useDrop } from "react-dnd";
 
+import { ItemTypes } from "@/calendar/components/dnd/draggable-event";
+import type { IEvent, ICalendarCell } from "@/calendar/interfaces";
 import { useUpdateEvent } from "@/hooks/use-events";
 
 import { cn } from "@/lib/utils";
-import { ItemTypes } from "@/calendar/components/dnd/draggable-event";
 
-import type { IEvent, ICalendarCell } from "@/calendar/interfaces";
 
 interface DroppableDayCellProps {
   cell: ICalendarCell;

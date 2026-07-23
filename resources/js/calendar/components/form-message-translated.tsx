@@ -24,6 +24,7 @@ export const FormMessageTranslated = React.forwardRef<HTMLParagraphElement, Reac
     if (error?.message) {
       // Check if the error message is a key we can translate
       const translationKey = errorKeyMap[error.message];
+
       if (translationKey) {
         body = t(translationKey);
       } else {

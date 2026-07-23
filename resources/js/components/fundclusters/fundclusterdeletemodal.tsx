@@ -1,5 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -7,7 +8,6 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 
 interface Props {
     open: boolean;
@@ -20,7 +20,9 @@ export default function FundClusterDeleteModal({ open, onOpenChange, fundCluster
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const confirmDelete = () => {
-        if (!fundClusterId) return;
+        if (!fundClusterId) {
+return;
+}
 
         setProcessing(true);
         setErrorMessage(null);
@@ -28,6 +30,7 @@ export default function FundClusterDeleteModal({ open, onOpenChange, fundCluster
         router.delete(`/fund-clusters/${fundClusterId}`, {
             onSuccess: (page) => {
                 const errors = (page.props.errors as Record<string, string>) ?? {};
+
                 if (errors.delete) {
                     setErrorMessage(errors.delete);
                 } else {
@@ -48,7 +51,10 @@ export default function FundClusterDeleteModal({ open, onOpenChange, fundCluster
             open={open}
             onOpenChange={(next) => {
                 onOpenChange(next);
-                if (!next) setErrorMessage(null);
+
+                if (!next) {
+setErrorMessage(null);
+}
             }}
         >
             <DialogContent className="sm:max-w-md">

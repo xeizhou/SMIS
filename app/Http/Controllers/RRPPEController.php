@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-
 use App\Models\RRPPEMonitoring;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class RRPPEController extends Controller
 {
@@ -17,9 +16,9 @@ class RRPPEController extends Controller
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('rrppe_no', 'like', "%{$search}%")
-                  ->orWhere('property_no', 'like', "%{$search}%")
-                  ->orWhere('item_description', 'like', "%{$search}%")
-                  ->orWhere('end_user_name', 'like', "%{$search}%");
+                    ->orWhere('property_no', 'like', "%{$search}%")
+                    ->orWhere('item_description', 'like', "%{$search}%")
+                    ->orWhere('end_user_name', 'like', "%{$search}%");
             });
         }
 
@@ -28,9 +27,10 @@ class RRPPEController extends Controller
         }
 
         $data = $query->latest()->paginate(10)->withQueryString();
+
         return Inertia::render('rrppe-monitoring/index', [
             'data' => $data,
-            'filters' => $request->only(['search', 'status'])
+            'filters' => $request->only(['search', 'status']),
         ]);
     }
 

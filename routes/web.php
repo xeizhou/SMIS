@@ -1,27 +1,27 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\StockItemsController;
-use App\Http\Controllers\UnitsController;
+use App\Http\Controllers\AuditLogsController;
+use App\Http\Controllers\BonaVidaController;
+use App\Http\Controllers\ClearanceController;
+use App\Http\Controllers\DeliveriesController;
+use App\Http\Controllers\EmployeeFileLocatorController;
+use App\Http\Controllers\ForDisposalController;
+use App\Http\Controllers\FundClustersController;
+use App\Http\Controllers\IARController;
+use App\Http\Controllers\ITRPTRController;
+use App\Http\Controllers\OfficesController;
+use App\Http\Controllers\POLetterMonitoringController;
+use App\Http\Controllers\PreRepairController;
+use App\Http\Controllers\PurchaseOrdersController;
+use App\Http\Controllers\RegSPIController;
 use App\Http\Controllers\RRPPEController;
 use App\Http\Controllers\RRSPController;
-use App\Http\Controllers\RegSPIController;
-use App\Http\Controllers\ITRPTRController;
-use App\Http\Controllers\PreRepairController;
-use App\Http\Controllers\ForDisposalController;
-use App\Http\Controllers\TransactionLogsController;
-use App\Http\Controllers\BonaVidaController;
-use App\Http\Controllers\PurchaseOrdersController;
-use App\Http\Controllers\POLetterMonitoringController;
-use App\Http\Controllers\DeliveriesController;
-use App\Http\Controllers\IARController;
-use App\Http\Controllers\ClearanceController;
-use App\Http\Controllers\FundClustersController;
-use App\Http\Controllers\EmployeeFileLocatorController;
-use App\Http\Controllers\OfficesController;
-use App\Http\Controllers\UsersController;
-use App\Http\Controllers\AuditLogsController;
+use App\Http\Controllers\StockItemsController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\TransactionLogsController;
+use App\Http\Controllers\UnitsController;
+use App\Http\Controllers\UsersController;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -48,10 +48,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/regspi-monitoring/{regspi}', [RegSPIController::class, 'destroy'])->name('regspi-monitoring.destroy');
 
     Route::get('/itr-ptr-monitoring', [ITRPTRController::class, 'index'])->name('itr-ptr-monitoring.index');
+    Route::post('/itr-ptr-monitoring', [ITRPTRController::class, 'store'])->name('itr-ptr-monitoring.store');
+    Route::put('/itr-ptr-monitoring/{id}', [ITRPTRController::class, 'update'])->name('itr-ptr-monitoring.update');
+    Route::delete('/itr-ptr-monitoring/{id}', [ITRPTRController::class, 'destroy'])->name('itr-ptr-monitoring.destroy');
 
     Route::get('/pre-repair-monitoring', [PreRepairController::class, 'index'])->name('pre-repair-monitoring.index');
+    Route::post('/pre-repair-monitoring', [PreRepairController::class, 'store'])->name('pre-repair-monitoring.store');
+    Route::put('/pre-repair-monitoring/{id}', [PreRepairController::class, 'update'])->name('pre-repair-monitoring.update');
+    Route::delete('/pre-repair-monitoring/{id}', [PreRepairController::class, 'destroy'])->name('pre-repair-monitoring.destroy');
 
     Route::get('/for-disposal-monitoring', [ForDisposalController::class, 'index'])->name('for-disposal-monitoring.index');
+    Route::post('/for-disposal-monitoring', [ForDisposalController::class, 'store'])->name('for-disposal-monitoring.store');
+    Route::put('/for-disposal-monitoring/{id}', [ForDisposalController::class, 'update'])->name('for-disposal-monitoring.update');
+    Route::delete('/for-disposal-monitoring/{id}', [ForDisposalController::class, 'destroy'])->name('for-disposal-monitoring.destroy');
 
     Route::get('/transaction-logs', [TransactionLogsController::class, 'index'])->name('transaction-logs.index');
     Route::post('/transaction-logs', [TransactionLogsController::class, 'store'])->name('transaction-logs.store');
@@ -70,7 +79,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/units', [UnitsController::class, 'store'])->name('units.store');
     Route::put('/units/{unit}', [UnitsController::class, 'update'])->name('units.update');
     Route::delete('/units/{unit}', [UnitsController::class, 'destroy'])->name('units.destroy');
-    
+
     // Purchase Order Monitoring
     Route::get('/purchase-orders', [PurchaseOrdersController::class, 'index'])->name('purchase-orders.index');
     Route::post('/purchase-orders', [PurchaseOrdersController::class, 'store'])->name('purchase-orders.store');
@@ -115,7 +124,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Calendar
     Route::get('/calendar', function () {
-    return Inertia::render('calendar/index');
+        return Inertia::render('calendar/index');
     })->name('calendar.index');
 
 });

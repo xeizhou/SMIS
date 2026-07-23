@@ -15,6 +15,7 @@ interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     item: PreRepairMonitoring | null;
+    itrPtrs: any[];
 }
 
 interface FieldProps {
@@ -22,7 +23,7 @@ interface FieldProps {
     name: string;
     value: string;
     onChange: (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => void;
     error?: string;
     required?: boolean;
@@ -90,7 +91,7 @@ function TextareaField({
     );
 }
 
-export default function PreRepairEditForm({ open, onOpenChange, item }: Props) {
+export default function PreRepairEditForm({ open, onOpenChange, item, itrPtrs }: Props) {
     const [data, setData] = useState({
         transaction_no: '',
         pre_repair_no: '',
@@ -104,6 +105,7 @@ export default function PreRepairEditForm({ open, onOpenChange, item }: Props) {
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     useEffect(() => {
         if (open && item) {
@@ -125,18 +127,48 @@ export default function PreRepairEditForm({ open, onOpenChange, item }: Props) {
     }, [open, item]);
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => {
+        const { name, value } = e.target;
+        
+        if (name === 'transaction_no') {
+            const selectedItr = itrPtrs.find((itr) => itr.transaction_no === value);
+            if (selectedItr) {
+                let condition = selectedItr.condition_of_ppe || '';
+                if (condition.toLowerCase() === 'serviceable') condition = 'Serviceable';
+                if (condition.toLowerCase() === 'unserviceable') condition = 'Unserviceable';
+
+                setData({
+                    ...data,
+                    transaction_no: value,
+                    property_no: selectedItr.property_no || '',
+                    description: selectedItr.description || '',
+                    amount: selectedItr.amount ? selectedItr.amount.toString() : '',
+                    condition_of_ppe: condition,
+                    location: selectedItr.location || '',
+                    from_accountable_officer: selectedItr.from_accountable_officer || '',
+                    to_accountable_officer: selectedItr.to_accountable_officer || '',
+                });
+                return;
+            }
+        }
+
         setData({
             ...data,
-            [e.target.name]: e.target.value,
+            [name]: value,
         });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
 
         if (!item) {
+            return;
+        }
+
+        // If not already confirmed, check if PKs changed
+        if (e && (data.transaction_no !== item.transaction_no || data.pre_repair_no !== item.pre_repair_no || data.property_no !== item.property_no)) {
+            setShowConfirmModal(true);
             return;
         }
 
@@ -145,6 +177,8 @@ export default function PreRepairEditForm({ open, onOpenChange, item }: Props) {
         router.put(`/pre-repair-monitoring/${item.id}`, data, {
             onSuccess: () => {
                 onOpenChange(false);
+                router.reload();
+                router.clearHistory();
             },
             onError: (errors) => setErrors(errors),
             onFinish: () => setProcessing(false),
@@ -160,14 +194,26 @@ export default function PreRepairEditForm({ open, onOpenChange, item }: Props) {
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-6">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <Field
-                            label="Transaction No."
-                            name="transaction_no"
-                            value={data.transaction_no}
-                            onChange={handleChange}
-                            error={errors.transaction_no}
-                            required
-                        />
+                        <div>
+                            <label className={labelClass}>
+                                Transaction No.
+                                <span className="text-red-500"> *</span>
+                            </label>
+                            <select
+                                name="transaction_no"
+                                value={data.transaction_no}
+                                onChange={handleChange}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">Select Transaction No.</option>
+                                {itrPtrs.map((itr) => (
+                                    <option key={itr.id} value={itr.transaction_no}>
+                                        {itr.transaction_no} - {itr.property_no}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.transaction_no && <p className="mt-1 text-xs text-red-500">{errors.transaction_no}</p>}
+                        </div>
                         <Field
                             label="Pre-Repair No."
                             name="pre_repair_no"
@@ -203,14 +249,23 @@ export default function PreRepairEditForm({ open, onOpenChange, item }: Props) {
                             error={errors.amount}
                             required
                         />
-                        <Field
-                            label="Condition of PPE"
-                            name="condition_of_ppe"
-                            value={data.condition_of_ppe}
-                            onChange={handleChange}
-                            error={errors.condition_of_ppe}
-                            required
-                        />
+                        <div>
+                            <label className={labelClass}>
+                                Condition of PPE
+                                <span className="text-red-500"> *</span>
+                            </label>
+                            <select
+                                name="condition_of_ppe"
+                                value={data.condition_of_ppe}
+                                onChange={handleChange}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">Select Condition</option>
+                                <option value="Serviceable">Serviceable</option>
+                                <option value="Unserviceable">Unserviceable</option>
+                            </select>
+                            {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
+                        </div>
                         <Field
                             label="Location"
                             name="location"
@@ -256,6 +311,45 @@ export default function PreRepairEditForm({ open, onOpenChange, item }: Props) {
                     </div>
                 </form>
             </DialogContent>
+            
+            {/* Confirmation Modal */}
+            <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Confirm Update</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 text-sm text-foreground">
+                        <p className="font-semibold text-red-600">Warning:</p>
+                        <ul className="mt-2 list-disc pl-5 space-y-1">
+                            <li>Changing keys will modify linked records in For Disposal.</li>
+                            <li>Changing the <strong>Property No.</strong> will cascade backwards and update the original <strong>ITR/PTR</strong> record as well.</li>
+                        </ul>
+                        <p className="mt-4">Are you sure you want to proceed with this change?</p>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowConfirmModal(false)}
+                            disabled={processing}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                setShowConfirmModal(false);
+                                handleSubmit();
+                            }}
+                            disabled={processing}
+                            style={{ backgroundColor: '#612A35' }}
+                            className="text-white"
+                        >
+                            {processing ? 'Updating...' : 'Yes, Proceed'}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Dialog>
     );
 }

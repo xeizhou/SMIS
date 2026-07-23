@@ -1,18 +1,18 @@
 "use client";
 
-import { parseISO } from "date-fns";
 import { cva } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
+import { parseISO } from "date-fns";
 import { Clock, Text, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { getDateLocale } from "@/lib/date-locale";
+import { EventDetailsDialog } from "@/calendar/components/dialogs/event-details-dialog";
+import type { IEvent } from "@/calendar/interfaces";
 import { formatTimeRange } from "@/lib/date-formats";
+import { getDateLocale } from "@/lib/date-locale";
 
 import { useCalendarPreferences } from "@/stores/calendar-store";
 
-import { EventDetailsDialog } from "@/calendar/components/dialogs/event-details-dialog";
 
-import type { IEvent } from "@/calendar/interfaces";
-import type { VariantProps } from "class-variance-authority";
 
 const agendaEventCardVariants = cva(
   "flex select-none items-center justify-between gap-3 rounded-md border p-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -65,7 +65,10 @@ export function AgendaEventCard({ event, eventCurrentDay, eventTotalDays }: IPro
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      if (e.currentTarget instanceof HTMLElement) e.currentTarget.click();
+
+      if (e.currentTarget instanceof HTMLElement) {
+e.currentTarget.click();
+}
     }
   };
 

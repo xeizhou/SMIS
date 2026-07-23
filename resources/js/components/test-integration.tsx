@@ -1,3 +1,6 @@
+import { Button } from '@/components/ui/button'
+import { useEvents } from '@/hooks/use-events'
+import { useUsers } from '@/hooks/use-users'
 import { 
   useCalendarStore, 
   useCalendarDate, 
@@ -6,9 +9,6 @@ import {
   useCalendarEvents 
 } from '@/stores/calendar-store'
 import { useThemeStore } from '@/stores/theme-store'
-import { useEvents } from '@/hooks/use-events'
-import { useUsers } from '@/hooks/use-users'
-import { Button } from '@/components/ui/button'
 
 export function TestIntegration() {
   // Test main calendar store

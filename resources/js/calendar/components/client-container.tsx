@@ -1,10 +1,10 @@
-import { useMemo, useState, Suspense, lazy } from "react";
 import { isSameDay, parseISO } from "date-fns";
+import { useMemo, useState, Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
-import { useCalendarStore } from "@/stores/calendar-store";
-import { useEvents } from "@/hooks/use-events";
 import { CalendarHeader } from "@/calendar/components/header/calendar-header";
 import type { TCalendarView } from "@/calendar/types";
+import { useEvents } from "@/hooks/use-events";
+import { useCalendarStore } from "@/stores/calendar-store";
 
 // Lazy load calendar view components for better code splitting
 const CalendarMonthView = lazy(() =>
@@ -40,6 +40,7 @@ const CalendarAgendaView = lazy(() =>
 // Loading fallback component for lazy-loaded views
 function ViewLoadingFallback() {
   const { t } = useTranslation("calendar");
+
   return (
     <div className="p-8 text-center">
       <div className="mx-auto size-6 animate-spin rounded-full border-b-2 border-primary"></div>
@@ -68,6 +69,7 @@ export function ClientContainer() {
         const monthStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
         const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59, 999);
         const isInSelectedMonth = eventStartDate <= monthEnd && eventEndDate >= monthStart;
+
         return isInSelectedMonth && isUserMatch;
       }
 
@@ -81,6 +83,7 @@ export function ClientContainer() {
         weekEnd.setHours(23, 59, 59, 999);
 
         const isInSelectedWeek = eventStartDate <= weekEnd && eventEndDate >= weekStart;
+
         return isInSelectedWeek && isUserMatch;
       }
 
@@ -92,6 +95,7 @@ export function ClientContainer() {
         dayEnd.setHours(23, 59, 59, 999);
 
         const isInSelectedDay = eventStartDate <= dayEnd && eventEndDate >= dayStart;
+
         return isInSelectedDay && isUserMatch;
       }
 
@@ -100,6 +104,7 @@ export function ClientContainer() {
         const yearEnd = new Date(selectedDate.getFullYear(), 11, 31, 23, 59, 59, 999);
 
         const isInSelectedYear = eventStartDate <= yearEnd && eventEndDate >= yearStart;
+
         return isInSelectedYear && isUserMatch;
       }
 
@@ -107,6 +112,7 @@ export function ClientContainer() {
         const monthStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
         const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59, 999);
         const isInSelectedMonth = eventStartDate <= monthEnd && eventEndDate >= monthStart;
+
         return isInSelectedMonth && isUserMatch;
       }
 
@@ -118,6 +124,7 @@ export function ClientContainer() {
     return filteredEvents.filter(event => {
       const startDate = parseISO(event.startDate);
       const endDate = parseISO(event.endDate);
+
       return isSameDay(startDate, endDate);
     });
   }, [filteredEvents]);
@@ -126,6 +133,7 @@ export function ClientContainer() {
     return filteredEvents.filter(event => {
       const startDate = parseISO(event.startDate);
       const endDate = parseISO(event.endDate);
+
       return !isSameDay(startDate, endDate);
     });
   }, [filteredEvents]);

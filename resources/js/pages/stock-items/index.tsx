@@ -1,9 +1,13 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import { Pencil, Trash2, Eye } from 'lucide-react';
 import { useState } from 'react';
 import StockItemAddForm from '@/components/stock-items/stockitemaddform';
+import StockItemDeleteModal from '@/components/stock-items/stockitemdeletemodal';
+import StockItemEditForm from '@/components/stock-items/stockitemeditform';
+import StockItemViewForm from '@/components/stock-items/stockitemviewform';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectTrigger,
@@ -11,10 +15,6 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
-import { Pencil, Trash2, Eye } from 'lucide-react';
-import StockItemViewForm from '@/components/stock-items/stockitemviewform';
-import StockItemEditForm from '@/components/stock-items/stockitemeditform';
-import StockItemDeleteModal from '@/components/stock-items/stockitemdeletemodal';
 
 interface Unit {
     unitID: number;

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BonaVidaMonitoring extends Model
 {
     protected $table = 'bona_vida_monitoring';
+
     protected $primaryKey = 'bvm_id';
 
     protected $fillable = [

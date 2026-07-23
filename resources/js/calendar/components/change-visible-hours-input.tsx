@@ -1,14 +1,14 @@
-import { useState } from "react";
 import { Info } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useCalendarPreferences } from "@/stores/calendar-store";
 
 import { Button } from "@/components/ui/button";
 import { TimeInput } from "@/components/ui/time-input";
+import type { TimeValue } from "@/components/ui/time-input";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
-import type { TimeValue } from "@/components/ui/time-input";
+import { useCalendarPreferences } from "@/stores/calendar-store";
 
 export function ChangeVisibleHoursInput() {
   const { t } = useTranslation('calendar');
@@ -18,11 +18,15 @@ export function ChangeVisibleHoursInput() {
   const [to, setTo] = useState<TimeValue>({ hour: visibleHours.to, minute: 0 });
 
   const handleFromChange = (value: TimeValue | null) => {
-    if (value) setFrom(value);
+    if (value) {
+setFrom(value);
+}
   };
 
   const handleToChange = (value: TimeValue | null) => {
-    if (value) setTo(value);
+    if (value) {
+setTo(value);
+}
   };
 
   const handleApply = () => {

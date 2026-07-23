@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
@@ -11,6 +10,7 @@ import {
     UsersRound,
     Search as SearchIcon,
 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -88,6 +88,7 @@ export function AppSidebar() {
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
+
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
