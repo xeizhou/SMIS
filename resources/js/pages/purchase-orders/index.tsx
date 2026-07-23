@@ -430,7 +430,7 @@ export default function Index({
 Index.layout = {
     breadcrumbs: [
         {
-            title: 'Property',
+            title: 'Procurement',
             href: '#',
         },
         {

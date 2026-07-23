@@ -344,11 +344,11 @@ export default function Index({
 Index.layout = {
     breadcrumbs: [
         {
-            title: 'Supplier Management',
+            title: 'Procurement',
             href: '#',
         },
         {
-            title: 'Procurement',
+            title: 'Supplier Management',
             href: '/supplier',
         },
     ],

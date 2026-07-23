@@ -298,7 +298,7 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
 Index.layout = {
     breadcrumbs: [
         {
-            title: 'Property',
+            title: 'Procurement',
             href: '#',
         },
         {

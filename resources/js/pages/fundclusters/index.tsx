@@ -231,7 +231,7 @@
     Index.layout = {
         breadcrumbs: [
             {
-                title: 'Supply Management',
+                title: 'Procurement',
                 href: '#',
             },
             {
