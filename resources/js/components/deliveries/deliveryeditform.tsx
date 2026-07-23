@@ -229,30 +229,25 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
     }, [open, delivery]);
 
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
+
+    // No. of Days (LD) = how late delivery_date is compared to the PO's
+    // due_date. Not PO-derived — depends on delivery_date, which the user
+    // controls, so it's recalculated live here rather than pulled from
+    // the PO directly.
     const computedLdDays = daysBetween(data.due_date, data.delivery_date);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
 
-        setData((prev) => {
-            const next = { ...prev, [name]: value };
-
-            if (name === 'po_date_received' || name === 'due_date') {
-                next.delivery_term = String(daysBetween(next.po_date_received, next.due_date));
-            }
-
-            return next;
-        });
+        setData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
         if (name === 'po_number') {
             const chosenPo = purchaseOrders.find((item) => item.po_number === value) ?? null;
 
-            const poDateReceived = chosenPo?.po_received_date
-                ? toDateInputValue(chosenPo.po_received_date)
-                : data.po_date_received;
-            const dueDate = chosenPo?.due_date ? toDateInputValue(chosenPo.due_date) : data.due_date;
+            const poDateReceived = toDateInputValue(chosenPo?.po_received_date ?? null);
+            const dueDate = toDateInputValue(chosenPo?.due_date ?? null);
 
             setData({
                 ...data,
@@ -336,9 +331,36 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                         />
 
                         <Field label="Date of Delivery" name="delivery_date" type="date" value={data.delivery_date} onChange={handleChange} error={errors.delivery_date} />
-                        <Field label="PO Date Received" name="po_date_received" type="date" value={data.po_date_received} onChange={handleChange} error={errors.po_date_received} />
-                        <Field label="Delivery Term (days)" name="delivery_term" type="number" value={data.delivery_term} onChange={handleChange} error={errors.delivery_term} placeholder="Auto-calculated from PO dates" />
-                        <Field label="Due Date" name="due_date" type="date" value={data.due_date} onChange={handleChange} error={errors.due_date} />
+                        <Field
+                            label="PO Date Received"
+                            name="po_date_received"
+                            value={data.po_date_received}
+                            onChange={handleChange}
+                            error={errors.po_date_received}
+                            placeholder="Auto-filled from selected PO"
+                            readOnly
+                            disabled
+                        />
+                        <Field
+                            label="Delivery Term (days)"
+                            name="delivery_term"
+                            value={data.delivery_term}
+                            onChange={handleChange}
+                            error={errors.delivery_term}
+                            placeholder="Auto-calculated from PO dates"
+                            readOnly
+                            disabled
+                        />
+                        <Field
+                            label="Due Date"
+                            name="due_date"
+                            value={data.due_date}
+                            onChange={handleChange}
+                            error={errors.due_date}
+                            placeholder="Auto-filled from selected PO"
+                            readOnly
+                            disabled
+                        />
                         <Field label="No. of Days (LD)" name="no_of_days_ld" type="number" value={String(computedLdDays)} onChange={handleChange} error={errors.no_of_days_ld} readOnly disabled />
                         <Field label="Received By (1)" name="received_by_1" value={data.received_by_1} onChange={handleChange} error={errors.received_by_1} placeholder="e.g. Alvin B." />
                         <Field label="Received By (2)" name="received_by_2" value={data.received_by_2} onChange={handleChange} error={errors.received_by_2} placeholder="e.g. J. Santos" />

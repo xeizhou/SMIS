@@ -23,6 +23,7 @@ interface Supplier {
 
 interface PoNumberOption {
     po_number: string;
+    supplier_id?: number | string | null;
     po_received_date?: string | null;
     due_date?: string | null;
 }
@@ -69,6 +70,30 @@ function Field({
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+            />
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+interface LockedFieldProps {
+    label: string;
+    value: string;
+    error?: string;
+    placeholder?: string;
+}
+
+// Read-only display field for values derived from the selected PO —
+// still submitted in the payload, just not directly editable.
+function LockedField({ label, value, error, placeholder }: LockedFieldProps) {
+    return (
+        <div>
+            <label className={labelClass}>{label}</label>
+            <Input
+                value={value}
+                disabled
+                placeholder={placeholder}
+                className="bg-muted text-muted-foreground"
             />
             {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </div>
@@ -186,32 +211,34 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
         }
     }, [open]);
 
+    // Supplier / dates / delivery term are all derived from whichever PO is
+    // selected — none of these are picked or typed independently anymore.
+    const supplierName = (() => {
+        const supplier = suppliers.find((s) => String(s.supplier_id) === data.supplier_id);
+        return supplier?.supplier_name ?? '';
+    })();
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
 
-        setData((prev) => {
-            const next = { ...prev, [name]: value };
-
-            if (name === 'date_received_by_supplier' || name === 'due_date') {
-                next.delivery_term = String(daysBetween(next.date_received_by_supplier, next.due_date));
-            }
-
-            return next;
-        });
+        setData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
         if (name === 'po_number') {
             const chosenPo = poNumbers.find((item) => item.po_number === value) ?? null;
 
-            const dateReceivedBySupplier = chosenPo?.po_received_date
-                ? toDateInputValue(chosenPo.po_received_date)
-                : data.date_received_by_supplier;
-            const dueDate = chosenPo?.due_date ? toDateInputValue(chosenPo.due_date) : data.due_date;
+            const dateReceivedBySupplier = toDateInputValue(chosenPo?.po_received_date ?? null);
+            const dueDate = toDateInputValue(chosenPo?.due_date ?? null);
+            const supplierId =
+                chosenPo?.supplier_id === null || chosenPo?.supplier_id === undefined
+                    ? ''
+                    : String(chosenPo.supplier_id);
 
             setData({
                 ...data,
                 po_number: value,
+                supplier_id: supplierId,
                 date_received_by_supplier: dateReceivedBySupplier,
                 due_date: dueDate,
                 delivery_term: String(daysBetween(dateReceivedBySupplier, dueDate)),
@@ -267,16 +294,11 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                             error={errors.reference_no}
                         />
 
-                        <SelectField
+                        <LockedField
                             label="Supplier"
-                            value={data.supplier_id}
-                            onChange={handleSelectChange('supplier_id')}
+                            value={supplierName}
                             error={errors.supplier_id}
-                            placeholder="Select supplier"
-                            options={suppliers.map((supplier) => ({
-                                value: String(supplier.supplier_id),
-                                label: supplier.supplier_name,
-                            }))}
+                            placeholder="Auto-filled from PO Number"
                         />
 
                         <SelectField
@@ -301,32 +323,25 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                             required
                         />
 
-                        <Field
+                        <LockedField
                             label="Date Received by Supplier"
-                            name="date_received_by_supplier"
-                            type="date"
                             value={data.date_received_by_supplier}
-                            onChange={handleChange}
                             error={errors.date_received_by_supplier}
+                            placeholder="Auto-filled from PO Number"
                         />
 
-                        <Field
+                        <LockedField
                             label="Delivery Term (days)"
-                            name="delivery_term"
-                            type="number"
                             value={data.delivery_term}
-                            onChange={handleChange}
                             error={errors.delivery_term}
                             placeholder="Auto-calculated from PO dates"
                         />
 
-                        <Field
+                        <LockedField
                             label="Due Date"
-                            name="due_date"
-                            type="date"
                             value={data.due_date}
-                            onChange={handleChange}
                             error={errors.due_date}
+                            placeholder="Auto-filled from PO Number"
                         />
 
                         <Field

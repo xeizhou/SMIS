@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -30,12 +31,16 @@ class PoLetterMonitoring extends Model
 
     protected $casts = [
         'po_date' => 'date',
-        'date_received_by_supplier' => 'date',
-        'delivery_term' => 'integer',
-        'due_date' => 'date',
         'date_received_by_smu' => 'date',
         'date_forwarded_to_ovpad' => 'date',
         'date_forwarded_to_end_user' => 'date',
+        // date_received_by_supplier, due_date, and delivery_term are
+        // intentionally NOT cast here — they're computed live from the
+        // linked ServePo via the accessors below, not read from the raw
+        // columns. The raw columns still exist and are still written on
+        // store()/update() for audit/backup purposes, but display always
+        // goes through servePo so these values never go stale when the
+        // parent PO's dates change.
     ];
 
     public function servePo(): BelongsTo
@@ -46,5 +51,46 @@ class PoLetterMonitoring extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
+
+    /**
+     * Always reflects the linked PO's current po_received_date, not the
+     * value frozen at the time this letter record was created.
+     */
+    protected function dateReceivedBySupplier(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->servePo?->po_received_date,
+        );
+    }
+
+    /**
+     * Always reflects the linked PO's current due_date.
+     */
+    protected function dueDate(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->servePo?->due_date,
+        );
+    }
+
+    /**
+     * Always recalculated from the linked PO's current dates. Null when
+     * either date is missing (mirrors the frontend's daysBetween() guard).
+     */
+    protected function deliveryTerm(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $received = $this->servePo?->po_received_date;
+                $due = $this->servePo?->due_date;
+
+                if (! $received || ! $due) {
+                    return null;
+                }
+
+                return max(0, $received->diffInDays($due));
+            },
+        );
     }
 }
