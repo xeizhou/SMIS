@@ -420,9 +420,7 @@ export default function PurchaseOrderAddForm({
 
                                     <Input
                                         value={responsibilityCenter}
-                                        disabled
                                         placeholder="Fund Cluster + End User"
-                                        className="bg-muted text-muted-foreground"
                                     />
 
                                     {errors.responsibility_center && (
