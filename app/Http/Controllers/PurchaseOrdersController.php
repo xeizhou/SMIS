@@ -71,6 +71,7 @@ class PurchaseOrdersController extends Controller
     {
         $validated = $request->validate([
             'po_number' => ['required', 'string', 'max:50', 'unique:serve_po,po_number'],
+            'item_description' => ['nullable', 'string'],
             'po_date' => ['nullable', 'date'],
             'po_received_date' => ['nullable', 'date'],
             'inclusive_date' => ['nullable', 'string', 'max:100'],
@@ -122,6 +123,7 @@ class PurchaseOrdersController extends Controller
                 Rule::unique('serve_po', 'po_number')->ignore($servePo->po_number, 'po_number'),
             ],
             'po_date' => ['nullable', 'date'],
+            'item_description' => ['nullable', 'string'],
             'po_received_date' => ['nullable', 'date'],
             'inclusive_date' => ['nullable', 'string', 'max:100'],
             'due_date' => ['nullable', 'date'],
@@ -161,7 +163,7 @@ class PurchaseOrdersController extends Controller
                 Delivery::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
                 PoLetterMonitoring::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
                 PirMonitoring::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
-            }
+            }   
 
             $servePo->update($validated);
         });
@@ -174,8 +176,29 @@ class PurchaseOrdersController extends Controller
      */
     public function destroy(ServePo $purchaseOrder): RedirectResponse
     {
+        $deliveryCount = $purchaseOrder->deliveries()->count();
+        $letterCount = $purchaseOrder->letterMonitorings()->count();
+        $pirCount = $purchaseOrder->pirMonitorings()->count();
+
+        if ($deliveryCount > 0 || $letterCount > 0 || $pirCount > 0) {
+            $parts = [];
+            if ($deliveryCount > 0) {
+                $parts[] = "{$deliveryCount} linked delivery record" . ($deliveryCount > 1 ? 's' : '');
+            }
+            if ($letterCount > 0) {
+                $parts[] = "{$letterCount} linked letter record" . ($letterCount > 1 ? 's' : '');
+            }
+            if ($pirCount > 0) {
+                $parts[] = "{$pirCount} linked PIR record" . ($pirCount > 1 ? 's' : '');
+            }
+
+            return redirect()->back()->with('error',
+                "Can't delete this PO. it has " . implode(', ', $parts) . ". Remove those first."
+            );
+        }
+
         $purchaseOrder->delete();
 
-        return redirect()->back();
-    }
+        return redirect()->back()->with('success', 'Purchase order deleted.');
+    }    
 }

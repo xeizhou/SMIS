@@ -137,6 +137,7 @@ const MODE_OF_PROCUREMENT_OPTIONS = [
 
 const emptyForm = {
     po_number: '',
+    item_description: '',
     po_date: '',
     po_received_date: '',
     inclusive_date: '',
@@ -228,7 +229,7 @@ export default function PurchaseOrderAddForm({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
                     className="w-[95vw] max-h-[90vh] overflow-y-auto"
-                    style={{ maxWidth: '900px' }}
+                    style={{ maxWidth: '1200px' }}
                 >
                 <DialogHeader>
                     <DialogTitle>New Purchase Order</DialogTitle>
@@ -323,6 +324,24 @@ export default function PurchaseOrderAddForm({
                                     error={errors.inclusive_date}
                                     placeholder="e.g. Jan 1 - Jan 15, 2026"
                                 />
+                            </div>
+
+                            <div>
+                                <label className={labelClass}>Item Description</label>
+
+                                <textarea
+                                    name="item_description"
+                                    value={data.item_description}
+                                    onChange={(e) =>
+                                        setData({ ...data, item_description: e.target.value })
+                                    }
+                                    rows={4}
+                                    className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                />
+
+                                {errors.item_description && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.item_description}</p>
+                                )}
                             </div>
                         </div>
 
