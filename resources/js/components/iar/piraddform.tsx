@@ -331,6 +331,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.delivery_term}
                                 disabled={!poSelected}
+                                placeholder="Select Delivery Term"
                             />
                             <SelectField
                                 label="Fund Cluster"
@@ -351,6 +352,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.pr_number}
                                 disabled={!poSelected}
+                                placeholder="Enter PR Number"
                             />
                             <Field
                                 label="PR Date"
@@ -360,6 +362,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.pr_date}
                                 disabled={!poSelected}
+                                placeholder="Select PR Date"
                             />
                             <Field
                                 label="ORS/BUR Number"
@@ -368,6 +371,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.ors_bur_number}
                                 disabled={!poSelected}
+                                placeholder="Enter ORS/BUR Number"
                             />
                             <Field
                                 label="ORS/BUR Date"
@@ -377,6 +381,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.ors_bur_date}
                                 disabled={!poSelected}
+                                placeholder="Select ORS/BUR Date"
                             />
                             <Field
                                 label="PO Amount"
@@ -386,6 +391,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.po_amount}
                                 disabled={!poSelected}
+                                placeholder="Enter PO Amount"
                             />
                         </div>
                     </div>
@@ -402,6 +408,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.date_forwarded_supplier}
                                 disabled={!poSelected}
+                                placeholder="Select Date Forwarded to Supplier"
                             />
                             <Field
                                 label="Forwarded By"
@@ -410,6 +417,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.forwarded_by_supplier}
                                 disabled={!poSelected}
+                                placeholder="Enter Forwarded By"
                             />
                             <Field
                                 label="Claimed By (Supplier)"
@@ -418,6 +426,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.claimed_by_supplier}
                                 disabled={!poSelected}
+                                placeholder="Enter Claimed By (Supplier)"
                             />
                             <Field
                                 label="Supplier Signature Date"
@@ -427,6 +436,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.supplier_signature_date}
                                 disabled={!poSelected}
+                                placeholder="Select Supplier Signature Date"
                             />
                             <Field
                                 label="Date Received by Supplier"
@@ -436,6 +446,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.date_received_by_supplier}
                                 disabled={!poSelected}
+                                placeholder="Select Date Received by Supplier"
                             />
                         </div>
                     </div>
@@ -452,6 +463,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.date_forwarded_coa}
                                 disabled={!poSelected}
+                                placeholder="Select Date Forwarded to COA"
                             />
                             <Field
                                 label="Forwarded By (COA)"
@@ -460,6 +472,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.forwarded_by_coa}
                                 disabled={!poSelected}
+                                placeholder="Enter Forwarded By (COA)"
                             />
                             <Field
                                 label="Date Returned from COA"
@@ -469,6 +482,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.date_returned_from_coa}
                                 disabled={!poSelected}
+                                placeholder="Select Date Returned from COA"
                             />
                             <Field
                                 label="COA Date"
@@ -478,6 +492,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.coa_date}
                                 disabled={!poSelected}
+                                placeholder="Select COA Date"
                             />
                             <Field
                                 label="Claim Date"
@@ -487,6 +502,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.claim_date}
                                 disabled={!poSelected}
+                                placeholder="Select Claim Date"
                             />
                             <Field
                                 label="Claimed By (COA)"
@@ -495,6 +511,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.claimed_by_coa}
                                 disabled={!poSelected}
+                                placeholder="Enter Claimed By (COA)"
                             />
                         </div>
                     </div>
@@ -510,6 +527,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.invoice_number}
                                 disabled={!poSelected}
+                                placeholder="Enter Invoice Number"
                             />
                             <Field
                                 label="Invoice Date"
@@ -519,6 +537,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.invoice_date}
                                 disabled={!poSelected}
+                                placeholder="Select Invoice Date"
                             />
                             <Field
                                 label="Delivery Receipt"
@@ -527,6 +546,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.delivery_receipt}
                                 disabled={!poSelected}
+                                placeholder="Enter Delivery Receipt"
                             />
                             <Field
                                 label="Date Completed"
@@ -536,6 +556,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.date_completed}
                                 disabled={!poSelected}
+                                placeholder="Select Date Completed"
                             />
                             <Field
                                 label="PAR/ICS Number"
@@ -544,6 +565,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.par_ics_number}
                                 disabled={!poSelected}
+                                placeholder="Enter PAR/ICS Number"
                             />
                             <Field
                                 label="RIS Number"
@@ -552,6 +574,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.ris_number}
                                 disabled={!poSelected}
+                                placeholder="Enter RIS Number"
                             />
                             <Field
                                 label="Inspected By"
@@ -560,6 +583,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.inspected_by}
                                 disabled={!poSelected}
+                                placeholder="Enter Inspected By"
                             />
                             <Field
                                 label="Inspection Date"
@@ -569,6 +593,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.inspection_date}
                                 disabled={!poSelected}
+                                placeholder="Select Inspection Date"
                             />
                             <Field
                                 label="IAR Number"
@@ -577,6 +602,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.iar_number}
                                 disabled={!poSelected}
+                                placeholder="Enter IAR Number"
                             />
                         </div>
                     </div>
@@ -593,6 +619,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.date_forwarded_to_finance}
                                 disabled={!poSelected}
+                                placeholder="Select Date Forwarded to Finance"
                             />
                             <Field
                                 label="Receipt Receiving Date"
@@ -602,6 +629,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.receipt_receiving_date}
                                 disabled={!poSelected}
+                                placeholder="Select Receipt Receiving Date"
                             />
                             <Field
                                 label="Receipt Claimed By"
@@ -610,6 +638,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.receipt_claimed_by}
                                 disabled={!poSelected}
+                                placeholder="Enter Receipt Claimed By"
                             />
                             <Field
                                 label="Items Receiving Date"
@@ -619,6 +648,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.items_receiving_date}
                                 disabled={!poSelected}
+                                placeholder="Select Items Receiving Date"
                             />
                             <Field
                                 label="Items Claimed By"
@@ -627,6 +657,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.items_claimed_by}
                                 disabled={!poSelected}
+                                placeholder="Enter Items Claimed By"
                             />
                         </div>
                     </div>
@@ -642,6 +673,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.notify_receipt}
                                 disabled={!poSelected}
+                                placeholder="Select Notify Receipt"
                             />
                             <Field
                                 label="Notify Call"
@@ -650,6 +682,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.notify_call}
                                 disabled={!poSelected}
+                                placeholder="Select Notify Call"
                             />
                             <Field
                                 label="Notify Email"
@@ -658,6 +691,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.notify_email}
                                 disabled={!poSelected}
+                                placeholder="Enter Notify Email"
                             />
                             <SelectField
                                 label="Status"
