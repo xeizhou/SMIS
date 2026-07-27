@@ -50,7 +50,7 @@ const procurementNavItems: NavItem[] = [
     { title: 'Purchase Orders', href: '/purchase-orders' },
     { title: 'PO Letter Monitoring', href: '/po-letter-monitoring' },
     { title: 'Deliveries', href: '/deliveries' },
-    { title: 'PIR', href: '/iar' },
+    { title: 'Reports Monitoring', href: '/iar' },
     { title: 'Supplier List', href: '/supplier' },
     { title: 'Fund Clusters', href: '/fund-clusters' },
 ];
