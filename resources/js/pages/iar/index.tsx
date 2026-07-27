@@ -192,13 +192,13 @@ export default function Index({
 
     return (
         <>
-            <Head title="PIR Monitoring" />
+            <Head title="Reports Monitoring" />
             <div className="p-4 space-y-6 sm:p-6">
                 {/* Header */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">
-                            PIR Monitoring
+                            Reports Monitoring
                         </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
                             Track post-procurement PO, delivery, inspection, and payment status.
@@ -264,7 +264,7 @@ export default function Index({
                         className="w-full lg:w-auto"
                         style={{ backgroundColor: '#612A35' }}
                     >
-                        Add PIR
+                        Add Report
                     </Button>
                 </form>
 
@@ -291,10 +291,10 @@ export default function Index({
                                 <tr>
                                     <td colSpan={8} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
-                                            No PIR records added yet.
+                                            No Reports added yet.
                                         </p>
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                            Click <strong>"Add PIR"</strong> to create your first entry.
+                                        <p className="text-muted-foreground mt-1">
+                                            Click <strong>"Add Report"</strong> to create your first entry.
                                         </p>
                                     </td>
                                 </tr>
@@ -415,7 +415,7 @@ Index.layout = {
             href: '#',
         },
         {
-            title: 'PIR',
+            title: 'Reports Monitoring',
             href: '/iar',
         },
     ],
