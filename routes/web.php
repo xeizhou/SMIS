@@ -29,7 +29,26 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', function () {
+        $recentActivity = \App\Models\AuditLog::with('user')
+            ->orderBy('log_timestamp', 'desc')
+            ->take(50)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'log_id' => $log->auditLogID,
+                    'timestamp' => $log->log_timestamp->format('Y-m-d H:i:s'),
+                    'user' => $log->user ? $log->user->name : 'Unknown',
+                    'role' => $log->role,
+                    'action' => $log->action,
+                    'target_url' => $log->target_url ? str_replace('search=', 'highlight_search=', $log->target_url) : null,
+                ];
+            });
+
+        return Inertia::render('dashboard', [
+            'recentActivity' => $recentActivity,
+        ]);
+    })->name('dashboard');
 
     // Property Monitoring
     Route::get('/rrppe-monitoring', [RRPPEController::class, 'index'])->name('rrppe-monitoring.index');

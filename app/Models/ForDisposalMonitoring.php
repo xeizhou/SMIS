@@ -4,9 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\LogsActivity;
 
 class ForDisposalMonitoring extends Model
 {
+    use HasFactory, LogsActivity;
+
     protected $table = 'for_disposal_monitoring';
 
     protected $fillable = [
@@ -18,6 +22,7 @@ class ForDisposalMonitoring extends Model
         'description',
         'amount',
         'condition_of_ppe',
+        'remarks',
         'location',
     ];
 
@@ -29,5 +34,10 @@ class ForDisposalMonitoring extends Model
     public function preRepairMonitoring(): BelongsTo
     {
         return $this->belongsTo(PreRepairMonitoring::class, 'pre_repair_no', 'pre_repair_no');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('for-disposal-monitoring.index') . '?highlight_id=' . $this->id;
     }
 }

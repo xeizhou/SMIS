@@ -98,6 +98,7 @@ const emptyForm = {
     description: '',
     amount: '',
     condition_of_ppe: '',
+    remarks: '',
     location: '',
 };
 
@@ -126,6 +127,7 @@ export default function ForDisposalAddForm({ open, onOpenChange, preRepairs }: P
                     description: selectedPre.description || '',
                     amount: selectedPre.amount ? selectedPre.amount.toString() : '',
                     condition_of_ppe: condition,
+                    remarks: selectedPre.remarks || '',
                     location: selectedPre.location || '',
                     from_accountable_officer: selectedPre.from_accountable_officer || '',
                     to_accountable_officer: selectedPre.to_accountable_officer || '',
@@ -236,6 +238,17 @@ export default function ForDisposalAddForm({ open, onOpenChange, preRepairs }: P
                             </select>
                             {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
                         </div>
+                        
+                        {data.condition_of_ppe === 'Unserviceable' && (
+                            <TextareaField
+                                label="Remarks / Findings"
+                                name="remarks"
+                                value={data.remarks}
+                                onChange={handleChange}
+                                error={errors.remarks}
+                            />
+                        )}
+                        
                         <Field
                             label="Location"
                             name="location"

@@ -50,6 +50,7 @@ class PreRepairController extends Controller
             'description' => 'required|string',
             'amount' => 'required|numeric',
             'condition_of_ppe' => 'required|string|max:50',
+            'remarks' => 'nullable|string',
             'location' => 'required|string|max:100',
         ]);
 
@@ -71,6 +72,7 @@ class PreRepairController extends Controller
             'description' => 'required|string',
             'amount' => 'required|numeric',
             'condition_of_ppe' => 'required|string|max:50',
+            'remarks' => 'nullable|string',
             'location' => 'required|string|max:100',
         ]);
 
@@ -88,40 +90,11 @@ class PreRepairController extends Controller
                 $newPreRepairNo = $validated['pre_repair_no'];
                 $newPropertyNo = $validated['property_no'];
 
-                // If user fixed a typo in property_no (without re-linking to a new transaction)
-                // Cascade UP to parent ITR/PTR and all siblings/children
-                if ($oldTransactionNo === $newTransactionNo && $oldPropertyNo !== $newPropertyNo) {
-                    \App\Models\ItrPtrMonitoring::where('transaction_no', $oldTransactionNo)
-                        ->where('property_no', $oldPropertyNo)
-                        ->update(['property_no' => $newPropertyNo]);
-
-                    \App\Models\PreRepairMonitoring::where('transaction_no', $oldTransactionNo)
-                        ->where('property_no', $oldPropertyNo)
-                        ->where('id', '!=', $preRepair->id)
-                        ->update(['property_no' => $newPropertyNo]);
-
-                    \App\Models\ForDisposalMonitoring::where('transaction_no', $oldTransactionNo)
-                        ->where('property_no', $oldPropertyNo)
-                        ->update(['property_no' => $newPropertyNo]);
-                }
-
-                // If keys changed, repoint specific downstream ForDisposal records
-                if ($oldTransactionNo !== $newTransactionNo || $oldPreRepairNo !== $newPreRepairNo || $oldPropertyNo !== $newPropertyNo) {
-                    
-                    // If we just globally updated property_no above, ForDisposal already has newPropertyNo
-                    $targetPropertyNo = ($oldTransactionNo === $newTransactionNo && $oldPropertyNo !== $newPropertyNo) 
-                        ? $newPropertyNo 
-                        : $oldPropertyNo;
-
-                    \App\Models\ForDisposalMonitoring::where('pre_repair_no', $oldPreRepairNo)
-                        ->where('transaction_no', $oldTransactionNo)
-                        ->where('property_no', $targetPropertyNo)
-                        ->update([
-                            'pre_repair_no' => $newPreRepairNo,
-                            'transaction_no' => $newTransactionNo,
-                            'property_no' => $newPropertyNo,
-                        ]);
-                }
+                // We cascade ALL fields to ForDisposal since they are still linked.
+                \App\Models\ForDisposalMonitoring::where('pre_repair_no', $oldPreRepairNo)
+                    ->where('transaction_no', $oldTransactionNo)
+                    ->where('property_no', $oldPropertyNo)
+                    ->update($validated);
 
                 $preRepair->update($validated);
             });
@@ -137,7 +110,11 @@ class PreRepairController extends Controller
         $preRepair = PreRepairMonitoring::findOrFail($id);
         
         DB::transaction(function () use ($preRepair) {
-            // Delete For Disposal records linked to this Pre-Repair
+            // ITR/PTR is no longer connected, and ForDisposal records should NOT be automatically deleted (unless strictly requested)
+            // Wait, "pre repair and for disposal are connected to each other".
+            // If they are connected, deleting a Pre-Repair should probably still cascade delete the For-Disposal record, 
+            // OR it should fail if it exists. Since SQLite doesn't natively cascade without PRAGMA foreign_keys = ON, 
+            // I'll keep the manual cascade delete for ForDisposal to keep them "connected".
             ForDisposalMonitoring::where('pre_repair_no', $preRepair->pre_repair_no)
                 ->where('transaction_no', $preRepair->transaction_no)
                 ->where('property_no', $preRepair->property_no)

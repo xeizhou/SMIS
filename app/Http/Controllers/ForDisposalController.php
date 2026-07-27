@@ -47,6 +47,7 @@ class ForDisposalController extends Controller
             'description' => 'required|string',
             'amount' => 'required|numeric',
             'condition_of_ppe' => 'required|string|max:50',
+            'remarks' => 'nullable|string',
             'location' => 'required|string|max:100',
         ]);
 
@@ -68,8 +69,19 @@ class ForDisposalController extends Controller
             'description' => 'required|string',
             'amount' => 'required|numeric',
             'condition_of_ppe' => 'required|string|max:50',
+            'remarks' => 'nullable|string',
             'location' => 'required|string|max:100',
         ]);
+
+        // Cascade ALL fields to PreRepair since they are linked.
+        $oldTransactionNo = $forDisposal->transaction_no;
+        $oldPreRepairNo = $forDisposal->pre_repair_no;
+        $oldPropertyNo = $forDisposal->property_no;
+
+        \App\Models\PreRepairMonitoring::where('pre_repair_no', $oldPreRepairNo)
+            ->where('transaction_no', $oldTransactionNo)
+            ->where('property_no', $oldPropertyNo)
+            ->update($validated);
 
         $forDisposal->update($validated);
 

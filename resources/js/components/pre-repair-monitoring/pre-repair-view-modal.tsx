@@ -103,6 +103,16 @@ export default function PreRepairViewModal({
                             {item.condition_of_ppe}
                         </p>
                     </div>
+                    {item.condition_of_ppe === 'Unserviceable' && (
+                        <div className="md:col-span-2">
+                            <h4 className="text-sm font-semibold text-gray-500">
+                                Remarks / Findings
+                            </h4>
+                            <p className="mt-1 text-gray-900 dark:text-gray-100">
+                                {item.remarks || '-'}
+                            </p>
+                        </div>
+                    )}
                     <div>
                         <h4 className="text-sm font-semibold text-gray-500">
                             Location

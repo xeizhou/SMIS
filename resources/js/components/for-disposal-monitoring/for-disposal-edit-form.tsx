@@ -106,10 +106,12 @@ export default function ForDisposalEditForm({
         description: '',
         amount: '',
         condition_of_ppe: '',
+        remarks: '',
         location: '',
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     useEffect(() => {
         if (open && item) {
@@ -125,6 +127,7 @@ export default function ForDisposalEditForm({
                 description: item.description || '',
                 amount: item.amount ? item.amount.toString() : '',
                 condition_of_ppe: item.condition_of_ppe || '',
+                remarks: item.remarks || '',
                 location: item.location || '',
             });
         }
@@ -150,6 +153,7 @@ export default function ForDisposalEditForm({
                     description: selectedPre.description || '',
                     amount: selectedPre.amount ? selectedPre.amount.toString() : '',
                     condition_of_ppe: condition,
+                    remarks: selectedPre.remarks || '',
                     location: selectedPre.location || '',
                     from_accountable_officer: selectedPre.from_accountable_officer || '',
                     to_accountable_officer: selectedPre.to_accountable_officer || '',
@@ -164,10 +168,16 @@ export default function ForDisposalEditForm({
         });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
 
         if (!item) {
+            return;
+        }
+
+        // ALWAYS show modal since all fields cascade
+        if (e) {
+            setShowConfirmModal(true);
             return;
         }
 
@@ -263,6 +273,17 @@ export default function ForDisposalEditForm({
                             </select>
                             {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
                         </div>
+                        
+                        {data.condition_of_ppe === 'Unserviceable' && (
+                            <TextareaField
+                                label="Remarks / Findings"
+                                name="remarks"
+                                value={data.remarks}
+                                onChange={handleChange}
+                                error={errors.remarks}
+                            />
+                        )}
+                        
                         <Field
                             label="Location"
                             name="location"
@@ -308,6 +329,46 @@ export default function ForDisposalEditForm({
                     </div>
                 </form>
             </DialogContent>
+
+            {/* Confirmation Modal */}
+            <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Confirm Update</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 text-sm text-foreground">
+                        <p className="font-semibold text-red-600">Warning:</p>
+                        {item && (data.transaction_no !== item.transaction_no || data.pre_repair_no !== item.pre_repair_no || data.property_no !== item.property_no) ? (
+                            <p>Changing the <strong>Transaction No.</strong>, <strong>Pre-Repair No.</strong> or <strong>Property No.</strong> will modify this record's primary identifiers.</p>
+                        ) : (
+                            <p>Updating this record will also modify the linked record in Pre-Repair.</p>
+                        )}
+                        <p className="mt-2">Are you sure you want to proceed with this change?</p>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowConfirmModal(false)}
+                            disabled={processing}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                setShowConfirmModal(false);
+                                handleSubmit();
+                            }}
+                            disabled={processing}
+                            style={{ backgroundColor: '#612A35' }}
+                            className="text-white"
+                        >
+                            {processing ? 'Updating...' : 'Yes, Proceed'}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Dialog>
     );
 }
