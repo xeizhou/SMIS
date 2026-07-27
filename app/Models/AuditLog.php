@@ -18,6 +18,7 @@ class AuditLog extends Model
         'userID',
         'role',
         'action',
+        'target_url',
     ];
 
     protected $casts = [
@@ -26,6 +27,6 @@ class AuditLog extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'userID', 'userID');
+        return $this->belongsTo(User::class, 'userID', 'id');
     }
 }

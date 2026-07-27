@@ -1,5 +1,6 @@
 import { Search, Filter, ArrowUpDown } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -15,6 +16,7 @@ export type RecentActivityRow = {
     user: string;
     role: string;
     action: string;
+    target_url?: string | null;
 };
 
 type Props = {
@@ -24,18 +26,18 @@ type Props = {
 // Mock data used as a fallback. The backend developer can override this 
 // by passing a real `data` prop to the <RecentActivity data={realData} /> component.
 const MOCK_ACTIVITY: RecentActivityRow[] = [
-    { log_id: 1, timestamp: '2026-07-06 15:11:10', user: 'Jane D. Doe', role: 'Admin', action: 'Edited Units table' },
-    { log_id: 2, timestamp: '2026-07-06 15:11:10', user: 'Alan T. Smith', role: 'Staff', action: 'Edited Offices table' },
-    { log_id: 3, timestamp: '2026-07-06 15:11:10', user: 'Aize A. Virtudazo', role: 'Staff', action: 'Added New P.O' },
-    { log_id: 4, timestamp: '2026-07-06 15:11:10', user: 'Cedric D. Galay', role: 'Staff', action: 'Added New Delivery' },
-    { log_id: 5, timestamp: '2026-07-06 15:11:10', user: 'Kyo Kaneko', role: 'Staff', action: 'Edited Clearance Table' },
-    { log_id: 6, timestamp: '2026-07-06 14:30:00', user: 'Jane D. Doe', role: 'Admin', action: 'Deleted item from RRPPE' },
+    { log_id: 1, timestamp: '2026-07-06 15:11:10', user: 'Jane D. Doe', role: 'Admin', action: 'Edited Units table', target_url: '/units' },
+    { log_id: 2, timestamp: '2026-07-06 15:11:10', user: 'Alan T. Smith', role: 'Staff', action: 'Edited Offices table', target_url: '/offices' },
+    { log_id: 3, timestamp: '2026-07-06 15:11:10', user: 'Aize A. Virtudazo', role: 'Staff', action: 'Added New P.O', target_url: '/purchase-orders' },
+    { log_id: 4, timestamp: '2026-07-06 15:11:10', user: 'Cedric D. Galay', role: 'Staff', action: 'Added New Delivery', target_url: '/deliveries' },
+    { log_id: 5, timestamp: '2026-07-06 15:11:10', user: 'Kyo Kaneko', role: 'Staff', action: 'Edited Clearance Table', target_url: '/clearance' },
+    { log_id: 6, timestamp: '2026-07-06 14:30:00', user: 'Jane D. Doe', role: 'Admin', action: 'Deleted item from RRPPE', target_url: '/rrppe-monitoring' },
     { log_id: 7, timestamp: '2026-07-06 14:15:22', user: 'Alan T. Smith', role: 'Staff', action: 'Approved Waiver' },
-    { log_id: 8, timestamp: '2026-07-06 13:45:10', user: 'Aize A. Virtudazo', role: 'Staff', action: 'Added new user' },
+    { log_id: 8, timestamp: '2026-07-06 13:45:10', user: 'Aize A. Virtudazo', role: 'Staff', action: 'Added new user', target_url: '/users' },
     { log_id: 9, timestamp: '2026-07-06 11:20:05', user: 'Cedric D. Galay', role: 'Staff', action: 'Updated Settings' },
     { log_id: 10, timestamp: '2026-07-06 10:10:00', user: 'Kyo Kaneko', role: 'Staff', action: 'Logged out' },
     { log_id: 11, timestamp: '2026-07-05 16:55:00', user: 'Jane D. Doe', role: 'Admin', action: 'Logged in' },
-    { log_id: 12, timestamp: '2026-07-05 15:33:12', user: 'Alan T. Smith', role: 'Staff', action: 'Created Pre-Repair request' },
+    { log_id: 12, timestamp: '2026-07-05 15:33:12', user: 'Alan T. Smith', role: 'Staff', action: 'Created Pre-Repair request', target_url: '/pre-repair-monitoring?highlight_search=PR-001' },
 ];
 
 export function RecentActivity({ data }: Props) {
@@ -138,7 +140,13 @@ export function RecentActivity({ data }: Props) {
                                     {row.role}
                                 </td>
                                 <td className="whitespace-nowrap px-6 py-4 text-neutral-500 dark:text-neutral-400">
-                                    {row.action}
+                                    {row.target_url ? (
+                                        <Link href={row.target_url} className="font-bold text-neutral-900 underline hover:text-blue-600 dark:text-neutral-50 dark:hover:text-blue-400">
+                                            {row.action}
+                                        </Link>
+                                    ) : (
+                                        <span className="font-bold text-neutral-900 underline dark:text-neutral-50">{row.action}</span>
+                                    )}
                                 </td>
                             </tr>
                         ))}

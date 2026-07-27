@@ -4,9 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\LogsActivity;
 
 class ItrPtrMonitoring extends Model
 {
+    use HasFactory, LogsActivity;
+
     protected $table = 'itr_ptr_monitoring';
 
     protected $fillable = [
@@ -39,5 +43,10 @@ class ItrPtrMonitoring extends Model
     public function preRepairMonitorings(): HasMany
     {
         return $this->hasMany(PreRepairMonitoring::class, 'transaction_no', 'transaction_no');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('itr-ptr-monitoring.index') . '?highlight_id=' . $this->id;
     }
 }

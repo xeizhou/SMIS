@@ -1,12 +1,177 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
-export default function Index() {
+interface AuditLog {
+    log_id: number;
+    timestamp: string;
+    user: string;
+    role: string;
+    action: string;
+    target_url: string | null;
+}
+
+interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+interface PaginatedData {
+    data: AuditLog[];
+    links: PaginationLink[];
+    current_page: number;
+    last_page: number;
+    from: number;
+    to: number;
+    total: number;
+}
+
+interface Props {
+    logs: PaginatedData;
+    filters: {
+        search: string;
+        role: string;
+    };
+}
+
+export default function Index({ logs, filters }: Props) {
+    const [searchQuery, setSearchQuery] = useState(filters.search || '');
+    const [roleFilter, setRoleFilter] = useState(filters.role || 'All');
+
+    // Handle search debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchQuery !== filters.search || roleFilter !== filters.role) {
+                router.get(
+                    '/audit-logs',
+                    { search: searchQuery, role: roleFilter },
+                    { preserveState: true, replace: true }
+                );
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery, roleFilter, filters.search, filters.role]);
+
+    const handleClear = () => {
+        setSearchQuery('');
+        setRoleFilter('All');
+    };
+
     return (
         <>
-            <Head title="Test Page" />
+            <Head title="Audit Logs" />
 
-            <div className="p-6">
-                <h1 className="text-2xl font-bold">Test Page for Audit Logs</h1>
+            <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
+                <div>
+                    <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                        Audit Logs
+                    </h1>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Track and review all system activities, actions, and user events.
+                    </p>
+                </div>
+
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-wrap gap-2 flex-1">
+                        <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
+                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                type="text"
+                                placeholder="Search..."
+                                className="pl-9 bg-white dark:bg-gray-900 w-full"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <select
+                            value={roleFilter}
+                            onChange={(e) => setRoleFilter(e.target.value)}
+                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-[180px]"
+                        >
+                            <option value="All">All Roles</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Staff">Staff</option>
+                        </select>
+                        <Button type="button" variant="secondary">
+                            Search
+                        </Button>
+                        <Button type="button" variant="ghost" onClick={handleClear}>
+                            Clear
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                        <thead className="bg-[#3e0b0e] text-white/90">
+                            <tr>
+                                <th className="px-4 py-3 font-medium">Log ID</th>
+                                <th className="px-4 py-3 font-medium">Timestamp</th>
+                                <th className="px-4 py-3 font-medium">User</th>
+                                <th className="px-4 py-3 font-medium">Role</th>
+                                <th className="px-4 py-3 font-medium">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                            {logs.data.length > 0 ? (
+                                logs.data.map((row) => (
+                                    <tr key={row.log_id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
+                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+                                            {row.log_id}
+                                        </td>
+                                        <td className="px-4 py-3">{row.timestamp}</td>
+                                        <td className="px-4 py-3">{row.user}</td>
+                                        <td className="px-4 py-3">{row.role}</td>
+                                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                            {row.target_url ? (
+                                                <Link href={row.target_url} className="font-bold text-gray-900 underline hover:text-blue-600 dark:text-gray-50 dark:hover:text-blue-400">
+                                                    {row.action}
+                                                </Link>
+                                            ) : (
+                                                <span className="font-bold text-gray-900 underline dark:text-gray-50">{row.action}</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-16 text-center">
+                                        <p className="text-base font-medium text-muted-foreground">
+                                            No audit logs found.
+                                        </p>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {logs.data.length > 0 && (
+                    <div className="flex items-center justify-center gap-1 flex-wrap mt-4">
+                        {logs.links.map((link, i) => (
+                            <Link
+                                key={i}
+                                href={link.url ?? '#'}
+                                preserveScroll
+                                preserveState
+                                className={
+                                    'px-3 py-1.5 rounded-md text-sm border transition-colors ' +
+                                    (link.active
+                                        ? 'bg-[#612A35] text-white border-[#612A35]'
+                                        : 'bg-card text-foreground border-border hover:bg-muted/50') +
+                                    (!link.url
+                                        ? ' opacity-40 pointer-events-none'
+                                        : '')
+                                }
+                                dangerouslySetInnerHTML={{ __html: link.label }}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </>
     );

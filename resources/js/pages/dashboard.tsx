@@ -17,6 +17,7 @@ type DashboardPageProps = {
     pendingInspections?: number;
     pendingClearances?: number;
     pendingDeliveries?: number;
+    recentActivity?: RecentActivityRow[];
 };
 
 export default function Dashboard() {
@@ -26,6 +27,7 @@ export default function Dashboard() {
         pendingInspections,
         pendingClearances,
         pendingDeliveries,
+        recentActivity,
     } = usePage<DashboardPageProps>().props;
 
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -88,7 +90,7 @@ export default function Dashboard() {
                     </div>
                     
                     <div className="md:col-span-4">
-                        <RecentActivity />
+                        <RecentActivity data={recentActivity} />
                     </div>
                 </div>
             </div>

@@ -25,6 +25,7 @@ interface RegSPIRecord {
     month_year: string;
     ics_no: string | null;
     rrsp_no: string | null;
+    fund_cluster_id: string | null;
     semi_expendable_property_no: string;
     item_description: string;
     estimated_useful_life: number | string | null;

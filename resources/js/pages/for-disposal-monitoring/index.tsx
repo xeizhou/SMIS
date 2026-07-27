@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Search, Pencil, Trash2, Eye } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ForDisposalAddForm from '@/components/for-disposal-monitoring/for-disposal-add-form';
 import ForDisposalDeleteModal from '@/components/for-disposal-monitoring/for-disposal-delete-modal';
 import ForDisposalEditForm from '@/components/for-disposal-monitoring/for-disposal-edit-form';
@@ -19,6 +19,7 @@ export type ForDisposalMonitoring = {
     description: string;
     amount: number;
     condition_of_ppe: string;
+    remarks?: string;
     location: string;
     created_at?: string;
     updated_at?: string;
@@ -61,6 +62,25 @@ export default function Index({ data = { data: [], links: [] }, filters = {}, pr
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
 
     const [selectedItem, setSelectedItem] = useState<ForDisposalMonitoring | null>(null);
+
+    const [highlightId, setHighlightId] = useState<number | null>(null);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const highlight = params.get('highlight_id');
+        const highlightSearch = params.get('highlight_search');
+
+        if (highlight) {
+            setHighlightId(Number(highlight));
+            setTimeout(() => setHighlightId(null), 3000);
+        } else if (highlightSearch && data.data) {
+            const matched = data.data.find(item => item.transaction_no === highlightSearch || item.pre_repair_no === highlightSearch);
+            if (matched) {
+                setHighlightId(matched.id);
+                setTimeout(() => setHighlightId(null), 3000);
+            }
+        }
+    }, [data.data]);
 
     const openAddModal = () => {
         setSelectedItem(null);
@@ -154,6 +174,7 @@ export default function Index({ data = { data: [], links: [] }, filters = {}, pr
                                 <th className="px-4 py-3 font-medium">From</th>
                                 <th className="px-4 py-3 font-medium">To</th>
                                 <th className="px-4 py-3 font-medium">Condition</th>
+                                <th className="px-4 py-3 font-medium">Remarks</th>
                                 <th className="px-4 py-3 font-medium">Location</th>
                                 <th className="px-4 py-3 font-medium">Amount</th>
                                 <th className="px-4 py-3 font-medium text-center">Actions</th>
@@ -162,7 +183,14 @@ export default function Index({ data = { data: [], links: [] }, filters = {}, pr
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                             {data.data.length > 0 ? (
                                 data.data.map((item) => (
-                                    <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
+                                    <tr 
+                                        key={item.id} 
+                                        className={`transition-colors duration-1000 ${
+                                            highlightId === item.id 
+                                                ? 'bg-yellow-100 dark:bg-yellow-900/40' 
+                                                : 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'
+                                        }`}
+                                    >
                                         <td className="px-4 py-3 font-medium">{item.transaction_no}</td>
                                         <td className="px-4 py-3">{item.pre_repair_no}</td>
                                         <td className="px-4 py-3">{item.property_no}</td>
@@ -170,6 +198,7 @@ export default function Index({ data = { data: [], links: [] }, filters = {}, pr
                                         <td className="px-4 py-3">{item.from_accountable_officer}</td>
                                         <td className="px-4 py-3">{item.to_accountable_officer}</td>
                                         <td className="px-4 py-3">{item.condition_of_ppe}</td>
+                                        <td className="px-4 py-3">{item.remarks || '-'}</td>
                                         <td className="px-4 py-3">{item.location}</td>
                                         <td className="px-4 py-3">{formatCurrency(item.amount)}</td>
                                         <td className="px-4 py-3">
@@ -189,7 +218,7 @@ export default function Index({ data = { data: [], links: [] }, filters = {}, pr
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-16 text-center">
+                                    <td colSpan={11} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No For Disposal records added yet.
                                         </p>

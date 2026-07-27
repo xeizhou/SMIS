@@ -106,7 +106,6 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     useEffect(() => {
         if (open && item) {
@@ -145,19 +144,11 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
             return;
         }
 
-        // If not already confirmed, check if PKs changed
-        if (e && (data.transaction_no !== item.transaction_no || data.property_no !== item.property_no)) {
-            setShowConfirmModal(true);
-            return;
-        }
-
         setProcessing(true);
 
         router.put(`/itr-ptr-monitoring/${item.id}`, data, {
             onSuccess: () => {
                 onOpenChange(false);
-                router.reload();
-                router.clearHistory();
             },
             onError: (errors) => setErrors(errors),
             onFinish: () => setProcessing(false),
@@ -296,42 +287,6 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                     </div>
                 </form>
             </DialogContent>
-            
-            {/* Confirmation Modal */}
-            <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Confirm Update</DialogTitle>
-                    </DialogHeader>
-                    <div className="py-4 text-sm text-foreground">
-                        <p className="font-semibold text-red-600">Warning:</p>
-                        <p>Changing the <strong>Transaction No.</strong> or <strong>Property No.</strong> will also modify all linked records in Pre-Repair and For Disposal.</p>
-                        <p className="mt-2">Are you sure you want to proceed with this change?</p>
-                    </div>
-                    <div className="flex justify-end gap-3 pt-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setShowConfirmModal(false)}
-                            disabled={processing}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={() => {
-                                setShowConfirmModal(false);
-                                handleSubmit();
-                            }}
-                            disabled={processing}
-                            style={{ backgroundColor: '#612A35' }}
-                            className="text-white"
-                        >
-                            {processing ? 'Updating...' : 'Yes, Proceed'}
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
         </Dialog>
     );
 }

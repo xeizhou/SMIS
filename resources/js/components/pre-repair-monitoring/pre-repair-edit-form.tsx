@@ -101,6 +101,7 @@ export default function PreRepairEditForm({ open, onOpenChange, item, itrPtrs }:
         description: '',
         amount: '',
         condition_of_ppe: '',
+        remarks: '',
         location: '',
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -121,6 +122,7 @@ export default function PreRepairEditForm({ open, onOpenChange, item, itrPtrs }:
                 description: item.description || '',
                 amount: item.amount ? item.amount.toString() : '',
                 condition_of_ppe: item.condition_of_ppe || '',
+                remarks: item.remarks || '',
                 location: item.location || '',
             });
         }
@@ -131,28 +133,6 @@ export default function PreRepairEditForm({ open, onOpenChange, item, itrPtrs }:
     ) => {
         const { name, value } = e.target;
         
-        if (name === 'transaction_no') {
-            const selectedItr = itrPtrs.find((itr) => itr.transaction_no === value);
-            if (selectedItr) {
-                let condition = selectedItr.condition_of_ppe || '';
-                if (condition.toLowerCase() === 'serviceable') condition = 'Serviceable';
-                if (condition.toLowerCase() === 'unserviceable') condition = 'Unserviceable';
-
-                setData({
-                    ...data,
-                    transaction_no: value,
-                    property_no: selectedItr.property_no || '',
-                    description: selectedItr.description || '',
-                    amount: selectedItr.amount ? selectedItr.amount.toString() : '',
-                    condition_of_ppe: condition,
-                    location: selectedItr.location || '',
-                    from_accountable_officer: selectedItr.from_accountable_officer || '',
-                    to_accountable_officer: selectedItr.to_accountable_officer || '',
-                });
-                return;
-            }
-        }
-
         setData({
             ...data,
             [name]: value,
@@ -166,8 +146,8 @@ export default function PreRepairEditForm({ open, onOpenChange, item, itrPtrs }:
             return;
         }
 
-        // If not already confirmed, check if PKs changed
-        if (e && (data.transaction_no !== item.transaction_no || data.pre_repair_no !== item.pre_repair_no || data.property_no !== item.property_no)) {
+        // ALWAYS show modal since all fields cascade
+        if (e) {
             setShowConfirmModal(true);
             return;
         }
@@ -177,8 +157,6 @@ export default function PreRepairEditForm({ open, onOpenChange, item, itrPtrs }:
         router.put(`/pre-repair-monitoring/${item.id}`, data, {
             onSuccess: () => {
                 onOpenChange(false);
-                router.reload();
-                router.clearHistory();
             },
             onError: (errors) => setErrors(errors),
             onFinish: () => setProcessing(false),
@@ -194,26 +172,14 @@ export default function PreRepairEditForm({ open, onOpenChange, item, itrPtrs }:
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-6">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div>
-                            <label className={labelClass}>
-                                Transaction No.
-                                <span className="text-red-500"> *</span>
-                            </label>
-                            <select
-                                name="transaction_no"
-                                value={data.transaction_no}
-                                onChange={handleChange}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <option value="">Select Transaction No.</option>
-                                {itrPtrs.map((itr) => (
-                                    <option key={itr.id} value={itr.transaction_no}>
-                                        {itr.transaction_no} - {itr.property_no}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.transaction_no && <p className="mt-1 text-xs text-red-500">{errors.transaction_no}</p>}
-                        </div>
+                        <Field
+                            label="Transaction No."
+                            name="transaction_no"
+                            value={data.transaction_no}
+                            onChange={handleChange}
+                            error={errors.transaction_no}
+                            required
+                        />
                         <Field
                             label="Pre-Repair No."
                             name="pre_repair_no"
@@ -266,6 +232,17 @@ export default function PreRepairEditForm({ open, onOpenChange, item, itrPtrs }:
                             </select>
                             {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
                         </div>
+                        
+                        {data.condition_of_ppe === 'Unserviceable' && (
+                            <TextareaField
+                                label="Remarks / Findings"
+                                name="remarks"
+                                value={data.remarks}
+                                onChange={handleChange}
+                                error={errors.remarks}
+                            />
+                        )}
+                        
                         <Field
                             label="Location"
                             name="location"
@@ -320,11 +297,12 @@ export default function PreRepairEditForm({ open, onOpenChange, item, itrPtrs }:
                     </DialogHeader>
                     <div className="py-4 text-sm text-foreground">
                         <p className="font-semibold text-red-600">Warning:</p>
-                        <ul className="mt-2 list-disc pl-5 space-y-1">
-                            <li>Changing keys will modify linked records in For Disposal.</li>
-                            <li>Changing the <strong>Property No.</strong> will cascade backwards and update the original <strong>ITR/PTR</strong> record as well.</li>
-                        </ul>
-                        <p className="mt-4">Are you sure you want to proceed with this change?</p>
+                        {item && (data.transaction_no !== item.transaction_no || data.pre_repair_no !== item.pre_repair_no || data.property_no !== item.property_no) ? (
+                            <p>Changing the <strong>Transaction No.</strong>, <strong>Pre-Repair No.</strong> or <strong>Property No.</strong> will also modify all linked records in For Disposal.</p>
+                        ) : (
+                            <p>Updating this record will also modify the linked record in For Disposal.</p>
+                        )}
+                        <p className="mt-2">Are you sure you want to proceed with this change?</p>
                     </div>
                     <div className="flex justify-end gap-3 pt-2">
                         <Button

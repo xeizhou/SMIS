@@ -3,11 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsActivity;
 
 class PreRepairMonitoring extends Model
 {
+    use HasFactory, LogsActivity;
+
     protected $table = 'pre_repair_monitoring';
 
     protected $fillable = [
@@ -19,6 +23,7 @@ class PreRepairMonitoring extends Model
         'description',
         'amount',
         'condition_of_ppe',
+        'remarks',
         'location',
     ];
 
@@ -30,6 +35,11 @@ class PreRepairMonitoring extends Model
     public function itrPtrMonitoring(): BelongsTo
     {
         return $this->belongsTo(ItrPtrMonitoring::class, 'transaction_no', 'transaction_no');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('pre-repair-monitoring.index') . '?highlight_id=' . $this->id;
     }
 
     public function forDisposalMonitorings(): HasMany
