@@ -303,6 +303,7 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                             value={data.reference_no}
                             onChange={handleChange}
                             error={errors.reference_no}
+                            placeholder="REF-000"
                         />
 
                         <LockedField
@@ -317,7 +318,7 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                             value={data.po_number}
                             onChange={handleSelectChange('po_number')}
                             error={errors.po_number}
-                            placeholder="Select PO"
+                            placeholder="-- Select PO --"
                             options={poNumbers.map((po) => ({
                                 value: po.po_number,
                                 label: po.po_number,
@@ -361,6 +362,7 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                             value={data.office_end_user}
                             onChange={handleChange}
                             error={errors.office_end_user}
+                            placeholder="GSU, OVPAD, etc."
                             required
                         />
 
@@ -369,7 +371,7 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                             value={data.type_of_letter}
                             onChange={handleSelectChange('type_of_letter')}
                             error={errors.type_of_letter}
-                            placeholder="Select type"
+                            placeholder="-- Select Type --"
                             options={TYPE_OPTIONS}
                         />
 
@@ -397,6 +399,7 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                             value={data.received_by}
                             onChange={handleChange}
                             error={errors.received_by}
+                            placeholder="JOHN"
                         />
 
                         <SelectField
@@ -404,7 +407,7 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                             value={data.status_of_the_letter}
                             onChange={handleSelectChange('status_of_the_letter')}
                             error={errors.status_of_the_letter}
-                            placeholder="Select status"
+                            placeholder="-- Select Status --"
                             options={STATUS_OPTIONS}
                         />
 
