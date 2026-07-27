@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Check, ChevronsUpDown, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -33,12 +34,24 @@ interface Office {
     entity_name: string;
 }
 
+interface StockItem {
+    stock_no: string;
+    item_name: string;
+    units?: {
+        unitID: number;
+        pivot?: {
+            is_default: boolean;
+        };
+    }[];
+}
+
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     units: Unit[];
     fundClusters: FundCluster[];
     offices: Office[];
+    stockItems: StockItem[];
 }
 
 interface FieldProps {
@@ -55,8 +68,6 @@ interface FieldProps {
 
 const labelClass = 'mb-1 block text-sm text-foreground';
 
-// Defined outside the parent component so it doesn't remount (and drop
-// focus) on every parent re-render.
 function Field({
     label,
     name,
@@ -96,6 +107,7 @@ interface SelectFieldProps {
     error?: string;
     required?: boolean;
     placeholder?: string;
+    disabled?: boolean;
     options: { value: string; label: string }[];
 }
 
@@ -106,6 +118,7 @@ function SelectField({
     error,
     required = false,
     placeholder = 'Select...',
+    disabled = false,
     options,
 }: SelectFieldProps) {
     return (
@@ -115,7 +128,7 @@ function SelectField({
                 {required && <span className="text-red-500"> *</span>}
             </label>
 
-            <Select value={value} onValueChange={onChange}>
+            <Select value={value} onValueChange={onChange} disabled={disabled}>
                 <SelectTrigger className="w-full">
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
@@ -134,20 +147,120 @@ function SelectField({
     );
 }
 
+// Custom Searchable Dropdown for Items
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState('');
+
+    const filtered = options.filter((o) =>
+        o.label.toLowerCase().includes(search.toLowerCase())
+    );
+
+    return (
+        <div className="relative">
+            <label className={labelClass}>
+                {label}
+                {required && <span className="text-red-500"> *</span>}
+            </label>
+            <div
+                className={`flex h-10 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer ${
+                    error ? 'border-red-500' : 'border-input'
+                }`}
+                onClick={() => setOpen(!open)}
+            >
+                <span className="truncate">
+                    {options.find((o) => o.value === value)?.label || placeholder}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </div>
+            {open && (
+                <>
+                    <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setOpen(false)}
+                    ></div>
+                    <div className="absolute top-full left-0 z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none">
+                        <div className="flex items-center border-b px-3">
+                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                            <input
+                                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Search item..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                        <div className="max-h-[200px] overflow-y-auto p-1">
+                            {filtered.length === 0 ? (
+                                <div className="py-6 text-center text-sm">No item found.</div>
+                            ) : (
+                                filtered.map((opt) => (
+                                    <div
+                                        key={opt.value}
+                                        className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                        onClick={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                            setSearch('');
+                                        }}
+                                    >
+                                        <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                                            {value === opt.value && <Check className="h-4 w-4" />}
+                                        </span>
+                                        {opt.label}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
 const TRANSACTION_TYPE_OPTIONS = [
     { value: 'ISSUE', label: 'ISSUE' },
     { value: 'RECEIVE', label: 'RECEIVE' },
 ];
 
-const emptyForm = {
-    transaction_type: '',
-    fund_cluster: '',
-    transaction_date: '',
-    item_name: '',
-    unitID: '',
-    reference: '',
-    quantity: '0',
-    office_code: '',
+// Helper function to return fresh state with today's date
+const getEmptyForm = () => {
+    const today = new Date();
+    // Use local time, format to YYYY-MM-DD
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+
+    return {
+        transaction_type: '',
+        fund_cluster: '',
+        transaction_date: `${year}-${month}-${day}`, // Pre-filled with today's date
+        item_name: '',
+        unitID: '',
+        reference: '',
+        quantity: '0',
+        office_code: '',
+    };
 };
 
 export default function TransactionAddForm({
@@ -156,10 +269,19 @@ export default function TransactionAddForm({
     units,
     fundClusters,
     offices,
+    stockItems,
 }: Props) {
-    const [data, setData] = useState(emptyForm);
+    const [data, setData] = useState(getEmptyForm());
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+
+    // Reset the form with today's date whenever the modal opens
+    useEffect(() => {
+        if (open) {
+            setData(getEmptyForm());
+            setErrors({});
+        }
+    }, [open]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target;
@@ -188,13 +310,16 @@ export default function TransactionAddForm({
         router.post('/transaction-logs', data, {
             onSuccess: () => {
                 onOpenChange(false);
-                setData(emptyForm);
+                setData(getEmptyForm()); // Reset to fresh state
                 setErrors({});
             },
             onError: (errors) => setErrors(errors),
             onFinish: () => setProcessing(false),
         });
     };
+
+    // If selected item exists in our DB list, it auto-fills, and we disable the Unit input
+    const isUnitDisabled = stockItems.some((s) => s.item_name === data.item_name);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -230,14 +355,33 @@ export default function TransactionAddForm({
                                 required
                             />
 
-                            <Field
+                            <SearchableSelect
                                 label="Item Name"
-                                name="item_name"
                                 value={data.item_name}
-                                onChange={handleChange}
+                                onChange={(val) => {
+                                    // Auto-fill logic updated for multiple units
+                                    const selectedItem = stockItems.find((s) => s.item_name === val);
+                                    
+                                    let defaultUnitID = '';
+                                    if (selectedItem?.units && selectedItem.units.length > 0) {
+                                        // Find the default unit, or fallback to the first one
+                                        const defUnit = selectedItem.units.find(u => u.pivot?.is_default) || selectedItem.units[0];
+                                        defaultUnitID = String(defUnit.unitID);
+                                    }
+
+                                    setData((prev) => ({
+                                        ...prev,
+                                        item_name: val,
+                                        ...(defaultUnitID ? { unitID: defaultUnitID } : {}),
+                                    }));
+                                }}
                                 error={errors.item_name}
                                 required
-                                placeholder="e.g. Bond Paper A4"
+                                placeholder="Search & Select Item..."
+                                options={stockItems.map((item) => ({
+                                    value: item.item_name,
+                                    label: item.item_name,
+                                }))}
                             />
 
                             <SelectField
@@ -246,6 +390,7 @@ export default function TransactionAddForm({
                                 onChange={handleSelectChange('unitID')}
                                 error={errors.unitID}
                                 required
+                                disabled={isUnitDisabled}
                                 placeholder="-- Select Unit --"
                                 options={units.map((unit) => ({
                                     value: String(unit.unitID),

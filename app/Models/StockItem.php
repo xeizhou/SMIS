@@ -42,4 +42,11 @@ class StockItem extends Model
     {
         return $this->hasOne(Item::class, 'stock_no', 'stock_no');
     }
+
+    public function units()
+    {
+        // The second argument is the pivot table name.
+        return $this->belongsToMany(Unit::class, 'stock_item_unit', 'stock_no', 'unitID')
+                    ->withPivot('is_default');
+    }
 }

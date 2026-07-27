@@ -9,6 +9,9 @@ interface Unit {
     unitID: number;
     unit_name: string;
     unit_short_name: string;
+    pivot?: {
+        is_default: boolean;
+    };
 }
 
 interface FundCluster {
@@ -20,12 +23,11 @@ interface StockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
-    unitID: number | null;
     on_hand_quantity: number;
     re_order_point: number;
     fund_cluster_id: string | null;
     remarks: string | null;
-    unit: Unit | null;
+    units?: Unit[];
     fund_cluster: FundCluster | null;
 }
 
@@ -65,7 +67,7 @@ return null;
                     <div className="col-span-2">
                         <Detail label="Description" value={stock.description ?? '—'} />
                     </div>
-                    <Detail label="Unit" value={stock.unit?.unit_short_name ?? '—'} />
+                    <Detail label="Unit" value={(stock.units?.find(u => u.pivot?.is_default) || stock.units?.[0])?.unit_short_name ?? '—'} />
                     <Detail label="Fund Cluster" value={stock.fund_cluster?.fund_description ?? '—'} />
                     <Detail label="On Hand Qty" value={String(stock.on_hand_quantity)} />
                     <Detail label="Re-order Point" value={String(stock.re_order_point)} />

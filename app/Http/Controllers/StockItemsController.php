@@ -14,7 +14,8 @@ class StockItemsController extends Controller
     {
         $search = $request->input('search');
 
-        $query = StockItem::with(['unit', 'fundCluster'])
+        // Changed 'unit' to 'units' to eager load the many-to-many relationship
+        $query = StockItem::with(['units', 'fundCluster'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
                     $sub->where('stock_no', 'like', "%{$search}%")
@@ -48,14 +49,25 @@ class StockItemsController extends Controller
             'stock_no' => 'required|string|max:255|unique:stock_items,stock_no',
             'item_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:255',
-            'unitID' => 'nullable|exists:units,unitID',
             'on_hand_quantity' => 'required|integer|min:0',
             're_order_point' => 'required|integer|min:0',
             'fund_cluster_id' => 'nullable|exists:fund_clusters,fund_cluster_id',
             'remarks' => 'nullable|string',
+            
+            // New validation for the units array
+            'units' => 'required|array|min:1',
+            'units.*.unitID' => 'required|exists:units,unitID',
+            'units.*.is_default' => 'required|boolean',
         ]);
 
-        StockItem::create($validated);
+        $stockItem = StockItem::create($request->except('units'));
+
+        // Prepare data for the pivot table
+        $syncData = [];
+        foreach ($request->input('units') as $unit) {
+            $syncData[$unit['unitID']] = ['is_default' => $unit['is_default']];
+        }
+        $stockItem->units()->sync($syncData);
 
         return redirect()->back();
     }
@@ -65,14 +77,25 @@ class StockItemsController extends Controller
         $validated = $request->validate([
             'item_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:255',
-            'unitID' => 'nullable|exists:units,unitID',
             'on_hand_quantity' => 'required|integer|min:0',
             're_order_point' => 'required|integer|min:0',
             'fund_cluster_id' => 'nullable|exists:fund_clusters,fund_cluster_id',
             'remarks' => 'nullable|string',
+
+            // New validation for the units array
+            'units' => 'required|array|min:1',
+            'units.*.unitID' => 'required|exists:units,unitID',
+            'units.*.is_default' => 'required|boolean',
         ]);
 
-        $stockItem->update($validated);
+        $stockItem->update($request->except('units'));
+
+        // Sync updates the pivot table (adds new, updates existing, removes missing)
+        $syncData = [];
+        foreach ($request->input('units') as $unit) {
+            $syncData[$unit['unitID']] = ['is_default' => $unit['is_default']];
+        }
+        $stockItem->units()->sync($syncData);
 
         return redirect()->back();
     }
@@ -80,7 +103,6 @@ class StockItemsController extends Controller
     public function destroy(StockItem $stockItem)
     {
         $stockItem->delete();
-
         return redirect()->back();
     }
 }

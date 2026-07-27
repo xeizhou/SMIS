@@ -20,6 +20,9 @@ interface Unit {
     unitID: number;
     unit_name: string;
     unit_short_name: string;
+    pivot?: {
+        is_default: boolean;
+    };
 }
 
 interface FundCluster {
@@ -31,12 +34,11 @@ interface StockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
-    unitID: number | null;
     on_hand_quantity: number;
     re_order_point: number;
     fund_cluster_id: string | null;
     remarks: string | null;
-    unit: Unit | null;
+    units?: Unit[];
     fund_cluster: FundCluster | null;
 }
 
@@ -77,46 +79,46 @@ export default function Index({
     const [stockToDelete, setStockToDelete] = useState<string | null>(null);
 
     const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.get(
-        '/stock-items',
-        { search, fund_cluster_id: fundClusterId },
-        {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        }
-    );
-};
+        e.preventDefault();
+        router.get(
+            '/stock-items',
+            { search, fund_cluster_id: fundClusterId },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            }
+        );
+    };
 
-const handleClear = () => {
-    setSearch('');
-    setFundClusterId('all');
-    router.get(
-        '/stock-items',
-        {},
-        {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        }
-    );
-};
+    const handleClear = () => {
+        setSearch('');
+        setFundClusterId('all');
+        router.get(
+            '/stock-items',
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            }
+        );
+    };
 
-const handleView = (stock: StockItem) => {
-    setSelectedStock(stock);
-    setViewOpen(true);
-};
+    const handleView = (stock: StockItem) => {
+        setSelectedStock(stock);
+        setViewOpen(true);
+    };
 
-const handleEdit = (stock: StockItem) => {
-    setSelectedStock(stock);
-    setEditOpen(true);
-};
+    const handleEdit = (stock: StockItem) => {
+        setSelectedStock(stock);
+        setEditOpen(true);
+    };
 
-const openDeleteModal = (stockNo: string) => {
-    setStockToDelete(stockNo);
-    setIsDeleteModalOpen(true);
-};
+    const openDeleteModal = (stockNo: string) => {
+        setStockToDelete(stockNo);
+        setIsDeleteModalOpen(true);
+    };
 
     return (
         <>
@@ -150,33 +152,33 @@ const openDeleteModal = (stockNo: string) => {
                             />
                         </div>
 
-<Select
-            value={fundClusterId}
-            onValueChange={(value) => {
-                setFundClusterId(value);
-                router.get(
-                    '/stock-items',
-                    { search, fund_cluster_id: value },
-                    {
-                        preserveState: true,
-                        preserveScroll: true,
-                        replace: true,
-                    }
-                );
-            }}
-        >
-            <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="All Fund Clusters" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">All Fund Clusters</SelectItem>
-                {fundClusters.map((fc) => (
-                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
-                        {fc.fund_cluster_id} - {fc.fund_description}
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
+                        <Select
+                            value={fundClusterId}
+                            onValueChange={(value) => {
+                                setFundClusterId(value);
+                                router.get(
+                                    '/stock-items',
+                                    { search, fund_cluster_id: value },
+                                    {
+                                        preserveState: true,
+                                        preserveScroll: true,
+                                        replace: true,
+                                    }
+                                );
+                            }}
+                        >
+                            <SelectTrigger className="w-[220px]">
+                                <SelectValue placeholder="All Fund Clusters" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Fund Clusters</SelectItem>
+                                {fundClusters.map((fc) => (
+                                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
+                                        {fc.fund_cluster_id} - {fc.fund_description}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         
                         <Button type="submit" variant="secondary">
                             Search
@@ -231,51 +233,10 @@ const openDeleteModal = (stockNo: string) => {
                                     </td>
                                 </tr>
                             ) : (
-                                stockItems.data.map((stock) => (
-                                    <tr
-                                        key={stock.stock_no}
-                                        className="border-b transition-colors hover:bg-muted/40"
-                                    >
-                                        <td className="px-4 py-3">{stock.stock_no}</td>
-                                        <td className="px-4 py-3">{stock.item_name}</td>
-                                        <td className="px-4 py-3">{stock.description ?? '—'}</td>
-                                        <td className="px-4 py-3">{stock.unit?.unit_short_name ?? '—'}</td>
-                                        <td className="px-4 py-3 text-center">{stock.on_hand_quantity}</td>
-                                        <td className="px-4 py-3 text-center">{stock.re_order_point}</td>
-                                        <td className="px-4 py-3">{stock.fund_cluster?.fund_description ?? '—'}</td>
-                                        <td className="px-4 py-3">{stock.remarks ?? '—'}</td>
+                                stockItems.data.map((stock) => {
+                                    // Find the default unit, or fallback to the first unit if none is set
+                                    const defaultUnit = stock.units?.find((u) => u.pivot?.is_default) || stock.units?.[0];
 
-                                        <td className="px-4 py-3 text-center">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleEdit(stock)}
-                                                    className="text-blue-600 hover:text-blue-800"
-                                                    title="Edit"
-                                                >
-                                                    <Pencil className="size-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openDeleteModal(stock.stock_no)}
-                                                    className="text-red-600 hover:text-red-800"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleView(stock)}
-                                                    className="text-foreground hover:text-muted-foreground"
-                                                    title="View"
-                                                >
-                                                    <Eye className="size-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-
-                                    </tr>
-                                ))
                             )}
                         </tbody>
                     </table>
@@ -314,7 +275,6 @@ const openDeleteModal = (stockNo: string) => {
                 onOpenChange={setViewOpen}
                 stock={selectedStock}
             />
-
             <StockItemEditForm
                 open={editOpen}
                 onOpenChange={setEditOpen}
@@ -326,10 +286,8 @@ const openDeleteModal = (stockNo: string) => {
                 open={isDeleteModalOpen}
                 onOpenChange={setIsDeleteModalOpen}
                 stockNo={stockToDelete}
-        />
+            />
         </>
-
-        
     );
 }
 
