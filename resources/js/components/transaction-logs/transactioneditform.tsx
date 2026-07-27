@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
+import { Check, ChevronsUpDown, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -33,15 +34,22 @@ interface Office {
     entity_name: string;
 }
 
+interface StockItem {
+    stock_no: string;
+    item_name: string;
+    units?: {
+        unitID: number;
+        pivot?: {
+            is_default: boolean;
+        };
+    }[];
+}
+
 interface Transaction {
     transactionID: number;
     transaction_type: string;
-    // NOTE: this field gets clobbered server-side by the `fundCluster` relation
-    // (Eloquent snake-cases the relation name to `fund_cluster`, overwriting the
-    // raw FK column of the same name in the JSON payload). Don't read the id from
-    // this field — use `fund_cluster_detail` instead.
     fund_cluster: string | FundCluster;
-    fund_cluster_detail?: FundCluster;
+    fund_cluster_detail: FundCluster | null; // <-- Changed this line from ?: to | null
     transaction_date: string;
     item_name: string;
     unitID: number;
@@ -57,6 +65,7 @@ interface Props {
     units: Unit[];
     fundClusters: FundCluster[];
     offices: Office[];
+    stockItems: StockItem[];
 }
 
 interface FieldProps {
@@ -112,6 +121,7 @@ interface SelectFieldProps {
     error?: string;
     required?: boolean;
     placeholder?: string;
+    disabled?: boolean;
     options: { value: string; label: string }[];
 }
 
@@ -122,6 +132,7 @@ function SelectField({
     error,
     required = false,
     placeholder = 'Select...',
+    disabled = false,
     options,
 }: SelectFieldProps) {
     return (
@@ -131,7 +142,7 @@ function SelectField({
                 {required && <span className="text-red-500"> *</span>}
             </label>
 
-            <Select value={value} onValueChange={onChange}>
+            <Select value={value} onValueChange={onChange} disabled={disabled}>
                 <SelectTrigger className="w-full">
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
@@ -145,6 +156,97 @@ function SelectField({
                 </SelectContent>
             </Select>
 
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+// Custom Searchable Dropdown for Items
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState('');
+
+    const filtered = options.filter((o) =>
+        o.label.toLowerCase().includes(search.toLowerCase())
+    );
+
+    return (
+        <div className="relative">
+            <label className={labelClass}>
+                {label}
+                {required && <span className="text-red-500"> *</span>}
+            </label>
+            <div
+                className={`flex h-10 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer ${
+                    error ? 'border-red-500' : 'border-input'
+                }`}
+                onClick={() => setOpen(!open)}
+            >
+                <span className="truncate">
+                    {options.find((o) => o.value === value)?.label || placeholder}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </div>
+            {open && (
+                <>
+                    <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setOpen(false)}
+                    ></div>
+                    <div className="absolute top-full left-0 z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none">
+                        <div className="flex items-center border-b px-3">
+                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                            <input
+                                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Search item..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                        <div className="max-h-[200px] overflow-y-auto p-1">
+                            {filtered.length === 0 ? (
+                                <div className="py-6 text-center text-sm">No item found.</div>
+                            ) : (
+                                filtered.map((opt) => (
+                                    <div
+                                        key={opt.value}
+                                        className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                        onClick={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                            setSearch('');
+                                        }}
+                                    >
+                                        <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                                            {value === opt.value && <Check className="h-4 w-4" />}
+                                        </span>
+                                        {opt.label}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
             {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </div>
     );
@@ -173,6 +275,7 @@ export default function TransactionEditForm({
     units,
     fundClusters,
     offices,
+    stockItems,
 }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -180,9 +283,6 @@ export default function TransactionEditForm({
 
     useEffect(() => {
         if (transaction) {
-            // fund_cluster_detail is the safe copy of the relation; transaction.fund_cluster
-            // itself may be clobbered (object) or, if the backend ever stops eager-loading
-            // the relation, the plain string id — handle both defensively.
             const fundClusterId =
                 transaction.fund_cluster_detail?.fund_cluster_id ??
                 (typeof transaction.fund_cluster === 'string'
@@ -228,8 +328,8 @@ export default function TransactionEditForm({
         e.preventDefault();
 
         if (!transaction) {
-return;
-}
+            return;
+        }
 
         setProcessing(true);
 
@@ -244,8 +344,10 @@ return;
     };
 
     if (!transaction) {
-return null;
-}
+        return null;
+    }
+
+    const isUnitDisabled = stockItems.some((s) => s.item_name === data.item_name);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -283,14 +385,33 @@ return null;
                                 required
                             />
 
-                            <Field
+                            <SearchableSelect
                                 label="Item Name"
-                                name="item_name"
                                 value={data.item_name}
-                                onChange={handleChange}
+                                onChange={(val) => {
+                                    // Auto-fill logic updated for multiple units
+                                    const selectedItem = stockItems.find((s) => s.item_name === val);
+                                    
+                                    let defaultUnitID = '';
+                                    if (selectedItem?.units && selectedItem.units.length > 0) {
+                                        // Find the default unit, or fallback to the first one
+                                        const defUnit = selectedItem.units.find(u => u.pivot?.is_default) || selectedItem.units[0];
+                                        defaultUnitID = String(defUnit.unitID);
+                                    }
+
+                                    setData((prev) => ({
+                                        ...prev,
+                                        item_name: val,
+                                        ...(defaultUnitID ? { unitID: defaultUnitID } : {}),
+                                    }));
+                                }}
                                 error={errors.item_name}
                                 required
-                                placeholder="e.g. Bond Paper A4"
+                                placeholder="Search & Select Item..."
+                                options={stockItems.map((item) => ({
+                                    value: item.item_name,
+                                    label: item.item_name,
+                                }))}
                             />
 
                             <SelectField
@@ -299,6 +420,7 @@ return null;
                                 onChange={handleSelectChange('unitID')}
                                 error={errors.unitID}
                                 required
+                                disabled={isUnitDisabled}
                                 placeholder="-- Select Unit --"
                                 options={units.map((unit) => ({
                                     value: String(unit.unitID),

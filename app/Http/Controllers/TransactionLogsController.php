@@ -6,6 +6,7 @@ use App\Models\FundCluster;
 use App\Models\Office;
 use App\Models\Transaction;
 use App\Models\Unit;
+use App\Models\StockItem; // <-- Added StockItem model
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -47,6 +48,8 @@ class TransactionLogsController extends Controller
             'units' => Unit::orderBy('unit_name')->get(),
             'fundClusters' => FundCluster::orderBy('fund_cluster_id')->get(),
             'offices' => Office::orderBy('office_name')->get(),
+            'stockItems' => StockItem::with('units')->orderBy('item_name')->get(['stock_no', 'item_name']),
+            
             'filters' => [
                 'search' => $search,
                 'transaction_type' => $request->input('transaction_type', 'all'),

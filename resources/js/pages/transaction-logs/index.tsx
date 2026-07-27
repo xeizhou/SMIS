@@ -31,6 +31,17 @@ interface Office {
     entity_name: string;
 }
 
+interface StockItem {
+    stock_no: string;
+    item_name: string;
+    units?: {
+        unitID: number;
+        pivot?: {
+            is_default: boolean;
+        };
+    }[];
+}
+
 interface Transaction {
     transactionID: number;
     transaction_type: string;
@@ -65,19 +76,20 @@ interface Props {
     units: Unit[];
     fundClusters: FundCluster[];
     offices: Office[];
+    stockItems: StockItem[];
     filters: Filters;
 }
 
 function formatDate(dateString: string) {
     if (!dateString) {
-return '—';
-}
+        return '—';
+    }
 
     const date = new Date(dateString);
 
     if (isNaN(date.getTime())) {
-return dateString;
-}
+        return dateString;
+    }
 
     return date.toLocaleDateString('en-PH', {
         year: 'numeric',
@@ -91,6 +103,7 @@ export default function Index({
     units,
     fundClusters,
     offices,
+    stockItems,
     filters,
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -328,6 +341,7 @@ export default function Index({
                 units={units}
                 fundClusters={fundClusters}
                 offices={offices}
+                stockItems={stockItems}
             />
             <TransactionEditForm
                 open={editOpen}
@@ -336,6 +350,7 @@ export default function Index({
                 units={units}
                 fundClusters={fundClusters}
                 offices={offices}
+                stockItems={stockItems}
             />
             <TransactionDeleteModal
                 open={isDeleteModalOpen}
