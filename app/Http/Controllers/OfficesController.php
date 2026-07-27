@@ -25,7 +25,8 @@ class OfficesController extends Controller
 
         return Inertia::render('offices/index', [
             'offices' => $query
-                ->orderBy('office_name')
+                // Offices table has no timestamps; show newest by office_code desc
+                ->orderByDesc('office_code')
                 ->paginate(10)
                 ->withQueryString(),
 

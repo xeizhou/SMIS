@@ -21,7 +21,8 @@ class UnitsController extends Controller
                     ->orWhere('unit_short_name', 'like', "%{$search}%");
             });
         })
-            ->orderBy('unit_name')
+            // Units table has no timestamps; show newest by primary key desc
+            ->orderByDesc('unitID')
             ->paginate(10)
             ->withQueryString();
 

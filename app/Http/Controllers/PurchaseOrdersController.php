@@ -54,13 +54,13 @@ class PurchaseOrdersController extends Controller
                 'fund_cluster' => $fundCluster,
             ],
             'suppliers' => Supplier::select('supplier_id', 'supplier_name')
-                ->orderBy('supplier_name')
+                ->orderByDesc('supplier_id')
                 ->get(),
             'fundClusters' => FundCluster::select('fund_cluster_id', 'fund_description')
-                ->orderBy('fund_cluster_id')
+                ->orderByDesc('created_at')
                 ->get(),
             'offices' => Office::select('office_code', 'office_name')
-                ->orderBy('office_name')
+                ->orderByDesc('office_code')
                 ->get(),
         ]);
     }

@@ -21,7 +21,8 @@ class FundClustersController extends Controller
                     ->orWhere('fund_description', 'like', "%{$search}%");
             });
         })
-            ->orderBy('fund_cluster_id')
+            // Fund clusters have timestamps; show newest first
+            ->orderByDesc('created_at')
             ->paginate(10)
             ->withQueryString();
 
