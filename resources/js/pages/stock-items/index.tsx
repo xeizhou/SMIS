@@ -237,50 +237,6 @@ export default function Index({
                                     // Find the default unit, or fallback to the first unit if none is set
                                     const defaultUnit = stock.units?.find((u) => u.pivot?.is_default) || stock.units?.[0];
 
-                                    return (
-                                        <tr
-                                            key={stock.stock_no}
-                                            className="border-b transition-colors hover:bg-muted/40"
-                                        >
-                                            <td className="px-4 py-3">{stock.stock_no}</td>
-                                            <td className="px-4 py-3">{stock.item_name}</td>
-                                            <td className="px-4 py-3">{stock.description ?? '—'}</td>
-                                            <td className="px-4 py-3">{defaultUnit?.unit_short_name ?? '—'}</td>
-                                            <td className="px-4 py-3 text-center">{stock.on_hand_quantity}</td>
-                                            <td className="px-4 py-3 text-center">{stock.re_order_point}</td>
-                                            <td className="px-4 py-3">{stock.fund_cluster?.fund_description ?? '—'}</td>
-                                            <td className="px-4 py-3">{stock.remarks ?? '—'}</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <div className="flex items-center justify-center gap-3">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleEdit(stock)}
-                                                        className="text-blue-600 hover:text-blue-800"
-                                                        title="Edit"
-                                                    >
-                                                        <Pencil className="size-4" />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openDeleteModal(stock.stock_no)}
-                                                        className="text-red-600 hover:text-red-800"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 className="size-4" />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleView(stock)}
-                                                        className="text-foreground hover:text-muted-foreground"
-                                                        title="View"
-                                                    >
-                                                        <Eye className="size-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
                             )}
                         </tbody>
                     </table>
@@ -338,7 +294,7 @@ export default function Index({
 Index.layout = {
     breadcrumbs: [
         {
-            title: 'Supply Management',
+            title: 'Stock Management',
             href: '#',
         },
         {

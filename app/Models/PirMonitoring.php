@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PirMonitoring extends Model
 {
+    use HasFactory;
     protected $table = 'pir_monitoring';
 
     protected $primaryKey = 'pir_id';
