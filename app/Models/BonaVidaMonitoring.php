@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BonaVidaMonitoring extends Model
 {
+    use HasFactory;
+
     protected $table = 'bona_vida_monitoring';
 
     protected $primaryKey = 'bvm_id';
