@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Category;
+use App\Models\Unit;
 use App\Models\FundCluster;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -42,14 +42,13 @@ class StockItemFactory extends Factory
 
         return [
             'stock_no' => fake()->unique()->bothify($code . '-###'),
-            'item_description' => $description,
-            'category_id' => Category::inRandomOrder()->value('category_id'),
+            'item_name' => $description,
+            'description' => fake()->optional()->sentence(),
+            'on_hand_quantity' => fake()->numberBetween(0, 200),
+            're_order_point' => fake()->numberBetween(5, 30),
             'fund_cluster_id' => FundCluster::inRandomOrder()->value('fund_cluster_id'),
-
-            // Optional fields (adjust to your schema)
-            'reorder_point' => fake()->numberBetween(5, 30),
+            'link' => null,
             'remarks' => fake()->optional()->sentence(),
-            'is_active' => true,
         ];
     }
 }
