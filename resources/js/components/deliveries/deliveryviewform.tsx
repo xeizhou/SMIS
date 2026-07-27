@@ -100,14 +100,20 @@ return null;
                         <p className={sectionTitleClass}>Delivery Information</p>
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                             <Detail label="PO Number" value={delivery.po_number} />
-                            <Detail label="Item Description" value={delivery.serve_po?.item_description ?? '—'} />
                             <Detail label="Supplier" value={delivery.supplier?.supplier_name ?? '—'} />
                             <Detail label="Date of Delivery" value={formatDate(delivery.delivery_date)} />
                             <Detail label="PO Date Received" value={formatDate(delivery.po_date_received)} />
                             <Detail label="Delivery Term" value={delivery.delivery_term ?? '—'} />
                             <Detail label="Due Date" value={formatDate(delivery.due_date)} />
-                            <Detail label="No. of Days (LD)" value={delivery.no_of_days_ld ? String(delivery.no_of_days_ld) : '—'} />
+                            <Detail label="No. of Days (LD)" value={delivery.no_of_days_ld ? String(delivery.no_of_days_ld) : '0'} />
                             <Detail label="Status" value={delivery.status ?? '—'} />
+                        </div>
+
+                        <div className="mt-4">
+                            <p className={labelClass}>Item Description</p>
+                            <p className={valueClass + ' whitespace-pre-wrap'}>
+                                {delivery.serve_po?.item_description ?? '—'}
+                            </p>
                         </div>
                     </section>
 

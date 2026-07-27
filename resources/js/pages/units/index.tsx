@@ -231,7 +231,7 @@ export default function Index({ units, filters }: Props) {
 Index.layout = {
     breadcrumbs: [
         {   
-            title: 'Supply Management',
+            title: 'Stock Management',
             href: '#',
         },
         {

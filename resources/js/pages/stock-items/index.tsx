@@ -246,33 +246,33 @@ const openDeleteModal = (stockNo: string) => {
                                         <td className="px-4 py-3">{stock.remarks ?? '—'}</td>
 
                                         <td className="px-4 py-3 text-center">
-            <div className="flex items-center justify-center gap-3">
-                <button
-                    type="button"
-                    onClick={() => handleEdit(stock)}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="Edit"
-                >
-                    <Pencil className="size-4" />
-                </button>
-                <button
-                    type="button"
-                    onClick={() => openDeleteModal(stock.stock_no)}
-                    className="text-red-600 hover:text-red-800"
-                    title="Delete"
-                >
-                    <Trash2 className="size-4" />
-                </button>
-                <button
-                    type="button"
-                    onClick={() => handleView(stock)}
-                    className="text-foreground hover:text-muted-foreground"
-                    title="View"
-                >
-                    <Eye className="size-4" />
-                </button>
-            </div>
-        </td>
+                                            <div className="flex items-center justify-center gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleEdit(stock)}
+                                                    className="text-blue-600 hover:text-blue-800"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil className="size-4" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openDeleteModal(stock.stock_no)}
+                                                    className="text-red-600 hover:text-red-800"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleView(stock)}
+                                                    className="text-foreground hover:text-muted-foreground"
+                                                    title="View"
+                                                >
+                                                    <Eye className="size-4" />
+                                                </button>
+                                            </div>
+                                        </td>
 
                                     </tr>
                                 ))
@@ -336,7 +336,7 @@ const openDeleteModal = (stockNo: string) => {
 Index.layout = {
     breadcrumbs: [
         {
-            title: 'Supply Management',
+            title: 'Stock Management',
             href: '#',
         },
         {

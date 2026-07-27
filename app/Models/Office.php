@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Office extends Model
 {
+    use HasFactory;
     protected $table = 'offices';
 
     protected $primaryKey = 'office_code';

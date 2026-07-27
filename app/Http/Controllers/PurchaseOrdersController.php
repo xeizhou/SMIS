@@ -38,6 +38,7 @@ class PurchaseOrdersController extends Controller
                         ->orWhere('pr_number', 'like', "%{$search}%")
                         ->orWhere('philgeps_reference_no', 'like', "%{$search}%")
                         ->orWhere('end_user', 'like', "%{$search}%")
+                        ->orWhere('item_description', 'like', "%{$search}%")
                         ->orWhereHas('supplier', fn ($q2) => $q2->where('supplier_name', 'like', "%{$search}%"));
                 });
             })

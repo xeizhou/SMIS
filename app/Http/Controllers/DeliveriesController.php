@@ -33,6 +33,7 @@ class DeliveriesController extends Controller
                         ->orWhere('place_of_delivery', 'like', "%{$search}%")
                         ->orWhere('received_by_1', 'like', "%{$search}%")
                         ->orWhere('received_by_2', 'like', "%{$search}%")
+                        ->orWhereHas('servePo', fn ($poQuery) => $poQuery->where('item_description', 'like', "%{$search}%"))
                         ->orWhere('status', 'like', "%{$search}%")
                         ->orWhereHas('supplier', fn ($supplierQuery) => $supplierQuery->where('supplier_name', 'like', "%{$search}%"));
                 });
