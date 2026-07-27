@@ -47,10 +47,10 @@ class RegSPIController extends Controller
                 'fund_cluster_id' => $fundClusterId,
             ],
             'rrsps' => RrspMonitoring::select('rrsp_no')
-                ->orderBy('rrsp_no')
+                ->orderByDesc('created_at')
                 ->get(),
             'fundClusters' => FundCluster::select('fund_cluster_id', 'fund_description')
-                ->orderBy('fund_cluster_id')
+                ->orderByDesc('created_at')
                 ->get(),
         ]);
     }

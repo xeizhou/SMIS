@@ -47,9 +47,9 @@ class IARController extends Controller
 
         return Inertia::render('iar/index', [
             'pirs' => $pirs,
-            'suppliers' => Supplier::orderBy('supplier_name')->get(),
-            'fundClusters' => FundCluster::orderBy('fund_cluster_id')->get(),
-            'offices' => Office::orderBy('office_name')->get(),
+            'suppliers' => Supplier::orderByDesc('supplier_id')->get(),
+            'fundClusters' => FundCluster::orderByDesc('created_at')->get(),
+            'offices' => Office::orderByDesc('office_code')->get(),
             'purchaseOrders' => ServePo::select(
                 'po_number',
                 'po_date',
@@ -61,7 +61,7 @@ class IARController extends Controller
                 'fund_cluster_id',
                 'supplier_id',
                 'end_user'
-            )->orderBy('po_number')->get(),
+            )->orderByDesc('created_at')->get(),
             'filters' => [
                 'search' => $search,
                 'status' => $request->input('status', 'all'),

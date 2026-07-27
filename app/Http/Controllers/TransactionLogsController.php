@@ -45,10 +45,10 @@ class TransactionLogsController extends Controller
 
         return Inertia::render('transaction-logs/index', [
             'transactions' => $transactions,
-            'units' => Unit::orderBy('unit_name')->get(),
-            'fundClusters' => FundCluster::orderBy('fund_cluster_id')->get(),
-            'offices' => Office::orderBy('office_name')->get(),
-            'stockItems' => StockItem::with('units')->orderBy('item_name')->get(['stock_no', 'item_name']),
+            'units' => Unit::orderByDesc('unitID')->get(),
+            'fundClusters' => FundCluster::orderByDesc('created_at')->get(),
+            'offices' => Office::orderByDesc('office_code')->get(),
+            'stockItems' => StockItem::with('units')->orderByDesc('created_at')->get(['stock_no', 'item_name']),
             
             'filters' => [
                 'search' => $search,

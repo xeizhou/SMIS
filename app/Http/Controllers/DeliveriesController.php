@@ -54,11 +54,11 @@ class DeliveriesController extends Controller
             'purchaseOrders' => ServePo::query()
                 ->select(['po_number', 'supplier_id', 'total_amount_po', 'end_user', 'due_date', 'po_received_date'])
                 ->with(['supplier:supplier_id,supplier_name'])
-                ->orderBy('po_number')
+                ->orderByDesc('created_at')
                 ->get(),
             'statuses' => ['PENDING', 'PARTIAL', 'COMPLETED', 'CANCELLED'],
             'suppliers' => Supplier::select('supplier_id', 'supplier_name')
-                ->orderBy('supplier_name')
+                ->orderByDesc('supplier_id')
                 ->get(),
         ]);
     }
