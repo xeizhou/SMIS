@@ -1,15 +1,29 @@
 import { useTranslation } from "react-i18next";
-
+import { useMemo } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AvatarGroup } from "@/components/ui/avatar-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useUsers } from "@/hooks/use-users";
 import { useCalendarUser } from "@/stores/calendar-store";
+import type { IEvent } from "@/calendar/interfaces";
 
-export function UserSelect() {
+interface IProps {
+  events: IEvent[];
+}
+
+export function UserSelect({ events }: IProps) {
   const { selectedUserId, setSelectedUserId } = useCalendarUser();
-  const { data: users = [] } = useUsers();
+  
+  const users = useMemo(() => {
+    const uniqueUsersMap = new Map();
+    events.forEach(event => {
+      if (event.user && event.user.id && !uniqueUsersMap.has(event.user.id)) {
+        uniqueUsersMap.set(event.user.id, event.user);
+      }
+    });
+    return Array.from(uniqueUsersMap.values());
+  }, [events]);
+
   const { t } = useTranslation('calendar');
 
   return (

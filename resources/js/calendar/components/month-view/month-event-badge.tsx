@@ -20,20 +20,20 @@ const eventBadgeVariants = cva(
     variants: {
       color: {
         // Colored and mixed variants
-        blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300 [&_.event-dot]:fill-blue-600",
-        green: "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300 [&_.event-dot]:fill-green-600",
-        red: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300 [&_.event-dot]:fill-red-600",
-        yellow: "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-300 [&_.event-dot]:fill-yellow-600",
-        purple: "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-300 [&_.event-dot]:fill-purple-600",
-        orange: "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-300 [&_.event-dot]:fill-orange-600",
-        gray: "border-neutral-200 bg-neutral-50 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 [&_.event-dot]:fill-neutral-600",
+        blue: "border-sky-500 bg-sky-50/70 text-sky-600 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-400 [&_.event-dot]:fill-sky-500",
+        green: "border-emerald-500 bg-emerald-50/70 text-emerald-600 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400 [&_.event-dot]:fill-emerald-500",
+        red: "border-rose-500 bg-rose-50/70 text-rose-600 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-400 [&_.event-dot]:fill-rose-500",
+        yellow: "border-amber-500 bg-amber-50/70 text-amber-600 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400 [&_.event-dot]:fill-amber-500",
+        purple: "border-indigo-500 bg-indigo-50/70 text-indigo-600 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-400 [&_.event-dot]:fill-indigo-500",
+        orange: "border-orange-500 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-300 [&_.event-dot]:fill-orange-600",
+        gray: "border-neutral-500 bg-neutral-50 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 [&_.event-dot]:fill-neutral-600",
 
         // Dot variants
-        "blue-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-blue-600",
-        "green-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-green-600",
-        "red-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-red-600",
-        "yellow-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-yellow-600",
-        "purple-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-purple-600",
+        "blue-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-sky-500",
+        "green-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-emerald-500",
+        "red-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-rose-500",
+        "yellow-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-amber-500",
+        "purple-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-indigo-500",
         "orange-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-orange-600",
         "gray-dot": "bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-neutral-600",
       },

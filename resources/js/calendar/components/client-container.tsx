@@ -2,9 +2,10 @@ import { isSameDay, parseISO } from "date-fns";
 import { useMemo, useState, Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
 import { CalendarHeader } from "@/calendar/components/header/calendar-header";
-import type { TCalendarView } from "@/calendar/types";
-import { useEvents } from "@/hooks/use-events";
+import type { TCalendarView, TEventColor } from "@/calendar/types";
+import type { IEvent } from "@/calendar/interfaces";
 import { useCalendarStore } from "@/stores/calendar-store";
+import type { DueDelivery } from "@/components/due-deliveries";
 
 // Lazy load calendar view components for better code splitting
 const CalendarMonthView = lazy(() =>
@@ -49,14 +50,48 @@ function ViewLoadingFallback() {
   );
 }
 
-export function ClientContainer() {
+export function ClientContainer({ deliveries = [] }: { deliveries?: DueDelivery[] }) {
   // Local view state instead of deriving it from the URL (no dedicated route in Inertia setup)
   const [view, setView] = useState<TCalendarView>("month");
 
   // Use individual selectors to avoid object recreation
   const selectedDate = useCalendarStore(state => state.selectedDate);
   const selectedUserId = useCalendarStore(state => state.selectedUserId);
-  const { data: events = [], isLoading, error } = useEvents();
+  
+  const events = useMemo<IEvent[]>(() => {
+    return deliveries.map((d, index) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const due = new Date(d.due_date);
+      due.setHours(0, 0, 0, 0);
+      const diff = Math.round((due.getTime() - today.getTime()) / 86400000);
+
+      let color: TEventColor = "green";
+      if (diff < 0) color = "red";
+      else if (diff === 0) color = "yellow";
+      else if (diff === 1) color = "blue";
+      else if (diff <= 7) color = "purple";
+      
+      const startDate = new Date(d.due_date);
+      startDate.setHours(8, 0, 0, 0);
+      const endDate = new Date(d.due_date);
+      endDate.setHours(17, 0, 0, 0);
+
+      return {
+        id: Number(d.delivery_id) || index,
+        title: d.po_number,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        color,
+        description: `Supplier: ${d.supplier?.supplier_name ?? 'N/A'}\nStatus: ${d.status ?? 'Pending'}\nEnd User: ${d.end_user ?? 'N/A'}`,
+        user: {
+            id: d.supplier?.supplier_name ?? "No Supplier",
+            name: d.supplier?.supplier_name ?? "No Supplier",
+            picturePath: null,
+        }
+      };
+    });
+  }, [deliveries]);
 
   // Filter events based on view and user selection
   const filteredEvents = useMemo(() => {
@@ -138,31 +173,9 @@ export function ClientContainer() {
     });
   }, [filteredEvents]);
 
-  if (isLoading) {
-    return (
-      <div className="overflow-hidden rounded-xl border">
-        <div className="p-8 text-center">
-          <div className="mx-auto size-8 animate-spin rounded-full border-b-2 border-primary"></div>
-          <p className="mt-2 text-muted-foreground">Loading events...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="overflow-hidden rounded-xl border">
-        <div className="p-8 text-center">
-          <p className="mb-2 text-red-600">Failed to load events</p>
-          <p className="text-sm text-muted-foreground">{error.message}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="overflow-x-auto overflow-y-hidden rounded-xl border">
-      <CalendarHeader events={filteredEvents} view={view} onViewChange={setView} />
+      <CalendarHeader events={events} />
 
       <Suspense fallback={<ViewLoadingFallback />}>
         {view === "month" && <CalendarMonthView singleDayEvents={singleDayEvents} multiDayEvents={multiDayEvents} />}

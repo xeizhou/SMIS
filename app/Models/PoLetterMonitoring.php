@@ -7,10 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\ServePo;
+use App\Traits\LogsActivity;
 
 class PoLetterMonitoring extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    const LOG_NAME = 'PO / Letter Monitoring';
+
+    public function getActivityUrl()
+    {
+        return route('po-letter-monitoring.index', ['highlight_search' => $this->po_number ?? $this->reference_no]);
+    }
     protected $table = 'po_letter_monitoring';
 
     protected $fillable = [

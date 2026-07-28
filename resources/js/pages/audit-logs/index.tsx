@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface AuditLog {
     log_id: number;
@@ -40,6 +41,29 @@ interface Props {
 export default function Index({ logs, filters }: Props) {
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [roleFilter, setRoleFilter] = useState(filters.role || 'All');
+    const [highlightId, setHighlightId] = useState<number | null>(null);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const highlight = params.get('highlight_id');
+        const highlightSearch = params.get('highlight_search');
+
+        if (highlight) {
+            setHighlightId(Number(highlight));
+            const timer = setTimeout(() => setHighlightId(null), 3000);
+            return () => clearTimeout(timer);
+        } else if (highlightSearch && logs.data) {
+            const matched = logs.data.find(log => 
+                String(log.log_id) === highlightSearch || 
+                log.action.toLowerCase().includes(highlightSearch.toLowerCase())
+            );
+            if (matched) {
+                setHighlightId(matched.log_id);
+                const timer = setTimeout(() => setHighlightId(null), 3000);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [logs.data]);
 
     // Handle search debounce
     useEffect(() => {
@@ -65,7 +89,7 @@ export default function Index({ logs, filters }: Props) {
         <>
             <Head title="Audit Logs" />
 
-            <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
+            <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6 max-h-[830px]">
                 <div>
                     <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
                         Audit Logs
@@ -105,9 +129,9 @@ export default function Index({ logs, filters }: Props) {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+                <ScrollArea className="flex-1 min-h-[400px] w-full rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
                     <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-[#3e0b0e] text-white/90">
+                        <thead className="sticky top-0 z-10 bg-[#3e0b0e] text-white/90 shadow-sm">
                             <tr>
                                 <th className="px-4 py-3 font-medium">Log ID</th>
                                 <th className="px-4 py-3 font-medium">Timestamp</th>
@@ -119,7 +143,14 @@ export default function Index({ logs, filters }: Props) {
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                             {logs.data.length > 0 ? (
                                 logs.data.map((row) => (
-                                    <tr key={row.log_id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
+                                    <tr 
+                                        key={row.log_id} 
+                                        className={`transition-colors duration-1000 ${
+                                            highlightId === row.log_id 
+                                                ? 'bg-yellow-100 dark:bg-yellow-900/40' 
+                                                : 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'
+                                        }`}
+                                    >
                                         <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                                             {row.log_id}
                                         </td>
@@ -148,7 +179,8 @@ export default function Index({ logs, filters }: Props) {
                             )}
                         </tbody>
                     </table>
-                </div>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
 
                 {logs.data.length > 0 && (
                     <div className="flex items-center justify-center gap-1 flex-wrap mt-4">
