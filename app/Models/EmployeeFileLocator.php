@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class EmployeeFileLocator extends Model
 {
+    use HasFactory;
+
     protected $table = 'employee_file_locator';
 
     protected $primaryKey = 'efr_id';

@@ -24,6 +24,8 @@ class Clearance extends Model
 
     protected $casts = [
         'claim_date' => 'date',
+        'cleared' => 'boolean',
+        'pending' => 'boolean',
     ];
 
     public function office(): BelongsTo

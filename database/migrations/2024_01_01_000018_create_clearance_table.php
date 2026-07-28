@@ -17,8 +17,8 @@ return new class extends Migration
             $table->date('claim_date');
             $table->string('received_by', 100);
             $table->string('status', 50);
-            $table->string('cleared', 10);
-            $table->string('pending', 10);
+            $table->boolean('cleared')->default(false);
+            $table->boolean('pending')->default(false);
             $table->string('remarks', 255)->nullable();
             $table->timestamps();
 
