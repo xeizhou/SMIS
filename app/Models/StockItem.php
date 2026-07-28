@@ -5,9 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Traits\LogsActivity;
 
 class StockItem extends Model
 {
+    use LogsActivity;
+
+    const LOG_NAME = 'Stock Cards';
+
+    public function getActivityUrl()
+    {
+        return route('stock-cards.index', ['highlight_search' => $this->stock_no]);
+    }
     protected $table = 'stock_items';
 
     protected $primaryKey = 'stock_no';

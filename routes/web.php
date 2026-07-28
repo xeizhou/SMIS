@@ -45,8 +45,66 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ];
             });
 
+        $recentDeliveries = \App\Models\Delivery::where('status', 'PENDING')
+            ->orderBy('data_entry_timestamp', 'desc')
+            ->take(10)
+            ->get()
+            ->map(function ($delivery) {
+                $due = $delivery->due_date;
+                $deliveryDate = $delivery->delivery_date;
+                $today = now()->startOfDay();
+                
+                $isOverdue = false;
+                $daysOverdue = 0;
+
+                if ($due) {
+                    if ($deliveryDate && $deliveryDate->gt($due)) {
+                        $isOverdue = true;
+                        $daysOverdue = (int) $due->diffInDays($deliveryDate);
+                    } else if (!$deliveryDate && $today->gt($due)) {
+                        $isOverdue = true;
+                        $daysOverdue = (int) $due->diffInDays($today);
+                    }
+                }
+
+                return [
+                    'delivery_id' => $delivery->delivery_id,
+                    'po_number' => $delivery->po_number,
+                    'time_ago' => ($delivery->data_entry_timestamp ?? now())->diffForHumans(),
+                    'is_overdue' => $isOverdue,
+                    'days_overdue' => $daysOverdue,
+                    'due_date' => $due ? $due->format('M d, Y') : null,
+                ];
+            });
+
+        $dueDeliveries = \App\Models\Delivery::with('supplier')
+            ->where('status', 'PENDING')
+            ->get()
+            ->filter(function ($delivery) {
+                return $delivery->due_date !== null;
+            })
+            ->sortBy(function ($delivery) {
+                return $delivery->due_date;
+            })
+            ->take(5)
+            ->map(function ($delivery) {
+                return [
+                    'delivery_id' => $delivery->delivery_id,
+                    'po_number' => $delivery->po_number,
+                    'due_date' => $delivery->due_date->format('Y-m-d'),
+                    'status' => $delivery->status,
+                    'end_user' => $delivery->end_user,
+                    'supplier' => $delivery->supplier ? [
+                        'supplier_name' => $delivery->supplier->supplier_name,
+                    ] : null,
+                ];
+            })
+            ->values();
+
         return Inertia::render('dashboard', [
             'recentActivity' => $recentActivity,
+            'recentDeliveries' => $recentDeliveries,
+            'deliveries' => $dueDeliveries,
         ]);
     })->name('dashboard');
 

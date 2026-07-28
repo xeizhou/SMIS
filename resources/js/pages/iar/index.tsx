@@ -147,6 +147,21 @@ export default function Index({
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [pirToDelete, setPirToDelete] = useState<number | null>(null);
     const [viewOpen, setViewOpen] = useState(false);
+    const [highlightId, setHighlightId] = useState<number | null>(null);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const highlightSearch = params.get('highlight_search');
+
+        if (highlightSearch && pirs.data) {
+            const matched = pirs.data.find(item => item.po_number === highlightSearch || item.pr_number === highlightSearch);
+            if (matched) {
+                setHighlightId(matched.pir_id);
+                const timer = setTimeout(() => setHighlightId(null), 3000);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [pirs.data]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -291,18 +306,22 @@ export default function Index({
                                 <tr>
                                     <td colSpan={8} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
-                                            No Reports added yet.
+                                            No reports added yet.
                                         </p>
-                                        <p className="text-muted-foreground mt-1">
+                                        <p className="mt-1 text-sm text-muted-foreground">
                                             Click <strong>"Add Report"</strong> to create your first entry.
                                         </p>
                                     </td>
                                 </tr>
                             ) : (
                                 pirs.data.map((pir) => (
-                                    <tr
-                                        key={pir.pir_id}
-                                        className="border-b transition-colors hover:bg-muted/40"
+                                    <tr 
+                                        key={pir.pir_id} 
+                                        className={`transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 ${
+                                            highlightId === pir.pir_id 
+                                                ? 'bg-yellow-100 dark:bg-yellow-900/40' 
+                                                : ''
+                                        }`}
                                     >
                                         <td className="px-4 py-3">{pir.po_number}</td>
                                         <td className="px-4 py-3">{pir.supplier?.supplier_name ?? '—'}</td>
@@ -415,7 +434,7 @@ Index.layout = {
             href: '#',
         },
         {
-            title: 'Reports Monitoring',
+            title: 'PIR',
             href: '/iar',
         },
     ],

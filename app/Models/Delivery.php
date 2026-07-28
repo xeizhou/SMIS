@@ -6,10 +6,19 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\LogsActivity;
 
 class Delivery extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    const LOG_NAME = 'Deliveries';
+
+    public function getActivityUrl()
+    {
+        return route('deliveries.index', ['highlight_search' => $this->po_number]);
+    }
+
     protected $table = 'delivery';
 
     protected $primaryKey = 'delivery_id';
