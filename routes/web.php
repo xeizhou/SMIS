@@ -145,6 +145,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/transaction-logs/{transaction}', [TransactionLogsController::class, 'destroy'])->name('transaction-logs.destroy');
 
     Route::get('/bona-vida-monitoring', [BonaVidaController::class, 'index'])->name('bona-vida-monitoring.index');
+    Route::get('/bona-vida-monitoring/summary', [BonaVidaController::class, 'summary'])->name('bona-vida-monitoring.summary');
+    Route::post('/bona-vida-monitoring', [BonaVidaController::class, 'store'])->name('bona-vida-monitoring.store');
+    Route::put('/bona-vida-monitoring/{bonavida}', [BonaVidaController::class, 'update'])->name('bona-vida-monitoring.update');
+    Route::delete('/bona-vida-monitoring/{bonavida}', [BonaVidaController::class, 'destroy'])->name('bona-vida-monitoring.destroy');
 
     // Stock Items Monitoring
     Route::get('/stock-items', [StockItemsController::class, 'index'])->name('stock-items.index');
