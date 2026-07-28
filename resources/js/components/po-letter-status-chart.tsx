@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 
 export type POLetterStatusRow = {
-    type: 'Extension' | 'Waiver' | 'Cancellation' | 'Replacement';
+    type: 'Extension' | 'Waiver' | 'Cancellation';
     approved: number;
     disapproved: number;
 };
@@ -25,7 +25,6 @@ const MOCK_DATA: POLetterStatusRow[] = [
     { type: 'Extension', approved: 12, disapproved: 4 },
     { type: 'Waiver', approved: 7, disapproved: 10 },
     { type: 'Cancellation', approved: 3, disapproved: 4 },
-    { type: 'Replacement', approved: 6, disapproved: 3 },
 ];
 
 export function PoLettersStatusChart({ data }: Props) {

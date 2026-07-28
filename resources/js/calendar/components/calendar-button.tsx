@@ -5,10 +5,11 @@ import { ClientContainer } from "@/calendar/components/client-container";
 import { DndProviderWrapper } from "@/calendar/components/dnd/dnd-provider";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import type { DueDelivery } from "@/components/due-deliveries";
 
 const queryClient = new QueryClient();
 
-export function CalendarButton() {
+export function CalendarButton({ deliveries }: { deliveries?: DueDelivery[] }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -22,7 +23,7 @@ export function CalendarButton() {
       <DialogContent className="max-w-[90vw] sm:max-w-[90vw] h-[90vh] overflow-y-auto">
         <QueryClientProvider client={queryClient}>
           <DndProviderWrapper>
-            <ClientContainer />
+            <ClientContainer deliveries={deliveries} />
           </DndProviderWrapper>
         </QueryClientProvider>
       </DialogContent>

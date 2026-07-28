@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DeliveryAddForm from '@/components/deliveries/deliveryaddform';
 import DeliveryDeleteModal from '@/components/deliveries/deliverydeletemodal';
 import DeliveryEditForm from '@/components/deliveries/deliveryeditform';
@@ -122,6 +122,20 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedDelivery, setSelectedDelivery] = useState<DeliveryRecord | null>(null);
     const [deliveryToDelete, setDeliveryToDelete] = useState<DeliveryRecord | null>(null);
+    const [highlightId, setHighlightId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const highlightSearch = params.get('highlight_search');
+        
+        if (highlightSearch && deliveries.data) {
+            const matched = deliveries.data.find(item => item.po_number === highlightSearch);
+            if (matched) {
+                setHighlightId(matched.delivery_id);
+                setTimeout(() => setHighlightId(null), 3000);
+            }
+        }
+    }, [deliveries.data]);
 
     const runSearch = (nextStatus?: string, nextPoNumber?: string) => {
         router.get(
@@ -235,6 +249,7 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                 <th className="px-4 py-3 text-left font-semibold text-white">PO Number</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Supplier</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Date of Delivery</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Due Date</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Status</th>
                                 <th className="px-4 py-3 text-right font-semibold text-white">Delivered Amount</th>
                                 <th className="px-4 py-3 text-right font-semibold text-white">PO Amount</th>
@@ -251,10 +266,14 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                 </tr>
                             ) : (
                                 deliveries.data.map((delivery) => (
-                                    <tr key={delivery.delivery_id} className="border-b transition-colors hover:bg-muted/40">
+                                    <tr 
+                                        key={delivery.delivery_id} 
+                                        className={`border-b transition-colors duration-1000 hover:bg-muted/40 ${highlightId === delivery.delivery_id ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}
+                                    >
                                         <td className="px-4 py-3 font-medium">{delivery.po_number}</td>
                                         <td className="px-4 py-3">{delivery.supplier?.supplier_name ?? '—'}</td>
                                         <td className="px-4 py-3">{formatDate(delivery.delivery_date)}</td>
+                                        <td className="px-4 py-3">{formatDate(delivery.due_date)}</td>
                                         <td className="px-4 py-3">{delivery.status ?? '—'}</td>
                                         <td className="px-4 py-3 text-right">{formatCurrency(delivery.total_amount_delivered)}</td>
                                         <td className="px-4 py-3 text-right">{formatCurrency(delivery.po_total_amount)}</td>

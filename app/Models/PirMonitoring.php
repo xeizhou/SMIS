@@ -5,10 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\LogsActivity;
 
 class PirMonitoring extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    const LOG_NAME = 'Reports Monitoring';
+
+    public function getActivityUrl()
+    {
+        return route('iar-monitoring.index', ['highlight_search' => $this->po_number]);
+    }
     protected $table = 'pir_monitoring';
 
     protected $primaryKey = 'pir_id';

@@ -1,8 +1,7 @@
 import { parseISO } from "date-fns";
-import { Calendar, Clock, Text, User } from "lucide-react";
+import { Calendar, Clock, Text, User, MoveRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { EditEventDialog } from "@/calendar/components/dialogs/edit-event-dialog";
 import type { IEvent } from "@/calendar/interfaces";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -67,11 +66,12 @@ export function EventDetailsDialog({ event, children }: IProps) {
           </div>
 
           <DialogFooter>
-            <EditEventDialog event={event}>
-              <Button type="button" variant="outline">
-                {t("common.edit")}
-              </Button>
-            </EditEventDialog>
+            <a 
+                href={`/deliveries?highlight_search=${event.title}`}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-900 dark:text-neutral-100 shadow-sm transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-700 focus-visible:outline-none w-full sm:w-auto"
+            >
+                Go to <MoveRight className="size-4" />
+            </a>
           </DialogFooter>
         </DialogContent>
       </Dialog>

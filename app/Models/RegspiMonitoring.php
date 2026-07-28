@@ -5,11 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\LogsActivity;
 
 class RegspiMonitoring extends Model
 {
-    use HasFactory;
+    use LogsActivity;
 
+    const LOG_NAME = 'REG-SPI Monitoring';
+
+    public function getActivityUrl()
+    {
+        return route('regspi-monitoring.index', ['highlight_search' => $this->ics_no ?? $this->rrsp_no]);
+    }
     protected $table = 'regspi_monitoring';
 
     protected $primaryKey = 'regspi_id';
