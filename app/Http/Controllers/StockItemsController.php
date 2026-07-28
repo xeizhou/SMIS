@@ -28,14 +28,16 @@ class StockItemsController extends Controller
             $query->where('fund_cluster_id', $request->fund_cluster_id);
         }
 
-        $stockItems = $query->orderBy('item_name')
+        // Show newest stock items first
+        $stockItems = $query->orderByDesc('created_at')
             ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('stock-items/index', [
             'stockItems' => $stockItems,
-            'units' => Unit::orderBy('unit_name')->get(),
-            'fundClusters' => FundCluster::orderBy('fund_cluster_id')->get(),
+            // Lists used in filters: show newest entries first where applicable
+            'units' => Unit::orderByDesc('unitID')->get(),
+            'fundClusters' => FundCluster::orderByDesc('created_at')->get(),
             'filters' => [
                 'search' => $search,
                 'fund_cluster_id' => $request->input('fund_cluster_id', 'all'),

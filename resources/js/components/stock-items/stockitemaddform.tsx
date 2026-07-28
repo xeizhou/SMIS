@@ -176,7 +176,7 @@ export default function StockItemAddForm({
                         onChange={handleChange}
                         error={errors.stock_no}
                         required
-                        placeholder="e.g. STK-001"
+                        placeholder="Enter stock number"
                     />
                     <Field
                         label="Item Name"
@@ -185,7 +185,7 @@ export default function StockItemAddForm({
                         onChange={handleChange}
                         error={errors.item_name}
                         required
-                        placeholder="e.g. Bond Paper A4"
+                        placeholder="Enter item name"
                     />
                     <Field
                         label="Description"
@@ -193,13 +193,13 @@ export default function StockItemAddForm({
                         value={data.description}
                         onChange={handleChange}
                         error={errors.description}
-                        placeholder="e.g. 70gsm, 500 sheets per ream"
+                        placeholder="Enter description"
                     />
 
                     {/* Dynamic Units Section */}
                     <div className="rounded-lg border p-4 bg-muted/30">
                         <label className="mb-3 block text-sm font-semibold text-foreground">
-                            Units Configuration <span className="text-red-500">*</span>
+                            Units <span className="text-red-500">*</span>
                         </label>
                         
                         <div className="space-y-3">

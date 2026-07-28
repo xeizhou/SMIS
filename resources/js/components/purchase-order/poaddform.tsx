@@ -245,6 +245,7 @@ export default function PurchaseOrderAddForm({
                                 value={data.po_number}
                                 onChange={handleChange}
                                 error={errors.po_number}
+                                placeholder="20XX-0X-XXXX"
                                 required
                             />
 
@@ -284,6 +285,7 @@ export default function PurchaseOrderAddForm({
                                     value={data.pr_number}
                                     onChange={handleChange}
                                     error={errors.pr_number}
+                                    placeholder="20XX-0X-XXXX"
                                 />
                             </div>
 
@@ -303,6 +305,7 @@ export default function PurchaseOrderAddForm({
                                     value={data.philgeps_reference_no}
                                     onChange={handleChange}
                                     error={errors.philgeps_reference_no}
+                                    placeholder="00000000"
                                 />
                             </div>
 
@@ -355,6 +358,7 @@ export default function PurchaseOrderAddForm({
                                     value={data.total_amount_abc}
                                     onChange={handleChange}
                                     error={errors.total_amount_abc}
+                                    placeholder="Amount of the Budget"
                                 />
 
                                 <Field
@@ -364,6 +368,7 @@ export default function PurchaseOrderAddForm({
                                     value={data.total_amount_po}
                                     onChange={handleChange}
                                     error={errors.total_amount_po}
+                                    placeholder="Amount of the Budget"
                                 />
                             </div>
 
@@ -385,7 +390,7 @@ export default function PurchaseOrderAddForm({
                                     value={data.fund_cluster_id}
                                     onChange={handleSelectChange('fund_cluster_id')}
                                     error={errors.fund_cluster_id}
-                                    placeholder="Select"
+                                    placeholder="-- Select Fund Cluster --"
                                     options={fundClusters.map((fc) => ({
                                         value: fc.fund_cluster_id,
                                         label: fc.fund_cluster_id,
@@ -400,6 +405,7 @@ export default function PurchaseOrderAddForm({
                                     value={data.ors_burs_no}
                                     onChange={handleChange}
                                     error={errors.ors_burs_no}
+                                    placeholder="00-000000-2025-00-0000"
                                 />
 
                                 <Field
@@ -436,6 +442,7 @@ export default function PurchaseOrderAddForm({
                                     value={data.uacs_object_code}
                                     onChange={handleChange}
                                     error={errors.uacs_object_code}
+                                    placeholder="00000000"
                                 />
                             </div>
 
@@ -445,7 +452,7 @@ export default function PurchaseOrderAddForm({
                                     value={data.supplier_id}
                                     onChange={handleSelectChange('supplier_id')}
                                     error={errors.supplier_id}
-                                    placeholder="Select"
+                                    placeholder="-- Select Supplier --"
                                     options={suppliers.map((s) => ({
                                         value: String(s.supplier_id),
                                         label: s.supplier_name,
@@ -457,7 +464,7 @@ export default function PurchaseOrderAddForm({
                                     value={data.end_user}
                                     onChange={handleSelectChange('end_user')}
                                     error={errors.end_user}
-                                    placeholder="Select"
+                                    placeholder="-- Select End User --"
                                     options={offices.map((o) => ({
                                         value: o.office_code,
                                         label: o.office_code,

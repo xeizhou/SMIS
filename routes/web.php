@@ -184,6 +184,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
 
     Route::get('/clearance', [ClearanceController::class, 'index'])->name('clearance.index');
+    Route::post('/clearance', [ClearanceController::class, 'store'])->name('clearance.store');
+    Route::put('/clearance/{clearance}', [ClearanceController::class, 'update'])->name('clearance.update');
+    Route::delete('/clearance/{clearance}', [ClearanceController::class, 'destroy'])->name('clearance.destroy');
 
     Route::get('/fund-clusters', [FundClustersController::class, 'index'])->name('fund-clusters.index');
     Route::post('/fund-clusters', [FundClustersController::class, 'store'])->name('fund-clusters.store');
@@ -192,6 +195,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Human Resource Monitoring
     Route::get('/employee-file-locator', [EmployeeFileLocatorController::class, 'index'])->name('employee-file-locator.index');
+    Route::post('/employee-file-locator', [EmployeeFileLocatorController::class, 'store'])->name('employee-file-locator.store');
+    Route::put('/employee-file-locator/{employeefilelocator}', [EmployeeFileLocatorController::class, 'update'])->name('employee-file-locator.update');
+    Route::delete('/employee-file-locator/{employeefilelocator}', [EmployeeFileLocatorController::class, 'destroy'])->name('employee-file-locator.destroy');
 
     Route::get('/offices', [OfficesController::class, 'index'])->name('offices.index');
     Route::post('/offices', [OfficesController::class, 'store'])->name('offices.store');

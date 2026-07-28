@@ -283,7 +283,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                             onChange={handleSelectChange('po_number')}
                             error={errors.po_number}
                             required
-                            placeholder="Select PO"
+                            placeholder="-- Select PO --"
                             options={purchaseOrders.map((po) => ({
                                 value: po.po_number,
                                 label: po.po_number,
@@ -308,7 +308,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                             value={data.delivery_date}
                             onChange={handleChange}
                             error={errors.delivery_date}
-                            placeholder="Select date"
+                            placeholder="-- Select date --"
                         />
 
                         <Field
@@ -397,7 +397,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                             value={data.status}
                             onChange={handleSelectChange('status')}
                             error={errors.status}
-                            placeholder="Select status"
+                            placeholder="-- Select Status --"
                             options={statuses.map((status) => ({ value: status, label: status }))}
                         />
 
