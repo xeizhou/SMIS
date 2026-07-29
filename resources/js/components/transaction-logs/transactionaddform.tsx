@@ -170,9 +170,25 @@ function SearchableSelect({
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
 
+    useEffect(() => {
+        if (!open) {
+            setSearch('');
+        }
+    }, [open]);
+
+    const normalizedSearch = search.trim().toLowerCase();
+    const selectedLabel = options.find((o) => o.value === value)?.label ?? '';
+    const displayValue = open ? search : selectedLabel;
+
     const filtered = options.filter((o) =>
-        o.label.toLowerCase().includes(search.toLowerCase())
+        o.label.toLowerCase().includes(normalizedSearch)
     );
+
+    const handleSelect = (optionValue: string) => {
+        onChange(optionValue);
+        setOpen(false);
+        setSearch('');
+    };
 
     return (
         <div className="relative">
@@ -181,14 +197,36 @@ function SearchableSelect({
                 {required && <span className="text-red-500"> *</span>}
             </label>
             <div
-                className={`flex h-10 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer ${
+                className={`flex h-10 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm ring-offset-background cursor-text ${
                     error ? 'border-red-500' : 'border-input'
                 }`}
-                onClick={() => setOpen(!open)}
+                onClick={() => {
+                    setOpen(true);
+                }}
             >
-                <span className="truncate">
-                    {options.find((o) => o.value === value)?.label || placeholder}
-                </span>
+                <input
+                    type="text"
+                    className="w-full truncate bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    placeholder={selectedLabel || placeholder}
+                    value={displayValue}
+                    onFocus={() => setOpen(true)}
+                    onChange={(e) => {
+                        setSearch(e.target.value);
+                        setOpen(true);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && filtered[0]) {
+                            e.preventDefault();
+                            handleSelect(filtered[0].value);
+                        }
+
+                        if (e.key === 'Escape') {
+                            e.preventDefault();
+                            setOpen(false);
+                        }
+                    }}
+                />
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </div>
             {open && (
@@ -200,13 +238,6 @@ function SearchableSelect({
                     <div className="absolute top-full left-0 z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none">
                         <div className="flex items-center border-b px-3">
                             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                            <input
-                                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                                placeholder="Search item..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                onClick={(e) => e.stopPropagation()}
-                            />
                         </div>
                         <div className="max-h-[200px] overflow-y-auto p-1">
                             {filtered.length === 0 ? (
@@ -216,11 +247,7 @@ function SearchableSelect({
                                     <div
                                         key={opt.value}
                                         className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-                                        onClick={() => {
-                                            onChange(opt.value);
-                                            setOpen(false);
-                                            setSearch('');
-                                        }}
+                                        onClick={() => handleSelect(opt.value)}
                                     >
                                         <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
                                             {value === opt.value && <Check className="h-4 w-4" />}
@@ -318,9 +345,6 @@ export default function TransactionAddForm({
         });
     };
 
-    // If selected item exists in our DB list, it auto-fills, and we disable the Unit input
-    const isUnitDisabled = stockItems.some((s) => s.item_name === data.item_name);
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
@@ -359,20 +383,20 @@ export default function TransactionAddForm({
                                 label="Item Name"
                                 value={data.item_name}
                                 onChange={(val) => {
-                                    // Auto-fill logic updated for multiple units
                                     const selectedItem = stockItems.find((s) => s.item_name === val);
-                                    
+
                                     let defaultUnitID = '';
                                     if (selectedItem?.units && selectedItem.units.length > 0) {
-                                        // Find the default unit, or fallback to the first one
-                                        const defUnit = selectedItem.units.find(u => u.pivot?.is_default) || selectedItem.units[0];
+                                        const defUnit =
+                                            selectedItem.units.find((u) => u.pivot?.is_default) ||
+                                            selectedItem.units[0];
                                         defaultUnitID = String(defUnit.unitID);
                                     }
 
                                     setData((prev) => ({
                                         ...prev,
                                         item_name: val,
-                                        ...(defaultUnitID ? { unitID: defaultUnitID } : {}),
+                                        unitID: defaultUnitID,
                                     }));
                                 }}
                                 error={errors.item_name}
@@ -390,12 +414,18 @@ export default function TransactionAddForm({
                                 onChange={handleSelectChange('unitID')}
                                 error={errors.unitID}
                                 required
-                                disabled={isUnitDisabled}
                                 placeholder="-- Select Unit --"
-                                options={units.map((unit) => ({
-                                    value: String(unit.unitID),
-                                    label: `${unit.unit_name} (${unit.unit_short_name})`,
-                                }))}
+                                options={Array.from(
+                                    new Map(
+                                        units.map((unit) => [
+                                            String(unit.unitID),
+                                            {
+                                                value: String(unit.unitID),
+                                                label: `${unit.unit_name} (${unit.unit_short_name})`,
+                                            },
+                                        ])
+                                    ).values()
+                                )}
                             />
                         </div>
 

@@ -63,6 +63,18 @@ class DatabaseSeeder extends Seeder
 
         if (StockItem::count() === 0) {
             $stockItems = StockItem::factory(50)->create();
+
+            $unitIds = Unit::pluck('unitID')->all();
+
+            $stockItems->each(function (StockItem $stockItem) use ($unitIds) {
+                $chosen = collect($unitIds)->shuffle()->take(rand(1, 2))->values();
+
+                $chosen->each(function ($unitId, $index) use ($stockItem) {
+                    $stockItem->units()->syncWithoutDetaching([
+                        $unitId => ['is_default' => $index === 0],
+                    ]);
+                });
+            });
         } else {
             $stockItems = StockItem::all();
         }
