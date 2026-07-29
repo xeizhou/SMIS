@@ -103,12 +103,23 @@ export default function BonaVidaSummaryModal({ open, onOpenChange }: Props) {
                                     {formattedDate}
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="end">
+                            <PopoverContent 
+                                className="w-auto p-0" 
+                                align="end"
+                                onInteractOutside={(e) => {
+                                    if (e.target instanceof Element && e.target.closest('[data-radix-popper-content-wrapper]')) {
+                                        e.preventDefault();
+                                    }
+                                }}
+                            >
                                 <Calendar
                                     mode="single"
                                     selected={date}
                                     onSelect={handleDateSelect}
                                     initialFocus
+                                    captionLayout="dropdown"
+                                    fromYear={2020}
+                                    toYear={new Date().getFullYear() + 2}
                                 />
                             </PopoverContent>
                         </Popover>

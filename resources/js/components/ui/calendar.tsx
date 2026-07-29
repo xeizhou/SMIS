@@ -1,15 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
+import * as SelectPrimitive from "@radix-ui/react-select";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { Select, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getDateLocale } from "@/lib/date-locale";
 import type { Locale } from "date-fns";
+import type { DropdownProps } from "react-day-picker";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
@@ -47,6 +50,9 @@ function Calendar({ className, classNames, showOutsideDays = true, locale: props
     formatWeekdayName: (date: Date) => {
       return format(date, "EEE", { locale });
     },
+    formatMonthDropdown: (month: Date) => {
+      return format(month, "MMM", { locale });
+    },
   };
 
   return (
@@ -59,14 +65,14 @@ function Calendar({ className, classNames, showOutsideDays = true, locale: props
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 relative",
         month: "space-y-4",
         month_caption: "flex justify-center pt-1 relative items-center text-sm font-medium",
-        nav: "flex items-center justify-between absolute w-full z-10 px-1 pt-1 left-0",
+        nav: "flex items-center justify-between absolute w-full z-10 px-1 pt-1 left-0 pointer-events-none",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 pointer-events-auto"
         ),
         button_next: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 pointer-events-auto"
         ),
         month_grid: "w-full border-collapse space-y-1",
         weekdays: "flex",
@@ -81,15 +87,48 @@ function Calendar({ className, classNames, showOutsideDays = true, locale: props
         disabled: "text-muted-foreground opacity-50",
         range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
         hidden: "invisible",
+        dropdowns: "flex justify-center gap-2",
+        dropdown_root: "relative inline-flex items-center",
+        dropdown: "absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer appearance-none",
+        caption_label: "text-sm font-medium flex items-center gap-1",
         ...classNames,
       }}
       components={{
-        Chevron: ({ orientation }) =>
-          orientation === "left" ? (
-            <ChevronLeft className="size-4" />
-          ) : (
-            <ChevronRight className="size-4" />
-          ),
+        Dropdown: ({ value, onChange, options }: DropdownProps) => {
+          const selected = options?.find((child) => child.value === value)?.label;
+          const handleChange = (val: string) => {
+            const changeEvent = {
+              target: { value: val },
+            } as React.ChangeEvent<HTMLSelectElement>;
+            onChange?.(changeEvent);
+          };
+          return (
+            <Select value={value?.toString()} onValueChange={handleChange}>
+              <SelectTrigger className="pr-1.5 focus:ring-0 h-8 w-fit text-sm font-medium bg-transparent border-none gap-1 py-0">
+                <SelectValue>{selected}</SelectValue>
+              </SelectTrigger>
+              <SelectPrimitive.Content
+                position="popper"
+                className="bg-popover text-popover-foreground relative z-50 max-h-[200px] min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border shadow-md data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1"
+              >
+                <SelectPrimitive.Viewport className="p-1">
+                {options?.map((option, id: number) => (
+                  <SelectItem key={`${option.value}-${id}`} value={option.value?.toString() ?? ""} disabled={option.disabled}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+                </SelectPrimitive.Viewport>
+              </SelectPrimitive.Content>
+            </Select>
+          );
+        },
+        Chevron: ({ orientation }) => {
+          if (orientation === "left") return <ChevronLeft className="size-4" />;
+          if (orientation === "right") return <ChevronRight className="size-4" />;
+          if (orientation === "up") return <ChevronUp className="size-4" />;
+          if (orientation === "down") return <ChevronDown className="size-4" />;
+          return <ChevronDown className="size-4" />;
+        },
       }}
       {...props}
     />
