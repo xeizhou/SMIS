@@ -8,6 +8,8 @@ use App\Traits\LogsActivity;
 
 class RRPPEMonitoring extends Model
 {
+    use HasFactory;
+
     use HasFactory, LogsActivity;
 
     protected $table = 'RRPPE_Monitoring';

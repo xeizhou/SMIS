@@ -10,6 +10,7 @@ use App\Traits\LogsActivity;
 class RegspiMonitoring extends Model
 {
     use LogsActivity;
+    use HasFactory;
 
     const LOG_NAME = 'REG-SPI Monitoring';
 

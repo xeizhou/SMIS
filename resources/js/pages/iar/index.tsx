@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,6 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
-import { useState } from 'react';
 import PirAddForm from '@/components/iar/piraddform';
 import PirEditForm from '@/components/iar/pireditform';
 import PirDeleteModal from '@/components/iar/pirdeletemodal';
@@ -430,7 +430,7 @@ export default function Index({
 Index.layout = {
     breadcrumbs: [
         {
-            title: 'Property',
+            title: 'Procurement',
             href: '#',
         },
         {
