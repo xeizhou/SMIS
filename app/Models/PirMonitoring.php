@@ -15,7 +15,8 @@ class PirMonitoring extends Model
 
     public function getActivityUrl()
     {
-        return route('iar-monitoring.index', ['highlight_search' => $this->po_number]);
+        return route('iar.index', ['highlight_search' => $this->po_number]); // Change to 'iar.index'
+
     }
     protected $table = 'pir_monitoring';
 

@@ -350,7 +350,6 @@ return;
                             disabled
                         />
 
-                        <Field label="Date of Delivery" name="delivery_date" type="date" value={data.delivery_date} onChange={handleChange} error={errors.delivery_date} />
                         <Field
                             label="PO Date Received"
                             name="po_date_received"
@@ -381,21 +380,109 @@ return;
                             readOnly
                             disabled
                         />
-                        <Field label="No. of Days (LD)" name="no_of_days_ld" type="number" value={String(computedLdDays)} onChange={handleChange} error={errors.no_of_days_ld} readOnly disabled />
-                        <Field label="Received By (1)" name="received_by_1" value={data.received_by_1} onChange={handleChange} error={errors.received_by_1} placeholder="e.g. Alvin B." />
-                        <Field label="Received By (2)" name="received_by_2" value={data.received_by_2} onChange={handleChange} error={errors.received_by_2} placeholder="e.g. J. Santos" />
-                        <Field label="End User" name="end_user" value={data.end_user} onChange={handleChange} error={errors.end_user} placeholder="Auto-filled from PO" />
-                        <Field label="Place of Delivery" name="place_of_delivery" value={data.place_of_delivery} onChange={handleChange} error={errors.place_of_delivery} placeholder="e.g. BGH, Davao City" />
-                        <SelectField label="Status" value={data.status} onChange={handleSelectChange('status')} error={errors.status} placeholder="Select status" options={statuses.map((status) => ({ value: status, label: status }))} />
-                        <Field label="Total Amount Delivered" name="total_amount_delivered" type="number" value={data.total_amount_delivered} onChange={handleChange} error={errors.total_amount_delivered} placeholder="e.g. 141000" />
-                        <Field label="PO Total Amount" name="po_total_amount" type="number" value={data.po_total_amount} onChange={handleChange} error={errors.po_total_amount} placeholder="Auto-filled from PO" />
-                        <Field label="Folder Link" name="folder_link" value={data.folder_link} onChange={handleChange} error={errors.folder_link} placeholder="https://drive.google.com/drive/folders/..." />
-                    </div>
 
-                    <div>
-                        <label className={labelClass}>Remarks</label>
-                        <Input name="remarks" value={data.remarks} onChange={handleChange} placeholder="e.g. Partial delivery received" />
-                        {errors.remarks && <p className="mt-1 text-xs text-red-500">{errors.remarks}</p>}
+                        <Field 
+                            label="Date of Delivery" 
+                            name="delivery_date" 
+                            type="date" 
+                            value={data.delivery_date} 
+                            onChange={handleChange} 
+                            error={errors.delivery_date} 
+                        />
+
+                        <Field
+                            label="No. of Days (LD)"
+                            name="no_of_days_ld"
+                            type="number"
+                            value={String(computedLdDays)}
+                            onChange={handleChange}
+                            error={errors.no_of_days_ld}
+                            readOnly
+                            disabled
+                        />
+
+                        <Field
+                            label="Received By (1)"
+                            name="received_by_1"
+                            value={data.received_by_1}
+                            onChange={handleChange}
+                            error={errors.received_by_1}
+                            placeholder="e.g. Alvin B."
+                        />
+
+                        <Field
+                            label="Received By (2)"
+                            name="received_by_2"
+                            value={data.received_by_2}
+                            onChange={handleChange}
+                            error={errors.received_by_2}
+                            placeholder="e.g. J. Santos"
+                        />
+
+                        <Field
+                            label="End User"
+                            name="end_user"
+                            value={data.end_user}
+                            onChange={handleChange}
+                            error={errors.end_user}
+                            placeholder="Auto-filled from PO"
+                        />
+
+                        <Field
+                            label="Place of Delivery"
+                            name="place_of_delivery"
+                            value={data.place_of_delivery}
+                            onChange={handleChange}
+                            error={errors.place_of_delivery}
+                            placeholder="e.g. BGH, Davao City"
+                        />
+
+                        <SelectField
+                            label="Status"
+                            value={data.status}
+                            onChange={handleSelectChange('status')}
+                            error={errors.status}
+                            placeholder="Select status"
+                            options={statuses.map((status) => ({ value: status, label: status }))}
+                        />
+
+                        <Field
+                            label="Total Amount Delivered"
+                            name="total_amount_delivered"
+                            type="number"
+                            value={data.total_amount_delivered}
+                            onChange={handleChange}
+                            error={errors.total_amount_delivered}
+                            placeholder="e.g. 141000"
+                        />
+
+                        <Field
+                            label="PO Total Amount"
+                            name="po_total_amount"
+                            type="number"
+                            value={data.po_total_amount}
+                            onChange={handleChange}
+                            error={errors.po_total_amount}
+                            placeholder="Auto-filled from PO"
+                        />
+
+                        <Field
+                            label="Folder Link"
+                            name="folder_link"
+                            value={data.folder_link}
+                            onChange={handleChange}
+                            error={errors.folder_link}
+                            placeholder="https://drive.google.com/drive/folders/..."
+                        />
+
+                        <Field
+                            label="Remarks"
+                            name="remarks"
+                            value={data.remarks}
+                            onChange={handleChange}
+                            error={errors.remarks}
+                            placeholder="e.g. Partial delivery received"
+                        />
                     </div>
 
                     <div className="flex justify-end gap-3">

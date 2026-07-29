@@ -17,7 +17,7 @@ interface Props {
 
 interface FlashProps {
     success?: string;
-    error?: string;
+    deleteError?: string;
 }
 
 export default function PurchaseOrderDeleteModal({
@@ -47,8 +47,8 @@ export default function PurchaseOrderDeleteModal({
             onSuccess: (page) => {
                 const flash = page.props.flash as FlashProps;
 
-                if (flash?.error) {
-                    setErrorMessage(flash.error);
+                if (flash?.deleteError) {
+                    setErrorMessage(flash.deleteError);
                 } else {
                     onOpenChange(false);
                 }

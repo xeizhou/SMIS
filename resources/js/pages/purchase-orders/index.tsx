@@ -57,6 +57,7 @@ interface PurchaseOrder {
     supplier: Supplier | null;
     fundCluster: FundCluster | null;
     office: Office | null;
+    item_description: string | null;
 }
 
 interface PaginatedPurchaseOrders {
