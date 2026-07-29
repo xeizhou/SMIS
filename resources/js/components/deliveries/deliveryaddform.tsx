@@ -197,6 +197,12 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
 
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
 
+    const autoStatus =
+        Number(data.total_amount_delivered || 0) ===
+        Number(data.po_total_amount || selectedPo?.total_amount_po || 0)
+            ? 'COMPLETED'
+            : 'PARTIAL';
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
 
@@ -237,10 +243,14 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
 
         const { supplier_name, ...rest } = data;
 
-        // Auto-determine status: COMPLETE only if amounts match exactly, otherwise PARTIAL
-        const totalDelivered = Number(rest.total_amount_delivered || 0);
-        const totalPo = Number(rest.po_total_amount || (selectedPo?.total_amount_po ?? 0));
-        const autoStatus = totalDelivered === totalPo ? 'COMPLETE' : 'PARTIAL';
+        const selectedPo =
+        purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
+
+        const autoStatus =
+            Number(data.total_amount_delivered || 0) ===
+            Number(data.po_total_amount || selectedPo?.total_amount_po || 0)
+                ? 'COMPLETED'
+                : 'PARTIAL';
 
         const payload = {
             ...rest,
@@ -249,7 +259,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
             po_total_amount: rest.po_total_amount || (selectedPo?.total_amount_po != null ? String(selectedPo.total_amount_po) : ''),
             end_user: rest.end_user || (selectedPo?.end_user ?? ''),
             supplier_id: rest.supplier_id || (selectedPo?.supplier_id ? String(selectedPo.supplier_id) : ''),
-            status: rest.status || autoStatus,
+            status: autoStatus,
         };
 
         router.post(
@@ -369,13 +379,13 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                             placeholder="e.g. BGH, Davao City"
                         />
 
-                        <SelectField
+                        <Field
                             label="Status"
-                            value={data.status}
-                            onChange={handleSelectChange('status')}
-                            error={errors.status}
-                            placeholder="-- Select Status --"
-                            options={statuses.map((status) => ({ value: status, label: status }))}
+                            name="status"
+                            value={autoStatus}
+                            onChange={() => {}}
+                            readOnly
+                            disabled
                         />
 
                         <Field
