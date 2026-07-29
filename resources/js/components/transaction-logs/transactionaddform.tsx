@@ -1,7 +1,17 @@
 import { router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown, Search } from 'lucide-react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '../ui/command';
+import { cn } from '@/lib/utils';
 import {
     Dialog,
     DialogContent,
@@ -168,98 +178,64 @@ function SearchableSelect({
     options,
 }: SearchableSelectProps) {
     const [open, setOpen] = useState(false);
-    const [search, setSearch] = useState('');
 
-    useEffect(() => {
-        if (!open) {
-            setSearch('');
-        }
-    }, [open]);
-
-    const normalizedSearch = search.trim().toLowerCase();
-    const selectedLabel = options.find((o) => o.value === value)?.label ?? '';
-    const displayValue = open ? search : selectedLabel;
-
-    const filtered = options.filter((o) =>
-        o.label.toLowerCase().includes(normalizedSearch)
-    );
-
-    const handleSelect = (optionValue: string) => {
-        onChange(optionValue);
-        setOpen(false);
-        setSearch('');
-    };
+    const selectedLabel = options.find((o) => o.value === value)?.label;
 
     return (
-        <div className="relative">
+        <div>
             <label className={labelClass}>
                 {label}
                 {required && <span className="text-red-500"> *</span>}
             </label>
-            <div
-                className={`flex h-10 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm ring-offset-background cursor-text ${
-                    error ? 'border-red-500' : 'border-input'
-                }`}
-                onClick={() => {
-                    setOpen(true);
-                }}
-            >
-                <input
-                    type="text"
-                    className="w-full truncate bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                    placeholder={selectedLabel || placeholder}
-                    value={displayValue}
-                    onFocus={() => setOpen(true)}
-                    onChange={(e) => {
-                        setSearch(e.target.value);
-                        setOpen(true);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' && filtered[0]) {
-                            e.preventDefault();
-                            handleSelect(filtered[0].value);
-                        }
 
-                        if (e.key === 'Escape') {
-                            e.preventDefault();
-                            setOpen(false);
-                        }
-                    }}
-                />
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </div>
-            {open && (
-                <>
-                    <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setOpen(false)}
-                    ></div>
-                    <div className="absolute top-full left-0 z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none">
-                        <div className="flex items-center border-b px-3">
-                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                        </div>
-                        <div className="max-h-[200px] overflow-y-auto p-1">
-                            {filtered.length === 0 ? (
-                                <div className="py-6 text-center text-sm">No item found.</div>
-                            ) : (
-                                filtered.map((opt) => (
-                                    <div
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        {selectedLabel || placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        <CommandList>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
                                         key={opt.value}
-                                        className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-                                        onClick={() => handleSelect(opt.value)}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
                                     >
-                                        <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                                            {value === opt.value && <Check className="h-4 w-4" />}
-                                        </span>
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
                                         {opt.label}
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                </>
-            )}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+
             {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </div>
     );
