@@ -193,7 +193,7 @@ class PurchaseOrdersController extends Controller
                 $parts[] = "{$pirCount} linked PIR record" . ($pirCount > 1 ? 's' : '');
             }
 
-            return redirect()->back()->with('error',
+            return redirect()->back()->with('deleteError',
                 "Can't delete this PO. it has " . implode(', ', $parts) . ". Remove those first."
             );
         }

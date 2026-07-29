@@ -134,6 +134,7 @@ const emptyForm = {
     po_date_received: '',
     delivery_term: '',
     due_date: '',
+    date_of_delivery: '',
     no_of_days_ld: '',
     received_by_1: '',
     received_by_2: '',
@@ -341,6 +342,16 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                             placeholder="Auto-filled from selected PO"
                             readOnly
                             disabled
+                        />
+
+                        <Field
+                            label="Date of Delivery"
+                            name="date_of_delivery"
+                            type="date"
+                            value={data.date_of_delivery}
+                            onChange={handleChange}
+                            error={errors.date_of_delivery}
+                            required
                         />
 
                         <Field
