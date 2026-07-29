@@ -338,7 +338,7 @@ export default function Index({
 Index.layout = {
     breadcrumbs: [
         {
-            title: 'Supply Management',
+            title: 'Stock Cards',
             href: '#',
         },
         {

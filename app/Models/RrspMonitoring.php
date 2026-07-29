@@ -9,6 +9,8 @@ use App\Traits\LogsActivity;
 
 class RrspMonitoring extends Model
 {
+    use HasFactory;
+
     use LogsActivity;
 
     const LOG_NAME = 'RRSP Monitoring';

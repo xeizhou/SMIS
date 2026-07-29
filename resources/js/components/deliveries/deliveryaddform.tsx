@@ -131,7 +131,6 @@ const emptyForm = {
     po_number: '',
     supplier_id: '',
     supplier_name: '',
-    delivery_date: '',
     po_date_received: '',
     delivery_term: '',
     due_date: '',
@@ -149,32 +148,32 @@ const emptyForm = {
 
 function toDateInputValue(value: string | null) {
     if (!value) {
-return '';
-}
+        return '';
+    }
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-return value;
-}
+        return value;
+    }
 
     const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
 
     if (match) {
-return match[1];
-}
+        return match[1];
+    }
 
     const parsed = new Date(value);
 
     if (Number.isNaN(parsed.getTime())) {
-return '';
-}
+        return '';
+    }
 
     return parsed.toISOString().slice(0, 10);
 }
 
 function daysBetween(startDate: string, endDate: string) {
     if (!startDate || !endDate) {
-return 0;
-}
+        return 0;
+    }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -197,12 +196,6 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
     }, [open]);
 
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
-
-    // No. of Days (LD) = how late delivery_date is compared to the PO's
-    // due_date. Not PO-derived — depends on delivery_date, which the user
-    // controls, so it's recalculated live here rather than pulled from
-    // the PO directly.
-    const computedLdDays = daysBetween(data.due_date, data.delivery_date);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -243,14 +236,20 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
         setProcessing(true);
 
         const { supplier_name, ...rest } = data;
+
+        // Auto-determine status: COMPLETE only if amounts match exactly, otherwise PARTIAL
+        const totalDelivered = Number(rest.total_amount_delivered || 0);
+        const totalPo = Number(rest.po_total_amount || (selectedPo?.total_amount_po ?? 0));
+        const autoStatus = totalDelivered === totalPo ? 'COMPLETE' : 'PARTIAL';
+
         const payload = {
             ...rest,
             delivery_term: Number(rest.delivery_term) || 0,
-            no_of_days_ld: computedLdDays,
+            no_of_days_ld: rest.no_of_days_ld || 0,
             po_total_amount: rest.po_total_amount || (selectedPo?.total_amount_po != null ? String(selectedPo.total_amount_po) : ''),
             end_user: rest.end_user || (selectedPo?.end_user ?? ''),
             supplier_id: rest.supplier_id || (selectedPo?.supplier_id ? String(selectedPo.supplier_id) : ''),
-            status: rest.status || (Number(rest.total_amount_delivered || 0) >= Number(rest.po_total_amount || 0) ? 'COMPLETED' : 'PARTIAL'),
+            status: rest.status || autoStatus,
         };
 
         router.post(
@@ -302,16 +301,6 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                         />
 
                         <Field
-                            label="Date of Delivery"
-                            name="delivery_date"
-                            type="date"
-                            value={data.delivery_date}
-                            onChange={handleChange}
-                            error={errors.delivery_date}
-                            placeholder="-- Select date --"
-                        />
-
-                        <Field
                             label="PO Date Received"
                             name="po_date_received"
                             value={data.po_date_received}
@@ -340,18 +329,6 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                             onChange={handleChange}
                             error={errors.due_date}
                             placeholder="Auto-filled from selected PO"
-                            readOnly
-                            disabled
-                        />
-
-                        <Field
-                            label="No. of Days (LD)"
-                            name="no_of_days_ld"
-                            type="number"
-                            value={String(computedLdDays)}
-                            onChange={handleChange}
-                            error={errors.no_of_days_ld}
-                            placeholder="Auto-calculated"
                             readOnly
                             disabled
                         />
@@ -409,6 +386,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                             onChange={handleChange}
                             error={errors.total_amount_delivered}
                             placeholder="e.g. 141000"
+                            required
                         />
 
                         <Field
