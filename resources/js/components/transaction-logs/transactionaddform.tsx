@@ -10,7 +10,7 @@ import {
     CommandInput,
     CommandItem,
     CommandList,
-} from '../ui/command';
+} from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import {
     Dialog,
@@ -389,7 +389,8 @@ export default function TransactionAddForm({
                                 value={data.unitID}
                                 onChange={handleSelectChange('unitID')}
                                 error={errors.unitID}
-                                required
+                                required 
+                                disabled
                                 placeholder="-- Select Unit --"
                                 options={Array.from(
                                     new Map(
