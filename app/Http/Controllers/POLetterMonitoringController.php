@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attachment;
 use App\Models\PoLetterMonitoring;
 use App\Models\ServePo;
 use App\Models\Supplier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,6 +30,7 @@ class POLetterMonitoringController extends Controller
             // delivery_term / item_description accessors resolve
             // without N+1 queries.
             'servePo:po_number,po_received_date,due_date,item_description',
+            'attachments',
         ])
         ->when($search, function ($query, $search) {
             $query->where(function ($q) use ($search) {
@@ -85,9 +88,11 @@ class POLetterMonitoringController extends Controller
             'remarks' => ['nullable', 'string'],
         ]);
 
-        PoLetterMonitoring::create($validated);
+        $poLetterMonitoring = PoLetterMonitoring::create($validated);
 
-        return redirect()->back();
+        // id doesn't exist until after create — the frontend needs it back
+        // to upload any attachments staged before the record existed.
+        return redirect()->back()->with('createdId', $poLetterMonitoring->id);
     }
 
     /**
@@ -112,7 +117,22 @@ class POLetterMonitoringController extends Controller
             'document_link' => ['nullable', 'string', 'max:500'],
             'date_forwarded_to_end_user' => ['nullable', 'date'],
             'remarks' => ['nullable', 'string'],
+            'deleted_attachment_ids' => ['nullable', 'array'],
+            'deleted_attachment_ids.*' => ['integer'],
         ]);
+
+        // Handle deleted attachments before updating the record
+        $deletedAttachmentIds = $validated['deleted_attachment_ids'] ?? [];
+        if ($deletedAttachmentIds) {
+            foreach ($deletedAttachmentIds as $attachmentId) {
+                $attachment = Attachment::find($attachmentId);
+                if ($attachment) {
+                    Storage::disk('public')->delete($attachment->file_path);
+                    $attachment->delete();
+                }
+            }
+        }
+        unset($validated['deleted_attachment_ids']);
 
         $poLetterMonitoring->update($validated);
 
@@ -124,8 +144,34 @@ class POLetterMonitoringController extends Controller
      */
     public function destroy(PoLetterMonitoring $poLetterMonitoring): RedirectResponse
     {
+        // Files on disk aren't covered by DB FK constraints since this is
+        // a polymorphic relation, so they have to be removed manually.
+        foreach ($poLetterMonitoring->attachments as $attachment) {
+            Storage::disk('public')->delete($attachment->file_path);
+        }
+        $poLetterMonitoring->attachments()->delete();
         $poLetterMonitoring->delete();
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'PO letter record deleted.');
+    }
+
+    public function uploadAttachments(Request $request, PoLetterMonitoring $poLetterMonitoring)
+    {
+        $request->validate([
+            'files' => 'required|array',
+            'files.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB each
+        ]);
+
+        foreach ($request->file('files') as $file) {
+            $path = $file->store('po-letter-attachments/' . $poLetterMonitoring->id, 'public');
+            $poLetterMonitoring->attachments()->create([
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+            ]);
+        }
+
+        return back();
     }
 }
