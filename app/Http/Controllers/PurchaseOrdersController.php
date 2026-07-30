@@ -9,10 +9,12 @@ use App\Models\PirMonitoring;
 use App\Models\PoLetterMonitoring;
 use App\Models\ServePo;
 use App\Models\Supplier;
+use App\Models\Attachment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,6 +33,7 @@ class PurchaseOrdersController extends Controller
                 'supplier:supplier_id,supplier_name',
                 'fundCluster:fund_cluster_id,fund_description',
                 'office:office_code,office_name',
+                'attachments',
             ])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -144,11 +147,28 @@ class PurchaseOrdersController extends Controller
             'date_forwarded_to_smu' => ['nullable', 'date'],
             'coa_processed_date' => ['nullable', 'date'],
             'date_forwarded_frontdesk' => ['nullable', 'date'],
+            'deleted_attachment_ids' => ['nullable', 'array'],
+            'deleted_attachment_ids.*' => ['integer'],
         ]);
 
         $validated['total_amount_abc'] ??= 0;
         $validated['total_amount_po'] ??= 0;
         $validated['total_amount_diff'] = $validated['total_amount_abc'] - $validated['total_amount_po'];
+
+        // Handle deleted attachments before updating PO
+        $deletedAttachmentIds = $validated['deleted_attachment_ids'] ?? [];
+        if ($deletedAttachmentIds) {
+            foreach ($deletedAttachmentIds as $attachmentId) {
+                $attachment = Attachment::find($attachmentId);
+                if ($attachment) {
+                    Storage::disk('public')->delete($attachment->file_path);
+                    $attachment->delete();
+                }
+            }
+        }
+
+        // Remove deleted_attachment_ids from validated data before saving
+        unset($validated['deleted_attachment_ids']);
 
         $oldPoNumber = $servePo->po_number;
         $newPoNumber = $validated['po_number'];
@@ -156,15 +176,16 @@ class PurchaseOrdersController extends Controller
 
         DB::transaction(function () use ($servePo, $validated, $oldPoNumber, $newPoNumber, $poNumberChanged) {
             if ($poNumberChanged) {
-                // Defer FK checks for this transaction only — lets us update
-                // parent + children in any order without tripping the
-                // inconsistent ON UPDATE rules across the child tables.
                 DB::statement('PRAGMA defer_foreign_keys = ON');
 
                 Delivery::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
                 PoLetterMonitoring::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
                 PirMonitoring::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
-            }   
+
+                Attachment::where('attachable_type', ServePo::class)
+                    ->where('attachable_id', $oldPoNumber)
+                    ->update(['attachable_id' => $newPoNumber]);
+            }
 
             $servePo->update($validated);
         });
@@ -193,13 +214,50 @@ class PurchaseOrdersController extends Controller
                 $parts[] = "{$pirCount} linked PIR record" . ($pirCount > 1 ? 's' : '');
             }
 
-            return redirect()->back()->with('deleteError',
+            return redirect()->back()->with('error',
                 "Can't delete this PO. it has " . implode(', ', $parts) . ". Remove those first."
             );
         }
 
+        // Clean up attachments — files on disk aren't covered by DB FK
+        // constraints since this is a polymorphic relation, so they have
+        // to be removed manually before the PO record itself is deleted.
+        foreach ($purchaseOrder->attachments as $attachment) {
+            Storage::disk('public')->delete($attachment->file_path);
+        }
+        $purchaseOrder->attachments()->delete();
+
         $purchaseOrder->delete();
 
         return redirect()->back()->with('success', 'Purchase order deleted.');
-    }    
+    }
+
+    public function uploadAttachments(Request $request, ServePo $purchaseOrder)
+    {
+        $request->validate([
+            'files' => 'required|array',
+            'files.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB each
+        ]);
+
+        foreach ($request->file('files') as $file) {
+            $path = $file->store('po-attachments/' . $purchaseOrder->po_number, 'public');
+
+            $purchaseOrder->attachments()->create([
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+            ]);
+        }
+
+        return back();
+    }
+
+    public function deleteAttachment(Attachment $attachment)
+    {
+        Storage::disk('public')->delete($attachment->file_path);
+        $attachment->delete();
+
+        return back();
+    }
 }
