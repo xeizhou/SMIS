@@ -1,3 +1,4 @@
+import { RefreshCw } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -87,6 +88,8 @@ interface SelectFieldProps {
     required?: boolean;
     placeholder?: string;
     options: { value: string; label: string }[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
 }
 
 function SelectField({
@@ -97,13 +100,28 @@ function SelectField({
     required = false,
     placeholder = 'Select...',
     options,
+    onRefresh,
+    isRefreshing = false,
 }: SelectFieldProps) {
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
             <Select value={value} onValueChange={onChange}>
                 <SelectTrigger className="w-full">
                     <SelectValue placeholder={placeholder} />
@@ -151,6 +169,16 @@ function calculateBalance(values: Record<string, string>) {
 }
 
 export default function RegSPIAddForm({ open, onOpenChange, rrsps, fundClusters }: Props) {
+
+    const [refreshingField, setRefreshingField] = useState<string | null>(null);
+
+    const handleRefreshData = (field: string) => {
+        setRefreshingField(field);
+        router.reload({
+            only: ['rrsps', 'fundClusters'],
+            onFinish: () => setRefreshingField(null),
+        });
+    };
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
