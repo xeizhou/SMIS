@@ -42,6 +42,8 @@ export interface PurchaseOrder {
     fund_cluster_id: string | null;
     supplier_id: number | null;
     end_user: string | null;
+    po_received_date: string | null;
+    due_date: string | null;
 }
 
 export interface Pir {

@@ -43,6 +43,8 @@ interface PurchaseOrder {
     fund_cluster_id: string | null;
     supplier_id: number | null;
     end_user: string | null;
+    po_received_date: string | null;
+    due_date: string | null;
 }
 
 interface Props {
@@ -143,6 +145,14 @@ function SelectField({
     );
 }
 
+function daysBetween(startDate: string, endDate: string) {
+    if (!startDate || !endDate) return 0;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diff = end.getTime() - start.getTime();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
 const STATUS_OPTIONS = [
     { value: 'COMPLETED', label: 'COMPLETED' },
     { value: 'CANCELLED', label: 'CANCELLED' },
@@ -213,7 +223,11 @@ export default function PirAddForm({
     };
 
     // PO Number is selected first; everything inherited from the PO gets
-    // auto-filled here. Fields stay editable afterward in case of corrections.
+    // auto-filled here, including delivery_term (calculated from the PO's
+    // own po_received_date/due_date, same daysBetween() logic used in
+    // DeliveryAddForm). Every field stays editable afterward in case of
+    // corrections — delivery_term included, in case a PO is missing dates
+    // or the true term needs a manual override.
     const handlePoChange = (value: string) => {
         const po = purchaseOrders.find((p) => p.po_number === value);
 
@@ -221,6 +235,15 @@ export default function PirAddForm({
             setData({ ...data, po_number: value });
             return;
         }
+
+        console.log({
+            po,
+            po_received_date: po.po_received_date,
+            due_date: po.due_date,
+        });
+
+        const poDateReceived = po.po_received_date ? po.po_received_date.slice(0, 10) : '';
+        const dueDate = po.due_date ? po.due_date.slice(0, 10) : '';
 
         setData({
             ...data,
@@ -234,6 +257,7 @@ export default function PirAddForm({
             ors_bur_date: po.ors_burs_date ? po.ors_burs_date.slice(0, 10) : '',
             po_amount: po.total_amount_po ? String(po.total_amount_po) : '',
             unit_office: po.end_user ?? '',
+            delivery_term: String(daysBetween(poDateReceived, dueDate)),
         });
     };
 
@@ -331,7 +355,7 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.delivery_term}
                                 disabled={!poSelected}
-                                placeholder="Select Delivery Term"
+                                placeholder="Auto-calculated from PO dates"
                             />
                             <SelectField
                                 label="Fund Cluster"
