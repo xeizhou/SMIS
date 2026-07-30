@@ -53,6 +53,8 @@ class IARController extends Controller
             'purchaseOrders' => ServePo::select(
                 'po_number',
                 'po_date',
+                'po_received_date',   // <-- add this
+                'due_date',           // <-- add this
                 'pr_number',
                 'pr_date',
                 'ors_burs_no',
