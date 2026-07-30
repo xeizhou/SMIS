@@ -17,6 +17,7 @@ use App\Http\Controllers\RegSPIController;
 use App\Http\Controllers\RRPPEController;
 use App\Http\Controllers\RRSPController;
 use App\Http\Controllers\StockItemsController;
+use App\Http\Controllers\StockItemsListController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransactionLogsController;
 use App\Http\Controllers\UnitsController;
@@ -160,6 +161,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/units', [UnitsController::class, 'store'])->name('units.store');
     Route::put('/units/{unit}', [UnitsController::class, 'update'])->name('units.update');
     Route::delete('/units/{unit}', [UnitsController::class, 'destroy'])->name('units.destroy');
+
+    Route::get('/stock-items-list', [StockItemsListController::class, 'index'])->name('stock-items-list.index');
 
     // Purchase Order Monitoring
     Route::get('/purchase-orders', [PurchaseOrdersController::class, 'index'])->name('purchase-orders.index');

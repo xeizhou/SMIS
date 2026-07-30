@@ -43,6 +43,7 @@ const platformNavItems: NavItem[] = [
 const StockNavItems: NavItem[] = [
     { title: 'Stock Items', href: '/stock-items' },
     { title: 'Transaction Logs', href: '/transaction-logs' },
+    { title: 'Stock Items List', href: '/stock-items-list' },
     { title: 'Units', href: '/units' },
 ];
 
