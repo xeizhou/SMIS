@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { Paperclip, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -175,32 +176,32 @@ const emptyForm = {
 
 function toDateInputValue(value: string | null | undefined) {
     if (!value) {
-return '';
-}
+        return '';
+    }
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-return value;
-}
+        return value;
+    }
 
     const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
 
     if (match) {
-return match[1];
-}
+        return match[1];
+    }
 
     const parsed = new Date(value);
 
     if (Number.isNaN(parsed.getTime())) {
-return '';
-}
+        return '';
+    }
 
     return parsed.toISOString().slice(0, 10);
 }
 
 function daysBetween(startDate: string, endDate: string) {
     if (!startDate || !endDate) {
-return 0;
-}
+        return 0;
+    }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -210,15 +211,36 @@ return 0;
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
+function formatBytes(bytes: number) {
+    const kb = bytes / 1024;
+    return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
+}
+
+// crypto.randomUUID() requires a secure context (localhost/HTTPS). When
+// serving over a plain-HTTP LAN IP (e.g. php artisan serve --host=192.168.x.x)
+// it's undefined, so we roll our own simple unique id instead.
+let fileIdCounter = 0;
+function generateFileId() {
+    fileIdCounter += 1;
+    return `file-${Date.now()}-${fileIdCounter}`;
+}
+
+interface FlashProps {
+    createdId?: number;
+}
+
 export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbers }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    const [files, setFiles] = useState<{ id: string; file: File }[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (open) {
             setData(emptyForm);
             setErrors({});
+            setFiles([]);
         }
     }, [open]);
 
@@ -264,6 +286,26 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
         });
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files) return;
+        const newFiles = Array.from(e.target.files).map((file) => ({
+            file,
+            id: generateFileId(),
+        }));
+        setFiles((prev) => [...prev, ...newFiles]);
+        e.target.value = '';
+    };
+
+    const removeFile = (id: string) => {
+        setFiles((prev) => prev.filter((f) => f.id !== id));
+    };
+
+    const resetForm = () => {
+        setData(emptyForm);
+        setErrors({});
+        setFiles([]);
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setProcessing(true);
@@ -277,10 +319,30 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
             '/po-letter-monitoring',
             payload,
             {
-                onSuccess: () => {
-                    onOpenChange(false);
-                    setData(emptyForm);
-                    setErrors({});
+                onSuccess: (page) => {
+                    const flash = page.props.flash as FlashProps;
+                    const newId = flash?.createdId;
+
+                    // Record created — id now exists, so any staged files
+                    // can be uploaded against it.
+                    if (files.length > 0 && newId) {
+                        const formData = new FormData();
+                        files.forEach(({ file }) => formData.append('files[]', file));
+                        router.post(
+                            `/po-letter-monitoring/${newId}/attachments`,
+                            formData,
+                            {
+                                forceFormData: true,
+                                onFinish: () => {
+                                    onOpenChange(false);
+                                    resetForm();
+                                },
+                            }
+                        );
+                    } else {
+                        onOpenChange(false);
+                        resetForm();
+                    }
                 },
                 onError: (errors) => setErrors(errors),
                 onFinish: () => setProcessing(false),
@@ -436,6 +498,52 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                             onChange={handleChange}
                             error={errors.remarks}
                         />
+
+                        {/* Attachments */}
+                        <div className="md:col-span-2">
+                            <label className={labelClass}>Attachments</label>
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
+                            >
+                                <Paperclip className="size-4" />
+                                Click to select files (PDF, JPG, PNG)
+                            </button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                className="hidden"
+                                onChange={handleFileSelect}
+                            />
+                            {files.length > 0 && (
+                                <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+                                    {files.map(({ id, file }) => (
+                                        <li
+                                            key={id}
+                                            className="flex items-center justify-between gap-3 px-3 py-2"
+                                        >
+                                            <span className="min-w-0 truncate text-sm">
+                                                {file.name}
+                                            </span>
+                                            <span className="shrink-0 text-xs text-muted-foreground">
+                                                {formatBytes(file.size)}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeFile(id)}
+                                                className="shrink-0 text-red-600 hover:text-red-800"
+                                                title="Remove"
+                                            >
+                                                <X className="size-4" />
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
                     </div>
 
                     <div className="mt-8 flex justify-end gap-3">

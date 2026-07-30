@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { Paperclip, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -28,6 +29,12 @@ interface PoNumberOption {
     due_date?: string | null;
 }
 
+interface Attachment {
+    id: number;
+    original_name: string;
+    url: string;
+}
+
 interface PoLetterRecord {
     id: number;
     reference_no: string | null;
@@ -46,6 +53,7 @@ interface PoLetterRecord {
     document_link: string | null;
     date_forwarded_to_end_user: string | null;
     remarks: string | null;
+    attachments?: Attachment[];
 }
 
 interface Props {
@@ -198,32 +206,32 @@ const emptyForm = {
 
 function toDateInputValue(value: string | null | undefined): string {
     if (!value) {
-return '';
-}
+        return '';
+    }
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-return value;
-}
+        return value;
+    }
 
     const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
 
     if (match) {
-return match[1];
-}
+        return match[1];
+    }
 
     const parsed = new Date(value);
 
     if (Number.isNaN(parsed.getTime())) {
-return '';
-}
+        return '';
+    }
 
     return parsed.toISOString().slice(0, 10);
 }
 
 function daysBetween(startDate: string, endDate: string) {
     if (!startDate || !endDate) {
-return 0;
-}
+        return 0;
+    }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -235,8 +243,8 @@ return 0;
 
 function toFormData(poLetter: PoLetterRecord | null) {
     if (!poLetter) {
-return emptyForm;
-}
+        return emptyForm;
+    }
 
     return {
         reference_no: poLetter.reference_no ?? '',
@@ -258,15 +266,34 @@ return emptyForm;
     };
 }
 
+function formatBytes(bytes: number) {
+    const kb = bytes / 1024;
+    return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
+}
+
+let fileIdCounter = 0;
+function generateFileId() {
+    fileIdCounter += 1;
+    return `file-${Date.now()}-${fileIdCounter}`;
+}
+
 export default function PoLetterEditForm({ open, onOpenChange, poLetter, suppliers, poNumbers }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
 
+    const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
+    const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
+    const [newFiles, setNewFiles] = useState<{ id: string; file: File }[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     useEffect(() => {
         if (open) {
             setData(toFormData(poLetter));
             setErrors({});
+            setExistingAttachments(poLetter?.attachments ?? []);
+            setDeletedAttachmentIds([]);
+            setNewFiles([]);
         }
     }, [open, poLetter]);
 
@@ -312,18 +339,38 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
         });
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files) return;
+        const added = Array.from(e.target.files).map((file) => ({
+            file,
+            id: generateFileId(),
+        }));
+        setNewFiles((prev) => [...prev, ...added]);
+        e.target.value = '';
+    };
+
+    const removeNewFile = (id: string) => {
+        setNewFiles((prev) => prev.filter((f) => f.id !== id));
+    };
+
+    const removeExistingAttachment = (id: number) => {
+        setExistingAttachments((prev) => prev.filter((a) => a.id !== id));
+        setDeletedAttachmentIds((prev) => [...prev, id]);
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!poLetter) {
-return;
-}
+            return;
+        }
 
         setProcessing(true);
 
         const payload = {
             ...data,
             delivery_term: Number(data.delivery_term) || 0,
+            deleted_attachment_ids: deletedAttachmentIds,
         };
 
         router.put(
@@ -331,8 +378,27 @@ return;
             payload,
             {
                 onSuccess: () => {
-                    onOpenChange(false);
-                    setErrors({});
+                    if (newFiles.length > 0) {
+                        const formData = new FormData();
+                        newFiles.forEach(({ file }) => formData.append('files[]', file));
+                        router.post(
+                            `/po-letter-monitoring/${poLetter.id}/attachments`,
+                            formData,
+                            {
+                                forceFormData: true,
+                                onFinish: () => {
+                                    onOpenChange(false);
+                                    setErrors({});
+                                    setNewFiles([]);
+                                    setDeletedAttachmentIds([]);
+                                },
+                            }
+                        );
+                    } else {
+                        onOpenChange(false);
+                        setErrors({});
+                        setDeletedAttachmentIds([]);
+                    }
                 },
                 onError: (errors) => setErrors(errors),
                 onFinish: () => setProcessing(false),
@@ -485,6 +551,76 @@ return;
                             onChange={handleChange}
                             error={errors.remarks}
                         />
+
+                        {/* Attachments */}
+                        <div className="md:col-span-2">
+                            <label className={labelClass}>Attachments</label>
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
+                            >
+                                <Paperclip className="size-4" />
+                                Click to select files (PDF, JPG, PNG)
+                            </button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                className="hidden"
+                                onChange={handleFileSelect}
+                            />
+
+                            {(existingAttachments.length > 0 || newFiles.length > 0) && (
+                                <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+                                    {existingAttachments.map((att) => (
+                                        <li
+                                            key={`existing-${att.id}`}
+                                            className="flex items-center justify-between gap-3 px-3 py-2"
+                                        >
+                                            <a   
+                                                href={att.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="min-w-0 truncate text-sm text-foreground hover:underline"
+                                            >
+                                                {att.original_name}
+                                            </a>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeExistingAttachment(att.id)}
+                                                className="shrink-0 text-red-600 hover:text-red-800"
+                                                title="Remove"
+                                            >
+                                                <X className="size-4" />
+                                            </button>
+                                        </li>
+                                    ))}
+                                    {newFiles.map(({ id, file }) => (
+                                        <li
+                                            key={`new-${id}`}
+                                            className="flex items-center justify-between gap-3 px-3 py-2"
+                                        >
+                                            <span className="min-w-0 truncate text-sm">
+                                                {file.name}
+                                            </span>
+                                            <span className="shrink-0 text-xs text-muted-foreground">
+                                                {formatBytes(file.size)}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeNewFile(id)}
+                                                className="shrink-0 text-red-600 hover:text-red-800"
+                                                title="Remove"
+                                            >
+                                                <X className="size-4" />
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
                     </div>
 
                     <div className="mt-8 flex justify-end gap-3">
