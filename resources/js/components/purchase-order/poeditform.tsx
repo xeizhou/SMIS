@@ -1,5 +1,4 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +17,16 @@ import {
 } from '@/components/ui/select';
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 import {
     Eye,
     File,
@@ -26,6 +35,10 @@ import {
     FileSpreadsheet,
     FileArchive,
     Trash2,
+    Paperclip,
+    X,
+    Check,
+    ChevronsUpDown
 } from "lucide-react";
 
 interface Supplier {
@@ -216,6 +229,90 @@ function SelectField({
                     ))}
                 </SelectContent>
             </Select>
+
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+// Custom Searchable Dropdown
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+
+    const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    return (
+        <div>
+            <label className={labelClass}>
+                {label}
+                {required && <span className="text-red-500"> *</span>}
+            </label>
+
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        {selectedLabel || placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {opt.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
 
             {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </div>
@@ -759,7 +856,7 @@ export default function PurchaseOrderEditForm({
                                         label="Total Amount ABC"
                                         name="total_amount_abc"
                                         type="number"
-                                        value={data.total_amount_abc}
+                                        value={data.total_amount_abc as string}
                                         onChange={handleChange}
                                         error={errors.total_amount_abc}
                                     />
@@ -768,7 +865,7 @@ export default function PurchaseOrderEditForm({
                                         label="Total Amount PO"
                                         name="total_amount_po"
                                         type="number"
-                                        value={data.total_amount_po}
+                                        value={data.total_amount_po as string}
                                         onChange={handleChange}
                                         error={errors.total_amount_po}
                                     />
@@ -849,24 +946,24 @@ export default function PurchaseOrderEditForm({
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <SelectField
+                                    <SearchableSelect
                                         label="Supplier"
-                                        value={data.supplier_id}
+                                        value={data.supplier_id as string}
                                         onChange={handleSelectChange('supplier_id')}
                                         error={errors.supplier_id}
-                                        placeholder="Select"
+                                        placeholder="Search Supplier..."
                                         options={suppliers.map((s) => ({
                                             value: String(s.supplier_id),
                                             label: s.supplier_name,
                                         }))}
                                     />
 
-                                    <SelectField
+                                    <SearchableSelect
                                         label="End User"
                                         value={data.end_user}
                                         onChange={handleSelectChange('end_user')}
                                         error={errors.end_user}
-                                        placeholder="Select"
+                                        placeholder="Search End User..."
                                         options={offices.map((o) => ({
                                             value: o.office_code,
                                             label: o.office_code,

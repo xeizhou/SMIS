@@ -182,7 +182,6 @@ interface SearchableSelectProps {
     options: { value: string; label: string }[];
 }
 
-
 function SearchableSelect({
     label,
     value,
@@ -203,7 +202,7 @@ function SearchableSelect({
                 {required && <span className="text-red-500"> *</span>}
             </label>
 
-            <Popover open={open} onOpenChange={setOpen}>
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
                 <PopoverTrigger asChild>
                     <Button
                         type="button"
@@ -224,7 +223,7 @@ function SearchableSelect({
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                     <Command>
                         <CommandInput placeholder={placeholder} />
-                        <CommandList>
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
                             <CommandEmpty>No item found.</CommandEmpty>
                             <CommandGroup>
                                 {options.map((opt) => (

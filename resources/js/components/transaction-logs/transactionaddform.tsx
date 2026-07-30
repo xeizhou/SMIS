@@ -188,7 +188,8 @@ function SearchableSelect({
                 {required && <span className="text-red-500"> *</span>}
             </label>
 
-            <Popover open={open} onOpenChange={setOpen}>
+            {/* Added modal={true} to allow scrolling inside the Dialog */}
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
                 <PopoverTrigger asChild>
                     <Button
                         type="button"
@@ -209,7 +210,8 @@ function SearchableSelect({
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                     <Command>
                         <CommandInput placeholder={placeholder} />
-                        <CommandList>
+                        {/* Added style here for max-height and scrolling */}
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
                             <CommandEmpty>No item found.</CommandEmpty>
                             <CommandGroup>
                                 {options.map((opt) => (

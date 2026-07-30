@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X } from 'lucide-react';
+import { Paperclip, X, Check, ChevronsUpDown } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 interface Supplier {
     supplier_id: number;
@@ -130,6 +140,91 @@ function SelectField({
     );
 }
 
+// Custom Searchable Dropdown
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+
+    const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    return (
+        <div>
+            <label className={labelClass}>
+                {label}
+                {required && <span className="text-red-500"> *</span>}
+            </label>
+
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        {selectedLabel || placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        {/* ADDED max-h and overflow-y-auto here to fix scrolling */}
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {opt.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
 const MODE_OF_PROCUREMENT_OPTIONS = [
     { value: 'SMALL VALUE PROCUREMENT', label: 'SMALL VALUE PROCUREMENT' },
     { value: 'SHOPPING', label: 'SHOPPING' },
@@ -180,9 +275,6 @@ function formatBytes(bytes: number) {
     return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
 }
 
-// crypto.randomUUID() requires a secure context (localhost/HTTPS). When
-// serving over a plain-HTTP LAN IP (e.g. php artisan serve --host=192.168.x.x)
-// it's undefined, so we roll our own simple unique id instead.
 let fileIdCounter = 0;
 function generateFileId() {
     fileIdCounter += 1;
@@ -253,8 +345,6 @@ export default function PurchaseOrderAddForm({
             },
             {
                 onSuccess: () => {
-                    // PO created successfully — po_number now exists in the
-                    // DB, so any selected files can be uploaded against it.
                     if (files.length > 0) {
                         const formData = new FormData();
                         files.forEach(({ file }) => formData.append('files[]', file));
@@ -555,24 +645,25 @@ export default function PurchaseOrderAddForm({
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <SelectField
+                                <SearchableSelect
                                     label="Supplier"
                                     value={data.supplier_id}
                                     onChange={handleSelectChange('supplier_id')}
                                     error={errors.supplier_id}
-                                    placeholder="-- Select Supplier --"
+                                    placeholder="Search Supplier..."
                                     options={suppliers.map((s) => ({
                                         value: String(s.supplier_id),
                                         label: s.supplier_name,
                                     }))}
                                 />
 
-                                <SelectField
+                                {/* Reverted label back to just office_code */}
+                                <SearchableSelect
                                     label="End User"
                                     value={data.end_user}
                                     onChange={handleSelectChange('end_user')}
                                     error={errors.end_user}
-                                    placeholder="-- Select End User --"
+                                    placeholder="Search End User..."
                                     options={offices.map((o) => ({
                                         value: o.office_code,
                                         label: o.office_code,
