@@ -118,7 +118,7 @@ export default function BonaVidaAddForm({ open, onOpenChange, offices }: Props) 
                                 <SelectContent>
                                     {offices.map((office) => (
                                         <SelectItem key={office.office_code} value={office.office_code}>
-                                            {office.office_code}
+                                            {office.office_name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
