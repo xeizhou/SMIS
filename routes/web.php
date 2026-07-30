@@ -179,6 +179,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/po-letter-monitoring', [POLetterMonitoringController::class, 'store'])->name('po-letter-monitoring.store');
     Route::put('/po-letter-monitoring/{poLetterMonitoring}', [POLetterMonitoringController::class, 'update'])->name('po-letter-monitoring.update');
     Route::delete('/po-letter-monitoring/{poLetterMonitoring}', [POLetterMonitoringController::class, 'destroy'])->name('po-letter-monitoring.destroy');
+    Route::post('/po-letter-monitoring/{poLetterMonitoring}/attachments', [POLetterMonitoringController::class, 'uploadAttachments'])
+    ->name('po-letter-monitoring.attachments.upload');
 
     Route::get('/deliveries', [DeliveriesController::class, 'index'])->name('deliveries.index');
     Route::post('/deliveries', [DeliveriesController::class, 'store'])->name('deliveries.store');

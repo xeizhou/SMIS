@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { Paperclip, X, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -198,6 +199,8 @@ interface SelectFieldProps {
     required?: boolean;
     placeholder?: string;
     options: { value: string; label: string }[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
 }
 
 function SelectField({
@@ -208,13 +211,28 @@ function SelectField({
     required = false,
     placeholder = 'Select...',
     options,
+    onRefresh,
+    isRefreshing = false,
 }: SelectFieldProps) {
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
 
             <Select value={value} onValueChange={onChange}>
                 <SelectTrigger className="w-full">
@@ -460,6 +478,15 @@ export default function PurchaseOrderEditForm({
     const [newFiles, setNewFiles] = useState<{ id: string; file: File }[]>([]);
     const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
     const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
+    const [refreshingField, setRefreshingField] = useState<string | null>(null);
+
+    const handleRefreshData = (field: string) => {
+        setRefreshingField(field);
+        router.reload({
+            only: ['suppliers', 'fundClusters', 'offices'],
+            onFinish: () => setRefreshingField(null),
+        });
+    };
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -894,6 +921,8 @@ export default function PurchaseOrderEditForm({
                                             value: fc.fund_cluster_id,
                                             label: fc.fund_cluster_id,
                                         }))}
+                                        onRefresh={() => handleRefreshData('fund_cluster')}
+                                        isRefreshing={refreshingField === 'fund_cluster'}
                                     />
                                 </div>
 
@@ -956,6 +985,8 @@ export default function PurchaseOrderEditForm({
                                             value: String(s.supplier_id),
                                             label: s.supplier_name,
                                         }))}
+                                        onRefresh={() => handleRefreshData('supplier')}
+                                        isRefreshing={refreshingField === 'supplier'}
                                     />
 
                                     <SearchableSelect
@@ -968,6 +999,8 @@ export default function PurchaseOrderEditForm({
                                             value: o.office_code,
                                             label: o.office_code,
                                         }))}
+                                        onRefresh={() => handleRefreshData('end_user')}
+                                        isRefreshing={refreshingField === 'end_user'}
                                     />
                                 </div>
 

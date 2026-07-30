@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -105,10 +105,23 @@ function Field({
 }: FieldProps) {
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
 
             <Input
                 type={type}
@@ -133,6 +146,8 @@ interface SelectFieldProps {
     placeholder?: string;
     disabled?: boolean;
     options: { value: string; label: string }[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
 }
 
 function SelectField({
@@ -144,6 +159,8 @@ function SelectField({
     placeholder = 'Select...',
     disabled = false,
     options,
+    onRefresh,
+    isRefreshing = false,
 }: SelectFieldProps) {
     return (
         <div>
@@ -280,6 +297,16 @@ export default function TransactionEditForm({
     offices,
     stockItems,
 }: Props) {
+
+    const [refreshingField, setRefreshingField] = useState<string | null>(null);
+
+    const handleRefreshData = (field: string) => {
+        setRefreshingField(field);
+        router.reload({
+            only: ['stockItems', 'fundClusters', 'offices'],
+            onFinish: () => setRefreshingField(null),
+        });
+    };
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
@@ -421,6 +448,7 @@ export default function TransactionEditForm({
                                 onChange={handleSelectChange('unitID')}
                                 error={errors.unitID}
                                 required
+                                disabled
                                 placeholder="-- Select Unit --"
                                 options={Array.from(
                                     new Map(
