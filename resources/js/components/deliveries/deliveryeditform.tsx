@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X RefreshCw } from 'lucide-react';
+import { Paperclip, X, RefreshCw } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -80,6 +80,9 @@ interface FieldProps {
     type?: string;
     readOnly?: boolean;
     disabled?: boolean;
+
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
@@ -95,6 +98,8 @@ function Field({
     type = 'text',
     readOnly = false,
     disabled = false,
+    onRefresh,
+    isRefreshing = false,
 }: FieldProps) {
     return (
         <div>
