@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class ServePo extends Model
 {
@@ -87,4 +88,8 @@ class ServePo extends Model
     {
         return $this->belongsTo(Office::class, 'end_user', 'office_code');
     }
+    public function attachments(): MorphMany
+    {
+    return $this->morphMany(Attachment::class, 'attachable');
+}
 }

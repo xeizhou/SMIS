@@ -5,6 +5,20 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+
+import {
+    Eye,
+    File,
+    FileImage,
+    FileText,
+    FileSpreadsheet,
+    FileArchive,
+} from "lucide-react";
+
 interface Supplier {
     supplier_id: number;
     supplier_name: string;
@@ -18,6 +32,12 @@ interface FundCluster {
 interface Office {
     office_code: string;
     office_name: string;
+}
+
+interface Attachment {
+    id: number;
+    original_name: string;
+    url: string;
 }
 
 interface PurchaseOrder {
@@ -47,6 +67,7 @@ interface PurchaseOrder {
     supplier: Supplier | null;
     fundCluster: FundCluster | null;
     office: Office | null;
+    attachments?: Attachment[];
 }
 
 interface Props {
@@ -57,8 +78,7 @@ interface Props {
 
 const labelClass = 'text-xs font-medium text-muted-foreground';
 const valueClass = 'text-sm text-foreground mt-0.5';
-const sectionTitleClass =
-    'text-xs font-semibold uppercase tracking-wide text-muted-foreground/80 mb-3 pb-2 border-b';
+const sectionTitleClass = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground/80 mb-3 pb-2 border-b';
 
 function Detail({ label, value }: { label: string; value: string }) {
     return (
@@ -69,58 +89,79 @@ function Detail({ label, value }: { label: string; value: string }) {
     );
 }
 
+function getExtension(filename: string) {
+    return filename.split(".").pop()?.toLowerCase() ?? "";
+}
+
+function getFileType(filename: string) {
+    const ext = getExtension(filename);
+
+    if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext))
+        return "image";
+
+    if (ext === "pdf")
+        return "pdf";
+
+    if (["doc", "docx"].includes(ext))
+        return "word";
+
+    if (["xls", "xlsx", "csv"].includes(ext))
+        return "excel";
+
+    if (["zip", "rar", "7z"].includes(ext))
+        return "archive";
+
+    return "file";
+}
+
+function FileIcon({ type }: { type: string }) {
+    switch (type) {
+        case "image":
+            return <FileImage className="h-5 w-5 text-blue-500" />;
+
+        case "pdf":
+            return <FileText className="h-5 w-5 text-red-500" />;
+
+        case "word":
+            return <FileText className="h-5 w-5 text-blue-600" />;
+
+        case "excel":
+            return <FileSpreadsheet className="h-5 w-5 text-green-600" />;
+
+        case "archive":
+            return <FileArchive className="h-5 w-5 text-yellow-600" />;
+
+        default:
+            return <File className="h-5 w-5 text-muted-foreground" />;
+    }
+}
+
 function formatCurrency(value: string | number | null | undefined) {
-    if (value === null || value === undefined) {
-return '—';
-}
-
+    if (value === null || value === undefined) return '—';
     const numeric = typeof value === 'string' ? parseFloat(value) : value;
-
-    if (Number.isNaN(numeric)) {
-return '—';
-}
-
-    return numeric.toLocaleString('en-PH', {
-        style: 'currency',
-        currency: 'PHP',
-    });
+    if (Number.isNaN(numeric)) return '—';
+    return numeric.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
 }
 
 function formatDate(value: string | null) {
-    if (!value) {
-return '—';
+    if (!value) return '—';
+    return new Date(value).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-    return new Date(value).toLocaleDateString('en-PH', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-    });
-}
-
-export default function PurchaseOrderViewForm({
-    open,
-    onOpenChange,
-    purchaseOrder,
-}: Props) {
-    if (!purchaseOrder) {
-return null;
-}
+export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrder }: Props) {
+    if (!purchaseOrder) return null;
 
     const po = purchaseOrder;
+    const attachments = po.attachments ?? [];
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent
-                className="w-[95vw] max-h-[90vh] overflow-y-auto"
-                style={{ maxWidth: '800px' }}
-            >
+            <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto" style={{ maxWidth: '800px' }}>
                 <DialogHeader>
                     <DialogTitle>Purchase Order Details — {po.po_number}</DialogTitle>
                 </DialogHeader>
 
                 <div className="mt-2 space-y-6">
-                    {/* Identifiers & Dates */}
                     <section>
                         <p className={sectionTitleClass}>Order Information</p>
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -131,16 +172,12 @@ return null;
                             <Detail label="Inclusive Date" value={po.inclusive_date ?? '—'} />
                             <Detail label="Mode of Procurement" value={po.mode_of_procurement ?? '—'} />
                         </div>
-
                         <div className="mt-4">
                             <p className={labelClass}>Item Description</p>
-                            <p className={valueClass + ' whitespace-pre-wrap'}>
-                                {po.item_description ?? '—'}
-                            </p>
+                            <p className={valueClass + ' whitespace-pre-wrap'}>{po.item_description ?? '—'}</p>
                         </div>
                     </section>
 
-                    {/* PR / PhilGEPS */}
                     <section>
                         <p className={sectionTitleClass}>Requisition & Reference</p>
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -150,7 +187,6 @@ return null;
                         </div>
                     </section>
 
-                    {/* Financial */}
                     <section>
                         <p className={sectionTitleClass}>Financial Details</p>
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -165,7 +201,6 @@ return null;
                         </div>
                     </section>
 
-                    {/* Supplier / End User */}
                     <section>
                         <p className={sectionTitleClass}>Supplier & End User</p>
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -174,7 +209,6 @@ return null;
                         </div>
                     </section>
 
-                    {/* Processing Trail */}
                     <section>
                         <p className={sectionTitleClass}>Processing Trail</p>
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -182,6 +216,77 @@ return null;
                             <Detail label="COA Processed Date" value={formatDate(po.coa_processed_date)} />
                             <Detail label="Date Forwarded to Frontdesk" value={formatDate(po.date_forwarded_frontdesk)} />
                         </div>
+                    </section>
+
+                    <section className="border-t pt-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
+                                Attachments
+                            </h3>
+
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                                {attachments.length}
+                            </Badge>
+                        </div>
+
+                        {attachments.length === 0 ? (
+                            <div className="flex items-center gap-2 rounded-md border border-dashed py-4 px-3 text-sm text-muted-foreground">
+                                <File className="h-4 w-4" />
+                                No attachments uploaded.
+                            </div>
+                        ) : (
+                            <ScrollArea className="max-h-[220px]">
+                                <div className="space-y-1.5 pr-2">
+                                    {attachments.map((att) => {
+                                        const type = getFileType(att.original_name);
+
+                                        return (
+                                            <div
+                                                key={att.id}
+                                                className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
+                                            >
+                                                <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                    {type === "image" ? (
+                                                        <img
+                                                            src={att.url}
+                                                            alt={att.original_name}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <FileIcon type={type} />
+                                                    )}
+                                                </div>
+
+                                                <p className="flex-1 truncate text-sm">
+                                                    {att.original_name}
+                                                </p>
+
+                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 shrink-0">
+                                                    {getExtension(att.original_name).toUpperCase()}
+                                                </Badge>
+
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7 shrink-0"
+                                                    asChild
+                                                >
+                                                    <a
+                                                        href={att.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        <Eye className="h-3.5 w-3.5" />
+                                                    </a>
+                                                </Button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </ScrollArea>
+                        )}
+
+                        <Separator className="mt-4" />
                     </section>
                 </div>
             </DialogContent>

@@ -166,6 +166,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/purchase-orders', [PurchaseOrdersController::class, 'store'])->name('purchase-orders.store');
     Route::put('/purchase-orders/{servePo}', [PurchaseOrdersController::class, 'update'])->name('purchase-orders.update');
     Route::delete('/purchase-orders/{purchaseOrder}', [PurchaseOrdersController::class, 'destroy'])->name('purchase-orders.destroy');
+    Route::post('/purchase-orders/{purchaseOrder}/attachments', [PurchaseOrdersController::class, 'uploadAttachments'])
+        ->name('purchase-orders.attachments.upload');
+
+    Route::delete('/attachments/{attachment}', [PurchaseOrdersController::class, 'deleteAttachment'])
+        ->name('attachments.delete');
 
     Route::get('/po-letter-monitoring', [POLetterMonitoringController::class, 'index'])->name('po-letter-monitoring.index');
     Route::post('/po-letter-monitoring', [POLetterMonitoringController::class, 'store'])->name('po-letter-monitoring.store');

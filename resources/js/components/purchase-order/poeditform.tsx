@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
+import { Paperclip, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -15,6 +16,17 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+    Eye,
+    File,
+    FileImage,
+    FileText,
+    FileSpreadsheet,
+    FileArchive,
+    Trash2,
+} from "lucide-react";
 
 interface Supplier {
     supplier_id: number;
@@ -29,6 +41,13 @@ interface FundCluster {
 interface Office {
     office_code: string;
     office_name: string;
+}
+
+interface Attachment {
+    id: number;
+    original_name: string;
+    file_size: number;
+    created_at: string;
 }
 
 interface PurchaseOrder {
@@ -54,6 +73,7 @@ interface PurchaseOrder {
     date_forwarded_to_smu: string | null;
     coa_processed_date: string | null;
     date_forwarded_frontdesk: string | null;
+    attachments?: Attachment[];
 }
 
 interface Props {
@@ -77,6 +97,53 @@ interface FieldProps {
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
+
+function getExtension(filename: string) {
+    return filename.split(".").pop()?.toLowerCase() ?? "";
+}
+
+function getFileType(filename: string) {
+    const ext = getExtension(filename);
+
+    if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext))
+        return "image";
+
+    if (ext === "pdf")
+        return "pdf";
+
+    if (["doc", "docx"].includes(ext))
+        return "word";
+
+    if (["xls", "xlsx", "csv"].includes(ext))
+        return "excel";
+
+    if (["zip", "rar", "7z"].includes(ext))
+        return "archive";
+
+    return "file";
+}
+
+function FileIcon({ type }: { type: string }) {
+    switch (type) {
+        case "image":
+            return <FileImage className="h-5 w-5 text-blue-500" />;
+
+        case "pdf":
+            return <FileText className="h-5 w-5 text-red-500" />;
+
+        case "word":
+            return <FileText className="h-5 w-5 text-blue-600" />;
+
+        case "excel":
+            return <FileSpreadsheet className="h-5 w-5 text-green-600" />;
+
+        case "archive":
+            return <FileArchive className="h-5 w-5 text-yellow-600" />;
+
+        default:
+            return <File className="h-5 w-5 text-muted-foreground" />;
+    }
+}
 
 // Defined outside the parent component so it doesn't remount (and drop
 // focus) on every parent re-render.
@@ -188,35 +255,35 @@ const emptyForm = {
 
 function toDateInputValue(value: string | null): string {
     if (!value) {
-return '';
-}
+        return '';
+    }
 
     // Already in YYYY-MM-DD form
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-return value;
-}
+        return value;
+    }
 
     // ISO timestamp (e.g. "2026-01-15T00:00:00.000000Z") — just slice it
     const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
 
     if (match) {
-return match[1];
-}
+        return match[1];
+    }
 
     // Fallback: let the Date constructor try, guard against Invalid Date
     const parsed = new Date(value);
 
     if (Number.isNaN(parsed.getTime())) {
-return '';
-}
+        return '';
+    }
 
     return parsed.toISOString().slice(0, 10);
 }
 
 function toFormData(po: PurchaseOrder | null): typeof emptyForm {
     if (!po) {
-return emptyForm;
-}
+        return emptyForm;
+    }
 
     return {
         po_number: po.po_number ?? '',
@@ -267,6 +334,20 @@ function calculateResponsibilityCenter(fundClusterId: string, endUser: string) {
     return [fundClusterId, endUser].filter(Boolean).join(' ');
 }
 
+function formatBytes(bytes: number) {
+    const kb = bytes / 1024;
+    return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
+}
+
+// crypto.randomUUID() requires a secure context (localhost/HTTPS). When
+// serving over a plain-HTTP LAN IP (e.g. php artisan serve --host=192.168.x.x)
+// it's undefined, so we roll our own simple unique id instead.
+let fileIdCounter = 0;
+function generateFileId() {
+    fileIdCounter += 1;
+    return `file-${Date.now()}-${fileIdCounter}`;
+}
+
 export default function PurchaseOrderEditForm({
     open,
     onOpenChange,
@@ -279,6 +360,11 @@ export default function PurchaseOrderEditForm({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [newFiles, setNewFiles] = useState<{ id: string; file: File }[]>([]);
+    const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
+    const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Re-sync form state whenever a different PO is opened for editing.
     useEffect(() => {
@@ -286,6 +372,9 @@ export default function PurchaseOrderEditForm({
             setData(toFormData(purchaseOrder));
             setErrors({});
             setShowConfirmModal(false);
+            setNewFiles([]);
+            setExistingAttachments(purchaseOrder?.attachments ?? []);
+            setDeletedAttachmentIds([]);
         }
     }, [open, purchaseOrder]);
 
@@ -309,6 +398,25 @@ export default function PurchaseOrderEditForm({
         });
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files) return;
+        const selectedFiles = Array.from(e.target.files).map((file) => ({
+            file,
+            id: generateFileId(),
+        }));
+        setNewFiles((prev) => [...prev, ...selectedFiles]);
+        e.target.value = '';
+    };
+
+    const removeNewFile = (id: string) => {
+        setNewFiles((prev) => prev.filter((f) => f.id !== id));
+    };
+
+    const removeExistingAttachment = (attachmentId: number) => {
+        setExistingAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+        setDeletedAttachmentIds((prev) => [...prev, attachmentId]);
+    };
+
     // Fires the actual PUT request. Note: the URL still uses the ORIGINAL
     // po_number to identify the record; data.po_number (possibly changed)
     // is sent in the body so the backend can rename it.
@@ -323,11 +431,33 @@ export default function PurchaseOrderEditForm({
                 ...data,
                 total_amount_diff: diff,
                 responsibility_center: responsibilityCenter,
+                deleted_attachment_ids: deletedAttachmentIds,
             },
             {
                 onSuccess: () => {
-                    onOpenChange(false);
-                    setErrors({});
+                    // PO updated successfully — if there are new files,
+                    // upload them against the PO (using the original po_number).
+                    if (newFiles.length > 0) {
+                        const formData = new FormData();
+                        newFiles.forEach(({ file }) => formData.append('files[]', file));
+
+                        router.post(
+                            `/purchase-orders/${encodeURIComponent(purchaseOrder.po_number)}/attachments`,
+                            formData,
+                            {
+                                forceFormData: true,
+                                onFinish: () => {
+                                    onOpenChange(false);
+                                    setNewFiles([]);
+                                    setDeletedAttachmentIds([]);
+                                },
+                            }
+                        );
+                    } else {
+                        onOpenChange(false);
+                        setNewFiles([]);
+                        setDeletedAttachmentIds([]);
+                    }
                 },
                 onError: (errors) => setErrors(errors),
                 onFinish: () => setProcessing(false),
@@ -357,9 +487,9 @@ export default function PurchaseOrderEditForm({
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent
-                        className="w-[95vw] max-h-[90vh] overflow-y-auto"
-                        style={{ maxWidth: '1200px' }}
-                    >
+                    className="w-[95vw] max-h-[90vh] overflow-y-auto"
+                    style={{ maxWidth: '1200px' }}
+                >
                     <DialogHeader>
                         <DialogTitle>Edit Purchase Order</DialogTitle>
                     </DialogHeader>
@@ -472,6 +602,154 @@ export default function PurchaseOrderEditForm({
                                         <p className="mt-1 text-xs text-red-500">{errors.item_description}</p>
                                     )}
                                 </div>
+
+                                {/* Attachments */}
+                                <div>
+                                    <label className={labelClass}>Attachments</label>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
+                                    >
+                                        <Paperclip className="size-4" />
+                                        Click to select files (PDF, JPG, PNG)
+                                    </button>
+
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        multiple
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        className="hidden"
+                                        onChange={handleFileSelect}
+                                    />
+
+                                    {/* Existing Attachments */}
+                                    {existingAttachments.length > 0 && (
+                                        <div className="mt-3">
+                                            <p className="text-xs font-medium text-muted-foreground mb-2">Existing Files</p>
+                                                <ScrollArea className="max-h-[180px]">
+                                                    <div className="space-y-1.5">
+                                                        {existingAttachments.map((att) => {
+                                                            const type = getFileType(att.original_name);
+
+                                                            return (
+                                                                <div
+                                                                    key={att.id}
+                                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
+                                                                >
+                                                                    <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                                        <FileIcon type={type} />
+                                                                    </div>
+
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <p className="truncate text-sm">
+                                                                            {att.original_name}
+                                                                        </p>
+
+                                                                        <p className="text-[11px] text-muted-foreground">
+                                                                            {formatBytes(att.file_size)}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <Badge
+                                                                        variant="outline"
+                                                                        className="text-[10px] h-5"
+                                                                    >
+                                                                        {getExtension(att.original_name).toUpperCase()}
+                                                                    </Badge>
+
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-7 w-7"
+                                                                        asChild
+                                                                    >
+                                                                        <a
+                                                                            href={`/purchase-orders/attachments/${att.id}`}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                        >
+                                                                            <Eye className="h-3.5 w-3.5" />
+                                                                        </a>
+                                                                    </Button>
+
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-7 w-7 text-red-500 hover:text-red-600"
+                                                                        onClick={() => removeExistingAttachment(att.id)}
+                                                                    >
+                                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </ScrollArea>
+                                        </div>
+                                    )}
+
+                                    {/* New Files */}
+                                    {newFiles.length > 0 && (
+                                        <div className="mt-3">
+                                            <p className="text-xs font-medium text-muted-foreground mb-2">New Files</p>
+                                                <ScrollArea className="max-h-[180px]">
+                                                    <div className="space-y-1.5">
+                                                        {newFiles.map(({ id, file }) => {
+                                                            const type = getFileType(file.name);
+
+                                                            return (
+                                                                <div
+                                                                    key={id}
+                                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
+                                                                >
+                                                                    <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                                        {type === "image" ? (
+                                                                            <img
+                                                                                src={URL.createObjectURL(file)}
+                                                                                alt={file.name}
+                                                                                className="h-full w-full object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <FileIcon type={type} />
+                                                                        )}
+                                                                    </div>
+
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <p className="truncate text-sm">
+                                                                            {file.name}
+                                                                        </p>
+
+                                                                        <p className="text-[11px] text-muted-foreground">
+                                                                            {formatBytes(file.size)}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <Badge
+                                                                        variant="outline"
+                                                                        className="text-[10px] h-5"
+                                                                    >
+                                                                        {getExtension(file.name).toUpperCase()}
+                                                                    </Badge>
+
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-7 w-7 text-red-500 hover:text-red-600"
+                                                                        onClick={() => removeNewFile(id)}
+                                                                    >
+                                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </ScrollArea>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Right column */}
@@ -549,6 +827,8 @@ export default function PurchaseOrderEditForm({
 
                                         <Input
                                             value={responsibilityCenter}
+                                            readOnly
+                                            className="bg-muted text-muted-foreground"
                                             placeholder="Fund Cluster + End User"
                                         />
 

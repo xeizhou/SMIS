@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { useState } from 'react';
+import { Paperclip, X } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -167,11 +168,25 @@ function calculateDiff(abc: string, po: string) {
     const safeAbc = Number.isNaN(abcValue) ? 0 : abcValue;
     const safePo = Number.isNaN(poValue) ? 0 : poValue;
 
-    return safePo- safeAbc;
+    return safeAbc - safePo;
 }
 
 function calculateResponsibilityCenter(fundClusterId: string, endUser: string) {
     return [fundClusterId, endUser].filter(Boolean).join(' ');
+}
+
+function formatBytes(bytes: number) {
+    const kb = bytes / 1024;
+    return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
+}
+
+// crypto.randomUUID() requires a secure context (localhost/HTTPS). When
+// serving over a plain-HTTP LAN IP (e.g. php artisan serve --host=192.168.x.x)
+// it's undefined, so we roll our own simple unique id instead.
+let fileIdCounter = 0;
+function generateFileId() {
+    fileIdCounter += 1;
+    return `file-${Date.now()}-${fileIdCounter}`;
 }
 
 export default function PurchaseOrderAddForm({
@@ -184,6 +199,7 @@ export default function PurchaseOrderAddForm({
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    const [files, setFiles] = useState<{ id: string; file: File }[]>([]);
 
     const diff = calculateDiff(data.total_amount_abc, data.total_amount_po);
     const responsibilityCenter = calculateResponsibilityCenter(data.fund_cluster_id, data.end_user);
@@ -202,6 +218,28 @@ export default function PurchaseOrderAddForm({
         });
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files) return;
+        const newFiles = Array.from(e.target.files).map((file) => ({
+            file,
+            id: generateFileId(),
+        }));
+        setFiles((prev) => [...prev, ...newFiles]);
+        e.target.value = '';
+    };
+
+    const removeFile = (id: string) => {
+        setFiles((prev) => prev.filter((f) => f.id !== id));
+    };
+
+    const resetForm = () => {
+        setData(emptyForm);
+        setErrors({});
+        setFiles([]);
+    };
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setProcessing(true);
@@ -215,9 +253,27 @@ export default function PurchaseOrderAddForm({
             },
             {
                 onSuccess: () => {
-                    onOpenChange(false);
-                    setData(emptyForm);
-                    setErrors({});
+                    // PO created successfully — po_number now exists in the
+                    // DB, so any selected files can be uploaded against it.
+                    if (files.length > 0) {
+                        const formData = new FormData();
+                        files.forEach(({ file }) => formData.append('files[]', file));
+
+                        router.post(
+                            `/purchase-orders/${data.po_number}/attachments`,
+                            formData,
+                            {
+                                forceFormData: true,
+                                onFinish: () => {
+                                    onOpenChange(false);
+                                    resetForm();
+                                },
+                            }
+                        );
+                    } else {
+                        onOpenChange(false);
+                        resetForm();
+                    }
                 },
                 onError: (errors) => setErrors(errors),
                 onFinish: () => setProcessing(false),
@@ -340,10 +396,60 @@ export default function PurchaseOrderAddForm({
                                     }
                                     rows={4}
                                     className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                    placeholder='KEYBOARD 5pcs'
                                 />
 
                                 {errors.item_description && (
                                     <p className="mt-1 text-xs text-red-500">{errors.item_description}</p>
+                                )}
+                            </div>
+
+                            {/* Attachments */}
+                            <div>
+                                <label className={labelClass}>Attachments</label>
+
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
+                                >
+                                    <Paperclip className="size-4" />
+                                    Click to select files (PDF, JPG, PNG)
+                                </button>
+
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    multiple
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    className="hidden"
+                                    onChange={handleFileSelect}
+                                />
+
+                                {files.length > 0 && (
+                                    <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+                                        {files.map(({ id, file }) => (
+                                            <li
+                                                key={id}
+                                                className="flex items-center justify-between gap-3 px-3 py-2"
+                                            >
+                                                <span className="min-w-0 truncate text-sm">
+                                                    {file.name}
+                                                </span>
+                                                <span className="shrink-0 text-xs text-muted-foreground">
+                                                    {formatBytes(file.size)}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeFile(id)}
+                                                    className="shrink-0 text-red-600 hover:text-red-800"
+                                                    title="Remove"
+                                                >
+                                                    <X className="size-4" />
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 )}
                             </div>
                         </div>
@@ -426,6 +532,8 @@ export default function PurchaseOrderAddForm({
 
                                     <Input
                                         value={responsibilityCenter}
+                                        readOnly
+                                        className="bg-muted text-muted-foreground"
                                         placeholder="Fund Cluster + End User"
                                     />
 
