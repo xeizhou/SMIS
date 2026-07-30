@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Delivery;
 use App\Models\ServePo;
 use App\Models\Supplier;
+use App\Models\Attachment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,6 +27,7 @@ class DeliveriesController extends Controller
             ->with([
                 'supplier:supplier_id,supplier_name',
                 'servePo:po_number,total_amount_po,end_user,due_date,po_received_date,supplier_id,item_description',
+                'attachments',
             ])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -118,10 +121,27 @@ class DeliveriesController extends Controller
             'total_amount_delivered' => ['nullable', 'numeric', 'min:0'],
             'po_total_amount' => ['nullable', 'numeric', 'min:0'],
             'folder_link' => ['nullable', 'string', 'max:500'],
+            'deleted_attachment_ids' => ['nullable', 'array'],
+            'deleted_attachment_ids.*' => ['integer'],
         ]);
 
         $validated['total_amount_delivered'] ??= 0;
         $validated['po_total_amount'] ??= 0;
+
+        // Handle deleted attachments before updating delivery
+        $deletedAttachmentIds = $validated['deleted_attachment_ids'] ?? [];
+        if ($deletedAttachmentIds) {
+            foreach ($deletedAttachmentIds as $attachmentId) {
+                $attachment = Attachment::find($attachmentId);
+                if ($attachment) {
+                    Storage::disk('public')->delete($attachment->file_path);
+                    $attachment->delete();
+                }
+            }
+        }
+
+        // Remove deleted_attachment_ids from validated data before saving
+        unset($validated['deleted_attachment_ids']);
 
         $delivery->update($validated);
 
@@ -133,8 +153,51 @@ class DeliveriesController extends Controller
      */
     public function destroy(Delivery $delivery): RedirectResponse
     {
+        // Clean up attachments — files on disk aren't covered by DB FK
+        // constraints since this is a polymorphic relation, so they have
+        // to be removed manually before the delivery record itself is deleted.
+        foreach ($delivery->attachments as $attachment) {
+            Storage::disk('public')->delete($attachment->file_path);
+        }
+        $delivery->attachments()->delete();
+
         $delivery->delete();
 
         return redirect()->back();
+    }
+
+    /**
+     * Upload attachments for a delivery.
+     */
+    public function uploadAttachments(Request $request, Delivery $delivery)
+    {
+        $request->validate([
+            'files' => 'required|array',
+            'files.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB each
+        ]);
+
+        foreach ($request->file('files') as $file) {
+            $path = $file->store('delivery-attachments/' . $delivery->delivery_id, 'public');
+
+            $delivery->attachments()->create([
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+            ]);
+        }
+
+        return back();
+    }
+
+    /**
+     * Delete an attachment.
+     */
+    public function deleteAttachment(Attachment $attachment)
+    {
+        Storage::disk('public')->delete($attachment->file_path);
+        $attachment->delete();
+
+        return back();
     }
 }
