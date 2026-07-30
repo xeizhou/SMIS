@@ -36,12 +36,9 @@ import {
     FileSpreadsheet,
     FileArchive,
     Trash2,
-    Paperclip,
-    X,
     Check,
-    ChevronsUpDown
+    ChevronsUpDown,
 } from "lucide-react";
-
 interface Supplier {
     supplier_id: number;
     supplier_name: string;
@@ -262,6 +259,9 @@ interface SearchableSelectProps {
     required?: boolean;
     placeholder?: string;
     options: { value: string; label: string }[];
+
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
 }
 
 function SearchableSelect({
@@ -272,6 +272,8 @@ function SearchableSelect({
     required = false,
     placeholder = 'Search...',
     options,
+    onRefresh,
+    isRefreshing = false,
 }: SearchableSelectProps) {
     const [open, setOpen] = useState(false);
 
