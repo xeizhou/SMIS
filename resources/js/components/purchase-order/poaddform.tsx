@@ -131,7 +131,7 @@ function SelectField({
 }
 
 const MODE_OF_PROCUREMENT_OPTIONS = [
-    { value: 'SMALL VALUE PROCURMENT', label: 'SMALL VALUE PROCURMENT' },
+    { value: 'SMALL VALUE PROCUREMENT', label: 'SMALL VALUE PROCUREMENT' },
     { value: 'SHOPPING', label: 'SHOPPING' },
     { value: 'PUBLIC BIDDING', label: 'PUBLIC BIDDING' },
 ];
