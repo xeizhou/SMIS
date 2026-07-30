@@ -1,455 +1,245 @@
-import { router } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+    Eye,
+    File,
+    FileImage,
+    FileText,
+    FileSpreadsheet,
+    FileArchive,
+} from "lucide-react";
+
+interface Attachment {
+    id: number;
+    original_name: string;
+    url: string;
+}
 
 interface SupplierOption {
     supplier_id: number;
     supplier_name: string;
 }
 
-interface PurchaseOrderOption {
+interface DeliveryRecord {
+    delivery_id: string;
     po_number: string;
     supplier_id: number | null;
-    supplier: SupplierOption | null;
-    total_amount_po: string | number | null;
-    end_user: string | null;
+    supplier?: SupplierOption | null;
+    delivery_date: string | null;
+    po_date_received: string | null;
+    delivery_term: string | null;
     due_date: string | null;
-    po_received_date: string | null;
+    no_of_days_ld: number | string | null;
+    received_by_1: string | null;
+    received_by_2: string | null;
+    end_user: string | null;
+    place_of_delivery: string | null;
+    status: string | null;
+    remarks: string | null;
+    data_entry_timestamp: string | null;
+    total_amount_delivered: string | number | null;
+    po_total_amount: string | number | null;
+    folder_link: string | null;
+    serve_po?: {
+        item_description: string | null;
+    } | null;
+    attachments?: Attachment[];
 }
 
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    purchaseOrders: PurchaseOrderOption[];
-    statuses: string[];
+    delivery: DeliveryRecord | null;
 }
 
-interface FieldProps {
-    label: string;
-    name: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    error?: string;
-    required?: boolean;
-    placeholder?: string;
-    type?: string;
-    readOnly?: boolean;
-    disabled?: boolean;
-}
+const labelClass = 'text-xs font-medium text-muted-foreground';
+const valueClass = 'text-sm text-foreground mt-0.5';
+const sectionTitleClass = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground/80 mb-3 pb-2 border-b';
 
-const labelClass = 'mb-1 block text-sm text-foreground';
-
-function Field({
-    label,
-    name,
-    value,
-    onChange,
-    error,
-    required = false,
-    placeholder = '',
-    type = 'text',
-    readOnly = false,
-    disabled = false,
-}: FieldProps) {
+function Detail({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
-            <Input
-                type={type}
-                name={name}
-                value={value}
-                onChange={onChange}
-                placeholder={placeholder}
-                readOnly={readOnly}
-                disabled={disabled}
-            />
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            <p className={labelClass}>{label}</p>
+            <p className={valueClass}>{value}</p>
         </div>
     );
 }
 
-interface SelectFieldProps {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    error?: string;
-    required?: boolean;
-    placeholder?: string;
-    options: { value: string; label: string }[];
+function formatCurrency(value: string | number | null | undefined) {
+    if (value === null || value === undefined) return '—';
+    const numeric = typeof value === 'string' ? parseFloat(value) : value;
+    if (Number.isNaN(numeric)) return '—';
+    return numeric.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
 }
 
-function SelectField({
-    label,
-    value,
-    onChange,
-    error,
-    required = false,
-    placeholder = 'Select...',
-    options,
-}: SelectFieldProps) {
-    return (
-        <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
-            <Select value={value} onValueChange={onChange}>
-                <SelectTrigger className="w-full">
-                    <SelectValue placeholder={placeholder} />
-                </SelectTrigger>
-                <SelectContent>
-                    {options.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-        </div>
-    );
+function formatDate(value: string | null) {
+    if (!value) return '—';
+    return new Date(value).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-const emptyForm = {
-    po_number: '',
-    supplier_id: '',
-    supplier_name: '',
-    po_date_received: '',
-    delivery_term: '',
-    due_date: '',
-    date_of_delivery: '',
-    no_of_days_ld: '',
-    received_by_1: '',
-    received_by_2: '',
-    end_user: '',
-    place_of_delivery: '',
-    status: '',
-    remarks: '',
-    total_amount_delivered: '',
-    po_total_amount: '',
-    folder_link: '',
-};
-
-function toDateInputValue(value: string | null) {
-    if (!value) {
-        return '';
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        return value;
-    }
-
-    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
-
-    if (match) {
-        return match[1];
-    }
-
-    const parsed = new Date(value);
-
-    if (Number.isNaN(parsed.getTime())) {
-        return '';
-    }
-
-    return parsed.toISOString().slice(0, 10);
+function getExtension(filename: string) {
+    return filename.split(".").pop()?.toLowerCase() ?? "";
 }
 
-function daysBetween(startDate: string, endDate: string) {
-    if (!startDate || !endDate) {
-        return 0;
-    }
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    const diff = end.getTime() - start.getTime();
-
-    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+function getFileType(filename: string) {
+    const ext = getExtension(filename);
+    if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) return "image";
+    if (ext === "pdf") return "pdf";
+    if (["doc", "docx"].includes(ext)) return "word";
+    if (["xls", "xlsx", "csv"].includes(ext)) return "excel";
+    if (["zip", "rar", "7z"].includes(ext)) return "archive";
+    return "file";
 }
 
-export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, statuses }: Props) {
-    const [data, setData] = useState(emptyForm);
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const [processing, setProcessing] = useState(false);
+function FileIcon({ type }: { type: string }) {
+    switch (type) {
+        case "image":
+            return <FileImage className="h-5 w-5 text-blue-500" />;
+        case "pdf":
+            return <FileText className="h-5 w-5 text-red-500" />;
+        case "word":
+            return <FileText className="h-5 w-5 text-blue-600" />;
+        case "excel":
+            return <FileSpreadsheet className="h-5 w-5 text-green-600" />;
+        case "archive":
+            return <FileArchive className="h-5 w-5 text-yellow-600" />;
+        default:
+            return <File className="h-5 w-5 text-muted-foreground" />;
+    }
+}
 
-    useEffect(() => {
-        if (open) {
-            setData(emptyForm);
-            setErrors({});
-        }
-    }, [open]);
+export default function DeliveryViewForm({ open, onOpenChange, delivery }: Props) {
+    if (!delivery) return null;
 
-    const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
-
-    const autoStatus =
-        Number(data.total_amount_delivered || 0) ===
-        Number(data.po_total_amount || selectedPo?.total_amount_po || 0)
-            ? 'COMPLETED'
-            : 'PARTIAL';
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-
-        setData((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleSelectChange = (name: string) => (value: string) => {
-        if (name === 'po_number') {
-            const chosenPo = purchaseOrders.find((item) => item.po_number === value) ?? null;
-
-            const poDateReceived = toDateInputValue(chosenPo?.po_received_date ?? null);
-            const dueDate = toDateInputValue(chosenPo?.due_date ?? null);
-
-            setData({
-                ...data,
-                po_number: value,
-                supplier_id: chosenPo?.supplier_id ? String(chosenPo.supplier_id) : '',
-                supplier_name: chosenPo?.supplier?.supplier_name ?? '',
-                po_total_amount: chosenPo?.total_amount_po != null ? String(chosenPo.total_amount_po) : '',
-                end_user: chosenPo?.end_user ?? '',
-                due_date: dueDate,
-                po_date_received: poDateReceived,
-                delivery_term: String(daysBetween(poDateReceived, dueDate)),
-            });
-
-            return;
-        }
-
-        setData({
-            ...data,
-            [name]: value,
-        });
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setProcessing(true);
-
-        const { supplier_name, ...rest } = data;
-
-        const selectedPo =
-        purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
-
-        const autoStatus =
-            Number(data.total_amount_delivered || 0) ===
-            Number(data.po_total_amount || selectedPo?.total_amount_po || 0)
-                ? 'COMPLETED'
-                : 'PARTIAL';
-
-        const payload = {
-            ...rest,
-            delivery_term: Number(rest.delivery_term) || 0,
-            no_of_days_ld: rest.no_of_days_ld || 0,
-            po_total_amount: rest.po_total_amount || (selectedPo?.total_amount_po != null ? String(selectedPo.total_amount_po) : ''),
-            end_user: rest.end_user || (selectedPo?.end_user ?? ''),
-            supplier_id: rest.supplier_id || (selectedPo?.supplier_id ? String(selectedPo.supplier_id) : ''),
-            status: autoStatus,
-        };
-
-        router.post(
-            '/deliveries',
-            payload,
-            {
-                onSuccess: () => {
-                    onOpenChange(false);
-                    setData(emptyForm);
-                    setErrors({});
-                },
-                onError: (errors) => setErrors(errors),
-                onFinish: () => setProcessing(false),
-            }
-        );
-    };
+    const attachments = delivery.attachments ?? [];
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto" style={{ maxWidth: '1000px' }}>
+            <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto" style={{ maxWidth: '800px' }}>
                 <DialogHeader>
-                    <DialogTitle>New Delivery Record</DialogTitle>
+                    <DialogTitle>Delivery Details — {delivery.po_number}</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4 space-y-5">
-                    <div className="grid gap-5 md:grid-cols-2">
-                        <SelectField
-                            label="Purchase Order"
-                            value={data.po_number}
-                            onChange={handleSelectChange('po_number')}
-                            error={errors.po_number}
-                            required
-                            placeholder="-- Select PO --"
-                            options={purchaseOrders.map((po) => ({
-                                value: po.po_number,
-                                label: po.po_number,
-                            }))}
-                        />
+                <div className="mt-2 space-y-6">
+                    <section>
+                        <p className={sectionTitleClass}>Delivery Information</p>
+                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                            <Detail label="PO Number" value={delivery.po_number} />
+                            <Detail label="Supplier" value={delivery.supplier?.supplier_name ?? '—'} />
+                            <Detail label="Date of Delivery" value={formatDate(delivery.delivery_date)} />
+                            <Detail label="PO Date Received" value={formatDate(delivery.po_date_received)} />
+                            <Detail label="Delivery Term" value={delivery.delivery_term ?? '—'} />
+                            <Detail label="Due Date" value={formatDate(delivery.due_date)} />
+                            <Detail label="No. of Days (LD)" value={delivery.no_of_days_ld ? String(delivery.no_of_days_ld) : '0'} />
+                            <Detail label="Status" value={delivery.status ?? '—'} />
+                        </div>
 
-                        <Field
-                            label="Supplier"
-                            name="supplier_name"
-                            value={data.supplier_name || selectedPo?.supplier?.supplier_name || ''}
-                            onChange={handleChange}
-                            error={errors.supplier_id}
-                            placeholder="Auto-filled from selected PO"
-                            readOnly
-                            disabled
-                        />
+                        <div className="mt-4">
+                            <p className={labelClass}>Item Description</p>
+                            <p className={valueClass + ' whitespace-pre-wrap'}>{delivery.serve_po?.item_description ?? '—'}</p>
+                        </div>
+                    </section>
 
-                        <Field
-                            label="PO Date Received"
-                            name="po_date_received"
-                            value={data.po_date_received}
-                            onChange={handleChange}
-                            error={errors.po_date_received}
-                            placeholder="Auto-filled from selected PO"
-                            readOnly
-                            disabled
-                        />
+                    <section>
+                        <p className={sectionTitleClass}>Receiving Details</p>
+                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                            <Detail label="Received By (1)" value={delivery.received_by_1 ?? '—'} />
+                            <Detail label="Received By (2)" value={delivery.received_by_2 ?? '—'} />
+                            <Detail label="End User" value={delivery.end_user ?? '—'} />
+                            <Detail label="Place of Delivery" value={delivery.place_of_delivery ?? '—'} />
+                        </div>
+                    </section>
 
-                        <Field
-                            label="Delivery Term (days)"
-                            name="delivery_term"
-                            value={data.delivery_term}
-                            onChange={handleChange}
-                            error={errors.delivery_term}
-                            placeholder="Auto-calculated from PO dates"
-                            readOnly
-                            disabled
-                        />
+                    <section>
+                        <p className={sectionTitleClass}>Financials</p>
+                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                            <Detail label="Total Amount Delivered" value={formatCurrency(delivery.total_amount_delivered)} />
+                            <Detail label="PO Total Amount" value={formatCurrency(delivery.po_total_amount)} />
+                            <Detail label="Data Entry Timestamp" value={formatDate(delivery.data_entry_timestamp)} />
+                        </div>
+                    </section>
 
-                        <Field
-                            label="Due Date"
-                            name="due_date"
-                            value={data.due_date}
-                            onChange={handleChange}
-                            error={errors.due_date}
-                            placeholder="Auto-filled from selected PO"
-                            readOnly
-                            disabled
-                        />
+                    <section>
+                        <p className={sectionTitleClass}>Remarks & Links</p>
+                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                            <Detail label="Remarks" value={delivery.remarks ?? '—'} />
+                            <Detail label="Folder Link" value={delivery.folder_link ?? '—'} />
+                        </div>
+                    </section>
 
-                        <Field
-                            label="Date of Delivery"
-                            name="date_of_delivery"
-                            type="date"
-                            value={data.date_of_delivery}
-                            onChange={handleChange}
-                            error={errors.date_of_delivery}
-                            required
-                        />
-
-                        <Field
-                            label="Received By (1)"
-                            name="received_by_1"
-                            value={data.received_by_1}
-                            onChange={handleChange}
-                            error={errors.received_by_1}
-                            placeholder="e.g. Alvin B."
-                        />
-
-                        <Field
-                            label="Received By (2)"
-                            name="received_by_2"
-                            value={data.received_by_2}
-                            onChange={handleChange}
-                            error={errors.received_by_2}
-                            placeholder="e.g. J. Santos"
-                        />
-
-                        <Field
-                            label="End User"
-                            name="end_user"
-                            value={data.end_user}
-                            onChange={handleChange}
-                            error={errors.end_user}
-                            placeholder="Auto-filled from PO"
-                        />
-
-                        <Field
-                            label="Place of Delivery"
-                            name="place_of_delivery"
-                            value={data.place_of_delivery}
-                            onChange={handleChange}
-                            error={errors.place_of_delivery}
-                            placeholder="e.g. BGH, Davao City"
-                        />
-
-                        <Field
-                            label="Status"
-                            name="status"
-                            value={autoStatus}
-                            onChange={() => {}}
-                            readOnly
-                            disabled
-                        />
-
-                        <Field
-                            label="Total Amount Delivered"
-                            name="total_amount_delivered"
-                            type="number"
-                            value={data.total_amount_delivered}
-                            onChange={handleChange}
-                            error={errors.total_amount_delivered}
-                            placeholder="e.g. 141000"
-                            required
-                        />
-
-                        <Field
-                            label="PO Total Amount"
-                            name="po_total_amount"
-                            type="number"
-                            value={data.po_total_amount}
-                            onChange={handleChange}
-                            error={errors.po_total_amount}
-                            placeholder="Auto-filled from PO"
-                        />
-
-                        <Field
-                            label="Folder Link"
-                            name="folder_link"
-                            value={data.folder_link}
-                            onChange={handleChange}
-                            error={errors.folder_link}
-                            placeholder="https://drive.google.com/drive/folders/..."
-                        />
-                    </div>
-
-                    <div>
-                        <label className={labelClass}>Remarks</label>
-                        <Input
-                            name="remarks"
-                            value={data.remarks}
-                            onChange={handleChange}
-                            placeholder="e.g. Partial delivery received"
-                        />
-                        {errors.remarks && <p className="mt-1 text-xs text-red-500">{errors.remarks}</p>}
-                    </div>
-
-                    <div className="flex justify-end gap-3">
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={processing} style={{ backgroundColor: '#370001' }}>
-                            {processing ? 'Saving...' : 'Save New Data'}
-                        </Button>
-                    </div>
-                </form>
+                    {/* Attachments Section */}
+                    <section className="border-t pt-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
+                                Attachments
+                            </h3>
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                                {attachments.length}
+                            </Badge>
+                        </div>
+                        {attachments.length === 0 ? (
+                            <div className="flex items-center gap-2 rounded-md border border-dashed py-4 px-3 text-sm text-muted-foreground">
+                                <File className="h-4 w-4" />
+                                No attachments uploaded.
+                            </div>
+                        ) : (
+                            <ScrollArea className="max-h-[220px]">
+                                <div className="space-y-1.5 pr-2">
+                                    {attachments.map((att) => {
+                                        const type = getFileType(att.original_name);
+                                        return (
+                                            <div
+                                                key={att.id}
+                                                className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
+                                            >
+                                                <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                    {type === "image" ? (
+                                                        <img
+                                                            src={att.url}
+                                                            alt={att.original_name}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <FileIcon type={type} />
+                                                    )}
+                                                </div>
+                                                <p className="flex-1 truncate text-sm">
+                                                    {att.original_name}
+                                                </p>
+                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 shrink-0">
+                                                    {getExtension(att.original_name).toUpperCase()}
+                                                </Badge>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7 shrink-0"
+                                                    asChild
+                                                >
+                                                    <a
+                                                        href={att.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        <Eye className="h-3.5 w-3.5" />
+                                                    </a>
+                                                </Button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </ScrollArea>
+                        )}
+                        <Separator className="mt-4" />
+                    </section>
+                </div>
             </DialogContent>
         </Dialog>
     );

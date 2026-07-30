@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { Paperclip, X } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -15,6 +16,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+
+interface Attachment {
+    id: number;
+    original_name: string;
+    file_size: number;
+    created_at: string;
+}
 
 interface SupplierOption {
     supplier_id: number;
@@ -50,6 +58,7 @@ interface DeliveryRecord {
     total_amount_delivered: string | number | null;
     po_total_amount: string | number | null;
     folder_link: string | null;
+    attachments?: Attachment[];
 }
 
 interface Props {
@@ -170,47 +179,36 @@ const emptyForm = {
 };
 
 function toDateInputValue(value: string | null) {
-    if (!value) {
-return '';
-}
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-return value;
-}
-
+    if (!value) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
     const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
-
-    if (match) {
-return match[1];
-}
-
+    if (match) return match[1];
     const parsed = new Date(value);
-
-    if (Number.isNaN(parsed.getTime())) {
-return '';
-}
-
+    if (Number.isNaN(parsed.getTime())) return '';
     return parsed.toISOString().slice(0, 10);
 }
 
 function daysBetween(startDate: string, endDate: string) {
-    if (!startDate || !endDate) {
-return 0;
-}
-
+    if (!startDate || !endDate) return 0;
     const start = new Date(startDate);
     const end = new Date(endDate);
-
     const diff = end.getTime() - start.getTime();
-
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
-function toFormData(delivery: DeliveryRecord | null) {
-    if (!delivery) {
-return emptyForm;
+function formatBytes(bytes: number) {
+    const kb = bytes / 1024;
+    return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
 }
 
+let fileIdCounter = 0;
+function generateFileId() {
+    fileIdCounter += 1;
+    return `file-${Date.now()}-${fileIdCounter}`;
+}
+
+function toFormData(delivery: DeliveryRecord | null) {
+    if (!delivery) return emptyForm;
     return {
         po_number: delivery.po_number ?? '',
         supplier_id: delivery.supplier_id === null || delivery.supplier_id === undefined ? '' : String(delivery.supplier_id),
@@ -236,32 +234,33 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    const [newFiles, setNewFiles] = useState<{ id: string; file: File }[]>([]);
+    const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
+    const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (open) {
             setData(toFormData(delivery));
             setErrors({});
+            setNewFiles([]);
+            setExistingAttachments(delivery?.attachments ?? []);
+            setDeletedAttachmentIds([]);
         }
     }, [open, delivery]);
 
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
-
-    // No. of Days (LD) = how late delivery_date is compared to the PO's
-    // due_date. Not PO-derived — depends on delivery_date, which the user
-    // controls, so it's recalculated live here rather than pulled from
-    // the PO directly.
     const computedLdDays = daysBetween(data.due_date, data.delivery_date);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-
         setData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
         if (name === 'po_number') {
             const chosenPo = purchaseOrders.find((item) => item.po_number === value) ?? null;
-
             const poDateReceived = toDateInputValue(chosenPo?.po_received_date ?? null);
             const dueDate = toDateInputValue(chosenPo?.due_date ?? null);
 
@@ -276,7 +275,6 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                 po_date_received: poDateReceived,
                 delivery_term: String(daysBetween(poDateReceived, dueDate)),
             });
-
             return;
         }
 
@@ -286,12 +284,29 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
         });
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files) return;
+        const selectedFiles = Array.from(e.target.files).map((file) => ({
+            file,
+            id: generateFileId(),
+        }));
+        setNewFiles((prev) => [...prev, ...selectedFiles]);
+        e.target.value = '';
+    };
+
+    const removeNewFile = (id: string) => {
+        setNewFiles((prev) => prev.filter((f) => f.id !== id));
+    };
+
+    const removeExistingAttachment = (attachmentId: number) => {
+        setExistingAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+        setDeletedAttachmentIds((prev) => [...prev, attachmentId]);
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!delivery) {
-return;
-}
+        if (!delivery) return;
 
         setProcessing(true);
 
@@ -304,6 +319,7 @@ return;
             end_user: rest.end_user || (selectedPo?.end_user ?? ''),
             supplier_id: rest.supplier_id || (selectedPo?.supplier_id ? String(selectedPo.supplier_id) : ''),
             status: rest.status || (Number(rest.total_amount_delivered || 0) >= Number(rest.po_total_amount || 0) ? 'COMPLETED' : 'PARTIAL'),
+            deleted_attachment_ids: deletedAttachmentIds,
         };
 
         router.put(
@@ -311,8 +327,28 @@ return;
             payload,
             {
                 onSuccess: () => {
-                    onOpenChange(false);
-                    setErrors({});
+                    // If there are new files, upload them
+                    if (newFiles.length > 0) {
+                        const formData = new FormData();
+                        newFiles.forEach(({ file }) => formData.append('files[]', file));
+
+                        router.post(
+                            `/deliveries/${encodeURIComponent(delivery.delivery_id)}/attachments`,
+                            formData,
+                            {
+                                forceFormData: true,
+                                onFinish: () => {
+                                    onOpenChange(false);
+                                    setNewFiles([]);
+                                    setDeletedAttachmentIds([]);
+                                },
+                            }
+                        );
+                    } else {
+                        onOpenChange(false);
+                        setNewFiles([]);
+                        setDeletedAttachmentIds([]);
+                    }
                 },
                 onError: (errors) => setErrors(errors),
                 onFinish: () => setProcessing(false),
@@ -483,6 +519,79 @@ return;
                             error={errors.remarks}
                             placeholder="e.g. Partial delivery received"
                         />
+                    </div>
+
+                    {/* Attachments Section */}
+                    <div className="border-t pt-5">
+                        <label className={labelClass}>Attachments</label>
+
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40 mt-2"
+                        >
+                            <Paperclip className="size-4" />
+                            Click to select files (PDF, JPG, PNG)
+                        </button>
+
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            className="hidden"
+                            onChange={handleFileSelect}
+                        />
+
+                        {/* Existing Attachments */}
+                        {existingAttachments.length > 0 && (
+                            <div className="mt-3">
+                                <p className="text-xs font-medium text-muted-foreground mb-2">Existing Files</p>
+                                <ul className="divide-y divide-border rounded-md border border-border">
+                                    {existingAttachments.map((att) => (
+                                        <li key={att.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                                            <span className="min-w-0 truncate text-sm">{att.original_name}</span>
+                                            <span className="shrink-0 text-xs text-muted-foreground">
+                                                {formatBytes(att.file_size)}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeExistingAttachment(att.id)}
+                                                className="shrink-0 text-red-600 hover:text-red-800"
+                                                title="Remove"
+                                            >
+                                                <X className="size-4" />
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* New Files */}
+                        {newFiles.length > 0 && (
+                            <div className="mt-3">
+                                <p className="text-xs font-medium text-muted-foreground mb-2">New Files</p>
+                                <ul className="divide-y divide-border rounded-md border border-border">
+                                    {newFiles.map(({ id, file }) => (
+                                        <li key={id} className="flex items-center justify-between gap-3 px-3 py-2">
+                                            <span className="min-w-0 truncate text-sm">{file.name}</span>
+                                            <span className="shrink-0 text-xs text-muted-foreground">
+                                                {formatBytes(file.size)}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeNewFile(id)}
+                                                className="shrink-0 text-red-600 hover:text-red-800"
+                                                title="Remove"
+                                            >
+                                                <X className="size-4" />
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex justify-end gap-3">

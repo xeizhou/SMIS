@@ -181,6 +181,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/deliveries', [DeliveriesController::class, 'store'])->name('deliveries.store');
     Route::put('/deliveries/{delivery}', [DeliveriesController::class, 'update'])->name('deliveries.update');
     Route::delete('/deliveries/{delivery}', [DeliveriesController::class, 'destroy'])->name('deliveries.destroy');
+    Route::post('/deliveries/{delivery}/attachments', [DeliveriesController::class, 'uploadAttachments'])
+        ->name('deliveries.attachments.upload');
+    Route::delete('/attachments/{attachment}', [DeliveriesController::class, 'deleteAttachment'])
+        ->name('attachments.delete');
 
     Route::get('/iar', [IARController::class, 'index'])->name('iar.index');
     Route::post('/iar', [IARController::class, 'store'])->name('iar.store');
