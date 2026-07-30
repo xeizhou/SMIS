@@ -390,7 +390,6 @@ export default function TransactionAddForm({
                                 onChange={handleSelectChange('unitID')}
                                 error={errors.unitID}
                                 required 
-                                disabled
                                 placeholder="-- Select Unit --"
                                 options={Array.from(
                                     new Map(
