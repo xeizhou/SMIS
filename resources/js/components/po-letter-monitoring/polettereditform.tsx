@@ -1,7 +1,6 @@
-import { RefreshCw } from 'lucide-react';
 import { router } from '@inertiajs/react';
-import { Paperclip, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { RefreshCw, Paperclip, X, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -17,6 +16,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 interface Supplier {
     supplier_id: number;
@@ -184,6 +193,107 @@ function SelectField({
                     ))}
                 </SelectContent>
             </Select>
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+// Custom Searchable Dropdown with refresh support
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+    onRefresh,
+    isRefreshing = false,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+
+    const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
+
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        {selectedLabel || placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {opt.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+
             {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </div>
     );
@@ -458,16 +568,18 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                             placeholder="Auto-filled from PO Number"
                         />
 
-                        <SelectField
+                        <SearchableSelect
                             label="PO Number"
                             value={data.po_number}
                             onChange={handleSelectChange('po_number')}
                             error={errors.po_number}
-                            placeholder="Select PO"
+                            placeholder="Search PO Number..."
                             options={poNumbers.map((po) => ({
                                 value: po.po_number,
                                 label: po.po_number,
                             }))}
+                            onRefresh={() => handleRefreshData('poNumbers')}
+                            isRefreshing={refreshingField === 'poNumbers'}
                         />
 
                         <Field
