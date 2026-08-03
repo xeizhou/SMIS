@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown RefreshCw } from 'lucide-react';
+import { Check, ChevronsUpDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -88,6 +88,8 @@ interface FieldProps {
     placeholder?: string;
     type?: string;
     min?: string;
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
@@ -102,6 +104,8 @@ function Field({
     placeholder = '',
     type = 'text',
     min,
+    onRefresh,
+    isRefreshing = false,
 }: FieldProps) {
     return (
         <div>
