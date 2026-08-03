@@ -264,12 +264,6 @@ export default function PirAddForm({
             return;
         }
 
-        console.log({
-            po,
-            po_received_date: po.po_received_date,
-            due_date: po.due_date,
-        });
-
         const poDateReceived = po.po_received_date ? po.po_received_date.slice(0, 10) : '';
         const dueDate = po.due_date ? po.due_date.slice(0, 10) : '';
 
@@ -317,9 +311,9 @@ export default function PirAddForm({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-8">
-                    {/* Section: PO Selection (always first) */}
+                    {/* Group: PO FROM VPAD — csv cols 1-13 (SUPPLIER through FORWARDED BY) */}
                     <div>
-                        <h3 className={sectionTitleClass}>Select Purchase Order</h3>
+                        <h3 className={sectionTitleClass}>PO From VPAD</h3>
                         <div className="grid grid-cols-4 gap-6">
                             <SelectField
                                 label="PO Number"
@@ -332,14 +326,9 @@ export default function PirAddForm({
                                     value: po.po_number,
                                     label: po.po_number,
                                 }))}
+                                onRefresh={() => handleRefreshData('purchaseOrders')}
+                                isRefreshing={refreshingField === 'purchaseOrders'}
                             />
-                        </div>
-                    </div>
-
-                    {/* Section: PO Information (auto-filled, still editable) */}
-                    <div>
-                        <h3 className={sectionTitleClass}>PO Information</h3>
-                        <div className="grid grid-cols-4 gap-6">
                             <SelectField
                                 label="Supplier"
                                 value={data.supplier_id}
@@ -414,7 +403,6 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.pr_date}
                                 disabled={!poSelected}
-                                placeholder="Select PR Date"
                             />
                             <Field
                                 label="ORS/BUR Number"
@@ -433,7 +421,6 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.ors_bur_date}
                                 disabled={!poSelected}
-                                placeholder="Select ORS/BUR Date"
                             />
                             <Field
                                 label="PO Amount"
@@ -445,22 +432,14 @@ export default function PirAddForm({
                                 disabled={!poSelected}
                                 placeholder="Enter PO Amount"
                             />
-                        </div>
-                    </div>
-
-                    {/* Section: Supplier Forwarding */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Supplier Forwarding</h3>
-                        <div className="grid grid-cols-4 gap-6">
                             <Field
-                                label="Date Forwarded to Supplier"
+                                label="Date Forwarded"
                                 name="date_forwarded_supplier"
                                 type="date"
                                 value={data.date_forwarded_supplier}
                                 onChange={handleChange}
                                 error={errors.date_forwarded_supplier}
                                 disabled={!poSelected}
-                                placeholder="Select Date Forwarded to Supplier"
                             />
                             <Field
                                 label="Forwarded By"
@@ -471,60 +450,55 @@ export default function PirAddForm({
                                 disabled={!poSelected}
                                 placeholder="Enter Forwarded By"
                             />
+                        </div>
+                    </div>
+
+                    {/* Group: FOR SUPPLIER'S SIGNATURE — csv cols 14-15 */}
+                    <div>
+                        <h3 className={sectionTitleClass}>For Supplier's Signature</h3>
+                        <div className="grid grid-cols-4 gap-6">
                             <Field
-                                label="Claimed By (Supplier)"
+                                label="Claimed By"
                                 name="claimed_by_supplier"
                                 value={data.claimed_by_supplier}
                                 onChange={handleChange}
                                 error={errors.claimed_by_supplier}
                                 disabled={!poSelected}
-                                placeholder="Enter Claimed By (Supplier)"
+                                placeholder="Enter Claimed By"
                             />
                             <Field
-                                label="Supplier Signature Date"
+                                label="Date"
                                 name="supplier_signature_date"
                                 type="date"
                                 value={data.supplier_signature_date}
                                 onChange={handleChange}
                                 error={errors.supplier_signature_date}
                                 disabled={!poSelected}
-                                placeholder="Select Supplier Signature Date"
-                            />
-                            <Field
-                                label="Date Received by Supplier"
-                                name="date_received_by_supplier"
-                                type="date"
-                                value={data.date_received_by_supplier}
-                                onChange={handleChange}
-                                error={errors.date_received_by_supplier}
-                                disabled={!poSelected}
-                                placeholder="Select Date Received by Supplier"
                             />
                         </div>
                     </div>
 
-                    {/* Section: COA Processing */}
+                    {/* Group: FOR COA STAMP — csv cols 16-21 */}
                     <div>
-                        <h3 className={sectionTitleClass}>COA Processing</h3>
+                        <h3 className={sectionTitleClass}>For COA Stamp</h3>
                         <div className="grid grid-cols-4 gap-6">
                             <Field
-                                label="Date Forwarded to COA"
+                                label="Date Forwarded"
                                 name="date_forwarded_coa"
                                 type="date"
                                 value={data.date_forwarded_coa}
                                 onChange={handleChange}
                                 error={errors.date_forwarded_coa}
                                 disabled={!poSelected}
-                                placeholder="Select Date Forwarded to COA"
                             />
                             <Field
-                                label="Forwarded By (COA)"
+                                label="Forwarded By"
                                 name="forwarded_by_coa"
                                 value={data.forwarded_by_coa}
                                 onChange={handleChange}
                                 error={errors.forwarded_by_coa}
                                 disabled={!poSelected}
-                                placeholder="Enter Forwarded By (COA)"
+                                placeholder="Enter Forwarded By"
                             />
                             <Field
                                 label="Date Returned from COA"
@@ -534,7 +508,6 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.date_returned_from_coa}
                                 disabled={!poSelected}
-                                placeholder="Select Date Returned from COA"
                             />
                             <Field
                                 label="COA Date"
@@ -544,7 +517,6 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.coa_date}
                                 disabled={!poSelected}
-                                placeholder="Select COA Date"
                             />
                             <Field
                                 label="Claim Date"
@@ -554,24 +526,32 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.claim_date}
                                 disabled={!poSelected}
-                                placeholder="Select Claim Date"
                             />
                             <Field
-                                label="Claimed By (COA)"
+                                label="Claimed By"
                                 name="claimed_by_coa"
                                 value={data.claimed_by_coa}
                                 onChange={handleChange}
                                 error={errors.claimed_by_coa}
                                 disabled={!poSelected}
-                                placeholder="Enter Claimed By (COA)"
+                                placeholder="Enter Claimed By"
                             />
                         </div>
                     </div>
 
-                    {/* Section: Delivery & Inspection */}
+                    {/* Group: FOR RELEASE — csv cols 22-30 */}
                     <div>
-                        <h3 className={sectionTitleClass}>Delivery & Inspection</h3>
+                        <h3 className={sectionTitleClass}>For Release</h3>
                         <div className="grid grid-cols-4 gap-6">
+                            <Field
+                                label="Date Received by Supplier"
+                                name="date_received_by_supplier"
+                                type="date"
+                                value={data.date_received_by_supplier}
+                                onChange={handleChange}
+                                error={errors.date_received_by_supplier}
+                                disabled={!poSelected}
+                            />
                             <Field
                                 label="Invoice Number"
                                 name="invoice_number"
@@ -589,7 +569,6 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.invoice_date}
                                 disabled={!poSelected}
-                                placeholder="Select Invoice Date"
                             />
                             <Field
                                 label="Delivery Receipt"
@@ -608,7 +587,6 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.date_completed}
                                 disabled={!poSelected}
-                                placeholder="Select Date Completed"
                             />
                             <Field
                                 label="PAR/ICS Number"
@@ -645,8 +623,14 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.inspection_date}
                                 disabled={!poSelected}
-                                placeholder="Select Inspection Date"
                             />
+                        </div>
+                    </div>
+
+                    {/* Group: FOR PAYMENT (FINANCE) — csv cols 31-32 */}
+                    <div>
+                        <h3 className={sectionTitleClass}>For Payment (Finance)</h3>
+                        <div className="grid grid-cols-4 gap-6">
                             <Field
                                 label="IAR Number"
                                 name="iar_number"
@@ -656,13 +640,6 @@ export default function PirAddForm({
                                 disabled={!poSelected}
                                 placeholder="Enter IAR Number"
                             />
-                        </div>
-                    </div>
-
-                    {/* Section: Finance & Claim */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Finance & Claim</h3>
-                        <div className="grid grid-cols-4 gap-6">
                             <Field
                                 label="Date Forwarded to Finance"
                                 name="date_forwarded_to_finance"
@@ -671,8 +648,14 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.date_forwarded_to_finance}
                                 disabled={!poSelected}
-                                placeholder="Select Date Forwarded to Finance"
                             />
+                        </div>
+                    </div>
+
+                    {/* Group: RECEIPT AND ITEM/S CLAIMED BY END-USER — csv cols 33-36 */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Receipt and Item/s Claimed by End-User</h3>
+                        <div className="grid grid-cols-4 gap-6">
                             <Field
                                 label="Receipt Receiving Date"
                                 name="receipt_receiving_date"
@@ -681,63 +664,59 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.receipt_receiving_date}
                                 disabled={!poSelected}
-                                placeholder="Select Receipt Receiving Date"
                             />
                             <Field
-                                label="Receipt Claimed By"
+                                label="Claimed By"
                                 name="receipt_claimed_by"
                                 value={data.receipt_claimed_by}
                                 onChange={handleChange}
                                 error={errors.receipt_claimed_by}
                                 disabled={!poSelected}
-                                placeholder="Enter Receipt Claimed By"
+                                placeholder="Enter Claimed By"
                             />
                             <Field
-                                label="Items Receiving Date"
+                                label="Item/s Receiving Date"
                                 name="items_receiving_date"
                                 type="date"
                                 value={data.items_receiving_date}
                                 onChange={handleChange}
                                 error={errors.items_receiving_date}
                                 disabled={!poSelected}
-                                placeholder="Select Items Receiving Date"
                             />
                             <Field
-                                label="Items Claimed By"
+                                label="Claimed By"
                                 name="items_claimed_by"
                                 value={data.items_claimed_by}
                                 onChange={handleChange}
                                 error={errors.items_claimed_by}
                                 disabled={!poSelected}
-                                placeholder="Enter Items Claimed By"
+                                placeholder="Enter Claimed By"
                             />
                         </div>
                     </div>
 
-                    {/* Section: Notifications & Status */}
+                    {/* Group: NOTIFICATION LOGS — csv cols 37-39 */}
                     <div>
-                        <h3 className={sectionTitleClass}>Notifications & Status</h3>
+                        <h3 className={sectionTitleClass}>Notification Logs</h3>
                         <div className="grid grid-cols-4 gap-6">
                             <Field
-                                label="Notify Receipt"
+                                label="Notify to Claim the Item/s & Receipt"
                                 name="notify_receipt"
                                 value={data.notify_receipt}
                                 onChange={handleChange}
                                 error={errors.notify_receipt}
                                 disabled={!poSelected}
-                                placeholder="Select Notify Receipt"
                             />
                             <Field
-                                label="Notify Call"
+                                label="Notify the End-User (via Call)"
                                 name="notify_call"
                                 value={data.notify_call}
                                 onChange={handleChange}
                                 error={errors.notify_call}
                                 disabled={!poSelected}
-                                placeholder="Select Notify Call"
                             />
                             <Field
-                                label="Notify Email"
+                                label="Notify the End-User (via Email)"
                                 name="notify_email"
                                 value={data.notify_email}
                                 onChange={handleChange}
@@ -745,6 +724,13 @@ export default function PirAddForm({
                                 disabled={!poSelected}
                                 placeholder="Enter Notify Email"
                             />
+                        </div>
+                    </div>
+
+                    {/* Group: STATUS, REMARKS — csv cols 40-41 (standalone columns) */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Status & Remarks</h3>
+                        <div className="grid grid-cols-4 gap-6">
                             <SelectField
                                 label="Status"
                                 value={data.status}
@@ -755,7 +741,7 @@ export default function PirAddForm({
                                 placeholder="-- Select Status --"
                                 options={STATUS_OPTIONS}
                             />
-                            <div className="col-span-4">
+                            <div className="col-span-3">
                                 <Field
                                     label="Remarks"
                                     name="remarks"
