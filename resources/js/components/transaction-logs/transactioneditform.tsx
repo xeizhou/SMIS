@@ -224,7 +224,7 @@ function SearchableSelect({
                     </Button>
                 </PopoverTrigger>
 
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
                     <Command>
                         <CommandInput placeholder={placeholder} />
                         <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>

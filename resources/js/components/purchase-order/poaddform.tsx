@@ -166,6 +166,8 @@ interface SearchableSelectProps {
     required?: boolean;
     placeholder?: string;
     options: { value: string; label: string }[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
 }
 
 function SearchableSelect({
@@ -176,6 +178,8 @@ function SearchableSelect({
     required = false,
     placeholder = 'Search...',
     options,
+    onRefresh,
+    isRefreshing = false,
 }: SearchableSelectProps) {
     const [open, setOpen] = useState(false);
 
@@ -206,7 +210,7 @@ function SearchableSelect({
                     </Button>
                 </PopoverTrigger>
 
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
                     <Command>
                         <CommandInput placeholder={placeholder} />
                         {/* ADDED max-h and overflow-y-auto here to fix scrolling */}
