@@ -239,6 +239,13 @@ function SearchableSelect({
     );
 }
 
+const STATUS_OPTIONS = [
+    { value: 'PARTIAL', label: 'PARTIAL' },
+    { value: 'COMPLETE', label: 'COMPLETE' },
+    { value: 'PENDING', label: 'PENDING' },
+    { value: 'CANCELLED', label: 'CANCELLED' },
+];
+
 const emptyForm = {
     po_number: '',
     supplier_id: '',
@@ -317,12 +324,6 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
 
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
 
-    const autoStatus =
-        Number(data.total_amount_delivered || 0) ===
-        Number(data.po_total_amount || selectedPo?.total_amount_po || 0)
-            ? 'COMPLETED'
-            : 'PARTIAL';
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setData((prev) => ({ ...prev, [name]: value }));
@@ -377,12 +378,6 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
         const selectedPo =
             purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
 
-        const autoStatus =
-            Number(data.total_amount_delivered || 0) ===
-            Number(data.po_total_amount || selectedPo?.total_amount_po || 0)
-                ? 'COMPLETED'
-                : 'PARTIAL';
-
         const payload = {
             ...rest,
             delivery_term: Number(rest.delivery_term) || 0,
@@ -390,7 +385,6 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
             po_total_amount: rest.po_total_amount || (selectedPo?.total_amount_po != null ? String(selectedPo.total_amount_po) : ''),
             end_user: rest.end_user || (selectedPo?.end_user ?? ''),
             supplier_id: rest.supplier_id || (selectedPo?.supplier_id ? String(selectedPo.supplier_id) : ''),
-            status: autoStatus,
         };
 
         router.post(
@@ -535,13 +529,14 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                             placeholder="e.g. BGH, Davao City"
                         />
 
-                        <Field
+                        <SelectField
                             label="Status"
-                            name="status"
-                            value={autoStatus}
-                            onChange={() => {}}
-                            readOnly
-                            disabled
+                            value={data.status}
+                            onChange={handleSelectChange('status')}
+                            error={errors.status}
+                            required
+                            placeholder="-- Select Status --"
+                            options={STATUS_OPTIONS}
                         />
 
                         <Field
