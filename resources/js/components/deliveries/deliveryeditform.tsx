@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X, RefreshCw } from 'lucide-react';
+import { Paperclip, X, RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 interface Attachment {
     id: number;
@@ -159,10 +169,23 @@ function SelectField({
 }: SelectFieldProps) {
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
             <Select value={value} onValueChange={onChange}>
                 <SelectTrigger className="w-full">
                     <SelectValue placeholder={placeholder} />
@@ -175,6 +198,107 @@ function SelectField({
                     ))}
                 </SelectContent>
             </Select>
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+// Custom Searchable Dropdown with refresh support
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+    onRefresh,
+    isRefreshing = false,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+
+    const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
+
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        {selectedLabel || placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {opt.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+
             {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </div>
     );
@@ -397,14 +521,18 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-5">
                     <div className="grid gap-5 md:grid-cols-2">
-                        <SelectField
+                        
+                        {/* Swapped standard SelectField for SearchableSelect */}
+                        <SearchableSelect
                             label="Purchase Order"
                             value={data.po_number}
                             onChange={handleSelectChange('po_number')}
                             error={errors.po_number}
                             required
-                            placeholder="Select PO"
+                            placeholder="Search PO Number..."
                             options={purchaseOrders.map((po) => ({ value: po.po_number, label: po.po_number }))}
+                            onRefresh={() => handleRefreshData('purchaseOrders')}
+                            isRefreshing={refreshingField === 'purchaseOrders'}
                         />
 
                         <Field
@@ -542,15 +670,17 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                             error={errors.folder_link}
                             placeholder="https://drive.google.com/drive/folders/..."
                         />
+                    </div>
 
-                        <Field
-                            label="Remarks"
+                    <div>
+                        <label className={labelClass}>Remarks</label>
+                        <Input
                             name="remarks"
                             value={data.remarks}
                             onChange={handleChange}
-                            error={errors.remarks}
                             placeholder="e.g. Partial delivery received"
                         />
+                        {errors.remarks && <p className="mt-1 text-xs text-red-500">{errors.remarks}</p>}
                     </div>
 
                     {/* Attachments Section */}

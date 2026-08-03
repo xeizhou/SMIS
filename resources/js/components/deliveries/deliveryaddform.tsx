@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
+import { RefreshCw, Paperclip, X, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -16,6 +16,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 interface SupplierOption {
     supplier_id: number;
@@ -128,6 +138,107 @@ function SelectField({
     );
 }
 
+// Custom Searchable Dropdown with refresh support
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+    onRefresh,
+    isRefreshing = false,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+
+    const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
+
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        {selectedLabel || placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {opt.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
 const emptyForm = {
     po_number: '',
     supplier_id: '',
@@ -184,6 +295,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
     const [files, setFiles] = useState<{ id: string; file: File }[]>([]);
     const [newDeliveryId, setNewDeliveryId] = useState<string | null>(null);
 
+    const [refreshingField, setRefreshingField] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -194,6 +306,14 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
             setNewDeliveryId(null);
         }
     }, [open]);
+
+    const handleRefreshData = (field: string) => {
+        setRefreshingField(field);
+        router.reload({
+            only: ['purchaseOrders'],
+            onFinish: () => setRefreshingField(null),
+        });
+    };
 
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
 
@@ -310,17 +430,19 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-5">
                     <div className="grid gap-5 md:grid-cols-2">
-                        <SelectField
+                        <SearchableSelect
                             label="Purchase Order"
                             value={data.po_number}
                             onChange={handleSelectChange('po_number')}
                             error={errors.po_number}
                             required
-                            placeholder="-- Select PO --"
+                            placeholder="Search PO Number..."
                             options={purchaseOrders.map((po) => ({
                                 value: po.po_number,
                                 label: po.po_number,
                             }))}
+                            onRefresh={() => handleRefreshData('purchaseOrders')}
+                            isRefreshing={refreshingField === 'purchaseOrders'}
                         />
 
                         <Field
