@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -84,6 +85,12 @@ class PirMonitoring extends Model
         'receipt_receiving_date' => 'date',
         'items_receiving_date' => 'date',
         'po_amount' => 'decimal:2',
+        // delivery_term is intentionally NOT cast — it's computed live from
+        // the linked ServePo via the accessor below, same pattern as
+        // Delivery::deliveryTerm() and PoLetterMonitoring::deliveryTerm().
+        // The raw column still exists and is still written on
+        // store()/update() for audit purposes, but display always goes
+        // through servePo so it never goes stale if the PO's dates change.
     ];
 
     public function servePo(): BelongsTo
@@ -99,5 +106,26 @@ class PirMonitoring extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
+
+    /**
+     * Always recalculated from the linked PO's current po_received_date
+     * and due_date. Null when either date is missing (mirrors the
+     * frontend's daysBetween() guard).
+     */
+    protected function deliveryTerm(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $received = $this->servePo?->po_received_date;
+                $due = $this->servePo?->due_date;
+
+                if (! $received || ! $due) {
+                    return null;
+                }
+
+                return max(0, $received->diffInDays($due));
+            },
+        );
     }
 }

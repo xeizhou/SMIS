@@ -20,6 +20,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Link } from '@inertiajs/react';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { format } from 'date-fns';
 
 // Remove MOCK_NOTIFICATIONS
 
@@ -37,6 +44,14 @@ type DashboardPageProps = {
         days_overdue?: number;
         due_date?: string | null;
     }[];
+    allPendingDeliveries?: {
+        delivery_id: string;
+        po_number: string;
+        due_date?: string | null;
+        status: string;
+        end_user?: string;
+        supplier?: { supplier_name: string } | null;
+    }[];
     // recentActivity?: RecentActivityRow[];
 };
 
@@ -47,6 +62,7 @@ export default function Dashboard() {
         pendingInspections,
         pendingClearances,
         pendingDeliveries,
+        allPendingDeliveries,
         recentActivity,
         recentDeliveries,
     } = usePage<DashboardPageProps>().props;
@@ -56,6 +72,7 @@ export default function Dashboard() {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [notifFilter, setNotifFilter] = useState<'all' | 'unread'>('all');
     const [isLoaded, setIsLoaded] = useState(false);
+    const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
 
     // Initialize from localStorage on mount
     useEffect(() => {
@@ -253,10 +270,11 @@ export default function Dashboard() {
                         <div className="grid gap-4 sm:grid-cols-3">
                             <StatCard
                                 label="Pending Deliveries"
-                                value={pendingDeliveries ?? 15}
-                                change="+ 5 last week"
+                                value={pendingDeliveries ?? 0}
+                                change=""
                                 icon={Truck}
                                 iconClassName="bg-blue-100 text-blue-500"
+                                onClick={() => setIsPendingModalOpen(true)}
                             />
                             <StatCard
                                 label="Pending Inspection"
@@ -284,6 +302,56 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+
+            <Dialog open={isPendingModalOpen} onOpenChange={setIsPendingModalOpen}>
+                <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0">
+                    <DialogHeader className="p-6 pb-4 border-b border-border/50">
+                        <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                            <Truck className="size-5 text-blue-500" />
+                            Pending Deliveries ({pendingDeliveries ?? 0})
+                        </DialogTitle>
+                    </DialogHeader>
+                    
+                    <ScrollArea className="flex-1 p-6 pt-2">
+                        {allPendingDeliveries && allPendingDeliveries.length > 0 ? (
+                            <div className="grid gap-3 mt-4">
+                                {allPendingDeliveries.map((delivery) => (
+                                    <div key={delivery.delivery_id} className="flex items-start justify-between rounded-lg border border-border p-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
+                                        <div className="grid gap-1">
+                                            <Link href={`/deliveries?highlight_search=${delivery.po_number}`} className="font-semibold text-primary hover:underline">
+                                                {delivery.po_number}
+                                            </Link>
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                                <span className="font-medium text-foreground/80">{delivery.supplier?.supplier_name || 'Unknown Supplier'}</span>
+                                                {delivery.end_user && (
+                                                    <>
+                                                        <span className="text-muted-foreground/40">•</span>
+                                                        <span>{delivery.end_user}</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2">
+                                            <div className="rounded-md bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+                                                {delivery.status}
+                                            </div>
+                                            {delivery.due_date && (
+                                                <div className="text-xs text-muted-foreground">
+                                                    Due: {format(new Date(delivery.due_date), 'MMM d, yyyy')}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex h-32 items-center justify-center text-muted-foreground mt-4">
+                                No pending deliveries found.
+                            </div>
+                        )}
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
