@@ -74,15 +74,22 @@ export function NavMain({
     // e.g. after navigating from a search result, or after searching/filtering
     // within a page (which only changes the query string, not the path).
     useEffect(() => {
-        if (!isSearching) {
+        const resetOpenSection = () => {
             const activeSection = sections.find((section) =>
                 section.items.some(
                     (item) => hrefToUrl(item.href) === currentPath,
                 ),
             );
             setOpenSection(activeSection ? activeSection.title : undefined);
+        };
+
+        if (!isSearching) {
+            resetOpenSection();
         }
-    }, [currentPath, searchQuery]);
+
+        window.addEventListener('reset-sidebar-nav', resetOpenSection);
+        return () => window.removeEventListener('reset-sidebar-nav', resetOpenSection);
+    }, [currentPath, searchQuery, isSearching, sections]);
 
     const filteredSections = sections
         .map((section) => ({

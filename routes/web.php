@@ -102,10 +102,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
             })
             ->values();
 
+        $pendingDeliveriesCount = \App\Models\Delivery::where('status', 'PENDING')->count();
+
+        $allPendingDeliveries = \App\Models\Delivery::with(['supplier', 'servePo'])
+            ->where('status', 'PENDING')
+            ->orderBy('data_entry_timestamp', 'desc')
+            ->get()
+            ->map(function ($delivery) {
+                return [
+                    'delivery_id' => $delivery->delivery_id,
+                    'po_number' => $delivery->po_number,
+                    'due_date' => $delivery->due_date ? $delivery->due_date->format('Y-m-d') : null,
+                    'status' => $delivery->status,
+                    'end_user' => $delivery->end_user,
+                    'supplier' => $delivery->supplier ? [
+                        'supplier_name' => $delivery->supplier->supplier_name,
+                    ] : null,
+                ];
+            })
+            ->values();
+
         return Inertia::render('dashboard', [
             'recentActivity' => $recentActivity,
             'recentDeliveries' => $recentDeliveries,
             'deliveries' => $dueDeliveries,
+            'pendingDeliveries' => $pendingDeliveriesCount,
+            'allPendingDeliveries' => $allPendingDeliveries,
         ]);
     })->name('dashboard');
 
