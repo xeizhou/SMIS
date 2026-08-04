@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 
 export type POLetterStatusRow = {
-    type: 'Extension' | 'Waiver' | 'Cancellation';
+    type: string;
     approved: number;
     disapproved: number;
 };
@@ -20,16 +20,11 @@ type Props = {
     data?: POLetterStatusRow[];
 };
 
-// Placeholder data matching your screenshot — swap for a real prop later
-const MOCK_DATA: POLetterStatusRow[] = [
-    { type: 'Extension', approved: 12, disapproved: 4 },
-    { type: 'Waiver', approved: 7, disapproved: 10 },
-    { type: 'Cancellation', approved: 3, disapproved: 4 },
-];
+
 
 export function PoLettersStatusChart({ data }: Props) {
     const [period, setPeriod] = useState<'This Week' | 'This Month' | 'This Year'>('This Year');
-    const rows = data ?? MOCK_DATA;
+    const rows = data ?? [];
 
     return (
         <div className="rounded-xl border border-sidebar-border/70 bg-white p-4 dark:border-sidebar-border dark:bg-neutral-900">

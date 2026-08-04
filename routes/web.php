@@ -125,6 +125,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
             })
             ->values();
 
+        $poLettersStatus = \App\Models\PoLetterMonitoring::selectRaw("
+            type_of_letter,
+            SUM(CASE WHEN status_of_the_letter = 'APPROVED' THEN 1 ELSE 0 END) as approved_count,
+            SUM(CASE WHEN status_of_the_letter = 'DISAPPROVED' THEN 1 ELSE 0 END) as disapproved_count
+        ")
+        ->whereIn('type_of_letter', ['EXTENSION', 'WAIVER', 'CANCELLATION', 'REPLACEMENT/ALTERNATIVE OFFER'])
+        ->groupBy('type_of_letter')
+        ->get()
+        ->map(function ($item) {
+            $type = ucfirst(strtolower($item->type_of_letter));
+            if ($item->type_of_letter === 'REPLACEMENT/ALTERNATIVE OFFER') {
+                $type = 'Replacement';
+            }
+            return [
+                'type' => $type,
+                'approved' => (int) $item->approved_count,
+                'disapproved' => (int) $item->disapproved_count,
+            ];
+        })
+        ->values();
+
         return Inertia::render('dashboard', [
             'recentActivity' => $recentActivity,
             'recentDeliveries' => $recentDeliveries,
@@ -132,6 +153,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'pendingDeliveries' => $pendingDeliveriesCount,
             'deliveriesLastWeek' => $deliveriesLastWeek,
             'allPendingDeliveries' => $allPendingDeliveries,
+            'poLettersStatus' => $poLettersStatus,
         ]);
     })->name('dashboard');
 
