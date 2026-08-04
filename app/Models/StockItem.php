@@ -14,10 +14,6 @@ class StockItem extends Model
 
     const LOG_NAME = 'Stock Items';
 
-    public function getActivityUrl()
-    {
-            return route('stock-items.index', ['highlight_search' => $this->stock_no]);
-    }
     protected $table = 'stock_items';
 
     protected $primaryKey = 'stock_no';
@@ -62,6 +58,6 @@ class StockItem extends Model
 
     public function getActivityUrl()
     {
-        return route('stock-items.index') . '?highlight_id=' . $this->id;
+        return route('stock-items.index') . '?highlight_id=' . $this->stock_no;
     }
 }
