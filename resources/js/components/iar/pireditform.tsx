@@ -357,32 +357,16 @@ type InspectionEntry = {
     inspection_date: string;
 };
 
-type InspectionItem = {
-    id: string;
-    inspected_by: string;
-    inspection_date: string;
-};
-
 type InspectionGroup = {
     iar_number: string;
-    items: InspectionItem[];
+    inspectors: string[];
+    inspection_dates: string[];
 };
-
-let inspectionEntryIdCounter = 0;
-function generateInspectionItemId() {
-    inspectionEntryIdCounter += 1;
-    return `inspection-item-${Date.now()}-${inspectionEntryIdCounter}`;
-}
-
-const createInspectionItem = (): InspectionItem => ({
-    id: generateInspectionItemId(),
-    inspected_by: '',
-    inspection_date: '',
-});
 
 const createInspectionGroup = (): InspectionGroup => ({
     iar_number: '',
-    items: [createInspectionItem()],
+    inspectors: [''],
+    inspection_dates: [''],
 });
 
 const createEmptyForm = () => ({
@@ -555,11 +539,12 @@ export default function PirEditForm({
 
                     return Array.from(grouped.entries()).map(([iarNumber, iarEntries]) => ({
                         iar_number: iarNumber,
-                        items: iarEntries.map((entry) => ({
-                            id: generateInspectionItemId(),
-                            inspected_by: entry.inspected_by ?? '',
-                            inspection_date: entry.inspection_date ? String(entry.inspection_date).slice(0, 10) : '',
-                        })),
+                        inspectors: iarEntries
+                            .map((entry) => entry.inspected_by ?? '')
+                            .filter((value, index, all) => value.trim() !== '' && all.indexOf(value) === index),
+                        inspection_dates: iarEntries
+                            .map((entry) => (entry.inspection_date ? String(entry.inspection_date).slice(0, 10) : ''))
+                            .filter((value, index, all) => value.trim() !== '' && all.indexOf(value) === index),
                     }));
                 })(),
             });
@@ -587,15 +572,31 @@ export default function PirEditForm({
         }));
     };
 
-    const updateInspectionItem = (groupIndex: number, itemIndex: number, field: 'inspected_by' | 'inspection_date', value: string) => {
+    const updateInspectionInspector = (groupIndex: number, inspectorIndex: number, value: string) => {
         setData((prev) => ({
             ...prev,
             inspection_groups: prev.inspection_groups.map((group, index) =>
                 index === groupIndex
                     ? {
                         ...group,
-                        items: group.items.map((item, currentIndex) =>
-                            currentIndex === itemIndex ? { ...item, [field]: value } : item
+                        inspectors: group.inspectors.map((item, currentIndex) =>
+                            currentIndex === inspectorIndex ? value : item
+                        ),
+                    }
+                    : group
+            ),
+        }));
+    };
+
+    const updateInspectionDate = (groupIndex: number, dateIndex: number, value: string) => {
+        setData((prev) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.map((group, index) =>
+                index === groupIndex
+                    ? {
+                        ...group,
+                        inspection_dates: group.inspection_dates.map((item, currentIndex) =>
+                            currentIndex === dateIndex ? value : item
                         ),
                     }
                     : group
@@ -617,25 +618,50 @@ export default function PirEditForm({
         }));
     };
 
-    const addInspectionItem = (groupIndex: number) => {
+    const addInspectionInspector = (groupIndex: number) => {
         setData((prev) => ({
             ...prev,
             inspection_groups: prev.inspection_groups.map((group, index) =>
-                index === groupIndex && group.items.length < 2
-                    ? { ...group, items: [...group.items, createInspectionItem()] }
+                index === groupIndex
+                    ? { ...group, inspectors: [...group.inspectors, ''] }
                     : group
             ),
         }));
     };
 
-    const removeInspectionItem = (groupIndex: number, itemIndex: number) => {
+    const addInspectionDate = (groupIndex: number) => {
         setData((prev) => ({
             ...prev,
             inspection_groups: prev.inspection_groups.map((group, index) =>
-                index === groupIndex && group.items.length > 1
+                index === groupIndex
+                    ? { ...group, inspection_dates: [...group.inspection_dates, ''] }
+                    : group
+            ),
+        }));
+    };
+
+    const removeInspectionInspector = (groupIndex: number, inspectorIndex: number) => {
+        setData((prev) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.map((group, index) =>
+                index === groupIndex && group.inspectors.length > 1
                     ? {
                         ...group,
-                        items: group.items.filter((_, currentIndex) => currentIndex !== itemIndex),
+                        inspectors: group.inspectors.filter((_, currentIndex) => currentIndex !== inspectorIndex),
+                    }
+                    : group
+            ),
+        }));
+    };
+
+    const removeInspectionDate = (groupIndex: number, dateIndex: number) => {
+        setData((prev) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.map((group, index) =>
+                index === groupIndex && group.inspection_dates.length > 1
+                    ? {
+                        ...group,
+                        inspection_dates: group.inspection_dates.filter((_, currentIndex) => currentIndex !== dateIndex),
                     }
                     : group
             ),
@@ -651,15 +677,38 @@ export default function PirEditForm({
         const payload = {
             ...data,
             deleted_attachment_ids: deletedAttachmentIds,
-            inspection_entries: data.inspection_groups.flatMap((group) =>
-                group.items
-                    .filter((item) => item.inspected_by.trim() !== '' || item.inspection_date.trim() !== '' || group.iar_number.trim() !== '')
-                    .map((item) => ({
+            inspection_entries: data.inspection_groups.flatMap((group) => {
+                const inspectors = group.inspectors.filter((value) => value.trim() !== '');
+                const dates = group.inspection_dates.filter((value) => value.trim() !== '');
+
+                if (inspectors.length > 0 && dates.length > 0) {
+                    return inspectors.flatMap((inspector) =>
+                        dates.map((date) => ({
+                            iar_number: group.iar_number,
+                            inspected_by: inspector,
+                            inspection_date: date,
+                        }))
+                    );
+                }
+
+                if (inspectors.length > 0) {
+                    return inspectors.map((inspector) => ({
                         iar_number: group.iar_number,
-                        inspected_by: item.inspected_by,
-                        inspection_date: item.inspection_date,
-                    }))
-            ),
+                        inspected_by: inspector,
+                        inspection_date: '',
+                    }));
+                }
+
+                if (dates.length > 0) {
+                    return dates.map((date) => ({
+                        iar_number: group.iar_number,
+                        inspected_by: '',
+                        inspection_date: date,
+                    }));
+                }
+
+                return [];
+            }),
         };
 
         delete (payload as { inspection_groups?: unknown }).inspection_groups;
@@ -702,9 +751,26 @@ export default function PirEditForm({
     // "For Release" must be fully filled out before anything after it
     // (Receipt/Item's Claimed, For Payment, Status & Remarks) can be
     // touched — mirrors PirAddForm's lock.
-    const forReleaseComplete = data.inspection_groups.some((group) =>
-        group.iar_number.trim() !== '' || group.items.some((item) => item.inspected_by.trim() !== '' || item.inspection_date.trim() !== '')
+    const FOR_RELEASE_FIELDS = [
+        'invoice_number',
+        'invoice_date',
+        'delivery_receipt',
+        'date_completed',
+        'par_ics_number',
+        'ris_number',
+    ] as const;
+
+    const forReleaseFieldsComplete = FOR_RELEASE_FIELDS.every(
+        (field) => data[field].trim() !== ''
     );
+
+    const forReleaseInspectionComplete = data.inspection_groups.some((group) =>
+        group.iar_number.trim() !== '' &&
+        group.inspectors.some((value) => value.trim() !== '') &&
+        group.inspection_dates.some((value) => value.trim() !== '')
+    );
+
+    const forReleaseComplete = forReleaseFieldsComplete && forReleaseInspectionComplete;
 
     if (!pir) return null;
 
@@ -1030,76 +1096,93 @@ export default function PirEditForm({
                                                     <div className="flex items-center gap-2">
                                                         <Button
                                                             type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => addInspectionItem(groupIndex)}
-                                                            disabled={group.items.length >= 2}
-                                                        >
-                                                            <Plus className="mr-1 h-4 w-4" />
-                                                            Add Inspector/Date
-                                                        </Button>
-                                                        <Button
-                                                            type="button"
                                                             variant="ghost"
                                                             size="icon"
                                                             onClick={() => removeInspectionGroup(groupIndex)}
                                                             disabled={data.inspection_groups.length === 1}
+                                                            title="Remove IAR row"
                                                         >
                                                             <X className="h-4 w-4" />
                                                         </Button>
                                                     </div>
                                                 </div>
 
-                                                <div className="space-y-2">
-                                                    {group.items.map((item, itemIndex) => (
-                                                        <div key={item.id} className="grid grid-cols-1 gap-2 rounded-md border border-dashed p-3 md:grid-cols-2">
-                                                            <div>
-                                                                <div className="mb-1 flex items-center justify-between">
-                                                                    <label className="block text-xs text-muted-foreground">Inspected By</label>
-                                                                    {itemIndex === group.items.length - 1 && (
+                                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                    <div className="rounded-md border border-dashed p-3">
+                                                        <div className="mb-2 flex items-center justify-between">
+                                                            <label className="block text-xs text-muted-foreground">Inspected By</label>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => addInspectionInspector(groupIndex)}
+                                                            >
+                                                                <Plus className="mr-1 h-4 w-4" />
+                                                                Add Inspector
+                                                            </Button>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            {group.inspectors.map((inspector, inspectorIndex) => (
+                                                                <div key={`inspector-${groupIndex}-${inspectorIndex}`} className="flex items-center gap-2">
+                                                                    <Input
+                                                                        value={inspector}
+                                                                        onChange={(e) => updateInspectionInspector(groupIndex, inspectorIndex, e.target.value)}
+                                                                        placeholder="Enter Inspected By"
+                                                                    />
+                                                                    {group.inspectors.length > 1 && (
                                                                         <Button
                                                                             type="button"
                                                                             variant="ghost"
                                                                             size="icon"
-                                                                            className="h-6 w-6"
-                                                                            onClick={() => addInspectionItem(groupIndex)}
-                                                                            disabled={group.items.length >= 2}
-                                                                            title="Add another inspector/date"
-                                                                        >
-                                                                            <Plus className="h-3.5 w-3.5" />
-                                                                        </Button>
-                                                                    )}
-                                                                </div>
-                                                                <Input
-                                                                    value={item.inspected_by}
-                                                                    onChange={(e) => updateInspectionItem(groupIndex, itemIndex, 'inspected_by', e.target.value)}
-                                                                    placeholder="Enter Inspected By"
-                                                                />
-                                                            </div>
-                                                            <div>
-                                                                <div className="mb-1 flex items-center justify-between">
-                                                                    <label className="block text-xs text-muted-foreground">Inspection Date</label>
-                                                                    {group.items.length > 1 && (
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-6 w-6"
-                                                                            onClick={() => removeInspectionItem(groupIndex, itemIndex)}
-                                                                            title="Remove inspector/date"
+                                                                            className="h-8 w-8 shrink-0"
+                                                                            onClick={() => removeInspectionInspector(groupIndex, inspectorIndex)}
+                                                                            title="Remove inspector"
                                                                         >
                                                                             <X className="h-3.5 w-3.5" />
                                                                         </Button>
                                                                     )}
                                                                 </div>
-                                                                <Input
-                                                                    type="date"
-                                                                    value={item.inspection_date}
-                                                                    onChange={(e) => updateInspectionItem(groupIndex, itemIndex, 'inspection_date', e.target.value)}
-                                                                />
-                                                            </div>
+                                                            ))}
                                                         </div>
-                                                    ))}
+                                                    </div>
+
+                                                    <div className="rounded-md border border-dashed p-3">
+                                                        <div className="mb-2 flex items-center justify-between">
+                                                            <label className="block text-xs text-muted-foreground">Inspection Date</label>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => addInspectionDate(groupIndex)}
+                                                            >
+                                                                <Plus className="mr-1 h-4 w-4" />
+                                                                Add Date
+                                                            </Button>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            {group.inspection_dates.map((date, dateIndex) => (
+                                                                <div key={`date-${groupIndex}-${dateIndex}`} className="flex items-center gap-2">
+                                                                    <Input
+                                                                        type="date"
+                                                                        value={date}
+                                                                        onChange={(e) => updateInspectionDate(groupIndex, dateIndex, e.target.value)}
+                                                                    />
+                                                                    {group.inspection_dates.length > 1 && (
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8 shrink-0"
+                                                                            onClick={() => removeInspectionDate(groupIndex, dateIndex)}
+                                                                            title="Remove date"
+                                                                        >
+                                                                            <X className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
