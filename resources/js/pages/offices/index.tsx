@@ -13,6 +13,7 @@ interface Office {
     office_name: string;
     entity_name: string;
     office_head: string;
+    email: string | null;
 }
 
 interface PaginatedOffices {
@@ -171,6 +172,10 @@ export default function Index({
                                     Office Head
                                 </th>
 
+                                <th className="px-4 py-3 text-left font-semibold text-white">
+                                    Email
+                                </th>
+
                                 <th className="px-4 py-3 text-center font-semibold text-white">
                                     Actions
                                 </th>
@@ -214,6 +219,10 @@ export default function Index({
 
                                         <td className="px-4 py-3">
                                             {office.office_head}
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                            {office.email ?? '—'}
                                         </td>
 
                                         <td className="px-4 py-3">

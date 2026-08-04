@@ -23,6 +23,7 @@ interface FieldProps {
     error?: string;
     required?: boolean;
     placeholder?: string;
+    type?: string;
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
@@ -36,6 +37,7 @@ function Field({
     error,
     required = false,
     placeholder = '',
+    type = 'text',
 }: FieldProps) {
     return (
         <div>
@@ -45,6 +47,7 @@ function Field({
             </label>
 
             <Input
+                type={type}
                 name={name}
                 value={value}
                 onChange={onChange}
@@ -65,6 +68,7 @@ const emptyForm = {
     office_name: '',
     entity_name: '',
     office_head: '',
+    email: '',
 };
 
 export default function OfficeAddForm({
@@ -155,6 +159,16 @@ export default function OfficeAddForm({
                                 onChange={handleChange}
                                 error={errors.office_head}
                                 placeholder="e.g. Juan Dela Cruz"
+                            />
+
+                            <Field
+                                label="Email"
+                                name="email"
+                                type="email"
+                                value={data.email}
+                                onChange={handleChange}
+                                error={errors.email}
+                                placeholder="e.g. office@email.com"
                             />
                         </div>
                     </div>

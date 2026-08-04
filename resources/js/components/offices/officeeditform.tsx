@@ -15,6 +15,7 @@ interface Office {
     office_name: string;
     entity_name: string;
     office_head: string;
+    email: string;
 }
 
 interface Props {
@@ -32,6 +33,7 @@ interface FieldProps {
     required?: boolean;
     placeholder?: string;
     disabled?: boolean;
+    type?: string;
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
@@ -46,6 +48,7 @@ function Field({
     required = false,
     placeholder = '',
     disabled = false,
+    type = 'text',
 }: FieldProps) {
     return (
         <div>
@@ -55,6 +58,7 @@ function Field({
             </label>
 
             <Input
+                type={type}
                 name={name}
                 value={value}
                 onChange={onChange}
@@ -76,6 +80,7 @@ const emptyForm = {
     office_name: '',
     entity_name: '',
     office_head: '',
+    email: '',
 };
 
 export default function OfficeEditForm({
@@ -93,6 +98,7 @@ export default function OfficeEditForm({
                 office_name: office.office_name,
                 entity_name: office.entity_name,
                 office_head: office.office_head,
+                email: office.email ?? '',
             });
         }
     }, [office]);
@@ -169,6 +175,15 @@ export default function OfficeEditForm({
                                 value={data.office_head}
                                 onChange={handleChange}
                                 error={errors.office_head}
+                            />
+
+                            <Field
+                                label="Email"
+                                name="email"
+                                type="email"
+                                value={data.email}
+                                onChange={handleChange}
+                                error={errors.email}
                             />
                         </div>
                     </div>

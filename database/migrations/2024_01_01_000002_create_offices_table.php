@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('office_name', 150)->nullable();
             $table->string('entity_name', 255)->nullable();
             $table->string('office_head', 150)->nullable();
+            $table->string('email', 255)->nullable();
         });
     }
 

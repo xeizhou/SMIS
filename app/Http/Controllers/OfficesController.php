@@ -19,7 +19,8 @@ class OfficesController extends Controller
                 $q->where('office_code', 'like', "%{$search}%")
                     ->orWhere('office_name', 'like', "%{$search}%")
                     ->orWhere('entity_name', 'like', "%{$search}%")
-                    ->orWhere('office_head', 'like', "%{$search}%");
+                    ->orWhere('office_head', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -60,6 +61,11 @@ class OfficesController extends Controller
                 'string',
                 'max:150',
             ],
+            'email' => [
+                'nullable',
+                'email',
+                'max:255',
+            ],
         ]);
 
         Office::create($validated);
@@ -84,6 +90,11 @@ class OfficesController extends Controller
                 'nullable',
                 'string',
                 'max:150',
+            ],
+            'email' => [
+                'nullable',
+                'email',
+                'max:255',
             ],
         ]);
 
