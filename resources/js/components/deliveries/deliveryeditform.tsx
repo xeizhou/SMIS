@@ -600,7 +600,6 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         value={data.delivery_date} 
                                         onChange={handleChange} 
                                         error={errors.delivery_date}
-                                        required
                                     />
 
                                     <Field

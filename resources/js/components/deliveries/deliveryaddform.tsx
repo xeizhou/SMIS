@@ -503,7 +503,6 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                 value={data.delivery_date}
                                 onChange={handleChange}
                                 error={errors.delivery_date}
-                                required
                             />
 
                             <Field
