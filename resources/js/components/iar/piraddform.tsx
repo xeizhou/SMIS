@@ -1,4 +1,4 @@
-import { Paperclip, RefreshCw, X, Check, ChevronsUpDown } from 'lucide-react';
+import { Paperclip, RefreshCw, X, Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
@@ -334,10 +334,32 @@ type InspectionEntry = {
     inspection_date: string;
 };
 
-const createInspectionEntry = (): InspectionEntry => ({
-    iar_number: '',
+type InspectionItem = {
+    id: string;
+    inspected_by: string;
+    inspection_date: string;
+};
+
+type InspectionGroup = {
+    iar_number: string;
+    items: InspectionItem[];
+};
+
+let inspectionEntryIdCounter = 0;
+function generateInspectionItemId() {
+    inspectionEntryIdCounter += 1;
+    return `inspection-item-${Date.now()}-${inspectionEntryIdCounter}`;
+}
+
+const createInspectionItem = (): InspectionItem => ({
+    id: generateInspectionItemId(),
     inspected_by: '',
     inspection_date: '',
+});
+
+const createInspectionGroup = (): InspectionGroup => ({
+    iar_number: '',
+    items: [createInspectionItem()],
 });
 
 const createEmptyForm = () => ({
@@ -383,7 +405,7 @@ const createEmptyForm = () => ({
     receipt_claimed_notified_via: '',
     status: '',
     remarks: '',
-    inspection_entries: [createInspectionEntry()],
+    inspection_groups: [createInspectionGroup()],
 });
 
 const emptyForm = createEmptyForm();
@@ -435,26 +457,67 @@ export default function PirAddForm({
         setData({ ...data, [name]: value });
     };
 
-    const updateInspectionEntry = (index: number, field: keyof InspectionEntry, value: string) => {
+    const updateInspectionGroup = (groupIndex: number, value: string) => {
         setData((prev) => ({
             ...prev,
-            inspection_entries: prev.inspection_entries.map((entry, entryIndex) =>
-                entryIndex === index ? { ...entry, [field]: value } : entry
+            inspection_groups: prev.inspection_groups.map((group, index) =>
+                index === groupIndex ? { ...group, iar_number: value } : group
             ),
         }));
     };
 
-    const addInspectionEntry = () => {
+    const updateInspectionItem = (groupIndex: number, itemIndex: number, field: 'inspected_by' | 'inspection_date', value: string) => {
         setData((prev) => ({
             ...prev,
-            inspection_entries: [...prev.inspection_entries, createInspectionEntry()],
+            inspection_groups: prev.inspection_groups.map((group, index) =>
+                index === groupIndex
+                    ? {
+                        ...group,
+                        items: group.items.map((item, currentIndex) =>
+                            currentIndex === itemIndex ? { ...item, [field]: value } : item
+                        ),
+                    }
+                    : group
+            ),
         }));
     };
 
-    const removeInspectionEntry = (index: number) => {
+    const addInspectionGroup = () => {
         setData((prev) => ({
             ...prev,
-            inspection_entries: prev.inspection_entries.filter((_, entryIndex) => entryIndex !== index),
+            inspection_groups: [...prev.inspection_groups, createInspectionGroup()],
+        }));
+    };
+
+    const removeInspectionGroup = (groupIndex: number) => {
+        setData((prev) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.filter((_, index) => index !== groupIndex),
+        }));
+    };
+
+    const addInspectionItem = (groupIndex: number) => {
+        setData((prev) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.map((group, index) =>
+                index === groupIndex && group.items.length < 2
+                    ? { ...group, items: [...group.items, createInspectionItem()] }
+                    : group
+            ),
+        }));
+    };
+
+    const removeInspectionItem = (groupIndex: number, itemIndex: number) => {
+        setData((prev) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.map((group, index) =>
+                index === groupIndex && group.items.length > 1
+                    ? {
+                        ...group,
+                        items: group.items.filter((_, currentIndex) => currentIndex !== itemIndex),
+                    }
+                    : group
+            ),
         }));
     };
 
@@ -500,7 +563,22 @@ export default function PirAddForm({
         e.preventDefault();
         setProcessing(true);
 
-        router.post('/iar', data, {
+        const payload = {
+            ...data,
+            inspection_entries: data.inspection_groups.flatMap((group) =>
+                group.items
+                    .filter((item) => item.inspected_by.trim() !== '' || item.inspection_date.trim() !== '' || group.iar_number.trim() !== '')
+                    .map((item) => ({
+                        iar_number: group.iar_number,
+                        inspected_by: item.inspected_by,
+                        inspection_date: item.inspection_date,
+                    }))
+            ),
+        };
+
+        delete (payload as { inspection_groups?: unknown }).inspection_groups;
+
+        router.post('/iar', payload, {
             onSuccess: (page) => {
                 const createdPirId = (page as { props?: { flash?: { createdPirId?: number } } }).props?.flash?.createdPirId ?? null;
 
@@ -539,8 +617,8 @@ export default function PirAddForm({
 
     const poSelected = Boolean(data.po_number);
 
-    const forReleaseComplete = data.inspection_entries.some((entry) =>
-        entry.iar_number.trim() !== '' || entry.inspected_by.trim() !== '' || entry.inspection_date.trim() !== ''
+    const forReleaseComplete = data.inspection_groups.some((group) =>
+        group.iar_number.trim() !== '' || group.items.some((item) => item.inspected_by.trim() !== '' || item.inspection_date.trim() !== '')
     );
 
     const afterForReleaseDisabled = !poSelected || !forReleaseComplete;
@@ -880,53 +958,102 @@ export default function PirAddForm({
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            onClick={addInspectionEntry}
+                                            onClick={addInspectionGroup}
                                             disabled={!poSelected}
                                         >
-                                            + Add Row
+                                            + Add IAR Row
                                         </Button>
                                     </div>
 
                                     <div className="space-y-3">
-                                        {data.inspection_entries.map((entry, index) => (
-                                            <div key={index} className="grid grid-cols-12 gap-3 rounded-md border bg-background/50 p-3">
-                                                <div className="col-span-4">
-                                                    <label className="mb-1 block text-xs text-muted-foreground">IAR Number</label>
-                                                    <Input
-                                                        value={entry.iar_number}
-                                                        onChange={(e) => updateInspectionEntry(index, 'iar_number', e.target.value)}
-                                                        disabled={!poSelected}
-                                                        placeholder="Enter IAR Number"
-                                                    />
+                                        {data.inspection_groups.map((group, groupIndex) => (
+                                            <div key={groupIndex} className="rounded-md border bg-background/50 p-3">
+                                                <div className="mb-3 flex items-center justify-between">
+                                                    <div className="w-full max-w-[280px]">
+                                                        <label className="mb-1 block text-xs text-muted-foreground">IAR Number</label>
+                                                        <Input
+                                                            value={group.iar_number}
+                                                            onChange={(e) => updateInspectionGroup(groupIndex, e.target.value)}
+                                                            disabled={!poSelected}
+                                                            placeholder="Enter IAR Number"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => addInspectionItem(groupIndex)}
+                                                            disabled={!poSelected || group.items.length >= 2}
+                                                        >
+                                                            <Plus className="mr-1 h-4 w-4" />
+                                                            Add Inspector/Date
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => removeInspectionGroup(groupIndex)}
+                                                            disabled={!poSelected || data.inspection_groups.length === 1}
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 </div>
-                                                <div className="col-span-4">
-                                                    <label className="mb-1 block text-xs text-muted-foreground">Inspected By</label>
-                                                    <Input
-                                                        value={entry.inspected_by}
-                                                        onChange={(e) => updateInspectionEntry(index, 'inspected_by', e.target.value)}
-                                                        disabled={!poSelected}
-                                                        placeholder="Enter Inspected By"
-                                                    />
-                                                </div>
-                                                <div className="col-span-3">
-                                                    <label className="mb-1 block text-xs text-muted-foreground">Inspection Date</label>
-                                                    <Input
-                                                        type="date"
-                                                        value={entry.inspection_date}
-                                                        onChange={(e) => updateInspectionEntry(index, 'inspection_date', e.target.value)}
-                                                        disabled={!poSelected}
-                                                    />
-                                                </div>
-                                                <div className="col-span-1 flex items-end justify-end">
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => removeInspectionEntry(index)}
-                                                        disabled={!poSelected || data.inspection_entries.length === 1}
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
+
+                                                <div className="space-y-2">
+                                                    {group.items.map((item, itemIndex) => (
+                                                        <div key={item.id} className="grid grid-cols-1 gap-2 rounded-md border border-dashed p-3 md:grid-cols-2">
+                                                            <div>
+                                                                <div className="mb-1 flex items-center justify-between">
+                                                                    <label className="block text-xs text-muted-foreground">Inspected By</label>
+                                                                    {itemIndex === group.items.length - 1 && (
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-6 w-6"
+                                                                            onClick={() => addInspectionItem(groupIndex)}
+                                                                            disabled={!poSelected || group.items.length >= 2}
+                                                                            title="Add another inspector/date"
+                                                                        >
+                                                                            <Plus className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                                <Input
+                                                                    value={item.inspected_by}
+                                                                    onChange={(e) => updateInspectionItem(groupIndex, itemIndex, 'inspected_by', e.target.value)}
+                                                                    disabled={!poSelected}
+                                                                    placeholder="Enter Inspected By"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <div className="mb-1 flex items-center justify-between">
+                                                                    <label className="block text-xs text-muted-foreground">Inspection Date</label>
+                                                                    {group.items.length > 1 && (
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-6 w-6"
+                                                                            onClick={() => removeInspectionItem(groupIndex, itemIndex)}
+                                                                            disabled={!poSelected}
+                                                                            title="Remove inspector/date"
+                                                                        >
+                                                                            <X className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                                <Input
+                                                                    type="date"
+                                                                    value={item.inspection_date}
+                                                                    onChange={(e) => updateInspectionItem(groupIndex, itemIndex, 'inspection_date', e.target.value)}
+                                                                    disabled={!poSelected}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         ))}

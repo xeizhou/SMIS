@@ -15,6 +15,81 @@ use Illuminate\Support\Facades\Storage;
 
 class IARController extends Controller
 {
+    private function normalizeInspectionEntries(Request $request): array
+    {
+        $inspectionEntries = $request->input('inspection_entries', []);
+        $inspectionGroups = $request->input('inspection_groups', []);
+
+        $normalized = [];
+
+        foreach ($inspectionEntries as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $iarNumber = $entry['iar_number'] ?? '';
+
+            if (array_key_exists('inspection_items', $entry) && is_array($entry['inspection_items'])) {
+                foreach ($entry['inspection_items'] as $item) {
+                    if (! is_array($item)) {
+                        continue;
+                    }
+
+                    $normalized[] = [
+                        'iar_number' => $iarNumber,
+                        'inspected_by' => $item['inspected_by'] ?? null,
+                        'inspection_date' => $item['inspection_date'] ?? null,
+                    ];
+                }
+
+                continue;
+            }
+
+            $normalized[] = [
+                'iar_number' => $iarNumber,
+                'inspected_by' => $entry['inspected_by'] ?? null,
+                'inspection_date' => $entry['inspection_date'] ?? null,
+            ];
+        }
+
+        foreach ($inspectionGroups as $group) {
+            if (! is_array($group)) {
+                continue;
+            }
+
+            $iarNumber = $group['iar_number'] ?? '';
+            $items = $group['items'] ?? [];
+
+            if (! is_array($items) || $items === []) {
+                $normalized[] = [
+                    'iar_number' => $iarNumber,
+                    'inspected_by' => null,
+                    'inspection_date' => null,
+                ];
+
+                continue;
+            }
+
+            foreach ($items as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
+                $normalized[] = [
+                    'iar_number' => $iarNumber,
+                    'inspected_by' => $item['inspected_by'] ?? null,
+                    'inspection_date' => $item['inspection_date'] ?? null,
+                ];
+            }
+        }
+
+        return array_values(array_filter($normalized, function (array $entry) {
+            return $entry['iar_number'] !== ''
+                || $entry['inspected_by'] !== null && $entry['inspected_by'] !== ''
+                || $entry['inspection_date'] !== null && $entry['inspection_date'] !== '';
+        }));
+    }
+
     /**
      * Display the PIR (IAR) page.
      */
@@ -128,7 +203,18 @@ class IARController extends Controller
             'inspection_entries.*.iar_number' => 'nullable|string|max:255',
             'inspection_entries.*.inspected_by' => 'nullable|string|max:255',
             'inspection_entries.*.inspection_date' => 'nullable|date',
+            'inspection_entries.*.inspection_items' => 'nullable|array',
+            'inspection_entries.*.inspection_items.*.inspected_by' => 'nullable|string|max:255',
+            'inspection_entries.*.inspection_items.*.inspection_date' => 'nullable|date',
+            'inspection_groups' => 'nullable|array',
+            'inspection_groups.*.iar_number' => 'nullable|string|max:255',
+            'inspection_groups.*.items' => 'nullable|array',
+            'inspection_groups.*.items.*.inspected_by' => 'nullable|string|max:255',
+            'inspection_groups.*.items.*.inspection_date' => 'nullable|date',
         ]);
+
+        $normalizedInspectionEntries = $this->normalizeInspectionEntries($request);
+        $validated['inspection_entries'] = $normalizedInspectionEntries;
 
         $pir = PirMonitoring::create($validated);
 
@@ -228,12 +314,23 @@ class IARController extends Controller
             'inspection_entries.*.iar_number' => 'nullable|string|max:255',
             'inspection_entries.*.inspected_by' => 'nullable|string|max:255',
             'inspection_entries.*.inspection_date' => 'nullable|date',
+            'inspection_entries.*.inspection_items' => 'nullable|array',
+            'inspection_entries.*.inspection_items.*.inspected_by' => 'nullable|string|max:255',
+            'inspection_entries.*.inspection_items.*.inspection_date' => 'nullable|date',
+            'inspection_groups' => 'nullable|array',
+            'inspection_groups.*.iar_number' => 'nullable|string|max:255',
+            'inspection_groups.*.items' => 'nullable|array',
+            'inspection_groups.*.items.*.inspected_by' => 'nullable|string|max:255',
+            'inspection_groups.*.items.*.inspection_date' => 'nullable|date',
             'deleted_attachment_ids' => 'nullable|array',
             'deleted_attachment_ids.*' => 'integer|exists:attachments,id',
         ]);
 
         $deletedIds = $validated['deleted_attachment_ids'] ?? [];
             unset($validated['deleted_attachment_ids']);
+
+            $normalizedInspectionEntries = $this->normalizeInspectionEntries($request);
+            $validated['inspection_entries'] = $normalizedInspectionEntries;
 
             if (!empty($deletedIds)) {
                 $attachments = $pirMonitoring->attachments()->whereIn('id', $deletedIds)->get();
