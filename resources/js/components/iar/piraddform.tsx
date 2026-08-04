@@ -386,6 +386,22 @@ export default function PirAddForm({
     };
 
     const poSelected = Boolean(data.po_number);
+        const FOR_RELEASE_FIELDS = [
+        'invoice_number',
+        'invoice_date',
+        'delivery_receipt',
+        'date_completed',
+        'par_ics_number',
+        'ris_number',
+        'inspected_by',
+        'inspection_date',
+    ] as const;
+
+    const forReleaseComplete = FOR_RELEASE_FIELDS.every(
+        (field) => data[field].trim() !== ''
+    );
+
+    const afterForReleaseDisabled = !poSelected || !forReleaseComplete;
 
     const supplierName = suppliers.find(
         (s) => String(s.supplier_id) === data.supplier_id
@@ -535,6 +551,15 @@ export default function PirAddForm({
                                 error={errors.supplier_signature_date}
                                 disabled={!poSelected}
                             />
+                            <Field
+                                label="Date Received by Supplier"
+                                name="date_received_by_supplier"
+                                type="date"
+                                value={data.date_received_by_supplier}
+                                onChange={handleChange}
+                                error={errors.date_received_by_supplier}
+                                disabled={!poSelected}
+                            />
                         </div>
                     </div>
 
@@ -601,17 +626,15 @@ export default function PirAddForm({
 
                     {/* Group: FOR RELEASE — csv cols 22-30 */}
                     <div>
-                        <h3 className={sectionTitleClass}>For Release</h3>
+                        <h3 className={sectionTitleClass}>
+                            For Release
+                            {poSelected && !forReleaseComplete && (
+                                <span className="ml-2 text-xs font-normal text-amber-600">
+                                    (Complete this section to input the following section: Receipt and Item/s Claimed by End-User)
+                                </span>
+                            )}
+                        </h3>
                         <div className="grid grid-cols-4 gap-6">
-                            <Field
-                                label="Date Received by Supplier"
-                                name="date_received_by_supplier"
-                                type="date"
-                                value={data.date_received_by_supplier}
-                                onChange={handleChange}
-                                error={errors.date_received_by_supplier}
-                                disabled={!poSelected}
-                            />
                             <Field
                                 label="Invoice Number"
                                 name="invoice_number"
@@ -687,6 +710,49 @@ export default function PirAddForm({
                         </div>
                     </div>
 
+                    {/* Group: RECEIPT AND ITEM/S CLAIMED BY END-USER — csv cols 33-36 */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Receipt and Item/s Claimed by End-User</h3>
+                        <div className="grid grid-cols-4 gap-6">
+                            <Field
+                                label="Receipt Receiving Date"
+                                name="receipt_receiving_date"
+                                type="date"
+                                value={data.receipt_receiving_date}
+                                onChange={handleChange}
+                                error={errors.receipt_receiving_date}
+                                disabled={afterForReleaseDisabled}
+                            />
+                            <Field
+                                label="Claimed By"
+                                name="receipt_claimed_by"
+                                value={data.receipt_claimed_by}
+                                onChange={handleChange}
+                                error={errors.receipt_claimed_by}
+                                disabled={afterForReleaseDisabled}
+                                placeholder="Enter Claimed By"
+                            />
+                            <Field
+                                label="Item/s Receiving Date"
+                                name="items_receiving_date"
+                                type="date"
+                                value={data.items_receiving_date}
+                                onChange={handleChange}
+                                error={errors.items_receiving_date}
+                                disabled={afterForReleaseDisabled}
+                            />
+                            <Field
+                                label="Claimed By"
+                                name="items_claimed_by"
+                                value={data.items_claimed_by}
+                                onChange={handleChange}
+                                error={errors.items_claimed_by}
+                                disabled={afterForReleaseDisabled}
+                                placeholder="Enter Claimed By"
+                            />
+                        </div>
+                    </div>
+
                     {/* Group: FOR PAYMENT (FINANCE) — csv cols 31-32 */}
                     <div>
                         <h3 className={sectionTitleClass}>For Payment (Finance)</h3>
@@ -708,49 +774,6 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.date_forwarded_to_finance}
                                 disabled={!poSelected}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Group: RECEIPT AND ITEM/S CLAIMED BY END-USER — csv cols 33-36 */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Receipt and Item/s Claimed by End-User</h3>
-                        <div className="grid grid-cols-4 gap-6">
-                            <Field
-                                label="Receipt Receiving Date"
-                                name="receipt_receiving_date"
-                                type="date"
-                                value={data.receipt_receiving_date}
-                                onChange={handleChange}
-                                error={errors.receipt_receiving_date}
-                                disabled={!poSelected}
-                            />
-                            <Field
-                                label="Claimed By"
-                                name="receipt_claimed_by"
-                                value={data.receipt_claimed_by}
-                                onChange={handleChange}
-                                error={errors.receipt_claimed_by}
-                                disabled={!poSelected}
-                                placeholder="Enter Claimed By"
-                            />
-                            <Field
-                                label="Item/s Receiving Date"
-                                name="items_receiving_date"
-                                type="date"
-                                value={data.items_receiving_date}
-                                onChange={handleChange}
-                                error={errors.items_receiving_date}
-                                disabled={!poSelected}
-                            />
-                            <Field
-                                label="Claimed By"
-                                name="items_claimed_by"
-                                value={data.items_claimed_by}
-                                onChange={handleChange}
-                                error={errors.items_claimed_by}
-                                disabled={!poSelected}
-                                placeholder="Enter Claimed By"
                             />
                         </div>
                     </div>

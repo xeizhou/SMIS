@@ -28,6 +28,7 @@ class Office extends Model
         'office_name',
         'entity_name',
         'office_head',
+         'email',
     ];
 
     public function getRouteKeyName(): string
