@@ -26,13 +26,8 @@ export default function PirDeleteModal({ open, onOpenChange, pirID }: Props) {
         setErrorMessage(null);
 
         router.delete(`/iar/${pirID}`, {
-            onSuccess: (page) => {
-                const errors = (page.props.errors as Record<string, string>) ?? {};
-                if (errors.delete) {
-                    setErrorMessage(errors.delete);
-                } else {
-                    onOpenChange(false);
-                }
+            onSuccess: () => {
+                onOpenChange(false);
             },
             onError: (errors) => {
                 if (errors.delete) {

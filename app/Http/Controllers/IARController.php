@@ -7,8 +7,10 @@ use App\Models\Supplier;
 use App\Models\FundCluster;
 use App\Models\Office;
 use App\Models\ServePo;
+use App\Models\Attachment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Storage;
 
 class IARController extends Controller
 {
@@ -19,7 +21,7 @@ class IARController extends Controller
     {
         $search = $request->input('search');
 
-        $query = PirMonitoring::with(['supplier', 'fundCluster'])
+        $query = PirMonitoring::with(['supplier', 'fundCluster', 'attachments'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
                     $sub->where('po_number', 'like', "%{$search}%")
@@ -53,8 +55,8 @@ class IARController extends Controller
             'purchaseOrders' => ServePo::select(
                 'po_number',
                 'po_date',
-                'po_received_date',   // <-- add this
-                'due_date',           // <-- add this
+                'po_received_date',
+                'due_date',
                 'pr_number',
                 'pr_date',
                 'ors_burs_no',
@@ -125,6 +127,29 @@ class IARController extends Controller
         return redirect()->back();
     }
 
+    public function storeAttachments(Request $request, string $po_number)
+    {
+        $pir = PirMonitoring::where('po_number', $po_number)->firstOrFail();
+
+        $request->validate([
+            'files' => 'required|array',
+            'files.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ]);
+
+        foreach ($request->file('files', []) as $file) {
+            $path = $file->store('pir-attachments/' . $pir->pir_id, 'public');
+
+            $pir->attachments()->create([
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+            ]);
+        }
+
+        return redirect()->back();
+    }
+
     /**
      * Update the specified PIR record.
      */
@@ -172,11 +197,24 @@ class IARController extends Controller
             'notify_email' => 'nullable|string',
             'status' => 'required|in:COMPLETED,CANCELLED',
             'remarks' => 'nullable|string',
+            'deleted_attachment_ids' => 'nullable|array',
+            'deleted_attachment_ids.*' => 'integer|exists:attachments,id',
         ]);
 
-        $pirMonitoring->update($validated);
+        $deletedIds = $validated['deleted_attachment_ids'] ?? [];
+            unset($validated['deleted_attachment_ids']);
 
-        return redirect()->back();
+            if (!empty($deletedIds)) {
+                $attachments = $pirMonitoring->attachments()->whereIn('id', $deletedIds)->get();
+                foreach ($attachments as $attachment) {
+                    Storage::disk('public')->delete($attachment->file_path);
+                    $attachment->delete();
+                }
+            }
+
+            $pirMonitoring->update($validated);
+
+            return redirect()->back();
     }
 
     /**

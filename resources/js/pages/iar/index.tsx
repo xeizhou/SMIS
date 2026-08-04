@@ -46,6 +46,12 @@ export interface PurchaseOrder {
     due_date: string | null;
 }
 
+interface Attachment {
+    id: number;
+    original_name: string;
+    url: string;
+}
+
 export interface Pir {
     pir_id: number;
     supplier_id: number;
@@ -92,6 +98,7 @@ export interface Pir {
     status: string;
     remarks: string | null;
     supplier: Supplier | null;
+    attachments?: Attachment[];
 }
 
 interface PaginatedPirs {
@@ -193,6 +200,7 @@ export default function Index({
     };
 
     const handleEdit = (pir: Pir) => {
+        console.log('EDIT pir_id:', pir.pir_id, 'attachments:', pir.attachments);
         setSelectedPir(pir);
         setEditOpen(true);
     };
@@ -203,6 +211,7 @@ export default function Index({
     };
 
     const handleView = (pir: Pir) => {
+        console.log('VIEW pir_id:', pir.pir_id, 'attachments:', pir.attachments);
         setSelectedPir(pir);
         setViewOpen(true);
     };

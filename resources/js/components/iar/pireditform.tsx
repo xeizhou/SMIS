@@ -1,5 +1,5 @@
-import { RefreshCw } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Eye, Paperclip, RefreshCw, Trash2, X, File, FileImage, FileText, FileSpreadsheet, FileArchive } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import {
     Dialog,
@@ -9,6 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     Select,
     SelectContent,
@@ -163,6 +165,58 @@ function SelectField({
     );
 }
 
+interface Attachment {
+    id: number;
+    original_name: string;
+    file_size?: number;
+    url: string;
+}
+
+function getExtension(filename: string) {
+    return filename.split('.').pop()?.toLowerCase() ?? '';
+}
+
+function getFileType(filename: string) {
+    const ext = getExtension(filename);
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
+    if (ext === 'pdf') return 'pdf';
+    if (['doc', 'docx'].includes(ext)) return 'word';
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return 'excel';
+    if (['zip', 'rar', '7z'].includes(ext)) return 'archive';
+    return 'file';
+}
+
+function FileIconDisplay({ type }: { type: string }) {
+    switch (type) {
+        case 'image':
+            return <FileImage className="h-5 w-5 text-blue-500" />;
+        case 'pdf':
+            return <FileText className="h-5 w-5 text-red-500" />;
+        case 'word':
+            return <FileText className="h-5 w-5 text-blue-600" />;
+        case 'excel':
+            return <FileSpreadsheet className="h-5 w-5 text-green-600" />;
+        case 'archive':
+            return <FileArchive className="h-5 w-5 text-yellow-600" />;
+        default:
+            return <File className="h-5 w-5 text-muted-foreground" />;
+    }
+}
+
+function formatBytes(bytes: number) {
+    const kb = bytes / 1024;
+    return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
+}
+
+// crypto.randomUUID() requires a secure context (localhost/HTTPS). When
+// serving over a plain-HTTP LAN IP (e.g. php artisan serve --host=192.168.x.x)
+// it's undefined, so we roll our own simple unique id instead.
+let fileIdCounter = 0;
+function generateFileId() {
+    fileIdCounter += 1;
+    return `file-${Date.now()}-${fileIdCounter}`;
+}
+
 const STATUS_OPTIONS = [
     { value: 'COMPLETED', label: 'COMPLETED' },
     { value: 'CANCELLED', label: 'CANCELLED' },
@@ -235,9 +289,34 @@ export default function PirEditForm({
             onFinish: () => setRefreshingField(null),
         });
     };
+
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    const [files, setFiles] = useState<{ id: string; file: File }[]>([]);
+    const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
+    const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
+
+const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files) return;
+        const newFiles = Array.from(e.target.files).map((file) => ({
+            file,
+            id: generateFileId(),
+        }));
+        setFiles((prev) => [...prev, ...newFiles]);
+        e.target.value = '';
+    };
+
+    const removeFile = (id: string) => {
+        setFiles((prev) => prev.filter((f) => f.id !== id));
+    };
+
+    const removeExistingAttachment = (attachmentId: number) => {
+        setExistingAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+        setDeletedAttachmentIds((prev) => [...prev, attachmentId]);
+    };
 
     useEffect(() => {
         if (pir) {
@@ -293,6 +372,9 @@ export default function PirEditForm({
                 remarks: pir.remarks ?? '',
             });
             setErrors({});
+            setFiles([]);
+            setExistingAttachments(pir.attachments ?? []);
+            setDeletedAttachmentIds([]);
         }
     }, [pir]);
 
@@ -310,9 +392,34 @@ export default function PirEditForm({
 
         setProcessing(true);
 
-        router.put(`/iar/${pir.pir_id}`, data, {
+        router.put(`/iar/${pir.pir_id}`, { ...data, deleted_attachment_ids: deletedAttachmentIds }, {
             onSuccess: () => {
-                onOpenChange(false);
+                const finishSubmission = () => {
+                    router.reload({
+                        only: ['pirs'],
+                        onFinish: () => {
+                            onOpenChange(false);
+                            setFiles([]);
+                            setDeletedAttachmentIds([]);
+                        },
+                    });
+                };
+
+                if (files.length > 0) {
+                    const formData = new FormData();
+                    files.forEach(({ file }) => formData.append('files[]', file));
+
+                    router.post(
+                        `/iar/${encodeURIComponent(pir.po_number)}/attachments`,
+                        formData,
+                        {
+                            forceFormData: true,
+                            onFinish: () => finishSubmission(),
+                        }
+                    );
+                } else {
+                    finishSubmission();
+                }
                 setErrors({});
             },
             onError: (errors) => setErrors(errors),
@@ -625,95 +732,124 @@ export default function PirEditForm({
                         </div>
                     </div>
 
-                    {/* Group: RECEIPT AND ITEM/S CLAIMED BY END-USER — csv cols 33-36 */}
+                    {/* Group: ATTACHMENTS */}
                     <div>
-                        <h3 className={sectionTitleClass}>Receipt and Item/s Claimed by End-User</h3>
-                        <div className="grid grid-cols-4 gap-6">
-                            <Field
-                                label="Receipt Receiving Date"
-                                name="receipt_receiving_date"
-                                type="date"
-                                value={data.receipt_receiving_date}
-                                onChange={handleChange}
-                                error={errors.receipt_receiving_date}
-                            />
-                            <Field
-                                label="Claimed By"
-                                name="receipt_claimed_by"
-                                value={data.receipt_claimed_by}
-                                onChange={handleChange}
-                                error={errors.receipt_claimed_by}
-                            />
-                            <Field
-                                label="Item/s Receiving Date"
-                                name="items_receiving_date"
-                                type="date"
-                                value={data.items_receiving_date}
-                                onChange={handleChange}
-                                error={errors.items_receiving_date}
-                            />
-                            <Field
-                                label="Claimed By"
-                                name="items_claimed_by"
-                                value={data.items_claimed_by}
-                                onChange={handleChange}
-                                error={errors.items_claimed_by}
-                            />
-                        </div>
-                    </div>
+                        <h3 className={sectionTitleClass}>Attachments</h3>
 
-                    {/* Group: NOTIFICATION LOGS — csv cols 37-39 */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Notification Logs</h3>
-                        <div className="grid grid-cols-4 gap-6">
-                            <Field
-                                label="Notify to Claim the Item/s & Receipt"
-                                name="notify_receipt"
-                                value={data.notify_receipt}
-                                onChange={handleChange}
-                                error={errors.notify_receipt}
-                            />
-                            <Field
-                                label="Notify the End-User (via Call)"
-                                name="notify_call"
-                                value={data.notify_call}
-                                onChange={handleChange}
-                                error={errors.notify_call}
-                            />
-                            <Field
-                                label="Notify the End-User (via Email)"
-                                name="notify_email"
-                                value={data.notify_email}
-                                onChange={handleChange}
-                                error={errors.notify_email}
-                            />
-                        </div>
-                    </div>
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
+                        >
+                            <Paperclip className="size-4" />
+                            Click to select files (PDF, JPG, PNG)
+                        </button>
 
-                    {/* Group: STATUS, REMARKS — csv cols 40-41 (standalone columns) */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Status & Remarks</h3>
-                        <div className="grid grid-cols-4 gap-6">
-                            <SelectField
-                                label="Status"
-                                value={data.status}
-                                onChange={handleSelectChange('status')}
-                                error={errors.status}
-                                required
-                                placeholder="-- Select Status --"
-                                options={STATUS_OPTIONS}
-                            />
-                            <div className="col-span-3">
-                                <Field
-                                    label="Remarks"
-                                    name="remarks"
-                                    value={data.remarks}
-                                    onChange={handleChange}
-                                    error={errors.remarks}
-                                    placeholder="Optional notes"
-                                />
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            className="hidden"
+                            onChange={handleFileSelect}
+                        />
+
+                        {/* Existing Attachments */}
+                        {existingAttachments.length > 0 && (
+                            <div className="mt-3">
+                                <p className="text-xs font-medium text-muted-foreground mb-2">Existing Files</p>
+                                <ScrollArea className="max-h-[180px]">
+                                    <div className="space-y-1.5">
+                                        {existingAttachments.map((att) => {
+                                            const type = getFileType(att.original_name);
+                                            return (
+                                                <div
+                                                    key={att.id}
+                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
+                                                >
+                                                    <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                        <FileIconDisplay type={type} />
+                                                    </div>
+
+                                                    <p className="min-w-0 flex-1 truncate text-sm">
+                                                        {att.original_name}
+                                                    </p>
+
+                                                    <Badge variant="outline" className="text-[10px] h-5 shrink-0">
+                                                        {getExtension(att.original_name).toUpperCase()}
+                                                    </Badge>
+
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
+                                                        <a href={att.url} target="_blank" rel="noopener noreferrer">
+                                                            <Eye className="h-3.5 w-3.5" />
+                                                        </a>
+                                                    </Button>
+
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7 shrink-0 text-red-500 hover:text-red-600"
+                                                        onClick={() => removeExistingAttachment(att.id)}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </ScrollArea>
                             </div>
-                        </div>
+                        )}
+
+                        {/* New Files */}
+                        {files.length > 0 && (
+                            <div className="mt-3">
+                                <p className="text-xs font-medium text-muted-foreground mb-2">New Files</p>
+                                <ScrollArea className="max-h-[180px]">
+                                    <div className="space-y-1.5">
+                                        {files.map(({ id, file }) => {
+                                            const type = getFileType(file.name);
+                                            return (
+                                                <div
+                                                    key={id}
+                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
+                                                >
+                                                    <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                        {type === 'image' ? (
+                                                            <img
+                                                                src={URL.createObjectURL(file)}
+                                                                alt={file.name}
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <FileIconDisplay type={type} />
+                                                        )}
+                                                    </div>
+
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-sm">{file.name}</p>
+                                                        <p className="text-[11px] text-muted-foreground">{formatBytes(file.size)}</p>
+                                                    </div>
+
+                                                    <Badge variant="outline" className="text-[10px] h-5 shrink-0">
+                                                        {getExtension(file.name).toUpperCase()}
+                                                    </Badge>
+
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7 shrink-0 text-red-500 hover:text-red-600"
+                                                        onClick={() => removeFile(id)}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-6 flex justify-end gap-3">
