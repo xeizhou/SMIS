@@ -5,10 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\LogsActivity;
 
 class Unit extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    const LOG_NAME = 'Units';
+
     protected $table = 'units';
 
     protected $primaryKey = 'unitID';
@@ -33,5 +37,10 @@ class Unit extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class, 'unitID', 'unitID');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('units.index') . '?highlight_id=' . $this->id;
     }
 }

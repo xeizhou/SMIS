@@ -7,11 +7,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use App\Traits\LogsActivity;
 
 class ServePo extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
     protected $table = 'serve_po';
+
+    const LOG_NAME = 'Purchase Orders';
 
     protected $primaryKey = 'po_number';
 
@@ -91,5 +95,10 @@ class ServePo extends Model
     public function attachments(): MorphMany
     {
     return $this->morphMany(Attachment::class, 'attachable');
+}
+
+public function getActivityUrl()
+{
+    return route('serve-po.index') . '?highlight_id=' . $this->po_number;
 }
 }

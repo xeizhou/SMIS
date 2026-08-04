@@ -12,6 +12,8 @@ class PreRepairMonitoring extends Model
 {
     use HasFactory, LogsActivity;
 
+    const LOG_NAME = 'Pre-Repair Monitoring';
+
     protected $table = 'pre_repair_monitoring';
 
     protected $fillable = [

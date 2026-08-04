@@ -8,9 +8,9 @@ use App\Traits\LogsActivity;
 
 class RRPPEMonitoring extends Model
 {
-    use HasFactory;
-
     use HasFactory, LogsActivity;
+
+    const LOG_NAME = 'RRPPE Monitoring';
 
     protected $table = 'RRPPE_Monitoring';
 

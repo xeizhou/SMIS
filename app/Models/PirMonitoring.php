@@ -133,4 +133,9 @@ class PirMonitoring extends Model
             },
         );
     }
+
+    public function getActivityUrl()
+    {
+        return route('iar.index') . '?highlight_id=' . $this->id;
+    }
 }

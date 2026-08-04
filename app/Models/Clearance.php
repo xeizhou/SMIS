@@ -4,9 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\LogsActivity;
 
 class Clearance extends Model
 {
+    use HasFactory, LogsActivity;
+
+    const LOG_NAME = 'Clearance';
+
     protected $table = 'clearance';
 
     protected $primaryKey = 'clearance_id';
@@ -31,5 +37,10 @@ class Clearance extends Model
     public function office(): BelongsTo
     {
         return $this->belongsTo(Office::class, 'office', 'office_code');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('clearance.index') . '?highlight_id=' . $this->id;
     }
 }

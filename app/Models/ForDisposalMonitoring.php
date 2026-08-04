@@ -11,6 +11,8 @@ class ForDisposalMonitoring extends Model
 {
     use HasFactory, LogsActivity;
 
+    const LOG_NAME = 'For Disposal Monitoring';
+
     protected $table = 'for_disposal_monitoring';
 
     protected $fillable = [

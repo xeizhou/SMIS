@@ -32,8 +32,8 @@ export default function AppSidebarLayout({
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 
                 {alertMessage && (
-                    <div className="px-4 pt-4 md:px-6 md:pt-6 pb-2">
-                        <Alert variant={isError ? "destructive" : "default"} className={isSuccess ? "border-green-500 text-green-700 dark:text-green-400 dark:border-green-800" : ""}>
+                    <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <Alert variant={isError ? "destructive" : "default"} className={isSuccess ? "border-green-500 text-green-700 dark:text-green-400 dark:border-green-800 bg-background" : "bg-background"}>
                             {isError ? <AlertCircle className="h-4 w-4" /> : isSuccess ? <CheckCircle2 className="h-4 w-4" /> : <Info className="h-4 w-4" />}
                             <AlertTitle>{isError ? "Error" : isSuccess ? "Success" : "Notice"}</AlertTitle>
                             <AlertDescription>

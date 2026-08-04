@@ -14,7 +14,7 @@ class PoLetterMonitoring extends Model
 {
     use HasFactory, LogsActivity;
 
-    const LOG_NAME = 'PO / Letter Monitoring';
+    const LOG_NAME = 'PO Letter Monitoring';
 
     public function getActivityUrl()
     {
@@ -109,5 +109,10 @@ class PoLetterMonitoring extends Model
                 return max(0, $received->diffInDays($due));
             },
         );
+    }
+
+    public function getActivityUrl()
+    {
+        return route('po-letter-monitoring.index') . '?highlight_id=' . $this->id;
     }
 }

@@ -36,7 +36,7 @@ trait LogsActivity
 
         // e.g., PreRepairMonitoring -> Pre Repair
         $name = class_basename(static::class);
-        return trim(preg_replace('/[A-Z]/', ' $0', str_replace('Monitoring', '', $name)));
+        return \Illuminate\Support\Str::headline(str_replace('Monitoring', '', $name));
     }
 
     /**
