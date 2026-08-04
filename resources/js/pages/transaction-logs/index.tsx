@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import TransactionAddForm from '@/components/transaction-logs/transactionaddform';
@@ -13,6 +14,7 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
+
 
 interface Unit {
     unitID: number;
@@ -199,11 +201,11 @@ export default function Index({
                                 );
                             }}
                         >
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="All Types" />
+                            <SelectTrigger className={`w-[180px] ${transactionType === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Type" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Types</SelectItem>
+                                <SelectItem value="all">Filter by Type</SelectItem>
                                 <SelectItem value="ISSUE">ISSUE</SelectItem>
                                 <SelectItem value="RECEIVE">RECEIVE</SelectItem>
                             </SelectContent>

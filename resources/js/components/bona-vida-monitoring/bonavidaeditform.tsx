@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,6 +50,7 @@ const emptyForm: Record<string, string> = {
 };
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 export default function BonaVidaEditForm({ open, onOpenChange, record, offices }: Props) {
     const [data, setData] = useState<Record<string, string>>(emptyForm);
@@ -113,148 +115,166 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-[95vw]" style={{ maxWidth: '1000px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
-                    <DialogTitle>Edit Bona Vida Record</DialogTitle>
+                    <DialogTitle>Edit Bona Vida Record — {record?.bvm_id}</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className={labelClass} htmlFor="edit_date_received">
-                                Date Received <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                id="edit_date_received"
-                                name="date_received"
-                                type="date"
-                                value={data.date_received}
-                                onChange={handleChange}
-                            />
-                            {errors.date_received && (
-                                <p className="mt-1 text-xs text-red-500">{errors.date_received}</p>
-                            )}
-                        </div>
+                <form onSubmit={handleSubmit} className="mt-4 space-y-8">
+                    {/* Section: General Information */}
+                    <div>
+                        <h3 className={sectionTitleClass}>General Information</h3>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className={labelClass} htmlFor="edit_date_received">
+                                    Date Received <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    id="edit_date_received"
+                                    name="date_received"
+                                    type="date"
+                                    value={data.date_received}
+                                    onChange={handleChange}
+                                />
+                                {errors.date_received && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.date_received}</p>
+                                )}
+                            </div>
 
-                        <div>
-                            <label className={labelClass} htmlFor="edit_office_code">
-                                Office <span className="text-red-500">*</span>
-                            </label>
-                            <Select value={data.office_code} onValueChange={(value) => handleSelectChange(value, 'office_code')}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select office" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {offices.map((office) => (
-                                        <SelectItem key={office.office_code} value={office.office_code}>
-                                            {office.office_name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {errors.office_code && (
-                                <p className="mt-1 text-xs text-red-500">{errors.office_code}</p>
-                            )}
-                        </div>
+                            <div>
+                                <label className={labelClass} htmlFor="edit_office_code">
+                                    Office <span className="text-red-500">*</span>
+                                </label>
+                                <Select value={data.office_code} onValueChange={(value) => handleSelectChange(value, 'office_code')}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select office" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {offices.map((office) => (
+                                            <SelectItem key={office.office_code} value={office.office_code}>
+                                                {office.office_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.office_code && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.office_code}</p>
+                                )}
+                            </div>
 
-                        <div>
-                            <label className={labelClass} htmlFor="edit_qty">
-                                Quantity <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                id="edit_qty"
-                                name="qty"
-                                type="number"
-                                min="1"
-                                value={data.qty}
-                                onChange={handleChange}
-                            />
-                            {errors.qty && (
-                                <p className="mt-1 text-xs text-red-500">{errors.qty}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className={labelClass} htmlFor="edit_price">
-                                Price <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                id="edit_price"
-                                name="price"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={data.price}
-                                onChange={handleChange}
-                            />
-                            {errors.price && (
-                                <p className="mt-1 text-xs text-red-500">{errors.price}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className={labelClass} htmlFor="edit_total_amount">
-                                Total Amount <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                id="edit_total_amount"
-                                name="total_amount"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={data.total_amount}
-                                onChange={handleChange}
-                            />
-                            {errors.total_amount && (
-                                <p className="mt-1 text-xs text-red-500">{errors.total_amount}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className={labelClass} htmlFor="edit_invoice_no">
-                                Invoice No <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                id="edit_invoice_no"
-                                name="invoice_no"
-                                value={data.invoice_no}
-                                onChange={handleChange}
-                            />
-                            {errors.invoice_no && (
-                                <p className="mt-1 text-xs text-red-500">{errors.invoice_no}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className={labelClass} htmlFor="edit_invoice_date">
-                                Invoice Date <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                id="edit_invoice_date"
-                                name="invoice_date"
-                                type="date"
-                                value={data.invoice_date}
-                                onChange={handleChange}
-                            />
-                            {errors.invoice_date && (
-                                <p className="mt-1 text-xs text-red-500">{errors.invoice_date}</p>
-                            )}
+                            <div className="md:col-span-2">
+                                <label className={labelClass} htmlFor="edit_remarks">
+                                    Remarks
+                                </label>
+                                <Input
+                                    id="edit_remarks"
+                                    name="remarks"
+                                    value={data.remarks}
+                                    onChange={handleChange}
+                                />
+                                {errors.remarks && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.remarks}</p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
+                    {/* Section: Pricing Details */}
                     <div>
-                        <label className={labelClass} htmlFor="edit_remarks">
-                            Remarks
-                        </label>
-                        <Input
-                            id="edit_remarks"
-                            name="remarks"
-                            value={data.remarks}
-                            onChange={handleChange}
-                        />
-                        {errors.remarks && (
-                            <p className="mt-1 text-xs text-red-500">{errors.remarks}</p>
-                        )}
+                        <h3 className={sectionTitleClass}>Pricing Details</h3>
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <div>
+                                <label className={labelClass} htmlFor="edit_qty">
+                                    Quantity <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    id="edit_qty"
+                                    name="qty"
+                                    type="number"
+                                    min="1"
+                                    value={data.qty}
+                                    onChange={handleChange}
+                                />
+                                {errors.qty && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.qty}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className={labelClass} htmlFor="edit_price">
+                                    Price <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    id="edit_price"
+                                    name="price"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={data.price}
+                                    onChange={handleChange}
+                                />
+                                {errors.price && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.price}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className={labelClass} htmlFor="edit_total_amount">
+                                    Total Amount <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    id="edit_total_amount"
+                                    name="total_amount"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={data.total_amount}
+                                    onChange={handleChange}
+                                />
+                                {errors.total_amount && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.total_amount}</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section: Invoice Information */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Invoice Information</h3>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className={labelClass} htmlFor="edit_invoice_no">
+                                    Invoice No <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    id="edit_invoice_no"
+                                    name="invoice_no"
+                                    value={data.invoice_no}
+                                    onChange={handleChange}
+                                />
+                                {errors.invoice_no && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.invoice_no}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className={labelClass} htmlFor="edit_invoice_date">
+                                    Invoice Date <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    id="edit_invoice_date"
+                                    name="invoice_date"
+                                    type="date"
+                                    value={data.invoice_date}
+                                    onChange={handleChange}
+                                />
+                                {errors.invoice_date && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.invoice_date}</p>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-3">
@@ -266,6 +286,8 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
                         </Button>
                     </div>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

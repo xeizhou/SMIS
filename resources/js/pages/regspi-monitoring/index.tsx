@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import RegSPIAddForm from '@/components/regspi-monitoring/regspiaddform';
@@ -185,11 +186,11 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                         </div>
 
                         <Select value={fundClusterId} onValueChange={handleFundClusterChange}>
-                            <SelectTrigger className="w-[240px]">
-                                <SelectValue placeholder="All Fund Cluster" />
+                            <SelectTrigger className={`w-[240px] ${fundClusterId === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Fund Cluster" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Fund Cluster</SelectItem>
+                                <SelectItem value="all">Filter by Fund Cluster</SelectItem>
                                 {fundClusters.map((cluster) => (
                                     <SelectItem key={cluster.fund_cluster_id} value={cluster.fund_cluster_id}>
                                         {cluster.fund_cluster_id} - {cluster.fund_description}
@@ -207,24 +208,23 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                     </Button>
                 </form>
 
-                <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <table className="w-full text-sm">
+                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
                         <thead className="border-b" style={{ backgroundColor: '#370001' }}>
                             <tr>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Property No.</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Item Description</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">RRSP No.</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Month / Year</th>
+                                
+                                
                                 <th className="px-4 py-3 text-left font-semibold text-white">Issued Qty</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Balance Qty</th>
-                                <th className="px-4 py-3 text-right font-semibold text-white">Amount</th>
+                                
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {regspis.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-16 text-center">
+                                    <td colSpan={5} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">No RegSPI records added yet.</p>
                                         <p className="mt-1 text-sm text-muted-foreground">Click <strong>&quot;Add RegSPI Record&quot;</strong> to create your first entry.</p>
                                     </td>
@@ -234,11 +234,9 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                                     <tr key={record.regspi_id} className="border-b transition-colors hover:bg-muted/40">
                                         <td className="px-4 py-3 font-medium">{record.semi_expendable_property_no}</td>
                                         <td className="px-4 py-3">{record.item_description}</td>
-                                        <td className="px-4 py-3">{record.rrsp_no ?? record.rrspMonitoring?.rrsp_no ?? '—'}</td>
-                                        <td className="px-4 py-3">{record.month_year}</td>
                                         <td className="px-4 py-3">{record.issued_qty ?? '—'}</td>
                                         <td className="px-4 py-3">{record.balance_qty ?? '—'}</td>
-                                        <td className="px-4 py-3 text-right">{formatCurrency(record.amount)}</td>
+                                        
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">
                                                 <button type="button" onClick={() => handleEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
@@ -256,8 +254,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                                 ))
                             )}
                         </tbody>
-                    </table>
-                </div>
+                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
 
                 {regspis.data.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-1 p-4">

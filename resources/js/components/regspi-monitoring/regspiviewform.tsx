@@ -4,6 +4,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
 
 interface RegSPIRecord {
     regspi_id: number;
@@ -23,6 +25,7 @@ interface RegSPIRecord {
     balance_qty: number | string | null;
     amount: number | string | null;
     remarks: string | null;
+    fund_cluster_id?: string | null;
     rrspMonitoring?: {
         rrsp_no?: string | null;
         item_description?: string | null;
@@ -72,27 +75,31 @@ return null;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto" style={{ maxWidth: '800px' }}>
+            <DialogContent className="w-[95vw] max-h-[90vh] overflow-hidden p-0" style={{ maxWidth: '1000px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
                     <DialogTitle>RegSPI Details — {regspi.semi_expendable_property_no}</DialogTitle>
                 </DialogHeader>
 
                 <div className="mt-2 space-y-6">
                     <section>
-                        <p className={sectionTitleClass}>RegSPI Information</p>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                        <p className={sectionTitleClass}>General Information</p>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                             <Detail label="Month / Year" value={regspi.month_year ?? '—'} />
                             <Detail label="ICS No." value={regspi.ics_no ?? '—'} />
                             <Detail label="RRSP No." value={regspi.rrsp_no ?? regspi.rrspMonitoring?.rrsp_no ?? '—'} />
+                            <Detail label="Fund Cluster" value={regspi.fund_cluster_id ?? '—'} />
                             <Detail label="Semi-Expendable Property No." value={regspi.semi_expendable_property_no ?? '—'} />
-                            <Detail label="Item Description" value={regspi.item_description ?? '—'} />
-                            <Detail label="Estimated Useful Life" value={regspi.estimated_useful_life ? String(regspi.estimated_useful_life) : '—'} />
+                            <div className="sm:col-span-3">
+                                <Detail label="Item Description" value={regspi.item_description ?? '—'} />
+                            </div>
                         </div>
                     </section>
 
                     <section>
-                        <p className={sectionTitleClass}>Quantity Tracking</p>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                        <p className={sectionTitleClass}>Quantities & Offices</p>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                             <Detail label="Issued Qty" value={String(regspi.issued_qty ?? '—')} />
                             <Detail label="Issued Office / Officer" value={regspi.issued_office_officer ?? '—'} />
                             <Detail label="Returned Qty" value={String(regspi.returned_qty ?? '—')} />
@@ -106,12 +113,15 @@ return null;
 
                     <section>
                         <p className={sectionTitleClass}>Financial & Remarks</p>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <Detail label="Estimated Useful Life" value={regspi.estimated_useful_life ? String(regspi.estimated_useful_life) : '—'} />
                             <Detail label="Amount" value={formatCurrency(regspi.amount)} />
                             <Detail label="Remarks" value={regspi.remarks ?? '—'} />
                         </div>
                     </section>
                 </div>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

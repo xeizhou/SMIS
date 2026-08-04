@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
 import { Check, ChevronsUpDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -79,7 +80,8 @@ interface FieldProps {
     isRefreshing?: boolean;
 }
 
-const labelClass = 'mb-1 block text-sm text-foreground';
+const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 function Field({
     label,
@@ -357,18 +359,18 @@ export default function TransactionAddForm({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent
-                className="w-[95vw] max-h-[90vh] overflow-y-auto"
-                style={{ maxWidth: '700px' }}
-            >
+            <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-[95vw]" style={{ maxWidth: '1000px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
-                    <DialogTitle>New Transaction</DialogTitle>
+                    <DialogTitle>Add Transaction Log Record</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4">
-                    <div className="grid grid-cols-2 gap-10 w-full">
-                        {/* Left column */}
-                        <div className="space-y-5">
+                <form onSubmit={handleSubmit} className="mt-4 space-y-8">
+                    {/* Section: General Information */}
+                    <div>
+                        <h3 className={sectionTitleClass}>General Information</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                             <SelectField
                                 label="Transaction Type"
                                 value={data.transaction_type}
@@ -378,7 +380,6 @@ export default function TransactionAddForm({
                                 placeholder="-- Select Type --"
                                 options={TRANSACTION_TYPE_OPTIONS}
                             />
-
                             <Field
                                 label="Transaction Date"
                                 name="transaction_date"
@@ -388,7 +389,22 @@ export default function TransactionAddForm({
                                 error={errors.transaction_date}
                                 required
                             />
+                            <Field
+                                label="Reference"
+                                name="reference"
+                                value={data.reference}
+                                onChange={handleChange}
+                                error={errors.reference}
+                                required
+                                placeholder="e.g. RIS No. or PO No."
+                            />
+                        </div>
+                    </div>
 
+                    {/* Section: Item Details */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Item Details</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                             <SearchableSelect
                                 label="Item Name"
                                 value={data.item_name}
@@ -417,7 +433,6 @@ export default function TransactionAddForm({
                                     label: item.item_name,
                                 }))}
                             />
-
                             <SelectField
                                 label="Unit"
                                 value={data.unitID}
@@ -438,10 +453,6 @@ export default function TransactionAddForm({
                                     ).values()
                                 )}
                             />
-                        </div>
-
-                        {/* Right column */}
-                        <div className="space-y-5">
                             <Field
                                 label="Quantity"
                                 name="quantity"
@@ -452,17 +463,13 @@ export default function TransactionAddForm({
                                 error={errors.quantity}
                                 required
                             />
+                        </div>
+                    </div>
 
-                            <Field
-                                label="Reference"
-                                name="reference"
-                                value={data.reference}
-                                onChange={handleChange}
-                                error={errors.reference}
-                                required
-                                placeholder="e.g. RIS No. or PO No."
-                            />
-
+                    {/* Section: Allocation */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Allocation</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <SelectField
                                 label="Fund Cluster"
                                 value={data.fund_cluster}
@@ -475,7 +482,6 @@ export default function TransactionAddForm({
                                     label: `${fc.fund_cluster_id} - ${fc.fund_description}`,
                                 }))}
                             />
-
                             <SelectField
                                 label="Office"
                                 value={data.office_code}
@@ -509,6 +515,8 @@ export default function TransactionAddForm({
                         </Button>
                     </div>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

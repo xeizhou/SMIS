@@ -18,21 +18,28 @@ class ITRPTRController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $condition_of_ppe = $request->input('condition_of_ppe');
 
         $query = ItrPtrMonitoring::query();
 
         if ($search) {
-            $query->where('transaction_no', 'like', "%{$search}%")
+            $query->where(function ($q) use ($search) {
+                $q->where('transaction_no', 'like', "%{$search}%")
                   ->orWhere('property_no', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
                   ->orWhere('claimed_by', 'like', "%{$search}%");
+            });
+        }
+
+        if ($condition_of_ppe) {
+            $query->where('condition_of_ppe', $condition_of_ppe);
         }
 
         $data = $query->latest()->paginate(10)->withQueryString();
 
         return Inertia::render('itr-ptr-monitoring/index', [
             'data' => $data,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'condition_of_ppe']),
         ]);
     }
 

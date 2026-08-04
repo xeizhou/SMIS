@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search } from 'lucide-react';
 import { Pencil, Trash2, Eye } from 'lucide-react';
 import { useState } from 'react';
@@ -202,8 +203,7 @@ export default function Index({
                 </form>
 
                 {/* Table */}
-                <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <table className="w-full text-sm">
+                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
                         <thead
                             className="border-b"
                             style={{ backgroundColor: '#370001' }}
@@ -211,19 +211,19 @@ export default function Index({
                             <tr>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Stock No.</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Item Name</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Description</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Unit</th>
+                                
+                                
                                 <th className="px-4 py-3 text-center font-semibold text-white">On Hand</th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">Re-order Point</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Fund Cluster</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Remarks</th>
+                                
+                                
+                                
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {stockItems.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="px-6 py-16 text-center">
+                                    <td colSpan={4} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No stock items added yet.
                                         </p>
@@ -244,12 +244,7 @@ export default function Index({
                                         >
                                             <td className="px-4 py-3">{stock.stock_no}</td>
                                             <td className="px-4 py-3">{stock.item_name}</td>
-                                            <td className="px-4 py-3">{stock.description ?? '—'}</td>
-                                            <td className="px-4 py-3">{defaultUnit?.unit_short_name ?? '—'}</td>
                                             <td className="px-4 py-3 text-center">{stock.on_hand_quantity}</td>
-                                            <td className="px-4 py-3 text-center">{stock.re_order_point}</td>
-                                            <td className="px-4 py-3">{stock.fund_cluster?.fund_description ?? '—'}</td>
-                                            <td className="px-4 py-3">{stock.remarks ?? '—'}</td>
                                             <td className="px-4 py-3 text-center">
                                                 <div className="flex items-center justify-center gap-3">
                                                     <button
@@ -283,8 +278,7 @@ export default function Index({
                                 })
                             )}
                         </tbody>
-                    </table>
-                </div>
+                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
 
                 {stockItems.data.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-1 p-4">

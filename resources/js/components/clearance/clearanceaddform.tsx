@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -28,6 +29,7 @@ const emptyForm: Record<string, string> = {
 };
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 export default function ClearanceAddForm({ open, onOpenChange, offices }: Props) {
     const [data, setData] = useState<Record<string, string>>(emptyForm);
@@ -94,78 +96,90 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-[95vw]" style={{ maxWidth: '1000px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
                     <DialogTitle>Add Clearance Record</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className={labelClass} htmlFor="name">Name <span className="text-red-500">*</span></label>
-                            <Input id="name" name="name" value={data.name} onChange={handleChange} placeholder="Enter full name" />
-                            {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
-                        </div>
+                <form onSubmit={handleSubmit} className="mt-4 space-y-8">
+                    {/* Section: Requester Information */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Requester Information</h3>
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <div>
+                                <label className={labelClass} htmlFor="name">Name <span className="text-red-500">*</span></label>
+                                <Input id="name" name="name" value={data.name} onChange={handleChange} placeholder="Enter full name" />
+                                {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
+                            </div>
 
-                        <div>
-                            <label className={labelClass} htmlFor="office">Office <span className="text-red-500">*</span></label>
-                            <Select value={data.office} onValueChange={(value) => handleSelectChange(value, 'office')}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select office" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {offices.map((office) => (
-                                        <SelectItem key={office.office_code} value={office.office_code}>{office.office_name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {errors.office && <p className="mt-1 text-xs text-red-500">{errors.office}</p>}
-                        </div>
+                            <div>
+                                <label className={labelClass} htmlFor="office">Office <span className="text-red-500">*</span></label>
+                                <Select value={data.office} onValueChange={(value) => handleSelectChange(value, 'office')}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select office" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {offices.map((office) => (
+                                            <SelectItem key={office.office_code} value={office.office_code}>{office.office_name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.office && <p className="mt-1 text-xs text-red-500">{errors.office}</p>}
+                            </div>
 
-                        <div>
-                            <label className={labelClass} htmlFor="claim_date">Claim Date <span className="text-red-500">*</span></label>
-                            <Input id="claim_date" type="date" name="claim_date" value={data.claim_date} onChange={handleChange} />
-                            {errors.claim_date && <p className="mt-1 text-xs text-red-500">{errors.claim_date}</p>}
+                            <div>
+                                <label className={labelClass} htmlFor="claim_date">Claim Date <span className="text-red-500">*</span></label>
+                                <Input id="claim_date" type="date" name="claim_date" value={data.claim_date} onChange={handleChange} />
+                                {errors.claim_date && <p className="mt-1 text-xs text-red-500">{errors.claim_date}</p>}
+                            </div>
                         </div>
+                    </div>
 
-                        <div>
-                            <label className={labelClass} htmlFor="received_by">Received By <span className="text-red-500">*</span></label>
-                            <Input id="received_by" name="received_by" value={data.received_by} onChange={handleChange} placeholder="Enter receiver name" />
-                            {errors.received_by && <p className="mt-1 text-xs text-red-500">{errors.received_by}</p>}
-                        </div>
+                    {/* Section: Processing Details */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Processing Details</h3>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className={labelClass} htmlFor="received_by">Received By <span className="text-red-500">*</span></label>
+                                <Input id="received_by" name="received_by" value={data.received_by} onChange={handleChange} placeholder="Enter receiver name" />
+                                {errors.received_by && <p className="mt-1 text-xs text-red-500">{errors.received_by}</p>}
+                            </div>
 
-                        <div>
-                            <label className={labelClass} htmlFor="status">Status <span className="text-red-500">*</span></label>
-                            <Input id="status" name="status" value={data.status} onChange={handleChange} placeholder="e.g. Retired" />
-                            {errors.status && <p className="mt-1 text-xs text-red-500">{errors.status}</p>}
-                        </div>
+                            <div>
+                                <label className={labelClass} htmlFor="status">Status <span className="text-red-500">*</span></label>
+                                <Input id="status" name="status" value={data.status} onChange={handleChange} placeholder="e.g. Retired" />
+                                {errors.status && <p className="mt-1 text-xs text-red-500">{errors.status}</p>}
+                            </div>
 
-                        <div>
-                            <label className={labelClass} htmlFor="cleared">Cleared <span className="text-red-500">*</span></label>
-                            <Select value={data.cleared} onValueChange={(value) => handleBooleanSelectChange(value, 'cleared')}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select cleared" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="true">True</SelectItem>
-                                    <SelectItem value="false">False</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            {errors.cleared && <p className="mt-1 text-xs text-red-500">{errors.cleared}</p>}
-                        </div>
+                            <div>
+                                <label className={labelClass} htmlFor="cleared">Cleared <span className="text-red-500">*</span></label>
+                                <Select value={data.cleared} onValueChange={(value) => handleBooleanSelectChange(value, 'cleared')}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select cleared" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="true">True</SelectItem>
+                                        <SelectItem value="false">False</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {errors.cleared && <p className="mt-1 text-xs text-red-500">{errors.cleared}</p>}
+                            </div>
 
-                        <div>
-                            <label className={labelClass} htmlFor="pending">Pending <span className="text-red-500">*</span></label>
-                            <Select value={data.pending} onValueChange={(value) => handleBooleanSelectChange(value, 'pending')}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select pending" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="true">True</SelectItem>
-                                    <SelectItem value="false">False</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            {errors.pending && <p className="mt-1 text-xs text-red-500">{errors.pending}</p>}
+                            <div>
+                                <label className={labelClass} htmlFor="pending">Pending <span className="text-red-500">*</span></label>
+                                <Select value={data.pending} onValueChange={(value) => handleBooleanSelectChange(value, 'pending')}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select pending" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="true">True</SelectItem>
+                                        <SelectItem value="false">False</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {errors.pending && <p className="mt-1 text-xs text-red-500">{errors.pending}</p>}
+                            </div>
                         </div>
                     </div>
 
@@ -180,6 +194,8 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                         <Button type="submit" style={{ backgroundColor: '#612A35' }}>Save Record</Button>
                     </div>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

@@ -103,6 +103,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->values();
 
         $pendingDeliveriesCount = \App\Models\Delivery::where('status', 'PENDING')->count();
+        $deliveriesLastWeek = \App\Models\Delivery::where('status', 'PENDING')
+            ->where('data_entry_timestamp', '>=', now()->subWeek())
+            ->count();
 
         $allPendingDeliveries = \App\Models\Delivery::with(['supplier', 'servePo'])
             ->where('status', 'PENDING')
@@ -127,6 +130,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'recentDeliveries' => $recentDeliveries,
             'deliveries' => $dueDeliveries,
             'pendingDeliveries' => $pendingDeliveriesCount,
+            'deliveriesLastWeek' => $deliveriesLastWeek,
             'allPendingDeliveries' => $allPendingDeliveries,
         ]);
     })->name('dashboard');
