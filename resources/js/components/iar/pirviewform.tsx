@@ -105,6 +105,28 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
 
     const attachments = pir.attachments ?? [];
 
+    const inspectionGroups = (() => {
+        const entries = Array.isArray(pir.inspection_entries) ? pir.inspection_entries : [];
+        const groups = new Map<string, { iar_number: string; inspectors: string[]; inspection_dates: string[] }>();
+
+        entries.forEach((entry) => {
+            const iarNumber = entry.iar_number ?? '';
+            const group = groups.get(iarNumber) ?? { iar_number: iarNumber, inspectors: [], inspection_dates: [] };
+
+            if (entry.inspected_by && !group.inspectors.includes(entry.inspected_by)) {
+                group.inspectors.push(entry.inspected_by);
+            }
+
+            if (entry.inspection_date && !group.inspection_dates.includes(entry.inspection_date)) {
+                group.inspection_dates.push(entry.inspection_date);
+            }
+
+            groups.set(iarNumber, group);
+        });
+
+        return Array.from(groups.values()).filter((group) => group.iar_number || group.inspectors.length > 0 || group.inspection_dates.length > 0);
+    })();
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
@@ -179,15 +201,46 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
 
                         <div className="mt-4 rounded-md border p-4">
                             <p className="mb-3 text-sm font-medium text-foreground">Inspection Entries</p>
-                            {(!pir.inspection_entries || pir.inspection_entries.length === 0) ? (
+                            {inspectionGroups.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">No inspection entries added yet.</p>
                             ) : (
-                                <div className="space-y-2">
-                                    {pir.inspection_entries.map((entry, index) => (
-                                        <div key={index} className="grid grid-cols-3 gap-3 rounded-md border bg-background/50 p-3">
-                                            <Detail label="IAR Number" value={entry.iar_number ?? '—'} />
-                                            <Detail label="Inspected By" value={entry.inspected_by ?? '—'} />
-                                            <Detail label="Inspection Date" value={formatDate(entry.inspection_date)} />
+                                <div className="space-y-3">
+                                    {inspectionGroups.map((group, index) => (
+                                        <div key={`${group.iar_number}-${index}`} className="rounded-md border bg-background/50 p-3">
+                                            <p className={labelClass}>Inspection Number</p>
+                                            <p className="mb-3 text-sm font-medium text-foreground">
+                                                {group.iar_number || 'IAR Number'}
+                                            </p>
+                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                <div>
+                                                    <p className={labelClass}>Inspected By</p>
+                                                    <div className="mt-2 space-y-1">
+                                                        {group.inspectors.length > 0 ? (
+                                                            group.inspectors.map((inspector, inspectorIndex) => (
+                                                                <p key={`${inspector}-${inspectorIndex}`} className={valueClass}>
+                                                                    {inspector || '—'}
+                                                                </p>
+                                                            ))
+                                                        ) : (
+                                                            <p className={valueClass}>—</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p className={labelClass}>Inspection Date</p>
+                                                    <div className="mt-2 space-y-1">
+                                                        {group.inspection_dates.length > 0 ? (
+                                                            group.inspection_dates.map((date, dateIndex) => (
+                                                                <p key={`${date}-${dateIndex}`} className={valueClass}>
+                                                                    {formatDate(date)}
+                                                                </p>
+                                                            ))
+                                                        ) : (
+                                                            <p className={valueClass}>—</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
