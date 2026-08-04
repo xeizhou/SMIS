@@ -8,6 +8,7 @@ use App\Models\FundCluster;
 use App\Models\Office;
 use App\Models\ServePo;
 use App\Models\Attachment;
+use App\Models\PirInspectionEntry;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +22,7 @@ class IARController extends Controller
     {
         $search = $request->input('search');
 
-        $query = PirMonitoring::with(['supplier', 'fundCluster', 'attachments'])
+        $query = PirMonitoring::with(['supplier', 'fundCluster', 'attachments', 'inspectionEntries'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
                     $sub->where('po_number', 'like', "%{$search}%")
@@ -115,21 +116,44 @@ class IARController extends Controller
             'receipt_claimed_by' => 'nullable|string|max:255',
             'items_receiving_date' => 'nullable|date',
             'items_claimed_by' => 'nullable|string|max:255',
-            'notify_receipt' => 'nullable|string',
-            'notify_call' => 'nullable|string',
-            'notify_email' => 'nullable|string',
+            'po_vpad_notified_date' => 'nullable|date',
+            'po_vpad_notified_via' => 'nullable|string|max:255',
+            'coa_stamp_notified_date' => 'nullable|date',
+            'coa_stamp_notified_via' => 'nullable|string|max:255',
+            'receipt_claimed_notified_date' => 'nullable|date',
+            'receipt_claimed_notified_via' => 'nullable|string|max:255',
             'status' => 'required|in:COMPLETED,CANCELLED',
             'remarks' => 'nullable|string',
+            'inspection_entries' => 'nullable|array',
+            'inspection_entries.*.iar_number' => 'nullable|string|max:255',
+            'inspection_entries.*.inspected_by' => 'nullable|string|max:255',
+            'inspection_entries.*.inspection_date' => 'nullable|date',
         ]);
 
-        PirMonitoring::create($validated);
+        $pir = PirMonitoring::create($validated);
 
-        return redirect()->back();
+        if (! empty($validated['inspection_entries'])) {
+            foreach ($validated['inspection_entries'] as $entry) {
+                $pir->inspectionEntries()->create([
+                    'iar_number' => $entry['iar_number'] ?? null,
+                    'inspected_by' => $entry['inspected_by'] ?? null,
+                    'inspection_date' => $entry['inspection_date'] ?? null,
+                ]);
+            }
+        }
+
+        return redirect()->back()->with('createdPirId', $pir->pir_id);
     }
 
-    public function storeAttachments(Request $request, string $po_number)
+    public function storeAttachments(Request $request, $pirIdentifier)
     {
-        $pir = PirMonitoring::where('po_number', $po_number)->firstOrFail();
+        $pirMonitoring = is_numeric($pirIdentifier)
+            ? PirMonitoring::find($pirIdentifier)
+            : PirMonitoring::where('po_number', $pirIdentifier)->first();
+
+        if (! $pirMonitoring) {
+            abort(404);
+        }
 
         $request->validate([
             'files' => 'required|array',
@@ -137,9 +161,9 @@ class IARController extends Controller
         ]);
 
         foreach ($request->file('files', []) as $file) {
-            $path = $file->store('pir-attachments/' . $pir->pir_id, 'public');
+            $path = $file->store('pir-attachments/' . $pirMonitoring->pir_id, 'public');
 
-            $pir->attachments()->create([
+            $pirMonitoring->attachments()->create([
                 'original_name' => $file->getClientOriginalName(),
                 'file_path' => $path,
                 'mime_type' => $file->getMimeType(),
@@ -192,11 +216,18 @@ class IARController extends Controller
             'receipt_claimed_by' => 'nullable|string|max:255',
             'items_receiving_date' => 'nullable|date',
             'items_claimed_by' => 'nullable|string|max:255',
-            'notify_receipt' => 'nullable|string',
-            'notify_call' => 'nullable|string',
-            'notify_email' => 'nullable|string',
+            'po_vpad_notified_date' => 'nullable|date',
+            'po_vpad_notified_via' => 'nullable|string|max:255',
+            'coa_stamp_notified_date' => 'nullable|date',
+            'coa_stamp_notified_via' => 'nullable|string|max:255',
+            'receipt_claimed_notified_date' => 'nullable|date',
+            'receipt_claimed_notified_via' => 'nullable|string|max:255',
             'status' => 'required|in:COMPLETED,CANCELLED',
             'remarks' => 'nullable|string',
+            'inspection_entries' => 'nullable|array',
+            'inspection_entries.*.iar_number' => 'nullable|string|max:255',
+            'inspection_entries.*.inspected_by' => 'nullable|string|max:255',
+            'inspection_entries.*.inspection_date' => 'nullable|date',
             'deleted_attachment_ids' => 'nullable|array',
             'deleted_attachment_ids.*' => 'integer|exists:attachments,id',
         ]);
@@ -213,6 +244,18 @@ class IARController extends Controller
             }
 
             $pirMonitoring->update($validated);
+
+            if (array_key_exists('inspection_entries', $validated)) {
+                $pirMonitoring->inspectionEntries()->delete();
+
+                foreach ($validated['inspection_entries'] as $entry) {
+                    $pirMonitoring->inspectionEntries()->create([
+                        'iar_number' => $entry['iar_number'] ?? null,
+                        'inspected_by' => $entry['inspected_by'] ?? null,
+                        'inspection_date' => $entry['inspection_date'] ?? null,
+                    ]);
+                }
+            }
 
             return redirect()->back();
     }
