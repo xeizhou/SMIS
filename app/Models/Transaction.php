@@ -51,6 +51,6 @@ class Transaction extends Model
 
     public function getActivityUrl()
     {
-        return route('transactions.index') . '?highlight_id=' . $this->transactionID;
+        return route('transaction-logs.index') . '?highlight_id=' . $this->transactionID;
     }
 }
