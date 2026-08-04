@@ -93,6 +93,11 @@ class PirMonitoring extends Model
         // through servePo so it never goes stale if the PO's dates change.
     ];
 
+    public function attachments()
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
+    }
+
     public function servePo(): BelongsTo
     {
         return $this->belongsTo(ServePo::class, 'po_number', 'po_number');

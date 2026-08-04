@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuditLogsController;
 use App\Http\Controllers\BonaVidaController;
 use App\Http\Controllers\ClearanceController;
@@ -54,7 +55,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 $due = $delivery->due_date;
                 $deliveryDate = $delivery->delivery_date;
                 $today = now()->startOfDay();
-                
+
                 $isOverdue = false;
                 $daysOverdue = 0;
 
@@ -220,15 +221,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/purchase-orders/{purchaseOrder}/attachments', [PurchaseOrdersController::class, 'uploadAttachments'])
         ->name('purchase-orders.attachments.upload');
 
-    Route::delete('/attachments/{attachment}', [PurchaseOrdersController::class, 'deleteAttachment'])
-        ->name('attachments.delete');
-
     Route::get('/po-letter-monitoring', [POLetterMonitoringController::class, 'index'])->name('po-letter-monitoring.index');
     Route::post('/po-letter-monitoring', [POLetterMonitoringController::class, 'store'])->name('po-letter-monitoring.store');
     Route::put('/po-letter-monitoring/{poLetterMonitoring}', [POLetterMonitoringController::class, 'update'])->name('po-letter-monitoring.update');
     Route::delete('/po-letter-monitoring/{poLetterMonitoring}', [POLetterMonitoringController::class, 'destroy'])->name('po-letter-monitoring.destroy');
     Route::post('/po-letter-monitoring/{poLetterMonitoring}/attachments', [POLetterMonitoringController::class, 'uploadAttachments'])
-    ->name('po-letter-monitoring.attachments.upload');
+        ->name('po-letter-monitoring.attachments.upload');
 
     Route::get('/deliveries', [DeliveriesController::class, 'index'])->name('deliveries.index');
     Route::post('/deliveries', [DeliveriesController::class, 'store'])->name('deliveries.store');
@@ -236,13 +234,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/deliveries/{delivery}', [DeliveriesController::class, 'destroy'])->name('deliveries.destroy');
     Route::post('/deliveries/{delivery}/attachments', [DeliveriesController::class, 'uploadAttachments'])
         ->name('deliveries.attachments.upload');
-    Route::delete('/attachments/{attachment}', [DeliveriesController::class, 'deleteAttachment'])
-        ->name('attachments.delete');
 
     Route::get('/iar', [IARController::class, 'index'])->name('iar.index');
     Route::post('/iar', [IARController::class, 'store'])->name('iar.store');
     Route::put('/iar/{pirMonitoring}', [IARController::class, 'update'])->name('iar.update');
     Route::delete('/iar/{pirMonitoring}', [IARController::class, 'destroy'])->name('iar.destroy');
+    Route::post('/iar/{po_number}/attachments', [IARController::class, 'storeAttachments'])
+        ->where('po_number', '[^/]+')
+        ->name('iar.attachments.upload');
+
+    // Shared polymorphic attachment delete route — used by Purchase Orders,
+    // Deliveries, and PIR. Previously this was declared separately (and
+    // duplicated) under both PO and Deliveries pointing at different
+    // controllers; Laravel silently let the second definition win. Now
+    // there's exactly one route, one controller, reused everywhere.
+    Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])
+        ->name('attachments.delete');
 
     Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
     Route::post('/supplier', [SupplierController::class, 'store']);
