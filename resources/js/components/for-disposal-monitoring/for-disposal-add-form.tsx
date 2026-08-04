@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
-import { RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
+import { RefreshCw, Check, ChevronsUpDown, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -28,6 +28,7 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { Alert } from '@/components/ui/alert';
 
 interface Props {
     open: boolean;
@@ -104,6 +105,43 @@ function TextareaField({
                 placeholder={placeholder}
             />
 
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+interface LockedFieldProps {
+    label: string;
+    value: string;
+    error?: string;
+    placeholder?: string;
+}
+
+function LockedField({ label, value, error, placeholder = 'Auto-filled from Pre-Repair' }: LockedFieldProps) {
+    return (
+        <div>
+            <label className={labelClass}>{label}</label>
+            <Input
+                value={value}
+                disabled
+                placeholder={placeholder}
+                className="bg-muted text-muted-foreground"
+            />
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+function LockedTextareaField({ label, value, error, placeholder = 'Auto-filled from Pre-Repair' }: LockedFieldProps) {
+    return (
+        <div className="md:col-span-2 lg:col-span-4">
+            <label className={labelClass}>{label}</label>
+            <Textarea
+                value={value}
+                disabled
+                placeholder={placeholder}
+                className="bg-muted text-muted-foreground"
+            />
             {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </div>
     );
@@ -314,18 +352,23 @@ export default function ForDisposalAddForm({ open, onOpenChange, preRepairs }: P
                             <DialogTitle>Add For Disposal Record</DialogTitle>
                         </DialogHeader>
 
+                        <Alert className="border-red-200 bg-red-50 text-red-800 mt-4 flex items-center gap-2 py-3 px-4 [&>svg]:text-red-800">
+                            <Info className="size-4 shrink-0" />
+                            <div className="text-sm flex flex-wrap items-center gap-1">
+                                <span className="font-semibold">REMINDER:</span>
+                                <span>needs an existing Pre-Repair No. to autofill some fields.</span>
+                            </div>
+                        </Alert>
+
                         <form onSubmit={handleSubmit} className="mt-6 space-y-8">
                             {/* Section: General Information */}
                             <div>
                                 <h3 className={sectionTitleClass}>General Information</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <Field
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                    <LockedField
                                         label="Transaction No."
-                                        name="transaction_no"
                                         value={data.transaction_no}
-                                        onChange={handleChange}
                                         error={errors.transaction_no}
-                                        required
                                     />
                                     
                                     <SearchableSelect
@@ -343,47 +386,32 @@ export default function ForDisposalAddForm({ open, onOpenChange, preRepairs }: P
                                         isRefreshing={refreshingField === 'preRepairs'}
                                     />
 
-                                    <Field
+                                    <LockedField
                                         label="Property No."
-                                        name="property_no"
                                         value={data.property_no}
-                                        onChange={handleChange}
                                         error={errors.property_no}
-                                        required
                                     />
-                                    <div className="md:col-span-3">
-                                        <TextareaField
-                                            label="Description"
-                                            name="description"
-                                            value={data.description}
-                                            onChange={handleChange}
-                                            error={errors.description}
-                                            required
-                                        />
-                                    </div>
+                                    <LockedTextareaField
+                                        label="Description"
+                                        value={data.description}
+                                        error={errors.description}
+                                    />
                                 </div>
                             </div>
 
                             {/* Section: Assessment & Location */}
                             <div>
                                 <h3 className={sectionTitleClass}>Assessment & Location</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <Field
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                    <LockedField
                                         label="Location"
-                                        name="location"
                                         value={data.location}
-                                        onChange={handleChange}
                                         error={errors.location}
-                                        required
                                     />
-                                    <Field
+                                    <LockedField
                                         label="Amount"
-                                        name="amount"
-                                        type="number"
                                         value={data.amount}
-                                        onChange={handleChange}
                                         error={errors.amount}
-                                        required
                                     />
                                     <div>
                                         <label className={labelClass}>
@@ -403,7 +431,7 @@ export default function ForDisposalAddForm({ open, onOpenChange, preRepairs }: P
                                     </div>
                                     
                                     {data.condition_of_ppe === 'Unserviceable' && (
-                                        <div className="md:col-span-3">
+                                        <div className="md:col-span-2 lg:col-span-4">
                                             <TextareaField
                                                 label="Remarks / Findings"
                                                 name="remarks"
@@ -419,22 +447,16 @@ export default function ForDisposalAddForm({ open, onOpenChange, preRepairs }: P
                             {/* Section: Accountability */}
                             <div>
                                 <h3 className={sectionTitleClass}>Accountability</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <Field
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                    <LockedField
                                         label="From Accountable Officer"
-                                        name="from_accountable_officer"
                                         value={data.from_accountable_officer}
-                                        onChange={handleChange}
                                         error={errors.from_accountable_officer}
-                                        required
                                     />
-                                    <Field
+                                    <LockedField
                                         label="To Accountable Officer"
-                                        name="to_accountable_officer"
                                         value={data.to_accountable_officer}
-                                        onChange={handleChange}
                                         error={errors.to_accountable_officer}
-                                        required
                                     />
                                 </div>
                             </div>
@@ -450,10 +472,10 @@ export default function ForDisposalAddForm({ open, onOpenChange, preRepairs }: P
                                 <Button
                                     type="submit"
                                     disabled={processing}
-                                    style={{ backgroundColor: '#612A35' }}
+                                    style={{ backgroundColor: '#370001' }}
                                     className="text-white"
                                 >
-                                    {processing ? 'Saving...' : 'Save Record'}
+                                    {processing ? 'Saving...' : 'Save New Data'}
                                 </Button>
                             </div>
                         </form>
