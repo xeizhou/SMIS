@@ -29,23 +29,7 @@ import {
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 
-interface RrspItem {
-    id: number;
-    item_description: string;
-    property_no: string | null;
-    cost: number | null;
-}
-
-interface RrspOption {
-    id: number;
-    rrsp_no: string;
-    items?: RrspItem[];
-}
-
-interface FundClusterOption {
-    fund_cluster_id: string;
-    fund_description: string;
-}
+import { RrspItem, RrspOption, FundClusterOption } from '@/types/regspi';
 
 interface Props {
     open: boolean;

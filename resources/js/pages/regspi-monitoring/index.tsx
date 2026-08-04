@@ -16,53 +16,16 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
-interface RegSPIRecord {
-    regspi_id: number;
-    month_year: string;
-    ics_no: string | null;
-    rrsp_no: string | null;
-    semi_expendable_property_no: string;
-    item_description: string;
-    estimated_useful_life: number | string | null;
-    issued_qty: number | string | null;
-    issued_office_officer: string | null;
-    returned_qty: number | string | null;
-    returned_office_officer: string | null;
-    reissued_qty: number | string | null;
-    reissued_office_officer: string | null;
-    disposed_qty: number | string | null;
-    balance_qty: number | string | null;
-    amount: number | string | null;
-    remarks: string | null;
-    rrspMonitoring?: {
-        rrsp_no?: string | null;
-        item_description?: string | null;
-    } | null;
-}
 
-interface PaginatedRegSPIRecords {
-    data: RegSPIRecord[];
-    links: {
-        url: string | null;
-        label: string;
-        active: boolean;
-    }[];
-}
+import {
+    RegSPIRecord,
+    PaginatedRegSPIRecords,
+    RrspItem,
+    RrspOption,
+    Filters,
+    FundClusterOption,
+} from '@/types/regspi';
 
-interface RrspOption {
-    rrsp_no: string;
-}
-
-interface Filters {
-    search: string | null;
-    rrsp_no: string | null;
-    fund_cluster_id: string | null;
-}
-
-interface FundClusterOption {
-    fund_cluster_id: string;
-    fund_description: string;
-}
 
 interface Props {
     regspis: PaginatedRegSPIRecords;
@@ -71,22 +34,27 @@ interface Props {
     fundClusters: FundClusterOption[];
 }
 
+
 function formatCurrency(value: string | number | null) {
     if (value === null) {
 return '—';
 }
 
+
     const numeric = typeof value === 'string' ? parseFloat(value) : value;
+
 
     if (Number.isNaN(numeric)) {
 return '—';
 }
+
 
     return numeric.toLocaleString('en-PH', {
         style: 'currency',
         currency: 'PHP',
     });
 }
+
 
 export default function Index({ regspis, filters, rrsps, fundClusters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -98,6 +66,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedRegSPI, setSelectedRegSPI] = useState<RegSPIRecord | null>(null);
     const [regspiToDelete, setRegspiToDelete] = useState<RegSPIRecord | null>(null);
+
 
     const runSearch = (nextRrspNo?: string, nextFundClusterId?: string) => {
         router.get(
@@ -115,25 +84,30 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
         );
     };
 
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         runSearch();
     };
+
 
     const handleRrspChange = (value: string) => {
         setRrspNo(value);
         runSearch(value, fundClusterId);
     };
 
+
     const handleFundClusterChange = (value: string) => {
         setFundClusterId(value);
         runSearch(rrspNo, value);
     };
 
+
     const handleClear = () => {
         setSearch('');
         setRrspNo('all');
         setFundClusterId('all');
+
 
         router.get(
             '/regspi-monitoring',
@@ -146,24 +120,29 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
         );
     };
 
+
     const handleEdit = (record: RegSPIRecord) => {
         setSelectedRegSPI(record);
         setEditDialogOpen(true);
     };
+
 
     const handleView = (record: RegSPIRecord) => {
         setSelectedRegSPI(record);
         setViewDialogOpen(true);
     };
 
+
     const handleDelete = (record: RegSPIRecord) => {
         setRegspiToDelete(record);
         setDeleteDialogOpen(true);
     };
 
+
     return (
         <>
             <Head title="RegSPI Monitoring" />
+
 
             <div className="p-4 space-y-6 sm:p-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -172,6 +151,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                         <p className="mt-1 text-sm text-muted-foreground">Manage and track all RegSPI records</p>
                     </div>
                 </div>
+
 
                 <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex flex-wrap gap-2 flex-1">
@@ -184,6 +164,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                                 className="pl-9"
                             />
                         </div>
+
 
                         <Select value={fundClusterId} onValueChange={handleFundClusterChange}>
                             <SelectTrigger className={`w-[240px] ${fundClusterId === 'all' ? 'text-muted-foreground' : ''}`}>
@@ -199,25 +180,28 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                             </SelectContent>
                         </Select>
 
+
                         <Button type="submit" variant="secondary">Search</Button>
                         <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
                     </div>
+
 
                     <Button type="button" onClick={() => setAddDialogOpen(true)} className="w-full lg:w-auto" style={{ backgroundColor: '#612A35' }}>
                         Add RegSPI Record
                     </Button>
                 </form>
 
+
                 <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
                         <thead className="border-b" style={{ backgroundColor: '#370001' }}>
                             <tr>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Property No.</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Item Description</th>
-                                
-                                
+                               
+                               
                                 <th className="px-4 py-3 text-left font-semibold text-white">Issued Qty</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Balance Qty</th>
-                                
+                               
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
@@ -236,7 +220,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                                         <td className="px-4 py-3">{record.item_description}</td>
                                         <td className="px-4 py-3">{record.issued_qty ?? '—'}</td>
                                         <td className="px-4 py-3">{record.balance_qty ?? '—'}</td>
-                                        
+                                       
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">
                                                 <button type="button" onClick={() => handleEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
@@ -255,6 +239,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                             )}
                         </tbody>
                     </table><ScrollBar orientation="horizontal" /></ScrollArea>
+
 
                 {regspis.data.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-1 p-4">
@@ -278,6 +263,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                 )}
             </div>
 
+
             <RegSPIAddForm open={addDialogOpen} onOpenChange={setAddDialogOpen} rrsps={rrsps} fundClusters={fundClusters} />
             <RegSPIEditForm open={editDialogOpen} onOpenChange={setEditDialogOpen} regspi={selectedRegSPI} rrsps={rrsps} fundClusters={fundClusters} />
             <RegSPIViewForm open={viewDialogOpen} onOpenChange={setViewDialogOpen} regspi={selectedRegSPI} />
@@ -285,6 +271,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
         </>
     );
 }
+
 
 Index.layout = {
     breadcrumbs: [
@@ -298,3 +285,4 @@ Index.layout = {
         },
     ],
 };
+

@@ -29,44 +29,7 @@ import {
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 
-interface RrspItem {
-    id: number;
-    item_description: string;
-    property_no: string | null;
-    cost: number | null;
-}
-
-interface RrspOption {
-    id: number;
-    rrsp_no: string;
-    items?: RrspItem[];
-}
-
-interface RegSPIRecord {
-    regspi_id: number;
-    month_year: string;
-    ics_no: string | null;
-    rrsp_no: string | null;
-    fund_cluster_id: string | null;
-    semi_expendable_property_no: string;
-    item_description: string;
-    estimated_useful_life: number | string | null;
-    issued_qty: number | string | null;
-    issued_office_officer: string | null;
-    returned_qty: number | string | null;
-    returned_office_officer: string | null;
-    reissued_qty: number | string | null;
-    reissued_office_officer: string | null;
-    disposed_qty: number | string | null;
-    balance_qty: number | string | null;
-    amount: number | string | null;
-    remarks: string | null;
-}
-
-interface FundClusterOption {
-    fund_cluster_id: string;
-    fund_description: string;
-}
+import { RegSPIRecord, RrspItem, RrspOption, FundClusterOption } from '@/types/regspi';
 
 interface Props {
     open: boolean;

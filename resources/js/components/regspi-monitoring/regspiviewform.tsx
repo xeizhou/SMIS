@@ -7,30 +7,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 
-interface RegSPIRecord {
-    regspi_id: number;
-    month_year: string;
-    ics_no: string | null;
-    rrsp_no: string | null;
-    semi_expendable_property_no: string;
-    item_description: string;
-    estimated_useful_life: number | string | null;
-    issued_qty: number | string | null;
-    issued_office_officer: string | null;
-    returned_qty: number | string | null;
-    returned_office_officer: string | null;
-    reissued_qty: number | string | null;
-    reissued_office_officer: string | null;
-    disposed_qty: number | string | null;
-    balance_qty: number | string | null;
-    amount: number | string | null;
-    remarks: string | null;
-    fund_cluster_id?: string | null;
-    rrspMonitoring?: {
-        rrsp_no?: string | null;
-        item_description?: string | null;
-    } | null;
-}
+import { RegSPIRecord } from '@/types/regspi';
 
 interface Props {
     open: boolean;
