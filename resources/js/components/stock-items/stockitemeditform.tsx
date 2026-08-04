@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -17,6 +17,16 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 interface Unit {
     unitID: number;
@@ -95,6 +105,95 @@ function Field({
             {error && (
                 <p className="mt-1 text-xs text-red-500">{error}</p>
             )}
+        </div>
+    );
+}
+
+// Custom Searchable Dropdown (without refresh functionality)
+interface SearchableSelectProps {
+    label?: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+
+    const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    return (
+        <div className="w-full">
+            {label && (
+                <label className={labelClass}>
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+            )}
+
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        {selectedLabel || placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+
+                <PopoverContent 
+                    className="p-0" 
+                    style={{ width: 'var(--radix-popover-trigger-width)' }}
+                >
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {opt.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </div>
     );
 }
@@ -252,24 +351,16 @@ export default function StockItemEditForm({
                                         </div>
                                         
                                         <div className="flex-1">
-                                            <Select
+                                            <SearchableSelect
                                                 value={unitObj.unitID}
-                                                onValueChange={(val) => handleUnitChange(index, val)}
-                                            >
-                                                <SelectTrigger className="w-full">
-                                                    <SelectValue placeholder="Select Unit" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {units.map((unit) => (
-                                                        <SelectItem key={unit.unitID} value={String(unit.unitID)}>
-                                                            {unit.unit_name} ({unit.unit_short_name})
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            {errors[`units.${index}.unitID`] && (
-                                                <p className="mt-1 text-xs text-red-500">Required</p>
-                                            )}
+                                                onChange={(val) => handleUnitChange(index, val)}
+                                                placeholder="Search unit..."
+                                                options={units.map((unit) => ({
+                                                    value: String(unit.unitID),
+                                                    label: `${unit.unit_name} (${unit.unit_short_name})`
+                                                }))}
+                                                error={errors[`units.${index}.unitID`] ? "Required" : undefined}
+                                            />
                                         </div>
 
                                         {data.units.length > 1 && (
