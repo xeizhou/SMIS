@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Traits\LogsActivity;
 
@@ -62,9 +63,12 @@ class PirMonitoring extends Model
         'receipt_claimed_by',
         'items_receiving_date',
         'items_claimed_by',
-        'notify_receipt',
-        'notify_call',
-        'notify_email',
+        'po_vpad_notified_date',
+        'po_vpad_notified_via',
+        'coa_stamp_notified_date',
+        'coa_stamp_notified_via',
+        'receipt_claimed_notified_date',
+        'receipt_claimed_notified_via',
         'status',
         'remarks',
     ];
@@ -86,6 +90,9 @@ class PirMonitoring extends Model
         'date_forwarded_to_finance' => 'date',
         'receipt_receiving_date' => 'date',
         'items_receiving_date' => 'date',
+        'po_vpad_notified_date' => 'date',
+        'coa_stamp_notified_date' => 'date',
+        'receipt_claimed_notified_date' => 'date',
         'po_amount' => 'decimal:2',
         // delivery_term is intentionally NOT cast — it's computed live from
         // the linked ServePo via the accessor below, same pattern as
@@ -98,6 +105,11 @@ class PirMonitoring extends Model
     public function attachments()
     {
         return $this->morphMany(Attachment::class, 'attachable');
+    }
+
+    public function inspectionEntries(): HasMany
+    {
+        return $this->hasMany(PirInspectionEntry::class, 'pir_id', 'pir_id');
     }
 
     public function servePo(): BelongsTo

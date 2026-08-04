@@ -242,7 +242,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/iar', [IARController::class, 'store'])->name('iar.store');
     Route::put('/iar/{pirMonitoring}', [IARController::class, 'update'])->name('iar.update');
     Route::delete('/iar/{pirMonitoring}', [IARController::class, 'destroy'])->name('iar.destroy');
-    Route::post('/iar/{po_number}/attachments', [IARController::class, 'storeAttachments'])
+    Route::post('/iar/{pirMonitoring}/attachments', [IARController::class, 'storeAttachments'])
         ->where('po_number', '[^/]+')
         ->name('iar.attachments.upload');
 

@@ -1,4 +1,4 @@
-import { Paperclip, RefreshCw, X } from 'lucide-react';
+import { Paperclip, RefreshCw, X, Check, ChevronsUpDown } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
@@ -17,6 +17,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 interface Supplier {
     supplier_id: number;
@@ -188,6 +198,109 @@ function SelectField({
     );
 }
 
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+    disabled?: boolean;
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+    disabled = false,
+    onRefresh,
+    isRefreshing = false,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+
+    const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
+
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        disabled={disabled}
+                        className={cn(
+                            'w-full justify-between font-normal',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        {selectedLabel || placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {opt.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
 function daysBetween(startDate: string, endDate: string) {
     if (!startDate || !endDate) return 0;
     const start = new Date(startDate);
@@ -215,7 +328,19 @@ const STATUS_OPTIONS = [
     { value: 'CANCELLED', label: 'CANCELLED' },
 ];
 
-const emptyForm = {
+type InspectionEntry = {
+    iar_number: string;
+    inspected_by: string;
+    inspection_date: string;
+};
+
+const createInspectionEntry = (): InspectionEntry => ({
+    iar_number: '',
+    inspected_by: '',
+    inspection_date: '',
+});
+
+const createEmptyForm = () => ({
     po_number: '',
     supplier_id: '',
     unit_office: '',
@@ -244,20 +369,24 @@ const emptyForm = {
     date_completed: '',
     par_ics_number: '',
     ris_number: '',
-    inspected_by: '',
-    inspection_date: '',
     iar_number: '',
     date_forwarded_to_finance: '',
     receipt_receiving_date: '',
     receipt_claimed_by: '',
     items_receiving_date: '',
     items_claimed_by: '',
-    notify_receipt: '',
-    notify_call: '',
-    notify_email: '',
+    po_vpad_notified_date: '',
+    po_vpad_notified_via: '',
+    coa_stamp_notified_date: '',
+    coa_stamp_notified_via: '',
+    receipt_claimed_notified_date: '',
+    receipt_claimed_notified_via: '',
     status: '',
     remarks: '',
-};
+    inspection_entries: [createInspectionEntry()],
+});
+
+const emptyForm = createEmptyForm();
 
 export default function PirAddForm({
     open,
@@ -277,7 +406,7 @@ export default function PirAddForm({
             onFinish: () => setRefreshingField(null),
         });
     };
-    const [data, setData] = useState(emptyForm);
+    const [data, setData] = useState(createEmptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [files, setFiles] = useState<{ id: string; file: File }[]>([]);
@@ -304,6 +433,29 @@ export default function PirAddForm({
 
     const handleSelectChange = (name: string) => (value: string) => {
         setData({ ...data, [name]: value });
+    };
+
+    const updateInspectionEntry = (index: number, field: keyof InspectionEntry, value: string) => {
+        setData((prev) => ({
+            ...prev,
+            inspection_entries: prev.inspection_entries.map((entry, entryIndex) =>
+                entryIndex === index ? { ...entry, [field]: value } : entry
+            ),
+        }));
+    };
+
+    const addInspectionEntry = () => {
+        setData((prev) => ({
+            ...prev,
+            inspection_entries: [...prev.inspection_entries, createInspectionEntry()],
+        }));
+    };
+
+    const removeInspectionEntry = (index: number) => {
+        setData((prev) => ({
+            ...prev,
+            inspection_entries: prev.inspection_entries.filter((_, entryIndex) => entryIndex !== index),
+        }));
     };
 
     // PO Number is selected first; everything inherited from the PO gets
@@ -339,7 +491,7 @@ export default function PirAddForm({
     };
 
     const resetForm = () => {
-        setData(emptyForm);
+        setData(createEmptyForm());
         setErrors({});
         setFiles([]);
     };
@@ -349,9 +501,9 @@ export default function PirAddForm({
         setProcessing(true);
 
         router.post('/iar', data, {
-            onSuccess: () => {
-                // PIR created successfully — po_number now has a PIR record
-                // behind it, so any selected files can be uploaded against it.
+            onSuccess: (page) => {
+                const createdPirId = (page as { props?: { flash?: { createdPirId?: number } } }).props?.flash?.createdPirId ?? null;
+
                 const finishSubmission = () => {
                     router.reload({
                         only: ['pirs'],
@@ -362,12 +514,12 @@ export default function PirAddForm({
                     });
                 };
 
-                if (files.length > 0) {
+                if (files.length > 0 && createdPirId) {
                     const formData = new FormData();
                     files.forEach(({ file }) => formData.append('files[]', file));
 
                     router.post(
-                        `/iar/${data.po_number}/attachments`,
+                        `/iar/${createdPirId}/attachments`,
                         formData,
                         {
                             forceFormData: true,
@@ -386,19 +538,9 @@ export default function PirAddForm({
     };
 
     const poSelected = Boolean(data.po_number);
-        const FOR_RELEASE_FIELDS = [
-        'invoice_number',
-        'invoice_date',
-        'delivery_receipt',
-        'date_completed',
-        'par_ics_number',
-        'ris_number',
-        'inspected_by',
-        'inspection_date',
-    ] as const;
 
-    const forReleaseComplete = FOR_RELEASE_FIELDS.every(
-        (field) => data[field].trim() !== ''
+    const forReleaseComplete = data.inspection_entries.some((entry) =>
+        entry.iar_number.trim() !== '' || entry.inspected_by.trim() !== '' || entry.inspection_date.trim() !== ''
     );
 
     const afterForReleaseDisabled = !poSelected || !forReleaseComplete;
@@ -430,7 +572,7 @@ export default function PirAddForm({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-8">
-                    {/* Group: PO FROM VPAD — csv cols 1-13 (SUPPLIER through FORWARDED BY) */}
+                    {/* Group: PO FROM VPAD */}
                     <div>
                         <h3 className={sectionTitleClass}>PO From VPAD</h3>
                         <div className="grid grid-cols-4 gap-6">
@@ -517,19 +659,42 @@ export default function PirAddForm({
                                 error={errors.date_forwarded_supplier}
                                 disabled={!poSelected}
                             />
-                            <Field
+                            <SearchableSelect
                                 label="Forwarded By"
-                                name="forwarded_by_supplier"
                                 value={data.forwarded_by_supplier}
-                                onChange={handleChange}
+                                onChange={handleSelectChange('forwarded_by_supplier')}
                                 error={errors.forwarded_by_supplier}
+                                placeholder="-- Select Office --"
                                 disabled={!poSelected}
-                                placeholder="Enter Forwarded By"
+                                options={offices.map((o) => ({
+                                    value: o.office_code,
+                                    label: o.office_code,
+                                }))}
+                                onRefresh={() => handleRefreshData('offices')}
+                                isRefreshing={refreshingField === 'offices'}
+                            />
+                            <Field
+                                label="Notified Date"
+                                name="po_vpad_notified_date"
+                                type="date"
+                                value={data.po_vpad_notified_date}
+                                onChange={handleChange}
+                                error={errors.po_vpad_notified_date}
+                                disabled={!poSelected}
+                            />
+                            <Field
+                                label="Notified via Email or Number"
+                                name="po_vpad_notified_via"
+                                value={data.po_vpad_notified_via}
+                                onChange={handleChange}
+                                error={errors.po_vpad_notified_via}
+                                disabled={!poSelected}
+                                placeholder="Enter email or number"
                             />
                         </div>
                     </div>
 
-                    {/* Group: FOR SUPPLIER'S SIGNATURE — csv cols 14-15 */}
+                    {/* Group: FOR SUPPLIER'S SIGNATURE */}
                     <div>
                         <h3 className={sectionTitleClass}>For Supplier's Signature</h3>
                         <div className="grid grid-cols-4 gap-6">
@@ -563,7 +728,7 @@ export default function PirAddForm({
                         </div>
                     </div>
 
-                    {/* Group: FOR COA STAMP — csv cols 16-21 */}
+                    {/* Group: FOR COA STAMP */}
                     <div>
                         <h3 className={sectionTitleClass}>For COA Stamp</h3>
                         <div className="grid grid-cols-4 gap-6">
@@ -621,16 +786,34 @@ export default function PirAddForm({
                                 disabled={!poSelected}
                                 placeholder="Enter Claimed By"
                             />
+                            <Field
+                                label="Notified Date"
+                                name="coa_stamp_notified_date"
+                                type="date"
+                                value={data.coa_stamp_notified_date}
+                                onChange={handleChange}
+                                error={errors.coa_stamp_notified_date}
+                                disabled={!poSelected}
+                            />
+                            <Field
+                                label="Notified via Email or Number"
+                                name="coa_stamp_notified_via"
+                                value={data.coa_stamp_notified_via}
+                                onChange={handleChange}
+                                error={errors.coa_stamp_notified_via}
+                                disabled={!poSelected}
+                                placeholder="Enter email or number"
+                            />
                         </div>
                     </div>
 
-                    {/* Group: FOR RELEASE — csv cols 22-30 */}
+                    {/* Group: FOR RELEASE */}
                     <div>
                         <h3 className={sectionTitleClass}>
                             For Release
                             {poSelected && !forReleaseComplete && (
                                 <span className="ml-2 text-xs font-normal text-amber-600">
-                                    (Complete this section to input the following section: Receipt and Item/s Claimed by End-User)
+                                    (Complete this section to unlock the rest of the form)
                                 </span>
                             )}
                         </h3>
@@ -689,28 +872,71 @@ export default function PirAddForm({
                                 disabled={!poSelected}
                                 placeholder="Enter RIS Number"
                             />
-                            <Field
-                                label="Inspected By"
-                                name="inspected_by"
-                                value={data.inspected_by}
-                                onChange={handleChange}
-                                error={errors.inspected_by}
-                                disabled={!poSelected}
-                                placeholder="Enter Inspected By"
-                            />
-                            <Field
-                                label="Inspection Date"
-                                name="inspection_date"
-                                type="date"
-                                value={data.inspection_date}
-                                onChange={handleChange}
-                                error={errors.inspection_date}
-                                disabled={!poSelected}
-                            />
+                            <div className="col-span-4">
+                                <div className="rounded-md border p-4">
+                                    <div className="mb-3 flex items-center justify-between">
+                                        <p className="text-sm font-medium text-foreground">Inspection Entries</p>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={addInspectionEntry}
+                                            disabled={!poSelected}
+                                        >
+                                            + Add Row
+                                        </Button>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {data.inspection_entries.map((entry, index) => (
+                                            <div key={index} className="grid grid-cols-12 gap-3 rounded-md border bg-background/50 p-3">
+                                                <div className="col-span-4">
+                                                    <label className="mb-1 block text-xs text-muted-foreground">IAR Number</label>
+                                                    <Input
+                                                        value={entry.iar_number}
+                                                        onChange={(e) => updateInspectionEntry(index, 'iar_number', e.target.value)}
+                                                        disabled={!poSelected}
+                                                        placeholder="Enter IAR Number"
+                                                    />
+                                                </div>
+                                                <div className="col-span-4">
+                                                    <label className="mb-1 block text-xs text-muted-foreground">Inspected By</label>
+                                                    <Input
+                                                        value={entry.inspected_by}
+                                                        onChange={(e) => updateInspectionEntry(index, 'inspected_by', e.target.value)}
+                                                        disabled={!poSelected}
+                                                        placeholder="Enter Inspected By"
+                                                    />
+                                                </div>
+                                                <div className="col-span-3">
+                                                    <label className="mb-1 block text-xs text-muted-foreground">Inspection Date</label>
+                                                    <Input
+                                                        type="date"
+                                                        value={entry.inspection_date}
+                                                        onChange={(e) => updateInspectionEntry(index, 'inspection_date', e.target.value)}
+                                                        disabled={!poSelected}
+                                                    />
+                                                </div>
+                                                <div className="col-span-1 flex items-end justify-end">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => removeInspectionEntry(index)}
+                                                        disabled={!poSelected || data.inspection_entries.length === 1}
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Group: RECEIPT AND ITEM/S CLAIMED BY END-USER — csv cols 33-36 */}
+                    {/* Group: RECEIPT AND ITEM/S CLAIMED BY END-USER */}
                     <div>
                         <h3 className={sectionTitleClass}>Receipt and Item/s Claimed by End-User</h3>
                         <div className="grid grid-cols-4 gap-6">
@@ -750,10 +976,28 @@ export default function PirAddForm({
                                 disabled={afterForReleaseDisabled}
                                 placeholder="Enter Claimed By"
                             />
+                            <Field
+                                label="Notified Date"
+                                name="receipt_claimed_notified_date"
+                                type="date"
+                                value={data.receipt_claimed_notified_date}
+                                onChange={handleChange}
+                                error={errors.receipt_claimed_notified_date}
+                                disabled={afterForReleaseDisabled}
+                            />
+                            <Field
+                                label="Notified via Email or Number"
+                                name="receipt_claimed_notified_via"
+                                value={data.receipt_claimed_notified_via}
+                                onChange={handleChange}
+                                error={errors.receipt_claimed_notified_via}
+                                disabled={afterForReleaseDisabled}
+                                placeholder="Enter email or number"
+                            />
                         </div>
                     </div>
 
-                    {/* Group: FOR PAYMENT (FINANCE) — csv cols 31-32 */}
+                    {/* Group: FOR PAYMENT (FINANCE) */}
                     <div>
                         <h3 className={sectionTitleClass}>For Payment (Finance)</h3>
                         <div className="grid grid-cols-4 gap-6">
@@ -763,7 +1007,7 @@ export default function PirAddForm({
                                 value={data.iar_number}
                                 onChange={handleChange}
                                 error={errors.iar_number}
-                                disabled={!poSelected}
+                                disabled={afterForReleaseDisabled}
                                 placeholder="Enter IAR Number"
                             />
                             <Field
@@ -773,44 +1017,12 @@ export default function PirAddForm({
                                 value={data.date_forwarded_to_finance}
                                 onChange={handleChange}
                                 error={errors.date_forwarded_to_finance}
-                                disabled={!poSelected}
+                                disabled={afterForReleaseDisabled}
                             />
                         </div>
                     </div>
 
-                    {/* Group: NOTIFICATION LOGS — csv cols 37-39 */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Notification Logs</h3>
-                        <div className="grid grid-cols-4 gap-6">
-                            <Field
-                                label="Notify to Claim the Item/s & Receipt"
-                                name="notify_receipt"
-                                value={data.notify_receipt}
-                                onChange={handleChange}
-                                error={errors.notify_receipt}
-                                disabled={!poSelected}
-                            />
-                            <Field
-                                label="Notify the End-User (via Call)"
-                                name="notify_call"
-                                value={data.notify_call}
-                                onChange={handleChange}
-                                error={errors.notify_call}
-                                disabled={!poSelected}
-                            />
-                            <Field
-                                label="Notify the End-User (via Email)"
-                                name="notify_email"
-                                value={data.notify_email}
-                                onChange={handleChange}
-                                error={errors.notify_email}
-                                disabled={!poSelected}
-                                placeholder="Enter Notify Email"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Group: STATUS, REMARKS — csv cols 40-41 (standalone columns) */}
+                    {/* Group: STATUS, REMARKS */}
                     <div>
                         <h3 className={sectionTitleClass}>Status & Remarks</h3>
                         <div className="grid grid-cols-4 gap-6">
@@ -820,7 +1032,7 @@ export default function PirAddForm({
                                 onChange={handleSelectChange('status')}
                                 error={errors.status}
                                 required
-                                disabled={!poSelected}
+                                disabled={afterForReleaseDisabled}
                                 placeholder="-- Select Status --"
                                 options={STATUS_OPTIONS}
                             />
@@ -832,7 +1044,7 @@ export default function PirAddForm({
                                     onChange={handleChange}
                                     error={errors.remarks}
                                     placeholder="Optional notes"
-                                    disabled={!poSelected}
+                                    disabled={afterForReleaseDisabled}
                                 />
                             </div>
                         </div>
@@ -845,7 +1057,7 @@ export default function PirAddForm({
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={!poSelected}
+                            disabled={afterForReleaseDisabled}
                             className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <Paperclip className="size-4" />
