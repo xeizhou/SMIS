@@ -574,6 +574,8 @@ export default function PurchaseOrderAddForm({
                                             value: fc.fund_cluster_id,
                                             label: fc.fund_cluster_id,
                                         }))}
+                                        onRefresh={() => handleRefreshData('fund_cluster')}
+                                        isRefreshing={refreshingField === 'fund_cluster'}
                                     />
                                     <Field
                                         label="ORS/BUR No."
@@ -612,20 +614,6 @@ export default function PurchaseOrderAddForm({
                                         placeholder="00000000"
                                     />
                                 </div>
-
-                                <SelectField
-                                    label="Fund Cluster"
-                                    value={data.fund_cluster_id}
-                                    onChange={handleSelectChange('fund_cluster_id')}
-                                    error={errors.fund_cluster_id}
-                                    placeholder="-- Select Fund Cluster --"
-                                    options={fundClusters.map((fc) => ({
-                                        value: fc.fund_cluster_id,
-                                        label: fc.fund_cluster_id,
-                                    }))}
-                                    onRefresh={() => handleRefreshData('fund_cluster')}
-                                    isRefreshing={refreshingField === 'fund_cluster'}
-                                />
                             </div>
 
                             {/* Section: Routing & Processing */}
