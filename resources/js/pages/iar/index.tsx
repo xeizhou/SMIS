@@ -88,14 +88,22 @@ export interface Pir {
     inspected_by: string | null;
     inspection_date: string | null;
     iar_number: string | null;
+    inspection_entries?: Array<{
+        iar_number: string | null;
+        inspected_by: string | null;
+        inspection_date: string | null;
+    }>;
     date_forwarded_to_finance: string | null;
     receipt_receiving_date: string | null;
     receipt_claimed_by: string | null;
     items_receiving_date: string | null;
     items_claimed_by: string | null;
-    notify_receipt: string | null;
-    notify_call: string | null;
-    notify_email: string | null;
+    po_vpad_notified_date: string | null;
+    po_vpad_notified_via: string | null;
+    coa_stamp_notified_date: string | null;
+    coa_stamp_notified_via: string | null;
+    receipt_claimed_notified_date: string | null;
+    receipt_claimed_notified_via: string | null;
     status: string;
     remarks: string | null;
     supplier: Supplier | null;

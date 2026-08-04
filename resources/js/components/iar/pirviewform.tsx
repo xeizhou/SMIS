@@ -118,12 +118,12 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
                 </DialogHeader>
 
                 <div className="mt-4 space-y-8">
-                    {/* Section: PO Information */}
+                    {/* Group: PO FROM VPAD */}
                     <div>
-                        <h3 className={sectionTitleClass}>PO Information</h3>
+                        <h3 className={sectionTitleClass}>PO From VPAD</h3>
                         <div className="grid grid-cols-4 gap-6">
-                            <Detail label="Supplier" value={pir.supplier?.supplier_name ?? '—'} />
                             <Detail label="PO Number" value={pir.po_number} />
+                            <Detail label="Supplier" value={pir.supplier?.supplier_name ?? '—'} />
                             <Detail label="Unit/Office" value={pir.unit_office ?? '—'} />
                             <Detail label="PO Date" value={formatDate(pir.po_date)} />
                             <Detail label="Delivery Term (days)" value={pir.delivery_term ? String(pir.delivery_term) : '—'} />
@@ -133,37 +133,41 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
                             <Detail label="ORS/BUR Number" value={pir.ors_bur_number ?? '—'} />
                             <Detail label="ORS/BUR Date" value={formatDate(pir.ors_bur_date)} />
                             <Detail label="PO Amount" value={formatCurrency(pir.po_amount)} />
+                            <Detail label="Date Forwarded" value={formatDate(pir.date_forwarded_supplier)} />
+                            <Detail label="Forwarded By" value={pir.forwarded_by_supplier ?? '—'} />
+                            <Detail label="Notified Date" value={formatDate(pir.po_vpad_notified_date)} />
+                            <Detail label="Notified via Email or Number" value={pir.po_vpad_notified_via ?? '—'} />
                         </div>
                     </div>
 
-                    {/* Section: Supplier Forwarding */}
+                    {/* Group: FOR SUPPLIER'S SIGNATURE */}
                     <div>
-                        <h3 className={sectionTitleClass}>Supplier Forwarding</h3>
+                        <h3 className={sectionTitleClass}>For Supplier's Signature</h3>
                         <div className="grid grid-cols-4 gap-6">
-                            <Detail label="Date Forwarded to Supplier" value={formatDate(pir.date_forwarded_supplier)} />
-                            <Detail label="Forwarded By" value={pir.forwarded_by_supplier ?? '—'} />
-                            <Detail label="Claimed By (Supplier)" value={pir.claimed_by_supplier ?? '—'} />
-                            <Detail label="Supplier Signature Date" value={formatDate(pir.supplier_signature_date)} />
+                            <Detail label="Claimed By" value={pir.claimed_by_supplier ?? '—'} />
+                            <Detail label="Date" value={formatDate(pir.supplier_signature_date)} />
                             <Detail label="Date Received by Supplier" value={formatDate(pir.date_received_by_supplier)} />
                         </div>
                     </div>
 
-                    {/* Section: COA Processing */}
+                    {/* Group: FOR COA STAMP */}
                     <div>
-                        <h3 className={sectionTitleClass}>COA Processing</h3>
+                        <h3 className={sectionTitleClass}>For COA Stamp</h3>
                         <div className="grid grid-cols-4 gap-6">
-                            <Detail label="Date Forwarded to COA" value={formatDate(pir.date_forwarded_coa)} />
-                            <Detail label="Forwarded By (COA)" value={pir.forwarded_by_coa ?? '—'} />
+                            <Detail label="Date Forwarded" value={formatDate(pir.date_forwarded_coa)} />
+                            <Detail label="Forwarded By" value={pir.forwarded_by_coa ?? '—'} />
                             <Detail label="Date Returned from COA" value={formatDate(pir.date_returned_from_coa)} />
                             <Detail label="COA Date" value={formatDate(pir.coa_date)} />
                             <Detail label="Claim Date" value={formatDate(pir.claim_date)} />
-                            <Detail label="Claimed By (COA)" value={pir.claimed_by_coa ?? '—'} />
+                            <Detail label="Claimed By" value={pir.claimed_by_coa ?? '—'} />
+                            <Detail label="Notified Date" value={formatDate(pir.coa_stamp_notified_date)} />
+                            <Detail label="Notified via Email or Number" value={pir.coa_stamp_notified_via ?? '—'} />
                         </div>
                     </div>
 
-                    {/* Section: Delivery & Inspection */}
+                    {/* Group: FOR RELEASE */}
                     <div>
-                        <h3 className={sectionTitleClass}>Delivery & Inspection</h3>
+                        <h3 className={sectionTitleClass}>For Release</h3>
                         <div className="grid grid-cols-4 gap-6">
                             <Detail label="Invoice Number" value={pir.invoice_number ?? '—'} />
                             <Detail label="Invoice Date" value={formatDate(pir.invoice_date)} />
@@ -171,31 +175,52 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
                             <Detail label="Date Completed" value={formatDate(pir.date_completed)} />
                             <Detail label="PAR/ICS Number" value={pir.par_ics_number ?? '—'} />
                             <Detail label="RIS Number" value={pir.ris_number ?? '—'} />
-                            <Detail label="Inspected By" value={pir.inspected_by ?? '—'} />
-                            <Detail label="Inspection Date" value={formatDate(pir.inspection_date)} />
-                            <Detail label="IAR Number" value={pir.iar_number ?? '—'} />
+                        </div>
+
+                        <div className="mt-4 rounded-md border p-4">
+                            <p className="mb-3 text-sm font-medium text-foreground">Inspection Entries</p>
+                            {(!pir.inspection_entries || pir.inspection_entries.length === 0) ? (
+                                <p className="text-sm text-muted-foreground">No inspection entries added yet.</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {pir.inspection_entries.map((entry, index) => (
+                                        <div key={index} className="grid grid-cols-3 gap-3 rounded-md border bg-background/50 p-3">
+                                            <Detail label="IAR Number" value={entry.iar_number ?? '—'} />
+                                            <Detail label="Inspected By" value={entry.inspected_by ?? '—'} />
+                                            <Detail label="Inspection Date" value={formatDate(entry.inspection_date)} />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Section: Finance & Claim */}
+                    {/* Group: RECEIPT AND ITEM/S CLAIMED BY END-USER */}
                     <div>
-                        <h3 className={sectionTitleClass}>Finance & Claim</h3>
+                        <h3 className={sectionTitleClass}>Receipt and Item/s Claimed by End-User</h3>
                         <div className="grid grid-cols-4 gap-6">
-                            <Detail label="Date Forwarded to Finance" value={formatDate(pir.date_forwarded_to_finance)} />
                             <Detail label="Receipt Receiving Date" value={formatDate(pir.receipt_receiving_date)} />
-                            <Detail label="Receipt Claimed By" value={pir.receipt_claimed_by ?? '—'} />
-                            <Detail label="Items Receiving Date" value={formatDate(pir.items_receiving_date)} />
-                            <Detail label="Items Claimed By" value={pir.items_claimed_by ?? '—'} />
+                            <Detail label="Claimed By" value={pir.receipt_claimed_by ?? '—'} />
+                            <Detail label="Item/s Receiving Date" value={formatDate(pir.items_receiving_date)} />
+                            <Detail label="Claimed By" value={pir.items_claimed_by ?? '—'} />
+                            <Detail label="Notified Date" value={formatDate(pir.receipt_claimed_notified_date)} />
+                            <Detail label="Notified via Email or Number" value={pir.receipt_claimed_notified_via ?? '—'} />
                         </div>
                     </div>
 
-                    {/* Section: Notifications & Status */}
+                    {/* Group: FOR PAYMENT (FINANCE) */}
                     <div>
-                        <h3 className={sectionTitleClass}>Notifications & Status</h3>
+                        <h3 className={sectionTitleClass}>For Payment (Finance)</h3>
                         <div className="grid grid-cols-4 gap-6">
-                            <Detail label="Notify Receipt" value={pir.notify_receipt ?? '—'} />
-                            <Detail label="Notify Call" value={pir.notify_call ?? '—'} />
-                            <Detail label="Notify Email" value={pir.notify_email ?? '—'} />
+                            <Detail label="IAR Number" value={pir.iar_number ?? '—'} />
+                            <Detail label="Date Forwarded to Finance" value={formatDate(pir.date_forwarded_to_finance)} />
+                        </div>
+                    </div>
+
+                    {/* Group: STATUS & REMARKS */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Status & Remarks</h3>
+                        <div className="grid grid-cols-4 gap-6">
                             <div>
                                 <p className={labelClass}>Status</p>
                                 <span
@@ -207,13 +232,13 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
                                     {pir.status}
                                 </span>
                             </div>
-                            <div className="col-span-4">
+                            <div className="col-span-3">
                                 <Detail label="Remarks" value={pir.remarks ?? '—'} />
                             </div>
                         </div>
                     </div>
 
-                    {/* Section: Attachments (compact list) */}
+                    {/* Group: ATTACHMENTS */}
                     <div>
                         <div className="flex items-center justify-between mb-2">
                             <h3 className={sectionTitleClass.replace(' border-b pb-2 mb-4', '')}>
