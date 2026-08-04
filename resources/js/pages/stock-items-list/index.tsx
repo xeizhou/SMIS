@@ -1,27 +1,30 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 import {
     Select,
-    SelectContent,
-    SelectItem,
     SelectTrigger,
     SelectValue,
+    SelectContent,
+    SelectItem,
 } from '@/components/ui/select';
-import { Search } from 'lucide-react';
 import { useState } from 'react';
 
+interface FundCluster {
+    fund_cluster_id: string;
+    fund_description: string;
+}
+
 interface StockCardItem {
-    stock_no: string;
     item_name: string;
     item_description: string | null;
     unitID: number;
     unit_name: string;
     unit_short_name: string;
+    fund_cluster_id: string | null;
+    fund_description: string | null;
     balance_per_stock_card: number;
-    fund_cluster: string;
-    status: 'issued' | 'unissued';
 }
 
 interface PaginatedItems {
@@ -36,36 +39,35 @@ interface PaginatedItems {
 interface Filters {
     search: string | null;
     fund_cluster: string | null;
-    status: string | null;
+    issued_status: string | null;
 }
 
 interface Props {
     items: PaginatedItems;
+    fundClusters: FundCluster[];
     filters: Filters;
-    fund_clusters: string[];
 }
 
-export default function Index({ items, filters, fund_clusters = [] }: Props) {
+export default function Index({ items, fundClusters, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [fundCluster, setFundCluster] = useState(filters.fund_cluster ?? 'all');
-    const [status, setStatus] = useState(filters.status ?? 'all');
+    const [issuedStatus, setIssuedStatus] = useState(filters.issued_status ?? 'all');
 
-    const applyFilters = (overrides: Partial<{ search: string; fund_cluster: string; status: string }> = {}) => {
-        const query: Record<string, string> = {};
-
-        const nextSearch = overrides.search ?? search;
-        const nextFundCluster = overrides.fund_cluster ?? fundCluster;
-        const nextStatus = overrides.status ?? status;
-
-        if (nextSearch) query.search = nextSearch;
-        if (nextFundCluster && nextFundCluster !== 'all') query.fund_cluster = nextFundCluster;
-        if (nextStatus && nextStatus !== 'all') query.status = nextStatus;
-
-        router.get('/stock-items-list', query, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
+    const applyFilters = (overrides: Partial<{ search: string; fund_cluster: string; issued_status: string }> = {}) => {
+        router.get(
+            '/stock-items-list',
+            {
+                search,
+                fund_cluster: fundCluster,
+                issued_status: issuedStatus,
+                ...overrides,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            }
+        );
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -73,20 +75,10 @@ export default function Index({ items, filters, fund_clusters = [] }: Props) {
         applyFilters();
     };
 
-    const handleFundClusterChange = (value: string) => {
-        setFundCluster(value);
-        applyFilters({ fund_cluster: value });
-    };
-
-    const handleStatusChange = (value: string) => {
-        setStatus(value);
-        applyFilters({ status: value });
-    };
-
     const handleClear = () => {
         setSearch('');
         setFundCluster('all');
-        setStatus('all');
+        setIssuedStatus('all');
         router.get(
             '/stock-items-list',
             {},
@@ -130,26 +122,38 @@ export default function Index({ items, filters, fund_clusters = [] }: Props) {
                             />
                         </div>
 
-                        <Select value={fundCluster} onValueChange={handleFundClusterChange}>
-                            <SelectTrigger className={`w-full max-w-[200px] ${fundCluster === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Fund Clusters" />
+                        <Select
+                            value={fundCluster}
+                            onValueChange={(value) => {
+                                setFundCluster(value);
+                                applyFilters({ fund_cluster: value });
+                            }}
+                        >
+                            <SelectTrigger className="w-[220px]">
+                                <SelectValue placeholder="All Fund Clusters" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Filter by Fund Clusters</SelectItem>
-                                {fund_clusters.map((fc) => (
-                                    <SelectItem key={fc} value={fc}>
-                                        {fc}
+                                <SelectItem value="all">All Fund Clusters</SelectItem>
+                                {fundClusters.map((fc) => (
+                                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
+                                        {fc.fund_cluster_id} - {fc.fund_description}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
 
-                        <Select value={status} onValueChange={handleStatusChange}>
-                            <SelectTrigger className={`w-full max-w-[180px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Statuses" />
+                        <Select
+                            value={issuedStatus}
+                            onValueChange={(value) => {
+                                setIssuedStatus(value);
+                                applyFilters({ issued_status: value });
+                            }}
+                        >
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="All Items" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Filter by Statuses</SelectItem>
+                                <SelectItem value="all">All Items</SelectItem>
                                 <SelectItem value="issued">Issued</SelectItem>
                                 <SelectItem value="unissued">Unissued</SelectItem>
                             </SelectContent>
@@ -176,8 +180,7 @@ export default function Index({ items, filters, fund_clusters = [] }: Props) {
                             style={{ backgroundColor: '#370001' }}
                         >
                             <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Item Name</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Description</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Item Description</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Unit</th>
                                 <th className="px-4 py-3 text-center font-semibold text-white">Balance per Stock Card</th>
                             </tr>
@@ -185,20 +188,22 @@ export default function Index({ items, filters, fund_clusters = [] }: Props) {
                         <tbody>
                             {items.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-16 text-center">
+                                    <td colSpan={3} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No items found.
                                         </p>
                                     </td>
                                 </tr>
                             ) : (
-                                items.data.map((item, idx) => (
+                                items.data.map((item) => (
                                     <tr
-                                        key={idx}
+                                        key={item.item_name}
                                         className="border-b transition-colors hover:bg-muted/40"
                                     >
-                                        <td className="px-4 py-3">{item.item_name}</td>
-                                        <td className="px-4 py-3">{item.item_description ?? '—'}</td>
+                                        <td className="px-4 py-3">
+                                            {item.item_name}
+                                            {item.item_description ? ` - ${item.item_description}` : ''}
+                                        </td>
                                         <td className="px-4 py-3">{item.unit_short_name}</td>
                                         <td className="px-4 py-3 text-center font-medium">
                                             {item.balance_per_stock_card}
