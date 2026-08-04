@@ -60,7 +60,7 @@ interface Transaction {
     transactionID: number;
     transaction_type: string;
     fund_cluster: string | FundCluster;
-    fund_cluster_detail: FundCluster | null; // <-- Changed this line from ?: to | null
+    fund_cluster_detail: FundCluster | null;
     transaction_date: string;
     item_name: string;
     unitID: number;
@@ -111,10 +111,23 @@ function Field({
 }: FieldProps) {
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
 
             <Input
                 type={type}
@@ -139,6 +152,8 @@ interface SelectFieldProps {
     placeholder?: string;
     disabled?: boolean;
     options: { value: string; label: string }[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
 }
 
 function SelectField({
@@ -150,6 +165,8 @@ function SelectField({
     placeholder = 'Select...',
     disabled = false,
     options,
+    onRefresh,
+    isRefreshing = false,
 }: SelectFieldProps) {
     return (
         <div>
@@ -177,7 +194,7 @@ function SelectField({
     );
 }
 
-// Custom Searchable Dropdown for Items
+// Custom Searchable Dropdown
 interface SearchableSelectProps {
     label: string;
     value: string;
@@ -438,6 +455,7 @@ export default function TransactionEditForm({
                                 onChange={handleSelectChange('unitID')}
                                 error={errors.unitID}
                                 required
+                                disabled
                                 placeholder="-- Select Unit --"
                                 options={Array.from(
                                     new Map(
@@ -480,16 +498,16 @@ export default function TransactionEditForm({
                                     label: `${fc.fund_cluster_id} - ${fc.fund_description}`,
                                 }))}
                             />
-                            <SelectField
+                            <SearchableSelect
                                 label="Office"
                                 value={data.office_code}
                                 onChange={handleSelectChange('office_code')}
                                 error={errors.office_code}
                                 required
-                                placeholder="-- Select Office --"
+                                placeholder="Search office..."
                                 options={offices.map((office) => ({
                                     value: office.office_code,
-                                    label: `${office.office_code} - ${office.office_name}`,
+                                    label: `${office.office_code}`,
                                 }))}
                             />
                         </div>

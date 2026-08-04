@@ -1,10 +1,21 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState } from 'react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 interface OfficeOption {
     office_code: string;
@@ -30,6 +41,90 @@ const emptyForm: Record<string, string> = {
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
 const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
+
+// Custom Searchable Dropdown for Office
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+
+    const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    return (
+        <div>
+            <label className={labelClass}>
+                {label}
+                {required && <span className="text-red-500"> *</span>}
+            </label>
+
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        {selectedLabel || placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>No office found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {opt.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
 
 export default function ClearanceAddForm({ open, onOpenChange, offices }: Props) {
     const [data, setData] = useState<Record<string, string>>(emptyForm);
@@ -114,20 +209,18 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                                 {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
                             </div>
 
-                            <div>
-                                <label className={labelClass} htmlFor="office">Office <span className="text-red-500">*</span></label>
-                                <Select value={data.office} onValueChange={(value) => handleSelectChange(value, 'office')}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select office" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {offices.map((office) => (
-                                            <SelectItem key={office.office_code} value={office.office_code}>{office.office_name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {errors.office && <p className="mt-1 text-xs text-red-500">{errors.office}</p>}
-                            </div>
+                            <SearchableSelect
+                                label="Office"
+                                value={data.office}
+                                onChange={(value) => handleSelectChange(value, 'office')}
+                                error={errors.office}
+                                required
+                                placeholder="Search office..."
+                                options={offices.map((office) => ({
+                                    value: office.office_code,
+                                    label: office.office_code,
+                                }))}
+                            />
 
                             <div>
                                 <label className={labelClass} htmlFor="claim_date">Claim Date <span className="text-red-500">*</span></label>

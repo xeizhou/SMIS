@@ -181,7 +181,7 @@ function SelectField({
     );
 }
 
-// Custom Searchable Dropdown for Items
+// Custom Searchable Dropdown for General items/selection
 interface SearchableSelectProps {
     label: string;
     value: string;
@@ -212,7 +212,6 @@ function SearchableSelect({
                 {required && <span className="text-red-500"> *</span>}
             </label>
 
-            {/* Added modal={true} to allow scrolling inside the Dialog */}
             <Popover open={open} onOpenChange={setOpen} modal={true}>
                 <PopoverTrigger asChild>
                     <Button
@@ -234,7 +233,6 @@ function SearchableSelect({
                 <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
                     <Command>
                         <CommandInput placeholder={placeholder} />
-                        {/* Added style here for max-height and scrolling */}
                         <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
                             <CommandEmpty>No item found.</CommandEmpty>
                             <CommandGroup>
@@ -272,10 +270,8 @@ const TRANSACTION_TYPE_OPTIONS = [
     { value: 'RECEIVE', label: 'RECEIVE' },
 ];
 
-// Helper function to return fresh state with today's date
 const getEmptyForm = () => {
     const today = new Date();
-    // Use local time, format to YYYY-MM-DD
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
@@ -283,7 +279,7 @@ const getEmptyForm = () => {
     return {
         transaction_type: '',
         fund_cluster: '',
-        transaction_date: `${year}-${month}-${day}`, // Pre-filled with today's date
+        transaction_date: `${year}-${month}-${day}`,
         item_name: '',
         unitID: '',
         reference: '',
@@ -300,7 +296,6 @@ export default function TransactionAddForm({
     offices,
     stockItems,
 }: Props) {
-
     const [refreshingField, setRefreshingField] = useState<string | null>(null);
 
     const handleRefreshData = (field: string) => {
@@ -314,7 +309,6 @@ export default function TransactionAddForm({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
 
-    // Reset the form with today's date whenever the modal opens
     useEffect(() => {
         if (open) {
             setData(getEmptyForm());
@@ -349,7 +343,7 @@ export default function TransactionAddForm({
         router.post('/transaction-logs', data, {
             onSuccess: () => {
                 onOpenChange(false);
-                setData(getEmptyForm()); // Reset to fresh state
+                setData(getEmptyForm());
                 setErrors({});
             },
             onError: (errors) => setErrors(errors),
@@ -482,16 +476,16 @@ export default function TransactionAddForm({
                                     label: `${fc.fund_cluster_id} - ${fc.fund_description}`,
                                 }))}
                             />
-                            <SelectField
+                            <SearchableSelect
                                 label="Office"
                                 value={data.office_code}
                                 onChange={handleSelectChange('office_code')}
                                 error={errors.office_code}
                                 required
-                                placeholder="-- Select Office --"
+                                placeholder="Search office..."
                                 options={offices.map((office) => ({
                                     value: office.office_code,
-                                    label: `${office.office_code} - ${office.office_name}`,
+                                    label: `${office.office_code}`,
                                 }))}
                             />
                         </div>
