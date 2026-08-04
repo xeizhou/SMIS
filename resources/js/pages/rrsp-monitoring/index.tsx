@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import RrspAddForm from '@/components/rrsp-monitoring/rrspaddform';
 import RrspDeleteModal from '@/components/rrsp-monitoring/rrspdeletemodal';
 import RrspEditForm from '@/components/rrsp-monitoring/rrspeditform';
@@ -15,6 +15,17 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+
+interface RrspItem {
+    id: number;
+    itemDescription: string;
+    quantity: number;
+    propertyNo: string | null;
+    cost: number | null;
+    kindOfSemiExpendable: string | null;
+    status: string | null;
+    area: string | null;
+}
 
 interface RrspMonitoring {
     id: string;
@@ -30,6 +41,7 @@ interface RrspMonitoring {
     area: string | null;
     createdAt: string | null;
     updatedAt: string | null;
+    items?: RrspItem[];
 }
 
 interface PaginatedRrspMonitoring {
@@ -219,125 +231,154 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                     </Button>
                 </form>
 
-                {/* Table */}
-                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
-                        <thead
-                            className="border-b"
-                            style={{ backgroundColor: '#370001' }}
-                        >
-                            <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    RRSP No
-                                </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Item Description
-                                </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Property No
-                                </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    End User
-                                </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Area
-                                </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Date Received
-                                </th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">
-                                    Qty
-                                </th>
-                                <th className="px-4 py-3 text-right font-semibold text-white">
-                                    Cost
-                                </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Status
-                                </th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {rrspMonitorings.data.length === 0 ? (
+                    {/* Table */}
+                    <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden">
+                        <table className="w-full text-sm">
+                            <thead
+                                className="border-b"
+                                style={{ backgroundColor: '#370001' }}
+                            >
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-16 text-center">
-                                        <p className="text-base font-medium text-muted-foreground">
-                                            No RRSP records added yet.
-                                        </p>
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                            Click <strong>&quot;Add RRSP&quot;</strong> to create
-                                            your first entry.
-                                        </p>
-                                    </td>
+                                    <th className="px-4 py-3 text-left font-semibold text-white">
+                                        RRSP No
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-semibold text-white">
+                                        Item Description
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-semibold text-white">
+                                        Property No
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-semibold text-white">
+                                        End User
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-semibold text-white">
+                                        Area
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-semibold text-white">
+                                        Date Received
+                                    </th>
+                                    <th className="px-4 py-3 text-center font-semibold text-white">
+                                        Qty
+                                    </th>
+                                    <th className="px-4 py-3 text-right font-semibold text-white">
+                                        Cost
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-semibold text-white">
+                                        Status
+                                    </th>
+                                    <th className="px-4 py-3 text-center font-semibold text-white">
+                                        Actions
+                                    </th>
                                 </tr>
-                            ) : (
-                                rrspMonitorings.data.map((rrsp) => (
-                                    <tr
-                                        key={rrsp.id}
-                                        className="border-b transition-colors hover:bg-muted/40"
-                                    >
-                                        <td className="px-4 py-3 font-medium">
-                                            {rrsp.rrspNo}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {rrsp.itemDescription}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {rrsp.propertyNo ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {rrsp.endUserName ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {rrsp.area ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {formatDate(rrsp.dateReceived)}
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            {rrsp.quantity}
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            {formatCurrency(rrsp.cost)}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {rrsp.status ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleEdit(rrsp)}
-                                                    className="text-blue-600 hover:text-blue-800"
-                                                    title="Edit"
-                                                >
-                                                    <Pencil className="size-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDelete(rrsp)}
-                                                    className="text-red-600 hover:text-red-800"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleView(rrsp)}
-                                                    className="text-foreground hover:text-muted-foreground"
-                                                    title="View"
-                                                >
-                                                    <Eye className="size-4" />
-                                                </button>
-                                            </div>
+                            </thead>
+    
+                            {rrspMonitorings.data.length === 0 ? (
+                                <tbody>
+                                    <tr>
+                                        <td colSpan={10} className="px-6 py-16 text-center">
+                                            <p className="text-base font-medium text-muted-foreground">
+                                                No RRSP records added yet.
+                                            </p>
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                Click <strong>&quot;Add RRSP&quot;</strong> to create
+                                                your first entry.
+                                            </p>
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
+                                </tbody>
+                                ) : (
+                                    rrspMonitorings.data.map((rrsp) => {
+                                        const itemsCount = rrsp.items?.length || 1;
+                                        const firstItem = rrsp.items && rrsp.items.length > 0 ? rrsp.items[0] : null;
+                                        
+                                        return (
+                                            <tbody key={rrsp.id} className="transition-colors hover:bg-muted/40 group border-b border-border">
+                                                <tr className="border-b border-border/50">
+                                                    <td className="px-4 py-3 font-medium border-r" rowSpan={itemsCount}>
+                                                        {rrsp.rrspNo}
+                                                    </td>
+                                                    <td className="px-4 py-3 border-r">
+                                                        {firstItem?.itemDescription ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3 border-r">
+                                                        {firstItem?.propertyNo ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3 border-r" rowSpan={itemsCount}>
+                                                        {rrsp.endUserName ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3 border-r">
+                                                        {firstItem?.area ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3 border-r" rowSpan={itemsCount}>
+                                                        {formatDate(rrsp.dateReceived)}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center border-r">
+                                                        {firstItem?.quantity ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right border-r">
+                                                        {formatCurrency(firstItem?.cost ?? null)}
+                                                    </td>
+                                                    <td className="px-4 py-3 border-r">
+                                                        {firstItem?.status ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3" rowSpan={itemsCount}>
+                                                        <div className="flex items-center justify-center gap-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleEdit(rrsp)}
+                                                                className="text-blue-600 hover:text-blue-800"
+                                                                title="Edit"
+                                                            >
+                                                                <Pencil className="size-4" />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDelete(rrsp)}
+                                                                className="text-red-600 hover:text-red-800"
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 className="size-4" />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleView(rrsp)}
+                                                                className="text-foreground hover:text-muted-foreground"
+                                                                title="View"
+                                                            >
+                                                                <Eye className="size-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {rrsp.items && rrsp.items.length > 1 && rrsp.items.slice(1).map((item) => (
+                                                    <tr key={item.id} className="border-b border-border/50">
+                                                        <td className="px-4 py-3 border-r">
+                                                            {item.itemDescription ?? '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3 border-r">
+                                                            {item.propertyNo ?? '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3 border-r">
+                                                            {item.area ?? '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center border-r">
+                                                            {item.quantity ?? '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right border-r">
+                                                            {formatCurrency(item.cost ?? null)}
+                                                        </td>
+                                                        <td className="px-4 py-3 border-r">
+                                                            {item.status ?? '—'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        );
+                                    })
+                                )}
+                        </table>
+                        <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
 
                 {rrspMonitorings.data.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-1 p-4">

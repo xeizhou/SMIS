@@ -25,19 +25,11 @@ class RrspMonitoring extends Model
     protected $fillable = [
         'rrsp_no',
         'date_received',
-        'item_description',
-        'quantity',
-        'property_no',
         'end_user_name',
-        'cost',
-        'kind_of_semi_expendable',
-        'status',
-        'area',
     ];
 
     protected $casts = [
         'date_received' => 'date',
-        'cost' => 'decimal:2',
     ];
 
     public function regspiMonitorings(): HasMany
@@ -45,5 +37,8 @@ class RrspMonitoring extends Model
         return $this->hasMany(RegspiMonitoring::class, 'rrsp_no', 'rrsp_no');
     }
 
-
+    public function items(): HasMany
+    {
+        return $this->hasMany(RrspItem::class, 'rrsp_monitoring_id');
+    }
 }

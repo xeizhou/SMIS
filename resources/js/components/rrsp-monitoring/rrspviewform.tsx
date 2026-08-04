@@ -6,20 +6,25 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-interface RrspMonitoring {
-    id: string;
-    rrspNo: string;
-    dateReceived: string | null;
+interface RrspItem {
+    id: number;
     itemDescription: string;
     quantity: number;
     propertyNo: string | null;
-    endUserName: string | null;
     cost: number | null;
     kindOfSemiExpendable: string | null;
     status: string | null;
     area: string | null;
+}
+
+interface RrspMonitoring {
+    id: string;
+    rrspNo: string;
+    dateReceived: string | null;
+    endUserName: string | null;
     createdAt: string | null;
     updatedAt: string | null;
+    items?: RrspItem[];
 }
 
 interface Props {
@@ -102,28 +107,29 @@ return (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <Detail label="RRSP No." value={rrsp.rrspNo} />
                         <Detail label="Date Received" value={formatDate(rrsp.dateReceived)} />
-                        <div className="sm:col-span-3">
-                            <Detail label="Item Description" value={rrsp.itemDescription ?? '—'} />
-                        </div>
-                    </div>
-                </section>
-
-                <section>
-                    <p className={sectionTitleClass}>Asset Details</p>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                        <Detail label="Quantity" value={rrsp.quantity.toString()} />
-                        <Detail label="Property No." value={rrsp.propertyNo ?? '—'} />
-                        <Detail label="Cost" value={formatCurrency(rrsp.cost)} />
-                        <Detail label="Kind of Semi-Expendable" value={rrsp.kindOfSemiExpendable ?? '—'} />
-                    </div>
-                </section>
-
-                <section>
-                    <p className={sectionTitleClass}>Assignment & Status</p>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <Detail label="End User" value={rrsp.endUserName ?? '—'} />
-                        <Detail label="Area" value={rrsp.area ?? '—'} />
-                        <Detail label="Status" value={rrsp.status ?? '—'} />
+                    </div>
+                </section>
+
+                <section>
+                    <p className={sectionTitleClass}>Items ({rrsp.items?.length ?? 0})</p>
+                    <div className="space-y-4">
+                        {rrsp.items?.map((item, index) => (
+                            <div key={item.id} className="rounded-md border p-4 bg-muted/20">
+                                <h4 className="mb-3 text-sm font-medium border-b pb-2">Item #{index + 1}</h4>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                                    <div className="sm:col-span-2">
+                                        <Detail label="Item Description" value={item.itemDescription ?? '—'} />
+                                    </div>
+                                    <Detail label="Quantity" value={item.quantity?.toString() ?? '—'} />
+                                    <Detail label="Property No." value={item.propertyNo ?? '—'} />
+                                    <Detail label="Cost" value={formatCurrency(item.cost)} />
+                                    <Detail label="Kind of Semi-Expendable" value={item.kindOfSemiExpendable ?? '—'} />
+                                    <Detail label="Area" value={item.area ?? '—'} />
+                                    <Detail label="Status" value={item.status ?? '—'} />
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </section>
             </div>
