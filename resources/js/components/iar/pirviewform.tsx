@@ -16,8 +16,6 @@ import {
     FileArchive,
 } from 'lucide-react';
 import type { Pir } from '@/pages/iar/index';
-import { ScrollArea } from '@/components/ui/scroll-area';
-
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
