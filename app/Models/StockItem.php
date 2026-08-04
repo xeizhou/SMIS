@@ -10,10 +10,9 @@ use App\Traits\LogsActivity;
 
 class StockItem extends Model
 {
-    use HasFactory;
-    use LogsActivity;
+    use HasFactory, LogsActivity;
 
-    const LOG_NAME = 'Stock Cards';
+    const LOG_NAME = 'Stock Items';
 
     public function getActivityUrl()
     {
@@ -59,5 +58,10 @@ class StockItem extends Model
         // The second argument is the pivot table name.
         return $this->belongsToMany(Unit::class, 'stock_item_unit', 'stock_no', 'unitID')
                     ->withPivot('is_default');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('stock-items.index') . '?highlight_id=' . $this->id;
     }
 }

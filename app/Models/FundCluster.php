@@ -5,10 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsActivity;
 
 class FundCluster extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    const LOG_NAME = 'Fund Cluster';
+
     protected $table = 'fund_clusters';
 
     protected $primaryKey = 'fund_cluster_id';
@@ -40,5 +44,10 @@ class FundCluster extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class, 'fund_cluster', 'fund_cluster_id');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('fund-clusters.index') . '?highlight_id=' . $this->id;
     }
 }

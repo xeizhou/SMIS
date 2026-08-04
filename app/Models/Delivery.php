@@ -13,7 +13,7 @@ class Delivery extends Model
 {
     use HasFactory, LogsActivity;
 
-    const LOG_NAME = 'Deliveries';
+    const LOG_NAME = 'Delivery Monitoring';
 
     public function getActivityUrl()
     {
@@ -144,5 +144,10 @@ class Delivery extends Model
                 return $due->diffInDays($delivered);
             },
         );
+    }
+
+    public function getActivityUrl()
+    {
+        return route('deliveries.index') . '?highlight_id=' . $this->id;
     }
 }

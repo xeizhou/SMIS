@@ -9,9 +9,7 @@ use App\Traits\LogsActivity;
 
 class RrspMonitoring extends Model
 {
-    use HasFactory;
-
-    use LogsActivity;
+    use HasFactory, LogsActivity;
 
     const LOG_NAME = 'RRSP Monitoring';
 
@@ -42,5 +40,10 @@ class RrspMonitoring extends Model
     public function regspiMonitorings(): HasMany
     {
         return $this->hasMany(RegspiMonitoring::class, 'rrsp_no', 'rrsp_no');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('rrsp-monitoring.index') . '?highlight_id=' . $this->id;
     }
 }

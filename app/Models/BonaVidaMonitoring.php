@@ -6,9 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+use App\Traits\LogsActivity;
+
 class BonaVidaMonitoring extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    const LOG_NAME = 'Bona Vida Monitoring';
 
     protected $table = 'bona_vida_monitoring';
 
@@ -35,5 +39,10 @@ class BonaVidaMonitoring extends Model
     public function office(): BelongsTo
     {
         return $this->belongsTo(Office::class, 'office_code', 'office_code');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('bona-vida-monitoring.index') . '?highlight_id=' . $this->id;
     }
 }

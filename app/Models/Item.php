@@ -4,10 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\LogsActivity;
+
 
 class Item extends Model
 {
+    use HasFactory, LogsActivity;
+
     protected $table = 'items';
+
+    const LOG_NAME = 'Stock Items List';
 
     protected $primaryKey = 'stockID';
 
@@ -28,5 +35,10 @@ class Item extends Model
     public function stockItem(): BelongsTo
     {
         return $this->belongsTo(StockItem::class, 'stock_no', 'stock_no');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('stock-items-list.index') . '?highlight_id=' . $this->id;
     }
 }

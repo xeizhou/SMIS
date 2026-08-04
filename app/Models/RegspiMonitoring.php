@@ -9,10 +9,9 @@ use App\Traits\LogsActivity;
 
 class RegspiMonitoring extends Model
 {
-    use LogsActivity;
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
-    const LOG_NAME = 'REG-SPI Monitoring';
+    const LOG_NAME = 'REGSPI Monitoring';
 
     public function getActivityUrl()
     {
@@ -54,5 +53,10 @@ class RegspiMonitoring extends Model
     public function fundCluster(): BelongsTo
     {
         return $this->belongsTo(FundCluster::class, 'fund_cluster_id', 'fund_cluster_id');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('regspi-monitoring.index') . '?highlight_id=' . $this->id;
     }
 }

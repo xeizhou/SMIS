@@ -4,10 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\LogsActivity;
 
 class EmployeeFileLocator extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    const LOG_NAME = 'Employee File Locator';
 
     protected $table = 'employee_file_locator';
 
@@ -20,4 +23,9 @@ class EmployeeFileLocator extends Model
         'area',
         'status',
     ];
+
+    public function getActivityUrl()
+    {
+        return route('employee-file-locator.index') . '?highlight_id=' . $this->id;
+    }
 }

@@ -5,6 +5,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+
 interface Unit {
     unitID: number;
     unit_name: string;

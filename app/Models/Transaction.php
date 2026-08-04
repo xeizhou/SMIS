@@ -5,10 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\LogsActivity;
 
 class Transaction extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    const LOG_NAME = 'Transaction Logs';
+
     protected $table = 'transactions';
 
     protected $primaryKey = 'transactionID';
@@ -43,5 +47,10 @@ class Transaction extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class, 'unitID', 'unitID');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('transactions.index') . '?highlight_id=' . $this->transactionID;
     }
 }

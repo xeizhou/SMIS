@@ -11,6 +11,8 @@ class ItrPtrMonitoring extends Model
 {
     use HasFactory, LogsActivity;
 
+    const LOG_NAME = 'ITR/PTR Monitoring';
+
     protected $table = 'itr_ptr_monitoring';
 
     protected $fillable = [

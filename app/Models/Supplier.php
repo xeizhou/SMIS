@@ -5,10 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\LogsActivity;
 
 class Supplier extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    const LOG_NAME = 'Supplier List';
+
     protected $table = 'supplier_list';
 
     protected $primaryKey = 'supplier_id';
@@ -40,5 +44,10 @@ class Supplier extends Model
     public function pirMonitorings(): HasMany
     {
         return $this->hasMany(PirMonitoring::class, 'supplier_id');
+    }
+
+    public function getActivityUrl()
+    {
+        return route('suppliers.index') . '?highlight_id=' . $this->id;
     }
 }
