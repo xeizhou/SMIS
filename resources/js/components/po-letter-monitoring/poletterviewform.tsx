@@ -127,7 +127,9 @@ export default function PoLetterViewForm({ open, onOpenChange, poLetter }: Props
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto" style={{ maxWidth: '800px' }}>
+            <DialogContent className="w-[95vw] max-h-[90vh] overflow-hidden p-0" style={{ maxWidth: '800px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
                     <DialogTitle>PO Letter Details — {poLetter.reference_no ?? poLetter.po_number}</DialogTitle>
                 </DialogHeader>
@@ -235,6 +237,8 @@ export default function PoLetterViewForm({ open, onOpenChange, poLetter }: Props
                         <Separator className="mt-4" />
                     </section>
                 </div>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

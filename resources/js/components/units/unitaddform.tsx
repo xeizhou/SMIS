@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +26,7 @@ interface FieldProps {
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 function Field({
     label,
@@ -97,31 +99,37 @@ export default function UnitAddForm({
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>
-                        New Unit
+                        Add Unit Record
                     </DialogTitle>
                 </DialogHeader>
                 <form
                     onSubmit={handleSubmit}
-                    className="mt-4 space-y-4"
+                    className="mt-4 space-y-8"
                 >
-                    <Field
-                        label="Unit Name"
-                        name="unit_name"
-                        value={data.unit_name}
-                        onChange={handleChange}
-                        error={errors.unit_name}
-                        required
-                        placeholder="e.g. Piece"
-                    />
-                    <Field
-                        label="Short Name"
-                        name="unit_short_name"
-                        value={data.unit_short_name}
-                        onChange={handleChange}
-                        error={errors.unit_short_name}
-                        required
-                        placeholder="e.g. pc"
-                    />
+                    {/* Section: Unit Details */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Unit Details</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <Field
+                                label="Unit Name"
+                                name="unit_name"
+                                value={data.unit_name}
+                                onChange={handleChange}
+                                error={errors.unit_name}
+                                required
+                                placeholder="e.g. Piece"
+                            />
+                            <Field
+                                label="Short Name"
+                                name="unit_short_name"
+                                value={data.unit_short_name}
+                                onChange={handleChange}
+                                error={errors.unit_short_name}
+                                required
+                                placeholder="e.g. pc"
+                            />
+                        </div>
+                    </div>
 
                     <div className="flex justify-end gap-3 pt-2">
                         <Button

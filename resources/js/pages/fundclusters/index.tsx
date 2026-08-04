@@ -1,4 +1,5 @@
     import { Head, Link, router } from '@inertiajs/react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
     import { Search, Pencil, Trash2} from 'lucide-react';
     import { useState } from 'react';
     import FundClusterAddForm from '@/components/fundclusters/fundclusteraddform';
@@ -127,8 +128,7 @@
                     </form>
 
                     {/* Table */}
-                    <div className="overflow-hidden rounded-xl border border-border bg-card">
-                        <table className="w-full text-sm">
+                    <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
                             <thead
                                 className="border-b"
                                 style={{ backgroundColor: '#370001' }}
@@ -183,8 +183,7 @@
                                     ))
                                 )}
                             </tbody>
-                        </table>
-                    </div>
+                        </table><ScrollBar orientation="horizontal" /></ScrollArea>
 
                     {fundClusters.data.length > 0 && (
                         <div className="flex flex-wrap justify-center gap-1 p-4">

@@ -4,6 +4,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface RrspMonitoring {
     id: string;
@@ -84,9 +85,11 @@ return null;
 return (
     <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-            className="w-[95vw] max-h-[90vh] overflow-y-auto"
-            style={{ maxWidth: '800px' }}
+            className="w-[95vw] max-h-[90vh] overflow-hidden p-0"
+            style={{ maxWidth: '1000px' }}
         >
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
             <DialogHeader>
                 <DialogTitle>
                     RRSP Details — {rrsp.rrspNo}
@@ -94,84 +97,39 @@ return (
             </DialogHeader>
 
             <div className="mt-2 space-y-6">
-                {/* RRSP Information */}
                 <section>
-                    <p className={sectionTitleClass}>
-                        RRSP Information
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                        <Detail
-                            label="RRSP Number"
-                            value={rrsp.rrspNo}
-                        />
-
-                        <Detail
-                            label="Date Received"
-                            value={formatDate(rrsp.dateReceived)}
-                        />
-
-                        <Detail
-                            label="Status"
-                            value={rrsp.status ?? '—'}
-                        />
-
-                        <Detail
-                            label="Area"
-                            value={rrsp.area ?? '—'}
-                        />
-
-                        <Detail
-                            label="Kind of Semi-Expendable"
-                            value={rrsp.kindOfSemiExpendable ?? '—'}
-                        />
+                    <p className={sectionTitleClass}>General Information</p>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <Detail label="RRSP No." value={rrsp.rrspNo} />
+                        <Detail label="Date Received" value={formatDate(rrsp.dateReceived)} />
+                        <div className="sm:col-span-3">
+                            <Detail label="Item Description" value={rrsp.itemDescription ?? '—'} />
+                        </div>
                     </div>
                 </section>
 
-                {/* Item Details */}
                 <section>
-                    <p className={sectionTitleClass}>
-                        Item Details
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                        <Detail
-                            label="Item Description"
-                            value={rrsp.itemDescription ?? '—'}
-                        />
-
-                        <Detail
-                            label="Quantity"
-                            value={rrsp.quantity.toString()}
-                        />
-
-                        <Detail
-                            label="Property Number"
-                            value={rrsp.propertyNo ?? '—'}
-                        />
-
-                        <Detail
-                            label="Cost"
-                            value={formatCurrency(rrsp.cost)}
-                        />
+                    <p className={sectionTitleClass}>Asset Details</p>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                        <Detail label="Quantity" value={rrsp.quantity.toString()} />
+                        <Detail label="Property No." value={rrsp.propertyNo ?? '—'} />
+                        <Detail label="Cost" value={formatCurrency(rrsp.cost)} />
+                        <Detail label="Kind of Semi-Expendable" value={rrsp.kindOfSemiExpendable ?? '—'} />
                     </div>
                 </section>
 
-                {/* Assignment */}
                 <section>
-                    <p className={sectionTitleClass}>
-                        Assignment
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                        <Detail
-                            label="End User"
-                            value={rrsp.endUserName ?? '—'}
-                        />
+                    <p className={sectionTitleClass}>Assignment & Status</p>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <Detail label="End User" value={rrsp.endUserName ?? '—'} />
+                        <Detail label="Area" value={rrsp.area ?? '—'} />
+                        <Detail label="Status" value={rrsp.status ?? '—'} />
                     </div>
                 </section>
             </div>
-        </DialogContent>
+        </div>
+                </ScrollArea>
+            </DialogContent>
     </Dialog>
 );
 }

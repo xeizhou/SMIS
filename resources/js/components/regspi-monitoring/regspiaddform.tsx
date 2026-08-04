@@ -1,5 +1,6 @@
 import { RefreshCw } from 'lucide-react';
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,6 +48,7 @@ interface FieldProps {
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 function Field({
     label,
@@ -228,192 +230,200 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps, fundClusters 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto" style={{ maxWidth: '900px' }}>
-                <DialogHeader>
-                    <DialogTitle>New RegSPI Record</DialogTitle>
-                </DialogHeader>
+            <DialogContent className="w-[95vw] max-h-[90vh] overflow-hidden p-0 p-0 overflow-hidden" style={{ maxWidth: '1200px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
+                <div className="p-6">
+                    <DialogHeader>
+                        <DialogTitle>Add RegSPI Record</DialogTitle>
+                    </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4 space-y-5">
-                    <div className="grid gap-5 md:grid-cols-2">
-                        <Field
-                            label="Month / Year"
-                            name="month_year"
-                            value={data.month_year}
-                            onChange={handleChange}
-                            error={errors.month_year}
-                            required
-                            placeholder="e.g. 2025-01"
-                        />
-
-                        <Field
-                            label="ICS No."
-                            name="ics_no"
-                            value={data.ics_no}
-                            onChange={handleChange}
-                            error={errors.ics_no}
-                            placeholder="e.g. ICS-05-IGF-2008020005"
-                        />
-
-                        <SelectField
-                            label="RRSP No."
-                            value={data.rrsp_no}
-                            onChange={handleSelectChange('rrsp_no')}
-                            error={errors.rrsp_no}
-                            placeholder="Select RRSP"
-                            options={rrsps.map((rrsp) => ({
-                                value: rrsp.rrsp_no,
-                                label: rrsp.rrsp_no,
-                            }))}
-                        />
-
-                        <SelectField
-                            label="Fund Cluster"
-                            value={data.fund_cluster_id}
-                            onChange={handleSelectChange('fund_cluster_id')}
-                            error={errors.fund_cluster_id}
-                            placeholder="Select fund cluster"
-                            options={fundClusters.map((cluster) => ({
-                                value: cluster.fund_cluster_id,
-                                label: `${cluster.fund_cluster_id} - ${cluster.fund_description}`,
-                            }))}
-                        />
-
-                        <Field
-                            label="Semi-Expendable Property No."
-                            name="semi_expendable_property_no"
-                            value={data.semi_expendable_property_no}
-                            onChange={handleChange}
-                            error={errors.semi_expendable_property_no}
-                            required
-                            placeholder="e.g. 223-01-08-00-0000"
-                        />
-
-                        <Field
-                            label="Item Description"
-                            name="item_description"
-                            value={data.item_description}
-                            onChange={handleChange}
-                            error={errors.item_description}
-                            placeholder="Auto-filled from RRSP"
-                            disabled
-                        />
-
-                        <Field
-                            label="Estimated Useful Life"
-                            name="estimated_useful_life"
-                            type="number"
-                            value={data.estimated_useful_life}
-                            onChange={handleChange}
-                            error={errors.estimated_useful_life}
-                            placeholder="e.g. 5"
-                        />
-
-                        <Field
-                            label="Issued Qty"
-                            name="issued_qty"
-                            type="number"
-                            value={data.issued_qty}
-                            onChange={handleChange}
-                            error={errors.issued_qty}
-                            placeholder="e.g. 1"
-                        />
-
-                        <Field
-                            label="Issued Office / Officer"
-                            name="issued_office_officer"
-                            value={data.issued_office_officer}
-                            onChange={handleChange}
-                            error={errors.issued_office_officer}
-                            placeholder="e.g. Administrative Office Mintal / Perfecto A. Alibin"
-                        />
-
-                        <Field
-                            label="Returned Qty"
-                            name="returned_qty"
-                            type="number"
-                            value={data.returned_qty}
-                            onChange={handleChange}
-                            error={errors.returned_qty}
-                            placeholder="e.g. 0"
-                        />
-
-                        <Field
-                            label="Returned Office / Officer"
-                            name="returned_office_officer"
-                            value={data.returned_office_officer}
-                            onChange={handleChange}
-                            error={errors.returned_office_officer}
-                            placeholder="e.g. Records Section"
-                        />
-
-                        <Field
-                            label="Reissued Qty"
-                            name="reissued_qty"
-                            type="number"
-                            value={data.reissued_qty}
-                            onChange={handleChange}
-                            error={errors.reissued_qty}
-                            placeholder="e.g. 0"
-                        />
-
-                        <Field
-                            label="Reissued Office / Officer"
-                            name="reissued_office_officer"
-                            value={data.reissued_office_officer}
-                            onChange={handleChange}
-                            error={errors.reissued_office_officer}
-                            placeholder="e.g. Records Section"
-                        />
-
-                        <Field
-                            label="Disposed Qty"
-                            name="disposed_qty"
-                            type="number"
-                            value={data.disposed_qty}
-                            onChange={handleChange}
-                            error={errors.disposed_qty}
-                            placeholder="e.g. 0"
-                        />
-
+                    <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                        {/* Section: General Information */}
                         <div>
-                            <label className={labelClass}>Balance Qty</label>
-                            <Input
-                                value={calculateBalance(data)}
-                                disabled
-                                className="bg-muted text-muted-foreground"
-                            />
+                            <h3 className={sectionTitleClass}>General Information</h3>
+                            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                                <Field
+                                    label="Month / Year"
+                                    name="month_year"
+                                    value={data.month_year}
+                                    onChange={handleChange}
+                                    error={errors.month_year}
+                                    required
+                                    placeholder="e.g. 2025-01"
+                                />
+                                <Field
+                                    label="ICS No."
+                                    name="ics_no"
+                                    value={data.ics_no}
+                                    onChange={handleChange}
+                                    error={errors.ics_no}
+                                    placeholder="e.g. ICS-05-IGF-2008020005"
+                                />
+                                <SelectField
+                                    label="RRSP No."
+                                    value={data.rrsp_no}
+                                    onChange={handleSelectChange('rrsp_no')}
+                                    error={errors.rrsp_no}
+                                    placeholder="Select RRSP"
+                                    options={rrsps.map((rrsp) => ({
+                                        value: rrsp.rrsp_no,
+                                        label: rrsp.rrsp_no,
+                                    }))}
+                                />
+                                <SelectField
+                                    label="Fund Cluster"
+                                    value={data.fund_cluster_id}
+                                    onChange={handleSelectChange('fund_cluster_id')}
+                                    error={errors.fund_cluster_id}
+                                    placeholder="Select fund cluster"
+                                    options={fundClusters.map((cluster) => ({
+                                        value: cluster.fund_cluster_id,
+                                        label: `${cluster.fund_cluster_id} - ${cluster.fund_description}`,
+                                    }))}
+                                />
+                                <Field
+                                    label="Semi-Expendable Property No."
+                                    name="semi_expendable_property_no"
+                                    value={data.semi_expendable_property_no}
+                                    onChange={handleChange}
+                                    error={errors.semi_expendable_property_no}
+                                    required
+                                    placeholder="e.g. 223-01-08-00-0000"
+                                />
+                                <Field
+                                    label="Item Description"
+                                    name="item_description"
+                                    value={data.item_description}
+                                    onChange={handleChange}
+                                    error={errors.item_description}
+                                    placeholder="Auto-filled from RRSP"
+                                    disabled
+                                />
+                            </div>
                         </div>
 
-                        <Field
-                            label="Amount"
-                            name="amount"
-                            type="number"
-                            value={data.amount}
-                            onChange={handleChange}
-                            error={errors.amount}
-                            required
-                            placeholder="e.g. 3800.00"
-                        />
+                        {/* Section: Quantities & Offices */}
+                        <div>
+                            <h3 className={sectionTitleClass}>Quantities & Offices</h3>
+                            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                                <Field
+                                    label="Issued Qty"
+                                    name="issued_qty"
+                                    type="number"
+                                    value={data.issued_qty}
+                                    onChange={handleChange}
+                                    error={errors.issued_qty}
+                                    placeholder="e.g. 1"
+                                />
+                                <Field
+                                    label="Issued Office / Officer"
+                                    name="issued_office_officer"
+                                    value={data.issued_office_officer}
+                                    onChange={handleChange}
+                                    error={errors.issued_office_officer}
+                                    placeholder="e.g. Admin Office"
+                                />
+                                <Field
+                                    label="Returned Qty"
+                                    name="returned_qty"
+                                    type="number"
+                                    value={data.returned_qty}
+                                    onChange={handleChange}
+                                    error={errors.returned_qty}
+                                    placeholder="e.g. 0"
+                                />
+                                <Field
+                                    label="Returned Office / Officer"
+                                    name="returned_office_officer"
+                                    value={data.returned_office_officer}
+                                    onChange={handleChange}
+                                    error={errors.returned_office_officer}
+                                    placeholder="e.g. Records Section"
+                                />
+                                <Field
+                                    label="Reissued Qty"
+                                    name="reissued_qty"
+                                    type="number"
+                                    value={data.reissued_qty}
+                                    onChange={handleChange}
+                                    error={errors.reissued_qty}
+                                    placeholder="e.g. 0"
+                                />
+                                <Field
+                                    label="Reissued Office / Officer"
+                                    name="reissued_office_officer"
+                                    value={data.reissued_office_officer}
+                                    onChange={handleChange}
+                                    error={errors.reissued_office_officer}
+                                    placeholder="e.g. Records Section"
+                                />
+                                <Field
+                                    label="Disposed Qty"
+                                    name="disposed_qty"
+                                    type="number"
+                                    value={data.disposed_qty}
+                                    onChange={handleChange}
+                                    error={errors.disposed_qty}
+                                    placeholder="e.g. 0"
+                                />
+                                <div>
+                                    <label className={labelClass}>Balance Qty</label>
+                                    <Input
+                                        value={calculateBalance(data)}
+                                        disabled
+                                        className="bg-muted text-muted-foreground"
+                                    />
+                                </div>
+                            </div>
+                        </div>
 
-                        <Field
-                            label="Remarks"
-                            name="remarks"
-                            value={data.remarks}
-                            onChange={handleChange}
-                            error={errors.remarks}
-                            placeholder="e.g. Fully Depreciated / Beyond Useful Life"
-                        />
-                    </div>
+                        {/* Section: Financial & Remarks */}
+                        <div>
+                            <h3 className={sectionTitleClass}>Financial & Remarks</h3>
+                            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                                <Field
+                                    label="Estimated Useful Life"
+                                    name="estimated_useful_life"
+                                    type="number"
+                                    value={data.estimated_useful_life}
+                                    onChange={handleChange}
+                                    error={errors.estimated_useful_life}
+                                    placeholder="e.g. 5"
+                                />
+                                <Field
+                                    label="Amount"
+                                    name="amount"
+                                    type="number"
+                                    value={data.amount}
+                                    onChange={handleChange}
+                                    error={errors.amount}
+                                    required
+                                    placeholder="e.g. 3800.00"
+                                />
+                                <Field
+                                    label="Remarks"
+                                    name="remarks"
+                                    value={data.remarks}
+                                    onChange={handleChange}
+                                    error={errors.remarks}
+                                    placeholder="e.g. Fully Depreciated / Beyond Useful Life"
+                                />
+                            </div>
+                        </div>
 
-                    <div className="flex justify-end gap-3">
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={processing} style={{ backgroundColor: '#370001' }}>
-                            {processing ? 'Saving...' : 'Save New Data'}
-                        </Button>
-                    </div>
-                </form>
+                        <div className="flex justify-end gap-3 mt-8">
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={processing} style={{ backgroundColor: '#370001' }}>
+                                {processing ? 'Saving...' : 'Save New Data'}
+                            </Button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

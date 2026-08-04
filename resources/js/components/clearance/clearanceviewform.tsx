@@ -31,6 +31,7 @@ interface Props {
 
 const labelClass = 'text-xs font-medium text-muted-foreground';
 const valueClass = 'text-sm text-foreground mt-0.5';
+const sectionTitleClass = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground/80 mb-3 pb-2 border-b';
 
 function Detail({ label, value }: { label: string; value: string }) {
     return (
@@ -52,23 +53,43 @@ export default function ClearanceViewForm({ open, onOpenChange, record }: Props)
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-[1000px] w-[95vw] max-h-[90vh] overflow-hidden p-0">
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
                     <DialogTitle>Clearance Details</DialogTitle>
                 </DialogHeader>
 
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <Detail label="Name" value={record.name} />
-                    <Detail label="Office" value={typeof record.office === 'string' ? record.office : record.office?.office_name ?? record.office_data?.office_name ?? '—'} />
-                    <Detail label="Claim Date" value={new Date(record.claim_date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })} />
-                    <Detail label="Received By" value={record.received_by} />
-                    <Detail label="Status" value={record.status} />
-                    <Detail label="Cleared" value={formatBooleanValue(record.cleared)} />
-                    <Detail label="Pending" value={formatBooleanValue(record.pending)} />
-                    <div className="md:col-span-2">
+                <div className="mt-4 space-y-6">
+                    {/* Section: Requester Information */}
+                    <section>
+                        <p className={sectionTitleClass}>Requester Information</p>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <Detail label="Name" value={record.name} />
+                            <Detail label="Office" value={typeof record.office === 'string' ? record.office : record.office?.office_name ?? record.office_data?.office_name ?? '—'} />
+                            <Detail label="Claim Date" value={new Date(record.claim_date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })} />
+                        </div>
+                    </section>
+
+                    {/* Section: Processing Details */}
+                    <section>
+                        <p className={sectionTitleClass}>Processing Details</p>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <Detail label="Received By" value={record.received_by} />
+                            <Detail label="Status" value={record.status} />
+                            <Detail label="Cleared" value={formatBooleanValue(record.cleared)} />
+                            <Detail label="Pending" value={formatBooleanValue(record.pending)} />
+                        </div>
+                    </section>
+
+                    {/* Section: Remarks */}
+                    <section>
+                        <p className={sectionTitleClass}>Remarks</p>
                         <Detail label="Remarks" value={record.remarks ?? '—'} />
-                    </div>
+                    </section>
                 </div>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

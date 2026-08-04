@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import SupplierAddForm from '@/components/suppliers/supplieraddform';
@@ -144,13 +145,13 @@ export default function Index({
                                             );
                                         }}
                                     >
-                                    <SelectTrigger className="w-[180px]">
-                                        <SelectValue placeholder="All Statuses" />
+                                    <SelectTrigger className={`w-[180px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
+                                        <SelectValue placeholder="Filter by Status" />
                                     </SelectTrigger>
 
                                     <SelectContent>
                                         <SelectItem value="all">
-                                            All Statuses
+                                            Filter by Status
                                         </SelectItem>
                                         <SelectItem value="active">
                                             Active

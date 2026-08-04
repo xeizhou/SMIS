@@ -156,7 +156,9 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto" style={{ maxWidth: '800px' }}>
+            <DialogContent className="w-[95vw] max-h-[90vh] overflow-hidden p-0" style={{ maxWidth: '800px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
                     <DialogTitle>Purchase Order Details — {po.po_number}</DialogTitle>
                 </DialogHeader>
@@ -289,6 +291,8 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                         <Separator className="mt-4" />
                     </section>
                 </div>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

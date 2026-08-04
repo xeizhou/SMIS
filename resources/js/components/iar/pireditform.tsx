@@ -1,5 +1,6 @@
 import { Eye, Paperclip, RefreshCw, Trash2, X, File, FileImage, FileText, FileSpreadsheet, FileArchive } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
 import {
     Dialog,
@@ -432,11 +433,13 @@ const fileInputRef = useRef<HTMLInputElement>(null);
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-[95vw] max-h-[90vh] overflow-y-auto"
+                className="w-[95vw] max-h-[90vh] overflow-hidden p-0"
                 style={{ maxWidth: '1200px' }}
             >
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
-                    <DialogTitle>Edit PIR — {pir.po_number}</DialogTitle>
+                    <DialogTitle>Edit PIR Record — {pir?.pir_id}, {pir?.po_number}</DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-8">
@@ -869,6 +872,8 @@ const fileInputRef = useRef<HTMLInputElement>(null);
                         </Button>
                     </div>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

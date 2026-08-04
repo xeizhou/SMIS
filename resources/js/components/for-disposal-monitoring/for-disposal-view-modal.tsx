@@ -31,6 +31,19 @@ const formatCurrency = (amount: number | string | null | undefined) => {
     }).format(num);
 };
 
+const labelClass = 'text-xs font-medium text-muted-foreground';
+const valueClass = 'text-sm text-foreground mt-0.5';
+const sectionTitleClass = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground/80 mb-3 pb-2 border-b';
+
+function Detail({ label, value }: { label: string; value: React.ReactNode }) {
+    return (
+        <div>
+            <p className={labelClass}>{label}</p>
+            <div className={valueClass}>{value}</div>
+        </div>
+    );
+}
+
 export default function ForDisposalViewModal({
     open,
     onOpenChange,
@@ -42,95 +55,48 @@ export default function ForDisposalViewModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+            <DialogContent className="max-h-[90vh] overflow-y-auto w-[95vw]" style={{ maxWidth: '1000px' }}>
                 <DialogHeader>
                     <DialogTitle>View For Disposal Record</DialogTitle>
                 </DialogHeader>
-                <div className="grid grid-cols-1 gap-x-6 gap-y-4 py-4 md:grid-cols-2">
-                    <div>
-                        <h4 className="text-sm font-semibold text-gray-500">
-                            Transaction No.
-                        </h4>
-                        <p className="mt-1 text-gray-900 dark:text-gray-100">
-                            {item.transaction_no}
-                        </p>
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-semibold text-gray-500">
-                            Pre-Repair No.
-                        </h4>
-                        <p className="mt-1 text-gray-900 dark:text-gray-100">
-                            {item.pre_repair_no}
-                        </p>
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-semibold text-gray-500">
-                            Property No.
-                        </h4>
-                        <p className="mt-1 text-gray-900 dark:text-gray-100">
-                            {item.property_no}
-                        </p>
-                    </div>
-                    <div className="md:col-span-2">
-                        <h4 className="text-sm font-semibold text-gray-500">
-                            Description
-                        </h4>
-                        <p className="mt-1 text-gray-900 dark:text-gray-100">
-                            {item.description}
-                        </p>
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-semibold text-gray-500">
-                            From Accountable Officer
-                        </h4>
-                        <p className="mt-1 text-gray-900 dark:text-gray-100">
-                            {item.from_accountable_officer}
-                        </p>
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-semibold text-gray-500">
-                            To Accountable Officer
-                        </h4>
-                        <p className="mt-1 text-gray-900 dark:text-gray-100">
-                            {item.to_accountable_officer}
-                        </p>
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-semibold text-gray-500">
-                            Condition of PPE
-                        </h4>
-                        <p className="mt-1 text-gray-900 dark:text-gray-100">
-                            {item.condition_of_ppe}
-                        </p>
-                    </div>
-                    {item.condition_of_ppe === 'Unserviceable' && (
-                        <div className="md:col-span-2">
-                            <h4 className="text-sm font-semibold text-gray-500">
-                                Remarks / Findings
-                            </h4>
-                            <p className="mt-1 text-gray-900 dark:text-gray-100">
-                                {item.remarks || '-'}
-                            </p>
+                
+                <div className="mt-2 space-y-6">
+                    <section>
+                        <p className={sectionTitleClass}>General Information</p>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <Detail label="Transaction No." value={item.transaction_no} />
+                            <Detail label="Pre-Repair No." value={item.pre_repair_no} />
+                            <Detail label="Property No." value={item.property_no} />
+                            <div className="sm:col-span-3">
+                                <Detail label="Description" value={item.description} />
+                            </div>
                         </div>
-                    )}
-                    <div>
-                        <h4 className="text-sm font-semibold text-gray-500">
-                            Location
-                        </h4>
-                        <p className="mt-1 text-gray-900 dark:text-gray-100">
-                            {item.location}
-                        </p>
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-semibold text-gray-500">
-                            Amount
-                        </h4>
-                        <p className="mt-1 text-gray-900 dark:text-gray-100">
-                            {formatCurrency(item.amount)}
-                        </p>
-                    </div>
+                    </section>
+
+                    <section>
+                        <p className={sectionTitleClass}>Assessment & Location</p>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <Detail label="Location" value={item.location} />
+                            <Detail label="Amount" value={formatCurrency(item.amount)} />
+                            <Detail label="Condition of PPE" value={item.condition_of_ppe} />
+                            
+                            {item.condition_of_ppe === 'Unserviceable' && (
+                                <div className="sm:col-span-3">
+                                    <Detail label="Remarks / Findings" value={item.remarks || '-'} />
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    <section>
+                        <p className={sectionTitleClass}>Accountability</p>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <Detail label="From Accountable Officer" value={item.from_accountable_officer} />
+                            <Detail label="To Accountable Officer" value={item.to_accountable_officer} />
+                        </div>
+                    </section>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="mt-6">
                     <Button
                         variant="outline"
                         onClick={() => onOpenChange(false)}

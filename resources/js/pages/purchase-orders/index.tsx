@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import PurchaseOrderAddForm from '@/components/purchase-order/poaddform';
@@ -222,12 +223,12 @@ export default function Index({
                             value={fundCluster}
                             onValueChange={handleFundClusterChange}
                         >
-                            <SelectTrigger className="w-[200px]">
-                                <SelectValue placeholder="All Fund Clusters" />
+                            <SelectTrigger className={`w-[200px] ${fundCluster === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Fund Cluster" />
                             </SelectTrigger>
 
                             <SelectContent>
-                                <SelectItem value="all">All Fund Clusters</SelectItem>
+                                <SelectItem value="all">Filter by Fund Cluster</SelectItem>
                                 {fundClusters.map((fc) => (
                                     <SelectItem
                                         key={fc.fund_cluster_id}
@@ -259,8 +260,7 @@ export default function Index({
                 </form>
 
                 {/* Table */}
-                <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <table className="w-full text-sm">
+                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
                         <thead
                             className="border-b"
                             style={{ backgroundColor: '#370001' }}
@@ -371,8 +371,7 @@ export default function Index({
                                 ))
                             )}
                         </tbody>
-                    </table>
-                </div>
+                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
 
                 {purchaseOrders.data.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-1 p-4">

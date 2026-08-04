@@ -123,7 +123,9 @@ export default function DeliveryViewForm({ open, onOpenChange, delivery }: Props
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto" style={{ maxWidth: '800px' }}>
+            <DialogContent className="w-[95vw] max-h-[95vh] overflow-hidden p-0" style={{ maxWidth: '800px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
                     <DialogTitle>Delivery Details — {delivery.po_number}</DialogTitle>
                 </DialogHeader>
@@ -240,6 +242,8 @@ export default function DeliveryViewForm({ open, onOpenChange, delivery }: Props
                         <Separator className="mt-4" />
                     </section>
                 </div>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

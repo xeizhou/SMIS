@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -263,11 +264,11 @@ export default function Index({
                                 );
                             }}
                         >
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="All Statuses" />
+                            <SelectTrigger className={`w-[180px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Statuses</SelectItem>
+                                <SelectItem value="all">Filter by Status</SelectItem>
                                 <SelectItem value="COMPLETED">COMPLETED</SelectItem>
                                 <SelectItem value="CANCELLED">CANCELLED</SelectItem>
                             </SelectContent>

@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +25,7 @@ const emptyForm: Record<string, string> = {
 };
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 export default function EmployeeFileAddForm({ open, onOpenChange }: Props) {
     const [data, setData] = useState<Record<string, string>>(emptyForm);
@@ -66,94 +68,106 @@ export default function EmployeeFileAddForm({ open, onOpenChange }: Props) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-[95vw]" style={{ maxWidth: '1000px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
                     <DialogTitle>Add Employee File Record</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className={labelClass} htmlFor="last_name">
-                                Last Name <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                id="last_name"
-                                name="last_name"
-                                value={data.last_name}
-                                onChange={handleChange}
-                                placeholder="Enter last name"
-                            />
-                            {errors.last_name && (
-                                <p className="mt-1 text-xs text-red-500">{errors.last_name}</p>
-                            )}
-                        </div>
+                <form onSubmit={handleSubmit} className="mt-4 space-y-8">
+                    {/* Section: Employee Name */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Employee Name</h3>
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <div>
+                                <label className={labelClass} htmlFor="first_name">
+                                    First Name <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    id="first_name"
+                                    name="first_name"
+                                    value={data.first_name}
+                                    onChange={handleChange}
+                                    placeholder="Enter first name"
+                                />
+                                {errors.first_name && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.first_name}</p>
+                                )}
+                            </div>
 
-                        <div>
-                            <label className={labelClass} htmlFor="first_name">
-                                First Name <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                id="first_name"
-                                name="first_name"
-                                value={data.first_name}
-                                onChange={handleChange}
-                                placeholder="Enter first name"
-                            />
-                            {errors.first_name && (
-                                <p className="mt-1 text-xs text-red-500">{errors.first_name}</p>
-                            )}
-                        </div>
+                            <div>
+                                <label className={labelClass} htmlFor="middle_name">
+                                    Middle Name
+                                </label>
+                                <Input
+                                    id="middle_name"
+                                    name="middle_name"
+                                    value={data.middle_name}
+                                    onChange={handleChange}
+                                    placeholder="Enter middle name"
+                                />
+                                {errors.middle_name && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.middle_name}</p>
+                                )}
+                            </div>
 
-                        <div>
-                            <label className={labelClass} htmlFor="middle_name">
-                                Middle Name
-                            </label>
-                            <Input
-                                id="middle_name"
-                                name="middle_name"
-                                value={data.middle_name}
-                                onChange={handleChange}
-                                placeholder="Enter middle name"
-                            />
-                            {errors.middle_name && (
-                                <p className="mt-1 text-xs text-red-500">{errors.middle_name}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className={labelClass} htmlFor="area">
-                                Area <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                                id="area"
-                                name="area"
-                                value={data.area}
-                                onChange={handleChange}
-                                placeholder="Enter area"
-                            />
-                            {errors.area && (
-                                <p className="mt-1 text-xs text-red-500">{errors.area}</p>
-                            )}
+                            <div>
+                                <label className={labelClass} htmlFor="last_name">
+                                    Last Name <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    id="last_name"
+                                    name="last_name"
+                                    value={data.last_name}
+                                    onChange={handleChange}
+                                    placeholder="Enter last name"
+                                />
+                                {errors.last_name && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.last_name}</p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
+                    {/* Section: Assignment Details */}
                     <div>
-                        <label className={labelClass} htmlFor="status">
-                            Status <span className="text-red-500">*</span>
-                        </label>
-                        <Select value={data.status} onValueChange={(value) => handleSelectChange(value, 'status')}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Active">Active</SelectItem>
-                                <SelectItem value="Inactive">Inactive</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {errors.status && (
-                            <p className="mt-1 text-xs text-red-500">{errors.status}</p>
-                        )}
+                        <h3 className={sectionTitleClass}>Assignment Details</h3>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className={labelClass} htmlFor="area">
+                                    Area <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    id="area"
+                                    name="area"
+                                    value={data.area}
+                                    onChange={handleChange}
+                                    placeholder="Enter area"
+                                />
+                                {errors.area && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.area}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className={labelClass} htmlFor="status">
+                                    Status <span className="text-red-500">*</span>
+                                </label>
+                                <Select value={data.status} onValueChange={(value) => handleSelectChange(value, 'status')}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Active">Active</SelectItem>
+                                        <SelectItem value="Inactive">Inactive</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {errors.status && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.status}</p>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-3">
@@ -165,6 +179,8 @@ export default function EmployeeFileAddForm({ open, onOpenChange }: Props) {
                         </Button>
                     </div>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

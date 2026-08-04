@@ -9,6 +9,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ForDisposalMonitoring } from '@/pages/for-disposal-monitoring/index';
 
 interface Props {
@@ -32,6 +40,7 @@ interface FieldProps {
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 function Field({
     label,
@@ -62,6 +71,7 @@ function Field({
         </div>
     );
 }
+
 
 function TextareaField({
     label,
@@ -168,6 +178,37 @@ export default function ForDisposalEditForm({
         });
     };
 
+    const handleSelectChange = (name: string) => (value: string) => {
+        if (name === 'pre_repair_no') {
+            const selectedPre = preRepairs.find((pre) => pre.pre_repair_no === value);
+            if (selectedPre) {
+                let condition = selectedPre.condition_of_ppe || '';
+                if (condition.toLowerCase() === 'serviceable') condition = 'Serviceable';
+                if (condition.toLowerCase() === 'unserviceable') condition = 'Unserviceable';
+
+                setData({
+                    ...data,
+                    pre_repair_no: value,
+                    transaction_no: selectedPre.transaction_no || '',
+                    property_no: selectedPre.property_no || '',
+                    description: selectedPre.description || '',
+                    amount: selectedPre.amount ? selectedPre.amount.toString() : '',
+                    condition_of_ppe: condition,
+                    remarks: selectedPre.remarks || '',
+                    location: selectedPre.location || '',
+                    from_accountable_officer: selectedPre.from_accountable_officer || '',
+                    to_accountable_officer: selectedPre.to_accountable_officer || '',
+                });
+                return;
+            }
+        }
+        
+        setData({
+            ...data,
+            [name]: value,
+        });
+    };
+
     const handleSubmit = (e?: React.FormEvent) => {
         if (e) e.preventDefault();
 
@@ -194,123 +235,145 @@ export default function ForDisposalEditForm({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-                <DialogHeader>
-                    <DialogTitle>Edit For Disposal Record</DialogTitle>
-                </DialogHeader>
+            <DialogContent
+                className="w-[95vw] max-h-[95vh] p-0 overflow-hidden"
+                style={{ maxWidth: '1200px' }}
+            >
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
+                        <DialogHeader>
+                            <DialogTitle>Edit For Disposal Record — {item?.id}, {item?.transaction_no}</DialogTitle>
+                        </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4 space-y-6">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <Field
-                            label="Transaction No."
-                            name="transaction_no"
-                            value={data.transaction_no}
-                            onChange={handleChange}
-                            error={errors.transaction_no}
-                            required
-                        />
-                        <div>
-                            <label className={labelClass}>
-                                Pre-Repair No.
-                                <span className="text-red-500"> *</span>
-                            </label>
-                            <select
-                                name="pre_repair_no"
-                                value={data.pre_repair_no}
+                        <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                            {/* Section: General Information */}
+                            <div>
+                                <h3 className={sectionTitleClass}>General Information</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <Field
+                                label="Transaction No."
+                                name="transaction_no"
+                                value={data.transaction_no}
                                 onChange={handleChange}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <option value="">Select Pre-Repair No.</option>
-                                {preRepairs.map((pre) => (
-                                    <option key={pre.id} value={pre.pre_repair_no}>
-                                        {pre.pre_repair_no} - {pre.property_no}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.pre_repair_no && <p className="mt-1 text-xs text-red-500">{errors.pre_repair_no}</p>}
-                        </div>
-
-                        <TextareaField
-                            label="Description"
-                            name="description"
-                            value={data.description}
-                            onChange={handleChange}
-                            error={errors.description}
-                            required
-                        />
-
-                        <Field
-                            label="Property No."
-                            name="property_no"
-                            value={data.property_no}
-                            onChange={handleChange}
-                            error={errors.property_no}
-                            required
-                        />
-                        <Field
-                            label="Amount"
-                            name="amount"
-                            type="number"
-                            value={data.amount}
-                            onChange={handleChange}
-                            error={errors.amount}
-                            required
-                        />
-                        <div>
-                            <label className={labelClass}>
-                                Condition of PPE
-                                <span className="text-red-500"> *</span>
-                            </label>
-                            <select
-                                name="condition_of_ppe"
-                                value={data.condition_of_ppe}
-                                onChange={handleChange}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <option value="">Select Condition</option>
-                                <option value="Serviceable">Serviceable</option>
-                                <option value="Unserviceable">Unserviceable</option>
-                            </select>
-                            {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
-                        </div>
-                        
-                        {data.condition_of_ppe === 'Unserviceable' && (
-                            <TextareaField
-                                label="Remarks / Findings"
-                                name="remarks"
-                                value={data.remarks}
-                                onChange={handleChange}
-                                error={errors.remarks}
+                                error={errors.transaction_no}
+                                required
                             />
-                        )}
-                        
-                        <Field
-                            label="Location"
-                            name="location"
-                            value={data.location}
-                            onChange={handleChange}
-                            error={errors.location}
-                            required
-                        />
-                        <Field
-                            label="From Accountable Officer"
-                            name="from_accountable_officer"
-                            value={data.from_accountable_officer}
-                            onChange={handleChange}
-                            error={errors.from_accountable_officer}
-                            required
-                        />
-                        <Field
-                            label="To Accountable Officer"
-                            name="to_accountable_officer"
-                            value={data.to_accountable_officer}
-                            onChange={handleChange}
-                            error={errors.to_accountable_officer}
-                            required
-                        />
+                            <div>
+                                <label className={labelClass}>
+                                    Pre-Repair No.
+                                    <span className="text-red-500"> *</span>
+                                </label>
+                                <Select value={data.pre_repair_no} onValueChange={handleSelectChange('pre_repair_no')}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select Pre-Repair No." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {preRepairs.map((pre) => (
+                                            <SelectItem key={pre.pre_repair_no} value={pre.pre_repair_no}>
+                                                {pre.pre_repair_no} - {pre.property_no}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.pre_repair_no && <p className="mt-1 text-xs text-red-500">{errors.pre_repair_no}</p>}
+                            </div>
+                            <Field
+                                label="Property No."
+                                name="property_no"
+                                value={data.property_no}
+                                onChange={handleChange}
+                                error={errors.property_no}
+                                required
+                            />
+                            <div className="md:col-span-3">
+                                <TextareaField
+                                    label="Description"
+                                    name="description"
+                                    value={data.description}
+                                    onChange={handleChange}
+                                    error={errors.description}
+                                    required
+                                />
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-2">
+                    {/* Section: Assessment & Location */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Assessment & Location</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <Field
+                                label="Location"
+                                name="location"
+                                value={data.location}
+                                onChange={handleChange}
+                                error={errors.location}
+                                required
+                            />
+                            <Field
+                                label="Amount"
+                                name="amount"
+                                type="number"
+                                value={data.amount}
+                                onChange={handleChange}
+                                error={errors.amount}
+                                required
+                            />
+                            <div>
+                                <label className={labelClass}>
+                                    Condition of PPE
+                                    <span className="text-red-500"> *</span>
+                                </label>
+                                <Select value={data.condition_of_ppe} onValueChange={handleSelectChange('condition_of_ppe')}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select Condition" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Serviceable">Serviceable</SelectItem>
+                                        <SelectItem value="Unserviceable">Unserviceable</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
+                            </div>
+                            
+                            {data.condition_of_ppe === 'Unserviceable' && (
+                                <div className="md:col-span-3">
+                                    <TextareaField
+                                        label="Remarks / Findings"
+                                        name="remarks"
+                                        value={data.remarks}
+                                        onChange={handleChange}
+                                        error={errors.remarks}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Section: Accountability */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Accountability</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Field
+                                label="From Accountable Officer"
+                                name="from_accountable_officer"
+                                value={data.from_accountable_officer}
+                                onChange={handleChange}
+                                error={errors.from_accountable_officer}
+                                required
+                            />
+                            <Field
+                                label="To Accountable Officer"
+                                name="to_accountable_officer"
+                                value={data.to_accountable_officer}
+                                onChange={handleChange}
+                                error={errors.to_accountable_officer}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mt-8 flex justify-end gap-3">
                         <Button
                             type="button"
                             variant="outline"
@@ -328,6 +391,8 @@ export default function ForDisposalEditForm({
                         </Button>
                     </div>
                 </form>
+                    </div>
+                </ScrollArea>
             </DialogContent>
 
             {/* Confirmation Modal */}

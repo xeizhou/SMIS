@@ -10,7 +10,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface AuditLog {
     log_id: number;
@@ -96,7 +95,7 @@ export default function Index({ logs, filters }: Props) {
         <>
             <Head title="Audit Logs" />
 
-            <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6 max-h-[830px]">
+            <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
                 <div>
                     <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
                         Audit Logs
@@ -119,11 +118,11 @@ export default function Index({ logs, filters }: Props) {
                             />
                         </div>
                         <Select value={roleFilter} onValueChange={setRoleFilter}>
-                            <SelectTrigger className="w-full sm:w-[180px]">
-                                <SelectValue placeholder="All Roles" />
+                            <SelectTrigger className={`w-full sm:w-[180px] ${roleFilter === 'All' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Role" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="All">All Roles</SelectItem>
+                                <SelectItem value="All">Filter by Role</SelectItem>
                                 <SelectItem value="Admin">Admin</SelectItem>
                                 <SelectItem value="Staff">Staff</SelectItem>
                             </SelectContent>
@@ -137,26 +136,30 @@ export default function Index({ logs, filters }: Props) {
                     </div>
                 </div>
 
-                <ScrollArea className="flex-1 min-h-[400px] w-full rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+                <div>
+                    <div className="overflow-hidden rounded-xl border border-border bg-card overflow-x-auto">
                     <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="sticky top-0 z-10 bg-[#3e0b0e] text-white/90 shadow-sm">
+                        <thead
+                            className="border-b"
+                            style={{ backgroundColor: '#370001' }}
+                        >
                             <tr>
-                                <th className="px-4 py-3 font-medium">Log ID</th>
-                                <th className="px-4 py-3 font-medium">Timestamp</th>
-                                <th className="px-4 py-3 font-medium">User</th>
-                                <th className="px-4 py-3 font-medium">Role</th>
-                                <th className="px-4 py-3 font-medium">Action</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Log ID</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Timestamp</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">User</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Role</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Action</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                        <tbody>
                             {logs.data.length > 0 ? (
                                 logs.data.map((row) => (
                                     <tr 
                                         key={row.log_id} 
-                                        className={`transition-colors duration-1000 ${
+                                        className={`transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 ${
                                             highlightId === row.log_id 
                                                 ? 'bg-yellow-100 dark:bg-yellow-900/40' 
-                                                : 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'
+                                                : ''
                                         }`}
                                     >
                                         <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
@@ -187,11 +190,11 @@ export default function Index({ logs, filters }: Props) {
                             )}
                         </tbody>
                     </table>
-                    <ScrollBar orientation="horizontal" />
-                </ScrollArea>
+                    </div>
+                </div>
 
                 {logs.data.length > 0 && (
-                    <div className="flex items-center justify-center gap-1 flex-wrap mt-4">
+                    <div className="flex flex-wrap justify-center gap-1 p-4">
                         {logs.links.map((link, i) => (
                             <Link
                                 key={i}

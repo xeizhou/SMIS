@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -130,11 +131,11 @@ export default function Index({ items, filters, fund_clusters = [] }: Props) {
                         </div>
 
                         <Select value={fundCluster} onValueChange={handleFundClusterChange}>
-                            <SelectTrigger className="w-full max-w-[200px]">
-                                <SelectValue placeholder="Fund Cluster" />
+                            <SelectTrigger className={`w-full max-w-[200px] ${fundCluster === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Fund Clusters" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Fund Clusters</SelectItem>
+                                <SelectItem value="all">Filter by Fund Clusters</SelectItem>
                                 {fund_clusters.map((fc) => (
                                     <SelectItem key={fc} value={fc}>
                                         {fc}
@@ -144,11 +145,11 @@ export default function Index({ items, filters, fund_clusters = [] }: Props) {
                         </Select>
 
                         <Select value={status} onValueChange={handleStatusChange}>
-                            <SelectTrigger className="w-full max-w-[180px]">
-                                <SelectValue placeholder="Status" />
+                            <SelectTrigger className={`w-full max-w-[180px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Statuses" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Statuses</SelectItem>
+                                <SelectItem value="all">Filter by Statuses</SelectItem>
                                 <SelectItem value="issued">Issued</SelectItem>
                                 <SelectItem value="unissued">Unissued</SelectItem>
                             </SelectContent>

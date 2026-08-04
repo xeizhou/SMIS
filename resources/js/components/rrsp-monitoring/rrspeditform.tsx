@@ -1,4 +1,5 @@
 import { useForm } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +11,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 interface RrspMonitoring {
     id: string;
@@ -32,6 +40,7 @@ interface Props {
 }
 
 export default function RrspEditForm({ open, onOpenChange, rrsp }: Props) {
+    const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
     const { data, setData, put, processing, errors, reset } = useForm({
         rrspNo: '',
         dateReceived: '',
@@ -81,137 +90,144 @@ return;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-[95vw]" style={{ maxWidth: '1000px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
-                    <DialogTitle>Edit RRSP</DialogTitle>
+                    <DialogTitle>Edit RRSP Record — {rrsp?.id}, {rrsp?.rrspNo}</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div className="space-y-1.5">
-                            <Label htmlFor="edit-rrspNo">RRSP No</Label>
-                            <Input
-                                id="edit-rrspNo"
-                                value={data.rrspNo}
-                                onChange={(e) => setData('rrspNo', e.target.value)}
-                            />
-                            {errors.rrspNo && (
-                                <p className="text-sm text-destructive">{errors.rrspNo}</p>
-                            )}
+                <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                    {/* Section: General Information */}
+                    <div>
+                        <h3 className={sectionTitleClass}>General Information</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="edit-rrspNo">RRSP No</Label>
+                                <Input
+                                    id="edit-rrspNo"
+                                    value={data.rrspNo}
+                                    onChange={(e) => setData('rrspNo', e.target.value)}
+                                />
+                                {errors.rrspNo && (
+                                    <p className="text-sm text-destructive">{errors.rrspNo}</p>
+                                )}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="edit-dateReceived">Date Received</Label>
+                                <Input
+                                    id="edit-dateReceived"
+                                    type="date"
+                                    value={data.dateReceived}
+                                    onChange={(e) => setData('dateReceived', e.target.value)}
+                                />
+                                {errors.dateReceived && (
+                                    <p className="text-sm text-destructive">{errors.dateReceived}</p>
+                                )}
+                            </div>
+                            <div className="space-y-1.5 md:col-span-3">
+                                <Label htmlFor="edit-itemDescription">Item Description</Label>
+                                <Input
+                                    id="edit-itemDescription"
+                                    value={data.itemDescription}
+                                    onChange={(e) => setData('itemDescription', e.target.value)}
+                                />
+                                {errors.itemDescription && (
+                                    <p className="text-sm text-destructive">{errors.itemDescription}</p>
+                                )}
+                            </div>
                         </div>
+                    </div>
 
-                        <div className="space-y-1.5">
-                            <Label htmlFor="edit-dateReceived">Date Received</Label>
-                            <Input
-                                id="edit-dateReceived"
-                                type="date"
-                                value={data.dateReceived}
-                                onChange={(e) =>
-                                    setData('dateReceived', e.target.value)
-                                }
-                            />
-                            {errors.dateReceived && (
-                                <p className="text-sm text-destructive">
-                                    {errors.dateReceived}
-                                </p>
-                            )}
+                    {/* Section: Asset Details */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Asset Details</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="edit-quantity">Quantity</Label>
+                                <Input
+                                    id="edit-quantity"
+                                    type="number"
+                                    min="0"
+                                    value={data.quantity}
+                                    onChange={(e) => setData('quantity', e.target.value)}
+                                />
+                                {errors.quantity && (
+                                    <p className="text-sm text-destructive">{errors.quantity}</p>
+                                )}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="edit-propertyNo">Property No</Label>
+                                <Input
+                                    id="edit-propertyNo"
+                                    value={data.propertyNo}
+                                    onChange={(e) => setData('propertyNo', e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="edit-cost">Cost</Label>
+                                <Input
+                                    id="edit-cost"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={data.cost}
+                                    onChange={(e) => setData('cost', e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="edit-kindOfSemiExpendable">Kind of Semi-Expendable</Label>
+                                <Select
+                                    value={data.kindOfSemiExpendable}
+                                    onValueChange={(value) => setData('kindOfSemiExpendable', value)}
+                                >
+                                    <SelectTrigger id="edit-kindOfSemiExpendable" className="w-full">
+                                        <SelectValue placeholder="Select kind" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Low Value">Low Value</SelectItem>
+                                        <SelectItem value="High Value">High Value</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
+                    </div>
 
-                        <div className="space-y-1.5 sm:col-span-2">
-                            <Label htmlFor="edit-itemDescription">
-                                Item Description
-                            </Label>
-                            <Input
-                                id="edit-itemDescription"
-                                value={data.itemDescription}
-                                onChange={(e) =>
-                                    setData('itemDescription', e.target.value)
-                                }
-                            />
-                            {errors.itemDescription && (
-                                <p className="text-sm text-destructive">
-                                    {errors.itemDescription}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <Label htmlFor="edit-quantity">Quantity</Label>
-                            <Input
-                                id="edit-quantity"
-                                type="number"
-                                min="0"
-                                value={data.quantity}
-                                onChange={(e) => setData('quantity', e.target.value)}
-                            />
-                            {errors.quantity && (
-                                <p className="text-sm text-destructive">
-                                    {errors.quantity}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <Label htmlFor="edit-propertyNo">Property No</Label>
-                            <Input
-                                id="edit-propertyNo"
-                                value={data.propertyNo}
-                                onChange={(e) => setData('propertyNo', e.target.value)}
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <Label htmlFor="edit-endUserName">End User</Label>
-                            <Input
-                                id="edit-endUserName"
-                                value={data.endUserName}
-                                onChange={(e) =>
-                                    setData('endUserName', e.target.value)
-                                }
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <Label htmlFor="edit-area">Area</Label>
-                            <Input
-                                id="edit-area"
-                                value={data.area}
-                                onChange={(e) => setData('area', e.target.value)}
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <Label htmlFor="edit-cost">Cost</Label>
-                            <Input
-                                id="edit-cost"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={data.cost}
-                                onChange={(e) => setData('cost', e.target.value)}
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <Label htmlFor="edit-kindOfSemiExpendable">
-                                Kind of Semi-Expendable
-                            </Label>
-                            <Input
-                                id="edit-kindOfSemiExpendable"
-                                value={data.kindOfSemiExpendable}
-                                onChange={(e) =>
-                                    setData('kindOfSemiExpendable', e.target.value)
-                                }
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <Label htmlFor="edit-status">Status</Label>
-                            <Input
-                                id="edit-status"
-                                value={data.status}
-                                onChange={(e) => setData('status', e.target.value)}
-                            />
+                    {/* Section: Assignment & Status */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Assignment & Status</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="edit-endUserName">End User</Label>
+                                <Input
+                                    id="edit-endUserName"
+                                    value={data.endUserName}
+                                    onChange={(e) => setData('endUserName', e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="edit-area">Area</Label>
+                                <Input
+                                    id="edit-area"
+                                    value={data.area}
+                                    onChange={(e) => setData('area', e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="edit-status">Status</Label>
+                                <Select
+                                    value={data.status}
+                                    onValueChange={(value) => setData('status', value)}
+                                >
+                                    <SelectTrigger id="edit-status" className="w-full">
+                                        <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Serviceable">Serviceable</SelectItem>
+                                        <SelectItem value="Unserviceable">Unserviceable</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
 
@@ -232,6 +248,8 @@ return;
                         </Button>
                     </DialogFooter>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

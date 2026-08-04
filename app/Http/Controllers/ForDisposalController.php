@@ -15,14 +15,21 @@ class ForDisposalController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $condition_of_ppe = $request->input('condition_of_ppe');
 
         $query = ForDisposalMonitoring::query();
 
         if ($search) {
-            $query->where('transaction_no', 'like', "%{$search}%")
+            $query->where(function ($q) use ($search) {
+                $q->where('transaction_no', 'like', "%{$search}%")
                   ->orWhere('pre_repair_no', 'like', "%{$search}%")
                   ->orWhere('property_no', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($condition_of_ppe) {
+            $query->where('condition_of_ppe', $condition_of_ppe);
         }
 
         $data = $query->latest()->paginate(10)->withQueryString();
@@ -31,7 +38,7 @@ class ForDisposalController extends Controller
 
         return Inertia::render('for-disposal-monitoring/index', [
             'data' => $data,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'condition_of_ppe']),
             'preRepairs' => $preRepairs,
         ]);
     }

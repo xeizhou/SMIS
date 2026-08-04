@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -118,7 +119,7 @@ export default function SupplierForm({
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>
-                        New Supplier
+                        Add Supplier Record
                     </DialogTitle>
                 </DialogHeader>
 

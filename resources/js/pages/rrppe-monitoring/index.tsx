@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2, Eye } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import RrppeAddForm from '@/components/rrppe-monitoring/rrppe-add-form';
@@ -160,11 +161,11 @@ export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, fi
                                 replace: true,
                             });
                         }}>
-                            <SelectTrigger className="w-[200px] bg-white dark:bg-gray-900">
-                                <SelectValue placeholder="All Statuses" />
+                            <SelectTrigger className={`w-[200px] bg-white dark:bg-gray-900 ${statusFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Statuses" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Statuses</SelectItem>
+                                <SelectItem value="all">Filter by Statuses</SelectItem>
                                 <SelectItem value="UNSERVICEABLE">UNSERVICEABLE</SelectItem>
                                 <SelectItem value="SERVICEABLE">SERVICEABLE</SelectItem>
                             </SelectContent>
@@ -192,15 +193,15 @@ export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, fi
                         <thead className="bg-[#3e0b0e] text-white/90">
                             <tr>
                                 <th className="px-4 py-3 font-medium">RRPPE No.</th>
-                                <th className="px-4 py-3 font-medium">Date Received</th>
+                                
                                 <th className="px-4 py-3 font-medium">Item Description</th>
-                                <th className="px-4 py-3 font-medium">Qty.</th>
-                                <th className="px-4 py-3 font-medium">Property No.</th>
+                                
+                                
                                 <th className="px-4 py-3 font-medium">End User</th>
-                                <th className="px-4 py-3 font-medium">Cost</th>
+                                
                                 <th className="px-4 py-3 font-medium">Status</th>
-                                <th className="px-4 py-3 font-medium">Area</th>
-                                <th className="px-4 py-3 font-medium">Remarks</th>
+                                
+                                
                                 <th className="px-4 py-3 font-medium text-center">Actions</th>
                             </tr>
                         </thead>
@@ -216,19 +217,15 @@ export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, fi
                                         }`}
                                     >
                                         <td className="px-4 py-3">{item.rrppe_no}</td>
-                                        <td className="px-4 py-3">{item.date_received}</td>
                                         <td className="px-4 py-3">{item.item_description}</td>
-                                        <td className="px-4 py-3">{item.quantity}</td>
-                                        <td className="px-4 py-3">{item.property_no}</td>
+                                        
                                         <td className="px-4 py-3">{item.end_user_name}</td>
-                                        <td className="px-4 py-3">{formatCurrency(item.cost)}</td>
+                                        
                                         <td className="px-4 py-3">
                                             <span className="font-medium text-gray-700 dark:text-gray-300">
                                                 {item.status}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">{item.area}</td>
-                                        <td className="px-4 py-3">{item.remarks}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">
                                                 <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
@@ -246,7 +243,7 @@ export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, fi
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={11} className="px-6 py-16 text-center">
+                                    <td colSpan={5} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No RRPPE added yet.
                                         </p>

@@ -1,6 +1,8 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Dialog,
     DialogContent,
@@ -31,6 +33,7 @@ interface FieldProps {
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 function Field({
     label,
@@ -157,115 +160,134 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+            <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-[95vw]" style={{ maxWidth: '1000px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
-                    <DialogTitle>Edit ITR/PTR Record</DialogTitle>
+                    <DialogTitle>Edit ITR/PTR Record — {item?.id}, {item?.transaction_no}</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4 space-y-6">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <Field
-                            label="Transaction No."
-                            name="transaction_no"
-                            value={data.transaction_no}
-                            onChange={handleChange}
-                            error={errors.transaction_no}
-                            required
-                        />
-                        <Field
-                            label="Date Release"
-                            name="date_release"
-                            type="date"
-                            value={data.date_release}
-                            onChange={handleChange}
-                            error={errors.date_release}
-                            required
-                        />
-
-                        <TextareaField
-                            label="Description"
-                            name="description"
-                            value={data.description}
-                            onChange={handleChange}
-                            error={errors.description}
-                            required
-                        />
-
-                        <Field
-                            label="Property No."
-                            name="property_no"
-                            value={data.property_no}
-                            onChange={handleChange}
-                            error={errors.property_no}
-                            required
-                        />
-                        <Field
-                            label="Amount"
-                            name="amount"
-                            type="number"
-                            value={data.amount}
-                            onChange={handleChange}
-                            error={errors.amount}
-                            required
-                        />
-                        <Field
-                            label="Claimed By"
-                            name="claimed_by"
-                            value={data.claimed_by}
-                            onChange={handleChange}
-                            error={errors.claimed_by}
-                            required
-                        />
-                        <div>
-                            <label className={labelClass}>
-                                Condition of PPE
-                                <span className="text-red-500"> *</span>
-                            </label>
-                            <select
-                                name="condition_of_ppe"
-                                value={data.condition_of_ppe}
+                <form onSubmit={handleSubmit} className="mt-4 space-y-8">
+                    {/* Section: General Information */}
+                    <div>
+                        <h3 className={sectionTitleClass}>General Information</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <Field
+                                label="Transaction No."
+                                name="transaction_no"
+                                value={data.transaction_no}
                                 onChange={handleChange}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <option value="">Select Condition</option>
-                                <option value="Serviceable">Serviceable</option>
-                                <option value="Unserviceable">Unserviceable</option>
-                            </select>
-                            {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
+                                error={errors.transaction_no}
+                                required
+                            />
+                            <Field
+                                label="Property No."
+                                name="property_no"
+                                value={data.property_no}
+                                onChange={handleChange}
+                                error={errors.property_no}
+                                required
+                            />
+                            <Field
+                                label="Date Release"
+                                name="date_release"
+                                type="date"
+                                value={data.date_release}
+                                onChange={handleChange}
+                                error={errors.date_release}
+                                required
+                            />
+                            <Field
+                                label="Date Received"
+                                name="date_received"
+                                type="date"
+                                value={data.date_received}
+                                onChange={handleChange}
+                                error={errors.date_received}
+                                required
+                            />
+                            <div className="md:col-span-2">
+                                <TextareaField
+                                    label="Description"
+                                    name="description"
+                                    value={data.description}
+                                    onChange={handleChange}
+                                    error={errors.description}
+                                    required
+                                />
+                            </div>
                         </div>
-                        <Field
-                            label="From Accountable Officer"
-                            name="from_accountable_officer"
-                            value={data.from_accountable_officer}
-                            onChange={handleChange}
-                            error={errors.from_accountable_officer}
-                            required
-                        />
-                        <Field
-                            label="To Accountable Officer"
-                            name="to_accountable_officer"
-                            value={data.to_accountable_officer}
-                            onChange={handleChange}
-                            error={errors.to_accountable_officer}
-                            required
-                        />
-                        <Field
-                            label="Location"
-                            name="location"
-                            value={data.location}
-                            onChange={handleChange}
-                            error={errors.location}
-                            required
-                        />
-                        <Field
-                            label="Date Received"
-                            name="date_received"
-                            type="date"
-                            value={data.date_received}
-                            onChange={handleChange}
-                            error={errors.date_received}
-                            required
-                        />
+                    </div>
+
+                    {/* Section: Assessment & Location */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Assessment & Location</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <Field
+                                label="Location"
+                                name="location"
+                                value={data.location}
+                                onChange={handleChange}
+                                error={errors.location}
+                                required
+                            />
+                            <Field
+                                label="Amount"
+                                name="amount"
+                                type="number"
+                                value={data.amount}
+                                onChange={handleChange}
+                                error={errors.amount}
+                                required
+                            />
+                            <div>
+                                <label className={labelClass}>
+                                    Condition of PPE
+                                    <span className="text-red-500"> *</span>
+                                </label>
+                                <Select value={data.condition_of_ppe} onValueChange={(val) => setData({ ...data, condition_of_ppe: val })}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select Condition" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Serviceable">Serviceable</SelectItem>
+                                    <SelectItem value="Unserviceable">Unserviceable</SelectItem>
+                                </SelectContent>
+                            </Select>
+                                {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section: Accountability */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Accountability</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <Field
+                                label="Claimed By"
+                                name="claimed_by"
+                                value={data.claimed_by}
+                                onChange={handleChange}
+                                error={errors.claimed_by}
+                                required
+                            />
+                            <Field
+                                label="From Accountable Officer"
+                                name="from_accountable_officer"
+                                value={data.from_accountable_officer}
+                                onChange={handleChange}
+                                error={errors.from_accountable_officer}
+                                required
+                            />
+                            <Field
+                                label="To Accountable Officer"
+                                name="to_accountable_officer"
+                                value={data.to_accountable_officer}
+                                onChange={handleChange}
+                                error={errors.to_accountable_officer}
+                                required
+                            />
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-3 pt-2">
@@ -286,6 +308,8 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                         </Button>
                     </div>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );
