@@ -214,11 +214,11 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
 
                                 <SelectContent>
                                     <SelectItem value="Serviceable">
-                                        Serviceable
+                                        SERVICEABLE
                                     </SelectItem>
                                     <SelectItem value="Unserviceable">
-                                        Unserviceable
-                                    </SelectItem>
+                                        UNSERVICEABLE
+                                    </SelectItem>   
                                 </SelectContent>
                             </Select>
                         </div>

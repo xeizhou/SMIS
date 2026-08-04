@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -9,6 +10,16 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 interface Office {
     office_code: string;
@@ -34,9 +45,122 @@ const emptyForm: Record<string, string> = {
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
 
+// Custom Searchable Dropdown with refresh support
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+    onRefresh,
+    isRefreshing = false,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+
+    const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-1">
+                <label className={labelClass}>
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
+
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        {selectedLabel || placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+
+                <PopoverContent 
+                    className="p-0" 
+                    style={{ width: 'var(--radix-popover-trigger-width)' }}
+                >
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {opt.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
 export default function BonaVidaAddForm({ open, onOpenChange, offices }: Props) {
     const [data, setData] = useState<Record<string, string>>(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [refreshingField, setRefreshingField] = useState<string | null>(null);
+
+    const handleRefreshData = (field: string) => {
+        setRefreshingField(field);
+        router.reload({
+            only: ['offices'],
+            onFinish: () => setRefreshingField(null),
+        });
+    };
 
     useEffect(() => {
         if (!open) {
@@ -107,26 +231,20 @@ export default function BonaVidaAddForm({ open, onOpenChange, offices }: Props) 
                             )}
                         </div>
 
-                        <div>
-                            <label className={labelClass} htmlFor="office_code">
-                                Office <span className="text-red-500">*</span>
-                            </label>
-                            <Select value={data.office_code} onValueChange={(value) => handleSelectChange(value, 'office_code')}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select office" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {offices.map((office) => (
-                                        <SelectItem key={office.office_code} value={office.office_code}>
-                                            {office.office_name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {errors.office_code && (
-                                <p className="mt-1 text-xs text-red-500">{errors.office_code}</p>
-                            )}
-                        </div>
+                        <SearchableSelect
+                            label="Office"
+                            value={data.office_code}
+                            onChange={(val) => handleSelectChange(val, 'office_code')}
+                            error={errors.office_code}
+                            required
+                            placeholder="Search office..."
+                            options={offices.map((office) => ({
+                                value: office.office_code,
+                                label: office.office_name,
+                            }))}
+                            onRefresh={() => handleRefreshData('offices')}
+                            isRefreshing={refreshingField === 'offices'}
+                        />
 
                         <div>
                             <label className={labelClass} htmlFor="qty">

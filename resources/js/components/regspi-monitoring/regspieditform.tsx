@@ -1,4 +1,4 @@
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 interface RrspOption {
     rrsp_no: string;
@@ -64,6 +74,8 @@ interface FieldProps {
     required?: boolean;
     placeholder?: string;
     type?: string;
+    readOnly?: boolean;
+    disabled?: boolean;
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
@@ -77,6 +89,8 @@ function Field({
     required = false,
     placeholder = '',
     type = 'text',
+    readOnly = false,
+    disabled = false,
 }: FieldProps) {
     return (
         <div>
@@ -90,6 +104,8 @@ function Field({
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                readOnly={readOnly}
+                disabled={disabled}
             />
             {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </div>
@@ -155,6 +171,110 @@ function SelectField({
     );
 }
 
+// Custom Searchable Dropdown with refresh support
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+    onRefresh,
+    isRefreshing = false,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+
+    const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
+
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        {selectedLabel || placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+
+                <PopoverContent 
+                    className="p-0" 
+                    style={{ width: 'var(--radix-popover-trigger-width)' }}
+                >
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {opt.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
 const emptyForm = {
     month_year: '',
     ics_no: '',
@@ -177,8 +297,8 @@ const emptyForm = {
 
 function toFormData(regspi: RegSPIRecord | null) {
     if (!regspi) {
-return emptyForm;
-}
+        return emptyForm;
+    }
 
     return {
         month_year: regspi.month_year ?? '',
@@ -259,8 +379,8 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps, fund
         e.preventDefault();
 
         if (!regspi) {
-return;
-}
+            return;
+        }
 
         setProcessing(true);
 
@@ -309,16 +429,19 @@ return;
                             placeholder="ICS-001"
                         />
 
-                        <SelectField
+                        {/* Searchable Select applied here */}
+                        <SearchableSelect
                             label="RRSP No."
                             value={data.rrsp_no}
                             onChange={handleSelectChange('rrsp_no')}
                             error={errors.rrsp_no}
-                            placeholder="Select RRSP"
+                            placeholder="Search RRSP..."
                             options={rrsps.map((rrsp) => ({
                                 value: rrsp.rrsp_no,
                                 label: rrsp.rrsp_no,
                             }))}
+                            onRefresh={() => handleRefreshData('rrsps')}
+                            isRefreshing={refreshingField === 'rrsps'}
                         />
 
                         <SelectField

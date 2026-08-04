@@ -476,13 +476,13 @@ export default function TransactionAddForm({
                                 }))}
                             />
 
-                            <SelectField
+                            <SearchableSelect
                                 label="Office"
                                 value={data.office_code}
                                 onChange={handleSelectChange('office_code')}
                                 error={errors.office_code}
                                 required
-                                placeholder="-- Select Office --"
+                                placeholder="Search office..."
                                 options={offices.map((office) => ({
                                     value: office.office_code,
                                     label: `${office.office_code} - ${office.office_name}`,
