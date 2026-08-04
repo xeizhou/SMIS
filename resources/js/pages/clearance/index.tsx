@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import ClearanceAddForm from '@/components/clearance/clearanceaddform';
@@ -134,13 +135,12 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                     </Button>
                 </form>
 
-                <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <table className="w-full text-sm">
+                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
                         <thead className="border-b" style={{ backgroundColor: '#370001' }}>
                             <tr>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Name</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Office</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Claim Date</th>
+                                
                                 <th className="px-4 py-3 text-left font-semibold text-white">Status</th>
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
@@ -148,7 +148,7 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                         <tbody>
                             {records.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-16 text-center">
+                                    <td colSpan={4} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">No clearance records added yet.</p>
                                         <p className="mt-1 text-sm text-muted-foreground">Click <strong>"Add Clearance"</strong> to create your first record.</p>
                                     </td>
@@ -162,7 +162,6 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                                                 ? record.office
                                                 : record.office?.office_name ?? record.office_data?.office_name ?? '—'}
                                         </td>
-                                        <td className="px-4 py-3">{new Date(record.claim_date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
                                         <td className="px-4 py-3">{record.status}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">
@@ -178,8 +177,7 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                                 ))
                             )}
                         </tbody>
-                    </table>
-                </div>
+                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
 
                 {records.data.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-1 p-4">

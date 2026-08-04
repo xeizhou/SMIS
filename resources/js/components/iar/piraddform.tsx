@@ -1,5 +1,6 @@
 import { RefreshCw } from 'lucide-react';
 import { useState } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
 import {
     Dialog,
@@ -303,11 +304,13 @@ export default function PirAddForm({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-[95vw] max-h-[90vh] overflow-y-auto"
+                className="w-[95vw] max-h-[90vh] overflow-hidden p-0"
                 style={{ maxWidth: '1200px' }}
             >
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
-                    <DialogTitle>New PIR Record</DialogTitle>
+                    <DialogTitle>Add PIR Record</DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-8">
@@ -772,6 +775,8 @@ export default function PirAddForm({
                         </Button>
                     </div>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

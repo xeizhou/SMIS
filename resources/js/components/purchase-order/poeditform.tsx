@@ -108,6 +108,7 @@ interface FieldProps {
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 function getExtension(filename: string) {
     return filename.split(".").pop()?.toLowerCase() ?? "";
@@ -613,17 +614,20 @@ export default function PurchaseOrderEditForm({
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent
-                    className="w-[95vw] max-h-[90vh] overflow-y-auto"
+                    className="w-[95vw] max-h-[90vh] overflow-hidden p-0"
                     style={{ maxWidth: '1200px' }}
                 >
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                     <DialogHeader>
-                        <DialogTitle>Edit Purchase Order</DialogTitle>
+                        <DialogTitle>Edit Purchase Order Record — {purchaseOrder?.po_number}</DialogTitle>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="mt-4">
-                        <div className="grid grid-cols-2 gap-10 w-full">
-                            {/* Left column */}
-                            <div className="space-y-5">
+                    <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                        {/* Section: Purchase Order Details */}
+                        <div>
+                            <h3 className={sectionTitleClass}>Purchase Order Details</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Field
                                     label="Purchase Order No."
                                     name="po_number"
@@ -632,88 +636,71 @@ export default function PurchaseOrderEditForm({
                                     error={errors.po_number}
                                     required
                                 />
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Field
-                                        label="PO Date"
-                                        name="po_date"
-                                        type="date"
-                                        value={data.po_date}
-                                        onChange={handleChange}
-                                        error={errors.po_date}
-                                    />
-
-                                    <Field
-                                        label="PO Received Date"
-                                        name="po_received_date"
-                                        type="date"
-                                        value={data.po_received_date}
-                                        onChange={handleChange}
-                                        error={errors.po_received_date}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Field
-                                        label="Due Date"
-                                        name="due_date"
-                                        type="date"
-                                        value={data.due_date}
-                                        onChange={handleChange}
-                                        error={errors.due_date}
-                                    />
-
-                                    <Field
-                                        label="PR No."
-                                        name="pr_number"
-                                        value={data.pr_number}
-                                        onChange={handleChange}
-                                        error={errors.pr_number}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Field
-                                        label="PR Date"
-                                        name="pr_date"
-                                        type="date"
-                                        value={data.pr_date}
-                                        onChange={handleChange}
-                                        error={errors.pr_date}
-                                    />
-
-                                    <Field
-                                        label="Philgeps Reference No."
-                                        name="philgeps_reference_no"
-                                        value={data.philgeps_reference_no}
-                                        onChange={handleChange}
-                                        error={errors.philgeps_reference_no}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <SelectField
-                                        label="Mode of Procurement"
-                                        value={data.mode_of_procurement}
-                                        onChange={handleSelectChange('mode_of_procurement')}
-                                        error={errors.mode_of_procurement}
-                                        placeholder="--Select Mode of Procurement--"
-                                        options={MODE_OF_PROCUREMENT_OPTIONS}
-                                    />
-
-                                    <Field
-                                        label="Inclusive Date"
-                                        name="inclusive_date"
-                                        value={data.inclusive_date}
-                                        onChange={handleChange}
-                                        error={errors.inclusive_date}
-                                        placeholder="e.g. Jan 1 - Jan 15, 2026"
-                                    />
-                                </div>
-
-                                <div>
+                                <SelectField
+                                    label="Mode of Procurement"
+                                    value={data.mode_of_procurement}
+                                    onChange={handleSelectChange('mode_of_procurement')}
+                                    error={errors.mode_of_procurement}
+                                    placeholder="--Select Mode of Procurement--"
+                                    options={MODE_OF_PROCUREMENT_OPTIONS}
+                                />
+                                <Field
+                                    label="PO Date"
+                                    name="po_date"
+                                    type="date"
+                                    value={data.po_date}
+                                    onChange={handleChange}
+                                    error={errors.po_date}
+                                />
+                                <Field
+                                    label="PO Received Date"
+                                    name="po_received_date"
+                                    type="date"
+                                    value={data.po_received_date}
+                                    onChange={handleChange}
+                                    error={errors.po_received_date}
+                                />
+                                <Field
+                                    label="Due Date"
+                                    name="due_date"
+                                    type="date"
+                                    value={data.due_date}
+                                    onChange={handleChange}
+                                    error={errors.due_date}
+                                />
+                                <Field
+                                    label="Inclusive Date"
+                                    name="inclusive_date"
+                                    value={data.inclusive_date}
+                                    onChange={handleChange}
+                                    error={errors.inclusive_date}
+                                    placeholder="e.g. Jan 1 - Jan 15, 2026"
+                                />
+                                <Field
+                                    label="PR No."
+                                    name="pr_number"
+                                    value={data.pr_number}
+                                    onChange={handleChange}
+                                    error={errors.pr_number}
+                                />
+                                <Field
+                                    label="PR Date"
+                                    name="pr_date"
+                                    type="date"
+                                    value={data.pr_date}
+                                    onChange={handleChange}
+                                    error={errors.pr_date}
+                                />
+                                <Field
+                                    label="Philgeps Reference No."
+                                    name="philgeps_reference_no"
+                                    value={data.philgeps_reference_no}
+                                    onChange={handleChange}
+                                    error={errors.philgeps_reference_no}
+                                />
+                                
+                                <div className="md:col-span-2">
                                     <label className={labelClass}>Item Description</label>
-
                                     <textarea
                                         name="item_description"
                                         value={data.item_description}
@@ -723,319 +710,240 @@ export default function PurchaseOrderEditForm({
                                         rows={4}
                                         className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                                     />
-
                                     {errors.item_description && (
                                         <p className="mt-1 text-xs text-red-500">{errors.item_description}</p>
                                     )}
                                 </div>
-
-                                {/* Attachments */}
-                                <div>
-                                    <label className={labelClass}>Attachments</label>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
-                                    >
-                                        <Paperclip className="size-4" />
-                                        Click to select files (PDF, JPG, PNG)
-                                    </button>
-
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        multiple
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        className="hidden"
-                                        onChange={handleFileSelect}
-                                    />
-
-                                    {/* Existing Attachments */}
-                                    {existingAttachments.length > 0 && (
-                                        <div className="mt-3">
-                                            <p className="text-xs font-medium text-muted-foreground mb-2">Existing Files</p>
-                                                <ScrollArea className="max-h-[180px]">
-                                                    <div className="space-y-1.5">
-                                                        {existingAttachments.map((att) => {
-                                                            const type = getFileType(att.original_name);
-
-                                                            return (
-                                                                <div
-                                                                    key={att.id}
-                                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
-                                                                >
-                                                                    <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
-                                                                        <FileIcon type={type} />
-                                                                    </div>
-
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <p className="truncate text-sm">
-                                                                            {att.original_name}
-                                                                        </p>
-
-                                                                        <p className="text-[11px] text-muted-foreground">
-                                                                            {formatBytes(att.file_size)}
-                                                                        </p>
-                                                                    </div>
-
-                                                                    <Badge
-                                                                        variant="outline"
-                                                                        className="text-[10px] h-5"
-                                                                    >
-                                                                        {getExtension(att.original_name).toUpperCase()}
-                                                                    </Badge>
-
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-7 w-7"
-                                                                        asChild
-                                                                    >
-                                                                        <a
-                                                                            href={`/purchase-orders/attachments/${att.id}`}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                        >
-                                                                            <Eye className="h-3.5 w-3.5" />
-                                                                        </a>
-                                                                    </Button>
-
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-7 w-7 text-red-500 hover:text-red-600"
-                                                                        onClick={() => removeExistingAttachment(att.id)}
-                                                                    >
-                                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                                    </Button>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </ScrollArea>
-                                        </div>
-                                    )}
-
-                                    {/* New Files */}
-                                    {newFiles.length > 0 && (
-                                        <div className="mt-3">
-                                            <p className="text-xs font-medium text-muted-foreground mb-2">New Files</p>
-                                                <ScrollArea className="max-h-[180px]">
-                                                    <div className="space-y-1.5">
-                                                        {newFiles.map(({ id, file }) => {
-                                                            const type = getFileType(file.name);
-
-                                                            return (
-                                                                <div
-                                                                    key={id}
-                                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
-                                                                >
-                                                                    <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
-                                                                        {type === "image" ? (
-                                                                            <img
-                                                                                src={URL.createObjectURL(file)}
-                                                                                alt={file.name}
-                                                                                className="h-full w-full object-cover"
-                                                                            />
-                                                                        ) : (
-                                                                            <FileIcon type={type} />
-                                                                        )}
-                                                                    </div>
-
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <p className="truncate text-sm">
-                                                                            {file.name}
-                                                                        </p>
-
-                                                                        <p className="text-[11px] text-muted-foreground">
-                                                                            {formatBytes(file.size)}
-                                                                        </p>
-                                                                    </div>
-
-                                                                    <Badge
-                                                                        variant="outline"
-                                                                        className="text-[10px] h-5"
-                                                                    >
-                                                                        {getExtension(file.name).toUpperCase()}
-                                                                    </Badge>
-
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-7 w-7 text-red-500 hover:text-red-600"
-                                                                        onClick={() => removeNewFile(id)}
-                                                                    >
-                                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                                    </Button>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </ScrollArea>
-                                        </div>
-                                    )}
-                                </div>
                             </div>
-
-                            {/* Right column */}
-                            <div className="space-y-5">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Field
-                                        label="Total Amount ABC"
-                                        name="total_amount_abc"
-                                        type="number"
-                                        value={data.total_amount_abc as string}
-                                        onChange={handleChange}
-                                        error={errors.total_amount_abc}
-                                    />
-
-                                    <Field
-                                        label="Total Amount PO"
-                                        name="total_amount_po"
-                                        type="number"
-                                        value={data.total_amount_po as string}
-                                        onChange={handleChange}
-                                        error={errors.total_amount_po}
+                        </div>
+                        {/* Section: Financial Details */}
+                        <div>
+                            <h3 className={sectionTitleClass}>Financial Details</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <Field
+                                    label="Total Amount ABC"
+                                    name="total_amount_abc"
+                                    type="number"
+                                    value={data.total_amount_abc as string}
+                                    onChange={handleChange}
+                                    error={errors.total_amount_abc}
+                                />
+                                <Field
+                                    label="Total Amount PO"
+                                    name="total_amount_po"
+                                    type="number"
+                                    value={data.total_amount_po as string}
+                                    onChange={handleChange}
+                                    error={errors.total_amount_po}
+                                />
+                                <div>
+                                    <label className={labelClass}>Total Amount Difference</label>
+                                    <Input
+                                        value={diff.toFixed(2)}
+                                        disabled
+                                        className="bg-muted text-muted-foreground"
                                     />
                                 </div>
+                                <SearchableSelect
+                                    label="Fund Cluster"
+                                    value={data.fund_cluster_id}
+                                    onChange={handleSelectChange('fund_cluster_id')}
+                                    error={errors.fund_cluster_id}
+                                    placeholder="Select"
+                                    options={fundClusters.map((fc) => ({
+                                        value: fc.fund_cluster_id,
+                                        label: fc.fund_cluster_id,
+                                    }))}
+                                    onRefresh={() => handleRefreshData('fund_cluster')}
+                                    isRefreshing={refreshingField === 'fund_cluster'}
+                                />
+                                <Field
+                                    label="ORS/BUR No."
+                                    name="ors_burs_no"
+                                    value={data.ors_burs_no}
+                                    onChange={handleChange}
+                                    error={errors.ors_burs_no}
+                                />
+                                <Field
+                                    label="ORS/BURS Date"
+                                    name="ors_burs_date"
+                                    type="date"
+                                    value={data.ors_burs_date}
+                                    onChange={handleChange}
+                                    error={errors.ors_burs_date}
+                                />
+                                <div>
+                                    <label className={labelClass}>Responsibility Center</label>
+                                    <Input
+                                        value={responsibilityCenter}
+                                        readOnly
+                                        className="bg-muted text-muted-foreground"
+                                        placeholder="Fund Cluster + End User"
+                                    />
+                                    {errors.responsibility_center && (
+                                        <p className="mt-1 text-xs text-red-500">{errors.responsibility_center}</p>
+                                    )}
+                                </div>
+                                <Field
+                                    label="UACS Object Code"
+                                    name="uacs_object_code"
+                                    value={data.uacs_object_code}
+                                    onChange={handleChange}
+                                    error={errors.uacs_object_code}
+                                />
+                            </div>
+                        </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className={labelClass}>
-                                            Total Amount Difference
-                                        </label>
+                        {/* Section: Routing & Processing */}
+                        <div>
+                            <h3 className={sectionTitleClass}>Routing & Processing</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <SearchableSelect
+                                    label="Supplier"
+                                    value={data.supplier_id as string}
+                                    onChange={handleSelectChange('supplier_id')}
+                                    error={errors.supplier_id}
+                                    placeholder="Search Supplier..."
+                                    options={suppliers.map((s) => ({
+                                        value: String(s.supplier_id),
+                                        label: s.supplier_name,
+                                    }))}
+                                    onRefresh={() => handleRefreshData('supplier')}
+                                    isRefreshing={refreshingField === 'supplier'}
+                                />
+                                <SearchableSelect
+                                    label="End User"
+                                    value={data.end_user}
+                                    onChange={handleSelectChange('end_user')}
+                                    error={errors.end_user}
+                                    placeholder="Search End User..."
+                                    options={offices.map((o) => ({
+                                        value: o.office_code,
+                                        label: o.office_code,
+                                    }))}
+                                    onRefresh={() => handleRefreshData('end_user')}
+                                    isRefreshing={refreshingField === 'end_user'}
+                                />
+                                <Field
+                                    label="Date forwarded to SMU"
+                                    name="date_forwarded_to_smu"
+                                    type="date"
+                                    value={data.date_forwarded_to_smu}
+                                    onChange={handleChange}
+                                    error={errors.date_forwarded_to_smu}
+                                />
+                                <Field
+                                    label="COA Processed Date"
+                                    name="coa_processed_date"
+                                    type="date"
+                                    value={data.coa_processed_date}
+                                    onChange={handleChange}
+                                    error={errors.coa_processed_date}
+                                />
+                                <Field
+                                    label="Date Forwarded to Frontdesk"
+                                    name="date_forwarded_frontdesk"
+                                    type="date"
+                                    value={data.date_forwarded_frontdesk}
+                                    onChange={handleChange}
+                                    error={errors.date_forwarded_frontdesk}
+                                />
+                            </div>
+                        </div>
 
-                                        <Input
-                                            value={diff.toFixed(2)}
-                                            disabled
-                                            className="bg-muted text-muted-foreground"
-                                        />
+                        {/* Section: Attachments */}
+                        <div>
+                            <h3 className={sectionTitleClass}>Attachments</h3>
+                            <div>
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
+                                >
+                                    <Paperclip className="size-4" />
+                                    Click to select files (PDF, JPG, PNG)
+                                </button>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    multiple
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    className="hidden"
+                                    onChange={handleFileSelect}
+                                />
+
+                                {/* Existing Attachments */}
+                                {existingAttachments.length > 0 && (
+                                    <div className="mt-3">
+                                        <p className="text-xs font-medium text-muted-foreground mb-2">Existing Files</p>
+                                        <ScrollArea className="max-h-[180px]">
+                                            <div className="space-y-1.5">
+                                                {existingAttachments.map((att) => {
+                                                    const type = getFileType(att.original_name);
+                                                    return (
+                                                        <div
+                                                            key={att.id}
+                                                            className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
+                                                        >
+                                                            <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                                <FileIcon type={type} />
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="truncate text-sm">{att.original_name}</p>
+                                                                <p className="text-[11px] text-muted-foreground">{formatBytes(att.file_size)}</p>
+                                                            </div>
+                                                            <Badge variant="outline" className="text-[10px] h-5">
+                                                                {getExtension(att.original_name).toUpperCase()}
+                                                            </Badge>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                                                                <a
+                                                                    href={`/purchase-orders/attachments/${att.id}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                >
+                                                                    <Eye className="h-3.5 w-3.5" />
+                                                                </a>
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 text-red-500 hover:text-red-600"
+                                                                onClick={() => removeExistingAttachment(att.id)}
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </ScrollArea>
                                     </div>
+                                )}
 
-                                    <SelectField
-                                        label="Fund Cluster"
-                                        value={data.fund_cluster_id}
-                                        onChange={handleSelectChange('fund_cluster_id')}
-                                        error={errors.fund_cluster_id}
-                                        placeholder="Select"
-                                        options={fundClusters.map((fc) => ({
-                                            value: fc.fund_cluster_id,
-                                            label: fc.fund_cluster_id,
-                                        }))}
-                                        onRefresh={() => handleRefreshData('fund_cluster')}
-                                        isRefreshing={refreshingField === 'fund_cluster'}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Field
-                                        label="ORS/BUR No."
-                                        name="ors_burs_no"
-                                        value={data.ors_burs_no}
-                                        onChange={handleChange}
-                                        error={errors.ors_burs_no}
-                                    />
-
-                                    <Field
-                                        label="ORS/BURS Date"
-                                        name="ors_burs_date"
-                                        type="date"
-                                        value={data.ors_burs_date}
-                                        onChange={handleChange}
-                                        error={errors.ors_burs_date}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className={labelClass}>
-                                            Responsibility Center
-                                        </label>
-
-                                        <Input
-                                            value={responsibilityCenter}
-                                            readOnly
-                                            className="bg-muted text-muted-foreground"
-                                            placeholder="Fund Cluster + End User"
-                                        />
-
-                                        {errors.responsibility_center && (
-                                            <p className="mt-1 text-xs text-red-500">
-                                                {errors.responsibility_center}
-                                            </p>
-                                        )}
+                                {/* New Files */}
+                                {newFiles.length > 0 && (
+                                    <div className="mt-3">
+                                        <p className="text-xs font-medium text-muted-foreground mb-2">New Files</p>
+                                        <ul className="divide-y divide-border rounded-md border border-border">
+                                            {newFiles.map(({ id, file }) => (
+                                                <li key={id} className="flex items-center justify-between gap-3 px-3 py-2">
+                                                    <span className="min-w-0 truncate text-sm">{file.name}</span>
+                                                    <span className="shrink-0 text-xs text-muted-foreground">
+                                                        {formatBytes(file.size)}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeNewFile(id)}
+                                                        className="shrink-0 text-red-600 hover:text-red-800"
+                                                        title="Remove"
+                                                    >
+                                                        <X className="size-4" />
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
                                     </div>
-
-                                    <Field
-                                        label="UACS Object Code"
-                                        name="uacs_object_code"
-                                        value={data.uacs_object_code}
-                                        onChange={handleChange}
-                                        error={errors.uacs_object_code}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <SearchableSelect
-                                        label="Supplier"
-                                        value={data.supplier_id as string}
-                                        onChange={handleSelectChange('supplier_id')}
-                                        error={errors.supplier_id}
-                                        placeholder="Search Supplier..."
-                                        options={suppliers.map((s) => ({
-                                            value: String(s.supplier_id),
-                                            label: s.supplier_name,
-                                        }))}
-                                        onRefresh={() => handleRefreshData('supplier')}
-                                        isRefreshing={refreshingField === 'supplier'}
-                                    />
-
-                                    <SearchableSelect
-                                        label="End User"
-                                        value={data.end_user}
-                                        onChange={handleSelectChange('end_user')}
-                                        error={errors.end_user}
-                                        placeholder="Search End User..."
-                                        options={offices.map((o) => ({
-                                            value: o.office_code,
-                                            label: o.office_code,
-                                        }))}
-                                        onRefresh={() => handleRefreshData('end_user')}
-                                        isRefreshing={refreshingField === 'end_user'}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Field
-                                        label="Date forwarded to SMU"
-                                        name="date_forwarded_to_smu"
-                                        type="date"
-                                        value={data.date_forwarded_to_smu}
-                                        onChange={handleChange}
-                                        error={errors.date_forwarded_to_smu}
-                                    />
-
-                                    <Field
-                                        label="COA Processed Date"
-                                        name="coa_processed_date"
-                                        type="date"
-                                        value={data.coa_processed_date}
-                                        onChange={handleChange}
-                                        error={errors.coa_processed_date}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Field
-                                        label="Date Forwarded to Frontdesk"
-                                        name="date_forwarded_frontdesk"
-                                        type="date"
-                                        value={data.date_forwarded_frontdesk}
-                                        onChange={handleChange}
-                                        error={errors.date_forwarded_frontdesk}
-                                    />
-                                </div>
+                                )}
                             </div>
                         </div>
 
@@ -1057,7 +965,9 @@ export default function PurchaseOrderEditForm({
                             </Button>
                         </div>
                     </form>
-                </DialogContent>
+                </div>
+                </ScrollArea>
+            </DialogContent>
             </Dialog>
 
             {/* Confirmation Modal */}

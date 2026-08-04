@@ -1,5 +1,6 @@
 import { RefreshCw } from 'lucide-react';
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,6 +39,7 @@ interface FieldProps {
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 function Field({
     label,
@@ -213,105 +215,120 @@ export default function RrppeEditForm({ open, onOpenChange, item }: Props) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+            <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-[95vw]" style={{ maxWidth: '1000px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
-                    <DialogTitle>Edit RRPPE Record</DialogTitle>
+                    <DialogTitle>Edit RRPPE Record — {item?.id}, {item?.rrppe_no}</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4 space-y-6">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <Field
-                            label="RRPPE No."
-                            name="rrppe_no"
-                            value={data.rrppe_no}
-                            onChange={handleChange}
-                            error={errors.rrppe_no}
-                            required
-                        />
-                        <Field
-                            label="Date Received"
-                            name="date_received"
-                            type="date"
-                            value={data.date_received}
-                            onChange={handleChange}
-                            error={errors.date_received}
-                            required
-                        />
-
-                        <div className="md:col-span-2">
+                <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                    {/* Section: General Information */}
+                    <div>
+                        <h3 className={sectionTitleClass}>General Information</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                             <Field
-                                label="Item Description"
-                                name="item_description"
-                                value={data.item_description}
+                                label="RRPPE No."
+                                name="rrppe_no"
+                                value={data.rrppe_no}
                                 onChange={handleChange}
-                                error={errors.item_description}
+                                error={errors.rrppe_no}
                                 required
                             />
-                        </div>
-
-                        <Field
-                            label="Quantity"
-                            name="quantity"
-                            type="number"
-                            value={data.quantity}
-                            onChange={handleChange}
-                            error={errors.quantity}
-                            required
-                        />
-                        <Field
-                            label="Property No."
-                            name="property_no"
-                            value={data.property_no}
-                            onChange={handleChange}
-                            error={errors.property_no}
-                            required
-                        />
-                        <Field
-                            label="End User Name"
-                            name="end_user_name"
-                            value={data.end_user_name}
-                            onChange={handleChange}
-                            error={errors.end_user_name}
-                        />
-                        <Field
-                            label="Cost"
-                            name="cost"
-                            type="number"
-                            value={data.cost}
-                            onChange={handleChange}
-                            error={errors.cost}
-                        />
-
-                        <SelectField
-                            label="Status"
-                            value={data.status}
-                            onChange={handleSelectChange('status')}
-                            error={errors.status}
-                            options={[
-                                { value: 'SERVICEABLE', label: 'SERVICEABLE' },
-                                {
-                                    value: 'UNSERVICEABLE',
-                                    label: 'UNSERVICEABLE',
-                                },
-                            ]}
-                        />
-
-                        <Field
-                            label="Area"
-                            name="area"
-                            value={data.area}
-                            onChange={handleChange}
-                            error={errors.area}
-                        />
-
-                        <div className="md:col-span-2">
                             <Field
-                                label="Remarks"
-                                name="remarks"
-                                value={data.remarks}
+                                label="Date Received"
+                                name="date_received"
+                                type="date"
+                                value={data.date_received}
                                 onChange={handleChange}
-                                error={errors.remarks}
+                                error={errors.date_received}
+                                required
                             />
+                            <div className="md:col-span-3">
+                                <Field
+                                    label="Item Description"
+                                    name="item_description"
+                                    value={data.item_description}
+                                    onChange={handleChange}
+                                    error={errors.item_description}
+                                    required
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section: Asset Details */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Asset Details</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <Field
+                                label="Quantity"
+                                name="quantity"
+                                type="number"
+                                value={data.quantity}
+                                onChange={handleChange}
+                                error={errors.quantity}
+                                required
+                            />
+                            <Field
+                                label="Property No."
+                                name="property_no"
+                                value={data.property_no}
+                                onChange={handleChange}
+                                error={errors.property_no}
+                                required
+                            />
+                            <Field
+                                label="Cost"
+                                name="cost"
+                                type="number"
+                                value={data.cost}
+                                onChange={handleChange}
+                                error={errors.cost}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Section: Assignment & Status */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Assignment & Status</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <Field
+                                label="End User Name"
+                                name="end_user_name"
+                                value={data.end_user_name}
+                                onChange={handleChange}
+                                error={errors.end_user_name}
+                            />
+                            <Field
+                                label="Area"
+                                name="area"
+                                value={data.area}
+                                onChange={handleChange}
+                                error={errors.area}
+                            />
+                            <SelectField
+                                label="Status"
+                                value={data.status}
+                                onChange={handleSelectChange('status')}
+                                error={errors.status}
+                                options={[
+                                    { value: 'SERVICEABLE', label: 'SERVICEABLE' },
+                                    {
+                                        value: 'UNSERVICEABLE',
+                                        label: 'UNSERVICEABLE',
+                                    },
+                                ]}
+                            />
+                            <div className="md:col-span-3">
+                                <Field
+                                    label="Remarks"
+                                    name="remarks"
+                                    value={data.remarks}
+                                    onChange={handleChange}
+                                    error={errors.remarks}
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -333,6 +350,8 @@ export default function RrppeEditForm({ open, onOpenChange, item }: Props) {
                         </Button>
                     </div>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

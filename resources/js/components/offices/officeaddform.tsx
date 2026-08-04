@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,8 +25,8 @@ interface FieldProps {
     placeholder?: string;
 }
 
-const labelClass =
-    'mb-1 block text-sm font-medium text-foreground';
+const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 function Field({
     label,
@@ -103,51 +104,60 @@ export default function OfficeAddForm({
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>
-                        New Office
+                        Add Office Record
                     </DialogTitle>
                 </DialogHeader>
 
-                <form
-                    onSubmit={handleSubmit}
-                    className="mt-4 space-y-4"
-                >
-                    <Field
-                        label="Office Code"
-                        name="office_code"
-                        value={data.office_code}
-                        onChange={handleChange}
-                        error={errors.office_code}
-                        required
-                        placeholder="e.g. ICT"
-                    />
+                <form onSubmit={handleSubmit} className="mt-4 space-y-8">
+                    {/* Section: Office Details */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Office Details</h3>
+                        <div className="grid grid-cols-1 gap-4">
+                            <Field
+                                label="Office Code"
+                                name="office_code"
+                                value={data.office_code}
+                                onChange={handleChange}
+                                error={errors.office_code}
+                                required
+                                placeholder="e.g. ICT"
+                            />
 
-                    <Field
-                        label="Office Name"
-                        name="office_name"
-                        value={data.office_name}
-                        onChange={handleChange}
-                        error={errors.office_name}
-                        required
-                        placeholder="e.g. Information and Communications Technology Office"
-                    />
+                            <Field
+                                label="Office Name"
+                                name="office_name"
+                                value={data.office_name}
+                                onChange={handleChange}
+                                error={errors.office_name}
+                                required
+                                placeholder="e.g. Information and Communications Technology Office"
+                            />
+                        </div>
+                    </div>
 
-                    <Field
-                        label="Entity Name"
-                        name="entity_name"
-                        value={data.entity_name}
-                        onChange={handleChange}
-                        error={errors.entity_name}
-                        placeholder="e.g. University of Southeastern Philippines"
-                    />
+                    {/* Section: Additional Info */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Additional Info</h3>
+                        <div className="grid grid-cols-1 gap-4">
+                            <Field
+                                label="Entity Name"
+                                name="entity_name"
+                                value={data.entity_name}
+                                onChange={handleChange}
+                                error={errors.entity_name}
+                                placeholder="e.g. University of Southeastern Philippines"
+                            />
 
-                    <Field
-                        label="Office Head"
-                        name="office_head"
-                        value={data.office_head}
-                        onChange={handleChange}
-                        error={errors.office_head}
-                        placeholder="e.g. Juan Dela Cruz"
-                    />
+                            <Field
+                                label="Office Head"
+                                name="office_head"
+                                value={data.office_head}
+                                onChange={handleChange}
+                                error={errors.office_head}
+                                placeholder="e.g. Juan Dela Cruz"
+                            />
+                        </div>
+                    </div>
 
                     <div className="flex justify-end gap-3 pt-2">
                         <Button

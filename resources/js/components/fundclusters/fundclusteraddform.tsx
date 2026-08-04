@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -97,7 +98,7 @@ export default function FundClusterAddForm({
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>
-                        New Fund Cluster
+                        Add Fund Cluster Record
                     </DialogTitle>
                 </DialogHeader>
                 <form

@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X, Check, RefreshCw, ChevronsUpDown } from 'lucide-react';
+import { Paperclip, X, Check, RefreshCw, ChevronsUpDown, Info } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +26,8 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert } from '@/components/ui/alert';
 
 interface Supplier {
     supplier_id: number;
@@ -62,6 +64,7 @@ interface FieldProps {
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 // Defined outside the parent component so it doesn't remount (and drop
 // focus) on every parent re-render.
@@ -187,10 +190,23 @@ function SearchableSelect({
 
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
 
             <Popover open={open} onOpenChange={setOpen} modal={true}>
                 <PopoverTrigger asChild>
@@ -404,210 +420,196 @@ export default function PurchaseOrderAddForm({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                    className="w-[95vw] max-h-[90vh] overflow-y-auto"
+                    className="w-[95vw] max-h-[95vh] p-0 overflow-hidden"
                     style={{ maxWidth: '1200px' }}
                 >
-                <DialogHeader>
-                    <DialogTitle>New Purchase Order</DialogTitle>
-                </DialogHeader>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
+                        <DialogHeader>
+                            <DialogTitle>Add Purchase Order Record</DialogTitle>
+                        </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4">
-                    <div className="grid grid-cols-2 gap-10 w-full">
-                        {/* Left column */}
-                        <div className="space-y-5">
-                            <Field
-                                label="Purchase Order No."
-                                name="po_number"
-                                value={data.po_number}
-                                onChange={handleChange}
-                                error={errors.po_number}
-                                placeholder="20XX-0X-XXXX"
-                                required
-                            />
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <Field
-                                    label="PO Date"
-                                    name="po_date"
-                                    type="date"
-                                    value={data.po_date}
-                                    onChange={handleChange}
-                                    error={errors.po_date}
-                                />
-
-                                <Field
-                                    label="PO Received Date"
-                                    name="po_received_date"
-                                    type="date"
-                                    value={data.po_received_date}
-                                    onChange={handleChange}
-                                    error={errors.po_received_date}
-                                />
+                        <Alert className="border-red-200 bg-red-50 text-red-800 mt-4 flex items-center gap-2 py-3 px-4 [&>svg]:text-red-800">
+                            <Info className="size-4 shrink-0" />
+                            <div className="text-sm flex flex-wrap items-center gap-1">
+                                <span className="font-semibold">REMINDER:</span>
+                                <span>needs an existing fund cluster, end user, and supplier data.</span>
                             </div>
+                        </Alert>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <Field
-                                    label="Due Date"
-                                    name="due_date"
-                                    type="date"
-                                    value={data.due_date}
-                                    onChange={handleChange}
-                                    error={errors.due_date}
-                                />
-
-                                <Field
-                                    label="PR No."
-                                    name="pr_number"
-                                    value={data.pr_number}
-                                    onChange={handleChange}
-                                    error={errors.pr_number}
-                                    placeholder="20XX-0X-XXXX"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <Field
-                                    label="PR Date"
-                                    name="pr_date"
-                                    type="date"
-                                    value={data.pr_date}
-                                    onChange={handleChange}
-                                    error={errors.pr_date}
-                                />
-
-                                <Field
-                                    label="Philgeps Reference No."
-                                    name="philgeps_reference_no"
-                                    value={data.philgeps_reference_no}
-                                    onChange={handleChange}
-                                    error={errors.philgeps_reference_no}
-                                    placeholder="00000000"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <SelectField
-                                    label="Mode of Procurement"
-                                    value={data.mode_of_procurement}
-                                    onChange={handleSelectChange('mode_of_procurement')}
-                                    error={errors.mode_of_procurement}
-                                    placeholder="--Select Mode of Procurement--"
-                                    options={MODE_OF_PROCUREMENT_OPTIONS}
-                                />
-
-                                <Field
-                                    label="Inclusive Date"
-                                    name="inclusive_date"
-                                    value={data.inclusive_date}
-                                    onChange={handleChange}
-                                    error={errors.inclusive_date}
-                                    placeholder="e.g. Jan 1 - Jan 15, 2026"
-                                />
-                            </div>
-
+                        <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                            {/* Section: Purchase Order Details */}
                             <div>
-                                <label className={labelClass}>Item Description</label>
-
-                                <textarea
-                                    name="item_description"
-                                    value={data.item_description}
-                                    onChange={(e) =>
-                                        setData({ ...data, item_description: e.target.value })
-                                    }
-                                    rows={4}
-                                    className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                                    placeholder='KEYBOARD 5pcs'
-                                />
-
-                                {errors.item_description && (
-                                    <p className="mt-1 text-xs text-red-500">{errors.item_description}</p>
-                                )}
+                                <h3 className={sectionTitleClass}>Purchase Order Details</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Field
+                                        label="Purchase Order No."
+                                        name="po_number"
+                                        value={data.po_number}
+                                        onChange={handleChange}
+                                        error={errors.po_number}
+                                        placeholder="20XX-0X-XXXX"
+                                        required
+                                    />
+                                    <SelectField
+                                        label="Mode of Procurement"
+                                        value={data.mode_of_procurement}
+                                        onChange={handleSelectChange('mode_of_procurement')}
+                                        error={errors.mode_of_procurement}
+                                        placeholder="--Select Mode of Procurement--"
+                                        options={MODE_OF_PROCUREMENT_OPTIONS}
+                                    />
+                                    <Field
+                                        label="PO Date"
+                                        name="po_date"
+                                        type="date"
+                                        value={data.po_date}
+                                        onChange={handleChange}
+                                        error={errors.po_date}
+                                    />
+                                    <Field
+                                        label="PO Received Date"
+                                        name="po_received_date"
+                                        type="date"
+                                        value={data.po_received_date}
+                                        onChange={handleChange}
+                                        error={errors.po_received_date}
+                                    />
+                                    <Field
+                                        label="Due Date"
+                                        name="due_date"
+                                        type="date"
+                                        value={data.due_date}
+                                        onChange={handleChange}
+                                        error={errors.due_date}
+                                    />
+                                    <Field
+                                        label="Inclusive Date"
+                                        name="inclusive_date"
+                                        value={data.inclusive_date}
+                                        onChange={handleChange}
+                                        error={errors.inclusive_date}
+                                        placeholder="e.g. Jan 1 - Jan 15, 2026"
+                                    />
+                                    <Field
+                                        label="PR No."
+                                        name="pr_number"
+                                        value={data.pr_number}
+                                        onChange={handleChange}
+                                        error={errors.pr_number}
+                                        placeholder="20XX-0X-XXXX"
+                                    />
+                                    <Field
+                                        label="PR Date"
+                                        name="pr_date"
+                                        type="date"
+                                        value={data.pr_date}
+                                        onChange={handleChange}
+                                        error={errors.pr_date}
+                                    />
+                                    <Field
+                                        label="Philgeps Reference No."
+                                        name="philgeps_reference_no"
+                                        value={data.philgeps_reference_no}
+                                        onChange={handleChange}
+                                        error={errors.philgeps_reference_no}
+                                        placeholder="00000000"
+                                    />
+                                    
+                                    <div className="md:col-span-2">
+                                        <label className={labelClass}>Item Description</label>
+                                        <textarea
+                                            name="item_description"
+                                            value={data.item_description}
+                                            onChange={(e) =>
+                                                setData({ ...data, item_description: e.target.value })
+                                            }
+                                            rows={4}
+                                            className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                            placeholder='KEYBOARD 5pcs'
+                                        />
+                                        {errors.item_description && (
+                                            <p className="mt-1 text-xs text-red-500">{errors.item_description}</p>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-
-                            {/* Attachments */}
+                            {/* Section: Financial Details */}
                             <div>
-                                <label className={labelClass}>Attachments</label>
-
-                                <button
-                                    type="button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
-                                >
-                                    <Paperclip className="size-4" />
-                                    Click to select files (PDF, JPG, PNG)
-                                </button>
-
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    multiple
-                                    accept=".pdf,.jpg,.jpeg,.png"
-                                    className="hidden"
-                                    onChange={handleFileSelect}
-                                />
-
-                                {files.length > 0 && (
-                                    <ul className="mt-2 divide-y divide-border rounded-md border border-border">
-                                        {files.map(({ id, file }) => (
-                                            <li
-                                                key={id}
-                                                className="flex items-center justify-between gap-3 px-3 py-2"
-                                            >
-                                                <span className="min-w-0 truncate text-sm">
-                                                    {file.name}
-                                                </span>
-                                                <span className="shrink-0 text-xs text-muted-foreground">
-                                                    {formatBytes(file.size)}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeFile(id)}
-                                                    className="shrink-0 text-red-600 hover:text-red-800"
-                                                    title="Remove"
-                                                >
-                                                    <X className="size-4" />
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Right column */}
-                        <div className="space-y-5">
-                            <div className="grid grid-cols-2 gap-4">
-                                <Field
-                                    label="Total Amount ABC"
-                                    name="total_amount_abc"
-                                    type="number"
-                                    value={data.total_amount_abc}
-                                    onChange={handleChange}
-                                    error={errors.total_amount_abc}
-                                    placeholder="Amount of the Budget"
-                                />
-
-                                <Field
-                                    label="Total Amount PO"
-                                    name="total_amount_po"
-                                    type="number"
-                                    value={data.total_amount_po}
-                                    onChange={handleChange}
-                                    error={errors.total_amount_po}
-                                    placeholder="Amount of the Budget"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className={labelClass}>
-                                        Total Amount Difference
-                                    </label>
-
-                                    <Input
-                                        value={diff.toFixed(2)}
-                                        disabled
-                                        className="bg-muted text-muted-foreground"
+                                <h3 className={sectionTitleClass}>Financial Details</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <Field
+                                        label="Total Amount ABC"
+                                        name="total_amount_abc"
+                                        type="number"
+                                        value={data.total_amount_abc}
+                                        onChange={handleChange}
+                                        error={errors.total_amount_abc}
+                                        placeholder="Amount of the Budget"
+                                    />
+                                    <Field
+                                        label="Total Amount PO"
+                                        name="total_amount_po"
+                                        type="number"
+                                        value={data.total_amount_po}
+                                        onChange={handleChange}
+                                        error={errors.total_amount_po}
+                                        placeholder="Amount of the Budget"
+                                    />
+                                    <div>
+                                        <label className={labelClass}>Total Amount Difference</label>
+                                        <Input
+                                            value={diff.toFixed(2)}
+                                            disabled
+                                            className="bg-muted text-muted-foreground"
+                                        />
+                                    </div>
+                                    <SelectField
+                                        label="Fund Cluster"
+                                        value={data.fund_cluster_id}
+                                        onChange={handleSelectChange('fund_cluster_id')}
+                                        error={errors.fund_cluster_id}
+                                        placeholder="-- Select Fund Cluster --"
+                                        options={fundClusters.map((fc) => ({
+                                            value: fc.fund_cluster_id,
+                                            label: fc.fund_cluster_id,
+                                        }))}
+                                    />
+                                    <Field
+                                        label="ORS/BUR No."
+                                        name="ors_burs_no"
+                                        value={data.ors_burs_no}
+                                        onChange={handleChange}
+                                        error={errors.ors_burs_no}
+                                        placeholder="00-000000-2025-00-0000"
+                                    />
+                                    <Field
+                                        label="ORS/BURS Date"
+                                        name="ors_burs_date"
+                                        type="date"
+                                        value={data.ors_burs_date}
+                                        onChange={handleChange}
+                                        error={errors.ors_burs_date}
+                                    />
+                                    <div>
+                                        <label className={labelClass}>Responsibility Center</label>
+                                        <Input
+                                            value={responsibilityCenter}
+                                            readOnly
+                                            className="bg-muted text-muted-foreground"
+                                            placeholder="Fund Cluster + End User"
+                                        />
+                                        {errors.responsibility_center && (
+                                            <p className="mt-1 text-xs text-red-500">{errors.responsibility_center}</p>
+                                        )}
+                                    </div>
+                                    <Field
+                                        label="UACS Object Code"
+                                        name="uacs_object_code"
+                                        value={data.uacs_object_code}
+                                        onChange={handleChange}
+                                        error={errors.uacs_object_code}
+                                        placeholder="00000000"
                                     />
                                 </div>
 
@@ -626,119 +628,105 @@ export default function PurchaseOrderAddForm({
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <Field
-                                    label="ORS/BUR No."
-                                    name="ors_burs_no"
-                                    value={data.ors_burs_no}
-                                    onChange={handleChange}
-                                    error={errors.ors_burs_no}
-                                    placeholder="00-000000-2025-00-0000"
-                                />
-
-                                <Field
-                                    label="ORS/BURS Date"
-                                    name="ors_burs_date"
-                                    type="date"
-                                    value={data.ors_burs_date}
-                                    onChange={handleChange}
-                                    error={errors.ors_burs_date}
-                                />
+                            {/* Section: Routing & Processing */}
+                            <div>
+                                <h3 className={sectionTitleClass}>Routing & Processing</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <SearchableSelect
+                                        label="Supplier"
+                                        value={data.supplier_id}
+                                        onChange={handleSelectChange('supplier_id')}
+                                        error={errors.supplier_id}
+                                        placeholder="Search Supplier..."
+                                        options={suppliers.map((s) => ({
+                                            value: String(s.supplier_id),
+                                            label: s.supplier_name,
+                                        }))}
+                                        onRefresh={() => handleRefreshData('supplier')}
+                                        isRefreshing={refreshingField === 'supplier'}
+                                    />
+                                    <SearchableSelect
+                                        label="End User"
+                                        value={data.end_user}
+                                        onChange={handleSelectChange('end_user')}
+                                        error={errors.end_user}
+                                        placeholder="Search End User..."
+                                        options={offices.map((o) => ({
+                                            value: o.office_code,
+                                            label: o.office_code,
+                                        }))}
+                                        onRefresh={() => handleRefreshData('end_user')}
+                                        isRefreshing={refreshingField === 'end_user'}
+                                    />
+                                    <Field
+                                        label="Date forwarded to SMU"
+                                        name="date_forwarded_to_smu"
+                                        type="date"
+                                        value={data.date_forwarded_to_smu}
+                                        onChange={handleChange}
+                                        error={errors.date_forwarded_to_smu}
+                                    />
+                                    <Field
+                                        label="COA Processed Date"
+                                        name="coa_processed_date"
+                                        type="date"
+                                        value={data.coa_processed_date}
+                                        onChange={handleChange}
+                                        error={errors.coa_processed_date}
+                                    />
+                                    <Field
+                                        label="Date Forwarded to Frontdesk"
+                                        name="date_forwarded_frontdesk"
+                                        type="date"
+                                        value={data.date_forwarded_frontdesk}
+                                        onChange={handleChange}
+                                        error={errors.date_forwarded_frontdesk}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            {/* Section: Attachments */}
+                            <div>
+                                <h3 className={sectionTitleClass}>Attachments</h3>
                                 <div>
-                                    <label className={labelClass}>
-                                        Responsibility Center
-                                    </label>
-
-                                    <Input
-                                        value={responsibilityCenter}
-                                        readOnly
-                                        className="bg-muted text-muted-foreground"
-                                        placeholder="Fund Cluster + End User"
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
+                                    >
+                                        <Paperclip className="size-4" />
+                                        Click to select files (PDF, JPG, PNG)
+                                    </button>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        multiple
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        className="hidden"
+                                        onChange={handleFileSelect}
                                     />
-
-                                    {errors.responsibility_center && (
-                                        <p className="mt-1 text-xs text-red-500">
-                                            {errors.responsibility_center}
-                                        </p>
+                                    {files.length > 0 && (
+                                        <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+                                            {files.map(({ id, file }) => (
+                                                <li key={id} className="flex items-center justify-between gap-3 px-3 py-2">
+                                                    <span className="min-w-0 truncate text-sm">{file.name}</span>
+                                                    <span className="shrink-0 text-xs text-muted-foreground">{formatBytes(file.size)}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeFile(id)}
+                                                        className="shrink-0 text-red-600 hover:text-red-800"
+                                                        title="Remove"
+                                                    >
+                                                        <X className="size-4" />
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
                                     )}
                                 </div>
-
-                                <Field
-                                    label="UACS Object Code"
-                                    name="uacs_object_code"
-                                    value={data.uacs_object_code}
-                                    onChange={handleChange}
-                                    error={errors.uacs_object_code}
-                                    placeholder="00000000"
-                                />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <SearchableSelect
-                                    label="Supplier"
-                                    value={data.supplier_id}
-                                    onChange={handleSelectChange('supplier_id')}
-                                    error={errors.supplier_id}
-                                    placeholder="Search Supplier..."
-                                    options={suppliers.map((s) => ({
-                                        value: String(s.supplier_id),
-                                        label: s.supplier_name,
-                                    }))}
-                                    onRefresh={() => handleRefreshData('supplier')}
-                                    isRefreshing={refreshingField === 'supplier'}
-                                />
 
-                                {/* Reverted label back to just office_code */}
-                                <SearchableSelect
-                                    label="End User"
-                                    value={data.end_user}
-                                    onChange={handleSelectChange('end_user')}
-                                    error={errors.end_user}
-                                    placeholder="Search End User..."
-                                    options={offices.map((o) => ({
-                                        value: o.office_code,
-                                        label: o.office_code,
-                                    }))}
-                                    onRefresh={() => handleRefreshData('end_user')}
-                                    isRefreshing={refreshingField === 'end_user'}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <Field
-                                    label="Date forwarded to SMU"
-                                    name="date_forwarded_to_smu"
-                                    type="date"
-                                    value={data.date_forwarded_to_smu}
-                                    onChange={handleChange}
-                                    error={errors.date_forwarded_to_smu}
-                                />
-
-                                <Field
-                                    label="COA Processed Date"
-                                    name="coa_processed_date"
-                                    type="date"
-                                    value={data.coa_processed_date}
-                                    onChange={handleChange}
-                                    error={errors.coa_processed_date}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <Field
-                                    label="Date Forwarded to Frontdesk"
-                                    name="date_forwarded_frontdesk"
-                                    type="date"
-                                    value={data.date_forwarded_frontdesk}
-                                    onChange={handleChange}
-                                    error={errors.date_forwarded_frontdesk}
-                                />
-                            </div>
-                        </div>
-                    </div>
 
                     <div className="mt-8 flex justify-end gap-3">
                         <Button
@@ -758,7 +746,9 @@ export default function PurchaseOrderAddForm({
                         </Button>
                     </div>
                 </form>
-            </DialogContent>
-        </Dialog>
+            </div>
+        </ScrollArea>
+    </DialogContent>
+</Dialog>
     );
 }

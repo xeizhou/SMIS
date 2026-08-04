@@ -36,6 +36,7 @@ type DashboardPageProps = {
     pendingInspections?: number;
     pendingClearances?: number;
     pendingDeliveries?: number;
+    deliveriesLastWeek?: number;
     recentDeliveries?: { 
         delivery_id: string; 
         po_number: string; 
@@ -62,6 +63,7 @@ export default function Dashboard() {
         pendingInspections,
         pendingClearances,
         pendingDeliveries,
+        deliveriesLastWeek,
         allPendingDeliveries,
         recentActivity,
         recentDeliveries,
@@ -171,12 +173,14 @@ export default function Dashboard() {
         });
     };
 
+    const { auth } = usePage().props as any;
+
     return (
         <>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold">Welcome to Dashboard, User!</h1>
+                    <h1 className="text-2xl font-semibold">Welcome to Dashboard, {auth?.user?.name || 'User'}!</h1>
                     <div className="flex items-center gap-2">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -271,7 +275,7 @@ export default function Dashboard() {
                             <StatCard
                                 label="Pending Deliveries"
                                 value={pendingDeliveries ?? 0}
-                                change=""
+                                change={deliveriesLastWeek !== undefined ? `+ ${deliveriesLastWeek} last week` : ""}
                                 icon={Truck}
                                 iconClassName="bg-blue-100 text-blue-500"
                                 onClick={() => setIsPendingModalOpen(true)}

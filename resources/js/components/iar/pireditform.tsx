@@ -1,5 +1,6 @@
 import { RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
 import {
     Dialog,
@@ -325,11 +326,13 @@ export default function PirEditForm({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-[95vw] max-h-[90vh] overflow-y-auto"
+                className="w-[95vw] max-h-[90vh] overflow-hidden p-0"
                 style={{ maxWidth: '1200px' }}
             >
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
-                    <DialogTitle>Edit PIR — {pir.po_number}</DialogTitle>
+                    <DialogTitle>Edit PIR Record — {pir?.pir_id}, {pir?.po_number}</DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-8">
@@ -733,6 +736,8 @@ export default function PirEditForm({
                         </Button>
                     </div>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

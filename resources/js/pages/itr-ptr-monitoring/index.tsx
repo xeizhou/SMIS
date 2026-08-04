@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2, Eye } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ItrPtrAddForm from '@/components/itr-ptr-monitoring/itr-ptr-add-form';
@@ -7,6 +8,7 @@ import ItrPtrEditForm from '@/components/itr-ptr-monitoring/itr-ptr-edit-form';
 import ItrPtrViewModal from '@/components/itr-ptr-monitoring/itr-ptr-view-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export type ITRPTRMonitoring = {
     id: number;
@@ -60,6 +62,7 @@ export default function Index({ data = { data: [], links: [] }, filters = {} }: 
     const [itemToDelete, setItemToDelete] = useState<number | null>(null);
 
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
+    const [conditionFilter, setConditionFilter] = useState(filters.condition_of_ppe || 'all');
 
     const [selectedItem, setSelectedItem] = useState<ITRPTRMonitoring | null>(null);
 
@@ -94,12 +97,13 @@ export default function Index({ data = { data: [], links: [] }, filters = {} }: 
 
     const handleClear = () => {
         setSearchQuery('');
+        setConditionFilter('all');
         router.get('/itr-ptr-monitoring', {}, { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get('/itr-ptr-monitoring', { search: searchQuery }, {
+        router.get('/itr-ptr-monitoring', { search: searchQuery, condition_of_ppe: conditionFilter === 'all' ? undefined : conditionFilter }, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -145,6 +149,23 @@ export default function Index({ data = { data: [], links: [] }, filters = {} }: 
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
+                        <Select value={conditionFilter} onValueChange={(val) => {
+                            setConditionFilter(val);
+                            router.get(
+                                window.location.pathname,
+                                { search: searchQuery, condition_of_ppe: val === 'all' ? undefined : val },
+                                { preserveState: true, preserveScroll: true, replace: true }
+                            );
+                        }}>
+                            <SelectTrigger className={`w-full sm:w-[200px] ${conditionFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Condition" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Filter by Condition</SelectItem>
+                                <SelectItem value="Serviceable">Serviceable</SelectItem>
+                                <SelectItem value="Unserviceable">Unserviceable</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <Button type="submit" variant="secondary">
                             Search
                         </Button>
@@ -168,16 +189,16 @@ export default function Index({ data = { data: [], links: [] }, filters = {} }: 
                         <thead className="bg-[#3e0b0e] text-white/90">
                             <tr>
                                 <th className="px-4 py-3 font-medium">Transaction No.</th>
-                                <th className="px-4 py-3 font-medium">Property No.</th>
+                                
                                 <th className="px-4 py-3 font-medium">Description</th>
                                 <th className="px-4 py-3 font-medium">Claimed By</th>
-                                <th className="px-4 py-3 font-medium">From</th>
-                                <th className="px-4 py-3 font-medium">To</th>
-                                <th className="px-4 py-3 font-medium">Date Release</th>
-                                <th className="px-4 py-3 font-medium">Date Received</th>
-                                <th className="px-4 py-3 font-medium">Condition</th>
-                                <th className="px-4 py-3 font-medium">Location</th>
-                                <th className="px-4 py-3 font-medium">Amount</th>
+                                
+                                
+                                
+                                
+                                
+                                
+                                
                                 <th className="px-4 py-3 font-medium text-center">Actions</th>
                             </tr>
                         </thead>
@@ -193,16 +214,9 @@ export default function Index({ data = { data: [], links: [] }, filters = {} }: 
                                         }`}
                                     >
                                         <td className="px-4 py-3 font-medium">{item.transaction_no}</td>
-                                        <td className="px-4 py-3">{item.property_no}</td>
+                                        
                                         <td className="px-4 py-3">{item.description}</td>
                                         <td className="px-4 py-3">{item.claimed_by}</td>
-                                        <td className="px-4 py-3">{item.from_accountable_officer}</td>
-                                        <td className="px-4 py-3">{item.to_accountable_officer}</td>
-                                        <td className="px-4 py-3">{item.date_release}</td>
-                                        <td className="px-4 py-3">{item.date_received}</td>
-                                        <td className="px-4 py-3">{item.condition_of_ppe}</td>
-                                        <td className="px-4 py-3">{item.location}</td>
-                                        <td className="px-4 py-3">{formatCurrency(item.amount)}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">
                                                 <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
@@ -220,7 +234,7 @@ export default function Index({ data = { data: [], links: [] }, filters = {} }: 
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={12} className="px-6 py-16 text-center">
+                                    <td colSpan={4} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No ITR/PTR added yet.
                                         </p>

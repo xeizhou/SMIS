@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -119,9 +120,7 @@ return null;
         >
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>
-                        Edit Fund Cluster — {fundCluster.fund_cluster_id}
-                    </DialogTitle>
+                    <DialogTitle>Edit Fund Cluster Record — {fundCluster?.fund_cluster_id}</DialogTitle>
                 </DialogHeader>
                 <form
                     onSubmit={handleSubmit}

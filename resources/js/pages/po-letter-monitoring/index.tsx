@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import PoLetterAddForm from '@/components/po-letter-monitoring/poletteraddform';
@@ -183,11 +184,11 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
                         </div>
 
                         <Select value={status} onValueChange={handleStatusChange}>
-                            <SelectTrigger className="w-[200px]">
-                                <SelectValue placeholder="All Status" />
+                            <SelectTrigger className={`w-[200px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Status</SelectItem>
+                                <SelectItem value="all">Filter by Status</SelectItem>
                                 <SelectItem value="PENDING">PENDING</SelectItem>
                                 <SelectItem value="RECEIVED">RECEIVED</SelectItem>
                                 <SelectItem value="FORWARDED">FORWARDED</SelectItem>
@@ -196,11 +197,11 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
                         </Select>
 
                         <Select value={type} onValueChange={handleTypeChange}>
-                            <SelectTrigger className="w-[220px]">
-                                <SelectValue placeholder="All Types" />
+                            <SelectTrigger className={`w-[220px] ${type === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Type" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Types</SelectItem>
+                                <SelectItem value="all">Filter by Type</SelectItem>
                                 <SelectItem value="EXTENSION">EXTENSION</SelectItem>
                                 <SelectItem value="WAIVER">WAIVER</SelectItem>
                                 <SelectItem value="CANCELLATION">CANCELLATION</SelectItem>
@@ -217,8 +218,7 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
                     </Button>
                 </form>
 
-                <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <table className="w-full text-sm">
+                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
                         <thead className="border-b" style={{ backgroundColor: '#370001' }}>
                             <tr>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Reference No.</th>
@@ -266,8 +266,7 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
                                 ))
                             )}
                         </tbody>
-                    </table>
-                </div>
+                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
 
                 {poLetters.data.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-1 p-4">

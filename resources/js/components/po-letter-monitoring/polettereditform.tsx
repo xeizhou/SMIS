@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useRef, useState } from 'react';
 import { RefreshCw, Paperclip, X, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -86,6 +87,7 @@ interface FieldProps {
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 function Field({
     label,
@@ -546,27 +548,32 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto" style={{ maxWidth: '900px' }}>
+            <DialogContent className="w-[95vw] max-h-[90vh] overflow-hidden p-0" style={{ maxWidth: '900px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
-                    <DialogTitle>Edit PO Letter Record</DialogTitle>
+                    <DialogTitle>Edit PO Letter Record — {poLetter?.id}, {poLetter?.po_number}</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4">
-                    <div className="grid gap-5 md:grid-cols-2">
-                        <Field
-                            label="Reference No."
-                            name="reference_no"
-                            value={data.reference_no}
-                            onChange={handleChange}
-                            error={errors.reference_no}
-                        />
+                <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                    {/* Section: Basic Details */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Basic Details</h3>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <Field
+                                label="Reference No."
+                                name="reference_no"
+                                value={data.reference_no}
+                                onChange={handleChange}
+                                error={errors.reference_no}
+                            />
 
-                        <LockedField
-                            label="Supplier"
-                            value={supplierName}
-                            error={errors.supplier_id}
-                            placeholder="Auto-filled from PO Number"
-                        />
+                            <LockedField
+                                label="Supplier"
+                                value={supplierName}
+                                error={errors.supplier_id}
+                                placeholder="Auto-filled from PO Number"
+                            />
 
                         <SearchableSelect
                             label="PO Number"
@@ -582,119 +589,136 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                             isRefreshing={refreshingField === 'poNumbers'}
                         />
 
-                        <Field
-                            label="PO Date"
-                            name="po_date"
-                            type="date"
-                            value={data.po_date}
-                            onChange={handleChange}
-                            error={errors.po_date}
-                            required
-                        />
+                            <Field
+                                label="PO Date"
+                                name="po_date"
+                                type="date"
+                                value={data.po_date}
+                                onChange={handleChange}
+                                error={errors.po_date}
+                                required
+                            />
+                        </div>
+                    </div>
 
-                        <LockedField
-                            label="Date Received by Supplier"
-                            value={data.date_received_by_supplier}
-                            error={errors.date_received_by_supplier}
-                            placeholder="Auto-filled from PO Number"
-                        />
+                    {/* Section: Delivery Details */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Delivery Details</h3>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <LockedField
+                                label="Date Received by Supplier"
+                                value={data.date_received_by_supplier}
+                                error={errors.date_received_by_supplier}
+                                placeholder="Auto-filled from PO Number"
+                            />
 
-                        <LockedField
-                            label="Delivery Term (days)"
-                            value={data.delivery_term}
-                            error={errors.delivery_term}
-                            placeholder="Auto-calculated from PO dates"
-                        />
+                            <LockedField
+                                label="Delivery Term (days)"
+                                value={data.delivery_term}
+                                error={errors.delivery_term}
+                                placeholder="Auto-calculated from PO dates"
+                            />
 
-                        <LockedField
-                            label="Due Date"
-                            value={data.due_date}
-                            error={errors.due_date}
-                            placeholder="Auto-filled from PO Number"
-                        />
+                            <LockedField
+                                label="Due Date"
+                                value={data.due_date}
+                                error={errors.due_date}
+                                placeholder="Auto-filled from PO Number"
+                            />
 
-                        <Field
-                            label="Office End User"
-                            name="office_end_user"
-                            value={data.office_end_user}
-                            onChange={handleChange}
-                            error={errors.office_end_user}
-                            required
-                        />
+                            <Field
+                                label="Office End User"
+                                name="office_end_user"
+                                value={data.office_end_user}
+                                onChange={handleChange}
+                                error={errors.office_end_user}
+                                required
+                            />
 
-                        <SelectField
-                            label="Type of Letter"
-                            value={data.type_of_letter}
-                            onChange={handleSelectChange('type_of_letter')}
-                            error={errors.type_of_letter}
-                            placeholder="Select type"
-                            options={TYPE_OPTIONS}
-                        />
+                            <SelectField
+                                label="Type of Letter"
+                                value={data.type_of_letter}
+                                onChange={handleSelectChange('type_of_letter')}
+                                error={errors.type_of_letter}
+                                placeholder="Select type"
+                                options={TYPE_OPTIONS}
+                            />
+                        </div>
+                    </div>
 
-                        <Field
-                            label="Date Received by SMU"
-                            name="date_received_by_smu"
-                            type="date"
-                            value={data.date_received_by_smu}
-                            onChange={handleChange}
-                            error={errors.date_received_by_smu}
-                        />
+                    {/* Section: Routing & Status */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Routing & Status</h3>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <Field
+                                label="Date Received by SMU"
+                                name="date_received_by_smu"
+                                type="date"
+                                value={data.date_received_by_smu}
+                                onChange={handleChange}
+                                error={errors.date_received_by_smu}
+                            />
 
-                        <Field
-                            label="Date Forwarded to OVPAD"
-                            name="date_forwarded_to_ovpad"
-                            type="date"
-                            value={data.date_forwarded_to_ovpad}
-                            onChange={handleChange}
-                            error={errors.date_forwarded_to_ovpad}
-                        />
+                            <Field
+                                label="Date Forwarded to OVPAD"
+                                name="date_forwarded_to_ovpad"
+                                type="date"
+                                value={data.date_forwarded_to_ovpad}
+                                onChange={handleChange}
+                                error={errors.date_forwarded_to_ovpad}
+                            />
 
-                        <Field
-                            label="Received By"
-                            name="received_by"
-                            value={data.received_by}
-                            onChange={handleChange}
-                            error={errors.received_by}
-                        />
+                            <Field
+                                label="Received By"
+                                name="received_by"
+                                value={data.received_by}
+                                onChange={handleChange}
+                                error={errors.received_by}
+                            />
 
-                        <SelectField
-                            label="Status of the Letter"
-                            value={data.status_of_the_letter}
-                            onChange={handleSelectChange('status_of_the_letter')}
-                            error={errors.status_of_the_letter}
-                            placeholder="Select status"
-                            options={STATUS_OPTIONS}
-                        />
+                            <SelectField
+                                label="Status of the Letter"
+                                value={data.status_of_the_letter}
+                                onChange={handleSelectChange('status_of_the_letter')}
+                                error={errors.status_of_the_letter}
+                                placeholder="Select status"
+                                options={STATUS_OPTIONS}
+                            />
 
-                        <Field
-                            label="Document Link"
-                            name="document_link"
-                            value={data.document_link}
-                            onChange={handleChange}
-                            error={errors.document_link}
-                            placeholder="https://"
-                        />
+                            <Field
+                                label="Document Link"
+                                name="document_link"
+                                value={data.document_link}
+                                onChange={handleChange}
+                                error={errors.document_link}
+                                placeholder="https://"
+                            />
 
-                        <Field
-                            label="Date Forwarded to End User"
-                            name="date_forwarded_to_end_user"
-                            type="date"
-                            value={data.date_forwarded_to_end_user}
-                            onChange={handleChange}
-                            error={errors.date_forwarded_to_end_user}
-                        />
+                            <Field
+                                label="Date Forwarded to End User"
+                                name="date_forwarded_to_end_user"
+                                type="date"
+                                value={data.date_forwarded_to_end_user}
+                                onChange={handleChange}
+                                error={errors.date_forwarded_to_end_user}
+                            />
 
-                        <Field
-                            label="Remarks"
-                            name="remarks"
-                            value={data.remarks}
-                            onChange={handleChange}
-                            error={errors.remarks}
-                        />
+                            <div className="md:col-span-2">
+                                <Field
+                                    label="Remarks"
+                                    name="remarks"
+                                    value={data.remarks}
+                                    onChange={handleChange}
+                                    error={errors.remarks}
+                                />
+                            </div>
+                        </div>
+                    </div>
 
-                        {/* Attachments */}
+                    {/* Section: Attachments */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Attachments</h3>
                         <div className="md:col-span-2">
-                            <label className={labelClass}>Attachments</label>
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
@@ -772,6 +796,8 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                         </Button>
                     </div>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import EmployeeFileAddForm from '@/components/employee-file-locator/employeefileaddform';
@@ -160,8 +161,7 @@ export default function Index({ records, filters, statuses }: Props) {
                     </Button>
                 </form>
 
-                <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <table className="w-full text-sm">
+                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
                         <thead className="border-b" style={{ backgroundColor: '#370001' }}>
                             <tr>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Name</th>
@@ -214,8 +214,7 @@ export default function Index({ records, filters, statuses }: Props) {
                                 ))
                             )}
                         </tbody>
-                    </table>
-                </div>
+                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
 
                 {records.data.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-1 p-4">

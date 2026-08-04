@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState, useRef } from 'react';
 import { RefreshCw, Paperclip, X, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,7 @@ interface FieldProps {
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 function Field({
     label,
@@ -417,212 +419,237 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto" style={{ maxWidth: '1000px' }}>
+            <DialogContent className="w-[95vw] max-h-[90vh] overflow-hidden p-0" style={{ maxWidth: '1000px' }}>
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
-                    <DialogTitle>New Delivery Record</DialogTitle>
+                    <DialogTitle>Add Delivery Record</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4 space-y-5">
-                    <div className="grid gap-5 md:grid-cols-2">
-                        <SearchableSelect
-                            label="Purchase Order"
-                            value={data.po_number}
-                            onChange={handleSelectChange('po_number')}
-                            error={errors.po_number}
-                            required
-                            placeholder="Search PO Number..."
-                            options={purchaseOrders.map((po) => ({
-                                value: po.po_number,
-                                label: po.po_number,
-                            }))}
-                            onRefresh={() => handleRefreshData('purchaseOrders')}
-                            isRefreshing={refreshingField === 'purchaseOrders'}
-                        />
-
-                        <Field
-                            label="Supplier"
-                            name="supplier_name"
-                            value={data.supplier_name || selectedPo?.supplier?.supplier_name || ''}
-                            onChange={handleChange}
-                            error={errors.supplier_id}
-                            placeholder="Auto-filled from selected PO"
-                            readOnly
-                            disabled
-                        />
-
-                        <Field
-                            label="PO Date Received"
-                            name="po_date_received"
-                            value={data.po_date_received}
-                            onChange={handleChange}
-                            error={errors.po_date_received}
-                            placeholder="Auto-filled from selected PO"
-                            readOnly
-                            disabled
-                        />
-
-                        <Field
-                            label="Delivery Term (days)"
-                            name="delivery_term"
-                            value={data.delivery_term}
-                            onChange={handleChange}
-                            error={errors.delivery_term}
-                            placeholder="Auto-calculated from PO dates"
-                            readOnly
-                            disabled
-                        />
-
-                        <Field
-                            label="Due Date"
-                            name="due_date"
-                            value={data.due_date}
-                            onChange={handleChange}
-                            error={errors.due_date}
-                            placeholder="Auto-filled from selected PO"
-                            readOnly
-                            disabled
-                        />
-
-                        <Field
-                            label="Date of Delivery"
-                            name="delivery_date"
-                            type="date"
-                            value={data.delivery_date}
-                            onChange={handleChange}
-                            error={errors.delivery_date}
-                            required
-                        />
-
-                        <Field
-                            label="Received By (1)"
-                            name="received_by_1"
-                            value={data.received_by_1}
-                            onChange={handleChange}
-                            error={errors.received_by_1}
-                            placeholder="e.g. Alvin B."
-                        />
-
-                        <Field
-                            label="Received By (2)"
-                            name="received_by_2"
-                            value={data.received_by_2}
-                            onChange={handleChange}
-                            error={errors.received_by_2}
-                            placeholder="e.g. J. Santos"
-                        />
-
-                        <Field
-                            label="End User"
-                            name="end_user"
-                            value={data.end_user}
-                            onChange={handleChange}
-                            error={errors.end_user}
-                            placeholder="Auto-filled from PO"
-                        />
-
-                        <Field
-                            label="Place of Delivery"
-                            name="place_of_delivery"
-                            value={data.place_of_delivery}
-                            onChange={handleChange}
-                            error={errors.place_of_delivery}
-                            placeholder="e.g. BGH, Davao City"
-                        />
-
-                        <SelectField
-                            label="Status"
-                            value={data.status}
-                            onChange={handleSelectChange('status')}
-                            error={errors.status}
-                            required
-                            placeholder="-- Select Status --"
-                            options={STATUS_OPTIONS}
-                        />
-
-                        <Field
-                            label="Total Amount Delivered"
-                            name="total_amount_delivered"
-                            type="number"
-                            value={data.total_amount_delivered}
-                            onChange={handleChange}
-                            error={errors.total_amount_delivered}
-                            placeholder="e.g. 141000"
-                            required
-                        />
-
-                        <Field
-                            label="PO Total Amount"
-                            name="po_total_amount"
-                            type="number"
-                            value={data.po_total_amount}
-                            onChange={handleChange}
-                            error={errors.po_total_amount}
-                            placeholder="Auto-filled from PO"
-                        />
-
-                        <Field
-                            label="Folder Link"
-                            name="folder_link"
-                            value={data.folder_link}
-                            onChange={handleChange}
-                            error={errors.folder_link}
-                            placeholder="https://drive.google.com/drive/folders/..."
-                        />
-                    </div>
-
+                <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                    {/* Section: Order Details */}
                     <div>
-                        <label className={labelClass}>Remarks</label>
-                        <Input
-                            name="remarks"
-                            value={data.remarks}
-                            onChange={handleChange}
-                            placeholder="e.g. Partial delivery received"
-                        />
-                        {errors.remarks && <p className="mt-1 text-xs text-red-500">{errors.remarks}</p>}
+                        <h3 className={sectionTitleClass}>Order Details</h3>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <SearchableSelect
+                                label="Purchase Order"
+                                value={data.po_number}
+                                onChange={handleSelectChange('po_number')}
+                                error={errors.po_number}
+                                required
+                                placeholder="Search PO Number..."
+                                options={purchaseOrders.map((po) => ({
+                                    value: po.po_number,
+                                    label: po.po_number,
+                                }))}
+                                onRefresh={() => handleRefreshData('purchaseOrders')}
+                                isRefreshing={refreshingField === 'purchaseOrders'}
+                            />
+
+                            <Field
+                                label="Supplier"
+                                name="supplier_name"
+                                value={data.supplier_name || selectedPo?.supplier?.supplier_name || ''}
+                                onChange={handleChange}
+                                error={errors.supplier_id}
+                                placeholder="Auto-filled from selected PO"
+                                readOnly
+                                disabled
+                            />
+
+                            <Field
+                                label="PO Date Received"
+                                name="po_date_received"
+                                value={data.po_date_received}
+                                onChange={handleChange}
+                                error={errors.po_date_received}
+                                placeholder="Auto-filled from selected PO"
+                                readOnly
+                                disabled
+                            />
+
+                            <Field
+                                label="Due Date"
+                                name="due_date"
+                                value={data.due_date}
+                                onChange={handleChange}
+                                error={errors.due_date}
+                                placeholder="Auto-filled from selected PO"
+                                readOnly
+                                disabled
+                            />
+                            
+                            <Field
+                                label="Delivery Term (days)"
+                                name="delivery_term"
+                                value={data.delivery_term}
+                                onChange={handleChange}
+                                error={errors.delivery_term}
+                                placeholder="Auto-calculated from PO dates"
+                                readOnly
+                                disabled
+                            />
+                        </div>
                     </div>
 
-                    {/* Attachments Section */}
-                    <div className="border-t pt-5">
-                        <label className={labelClass}>Attachments</label>
+                    {/* Section: Delivery Information */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Delivery Information</h3>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <Field
+                                label="Date of Delivery"
+                                name="delivery_date"
+                                type="date"
+                                value={data.delivery_date}
+                                onChange={handleChange}
+                                error={errors.delivery_date}
+                                required
+                            />
 
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40 mt-2"
-                        >
-                            <Paperclip className="size-4" />
-                            Click to select files (PDF, JPG, PNG)
-                        </button>
+                            <Field
+                                label="Received By (1)"
+                                name="received_by_1"
+                                value={data.received_by_1}
+                                onChange={handleChange}
+                                error={errors.received_by_1}
+                                placeholder="e.g. Alvin B."
+                            />
 
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            multiple
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            className="hidden"
-                            onChange={handleFileSelect}
-                        />
+                            <Field
+                                label="Received By (2)"
+                                name="received_by_2"
+                                value={data.received_by_2}
+                                onChange={handleChange}
+                                error={errors.received_by_2}
+                                placeholder="e.g. J. Santos"
+                            />
 
-                        {files.length > 0 && (
-                            <ul className="mt-2 divide-y divide-border rounded-md border border-border">
-                                {files.map(({ id, file }) => (
-                                    <li key={id} className="flex items-center justify-between gap-3 px-3 py-2">
-                                        <span className="min-w-0 truncate text-sm">{file.name}</span>
-                                        <span className="shrink-0 text-xs text-muted-foreground">
-                                            {formatBytes(file.size)}
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeFile(id)}
-                                            className="shrink-0 text-red-600 hover:text-red-800"
-                                            title="Remove"
-                                        >
-                                            <X className="size-4" />
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+                            <Field
+                                label="End User"
+                                name="end_user"
+                                value={data.end_user}
+                                onChange={handleChange}
+                                error={errors.end_user}
+                                placeholder="Auto-filled from PO"
+                            />
+
+                            <Field
+                                label="Place of Delivery"
+                                name="place_of_delivery"
+                                value={data.place_of_delivery}
+                                onChange={handleChange}
+                                error={errors.place_of_delivery}
+                                placeholder="e.g. BGH, Davao City"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Section: Financial & Status Details */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Financial & Status Details</h3>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <Field
+                                label="Total Amount Delivered"
+                                name="total_amount_delivered"
+                                type="number"
+                                value={data.total_amount_delivered}
+                                onChange={handleChange}
+                                error={errors.total_amount_delivered}
+                                placeholder="e.g. 141000"
+                                required
+                            />
+
+                            <Field
+                                label="PO Total Amount"
+                                name="po_total_amount"
+                                type="number"
+                                value={data.po_total_amount}
+                                onChange={handleChange}
+                                error={errors.po_total_amount}
+                                placeholder="Auto-filled from PO"
+                            />
+
+                            <SelectField
+                                label="Status"
+                                value={data.status}
+                                onChange={handleSelectChange('status')}
+                                error={errors.status}
+                                required
+                                placeholder="-- Select Status --"
+                                options={STATUS_OPTIONS}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Section: Additional Information */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Additional Information</h3>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <Field
+                                label="Folder Link"
+                                name="folder_link"
+                                value={data.folder_link}
+                                onChange={handleChange}
+                                error={errors.folder_link}
+                                placeholder="https://drive.google.com/drive/folders/..."
+                            />
+
+                            <div className="md:col-span-2">
+                                <label className={labelClass}>Remarks</label>
+                                <Input
+                                    name="remarks"
+                                    value={data.remarks}
+                                    onChange={handleChange}
+                                    placeholder="e.g. Partial delivery received"
+                                />
+                                {errors.remarks && <p className="mt-1 text-xs text-red-500">{errors.remarks}</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section: Attachments */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Attachments</h3>
+                        <div className="md:col-span-2">
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40 mt-2"
+                            >
+                                <Paperclip className="size-4" />
+                                Click to select files (PDF, JPG, PNG)
+                            </button>
+
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                className="hidden"
+                                onChange={handleFileSelect}
+                            />
+
+                            {files.length > 0 && (
+                                <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+                                    {files.map(({ id, file }) => (
+                                        <li key={id} className="flex items-center justify-between gap-3 px-3 py-2">
+                                            <span className="min-w-0 truncate text-sm">{file.name}</span>
+                                            <span className="shrink-0 text-xs text-muted-foreground">
+                                                {formatBytes(file.size)}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeFile(id)}
+                                                className="shrink-0 text-red-600 hover:text-red-800"
+                                                title="Remove"
+                                            >
+                                                <X className="size-4" />
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-3">
@@ -634,6 +661,8 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                         </Button>
                     </div>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

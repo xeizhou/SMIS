@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -64,6 +65,7 @@ interface FieldProps {
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
+const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 function Field({
     label,
@@ -195,155 +197,176 @@ export default function StockItemEditForm({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-[1000px] w-[95vw] max-h-[90vh] overflow-hidden p-0">
+                <ScrollArea className="max-h-[95vh] w-full">
+                    <div className="p-6">
                 <DialogHeader>
-                    <DialogTitle>Edit Stock Item — {stock.stock_no}</DialogTitle>
+                    <DialogTitle>Edit Stock Item Record — {stock?.stock_no}</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                    <Field
-                        label="Item Name"
-                        name="item_name"
-                        value={data.item_name}
-                        onChange={handleChange}
-                        error={errors.item_name}
-                        required
-                        placeholder="e.g. Bond Paper A4"
-                    />
-                    <Field
-                        label="Description"
-                        name="description"
-                        value={data.description}
-                        onChange={handleChange}
-                        error={errors.description}
-                        placeholder="e.g. 70gsm, 500 sheets per ream"
-                    />
+                <form onSubmit={handleSubmit} className="mt-4 space-y-8">
+                    {/* Section: Item Details */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Item Details</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <Field
+                                label="Item Name"
+                                name="item_name"
+                                value={data.item_name}
+                                onChange={handleChange}
+                                error={errors.item_name}
+                                required
+                                placeholder="e.g. Bond Paper A4"
+                            />
+                            <Field
+                                label="Description"
+                                name="description"
+                                value={data.description}
+                                onChange={handleChange}
+                                error={errors.description}
+                                placeholder="e.g. 70gsm, 500 sheets per ream"
+                            />
+                        </div>
+                    </div>
 
-                    {/* Dynamic Units Section */}
-                    <div className="rounded-lg border p-4 bg-muted/30">
-                        <label className="mb-3 block text-sm font-semibold text-foreground">
-                            Units Configuration <span className="text-red-500">*</span>
-                        </label>
-                        
-                        <div className="space-y-3">
-                            {data.units.map((unitObj, index) => (
-                                <div key={index} className="flex items-center gap-3">
-                                    <div className="flex flex-col items-center justify-center gap-1">
-                                        <input
-                                            type="radio"
-                                            name="edit_default_unit"
-                                            checked={unitObj.is_default}
-                                            onChange={() => handleSetDefaultUnit(index)}
-                                            className="size-4 cursor-pointer accent-[#612A35]"
-                                            title="Set as Default Table Unit"
-                                        />
-                                        {unitObj.is_default && <span className="text-[10px] text-muted-foreground font-semibold">Def.</span>}
-                                    </div>
-                                    
-                                    <div className="flex-1">
-                                        <Select
-                                            value={unitObj.unitID}
-                                            onValueChange={(val) => handleUnitChange(index, val)}
-                                        >
-                                            <SelectTrigger className="w-full">
-                                                <SelectValue placeholder="Select Unit" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {units.map((unit) => (
-                                                    <SelectItem key={unit.unitID} value={String(unit.unitID)}>
-                                                        {unit.unit_name} ({unit.unit_short_name})
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {errors[`units.${index}.unitID`] && (
-                                            <p className="mt-1 text-xs text-red-500">Required</p>
+                    {/* Section: Units Configuration */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Units Configuration</h3>
+                        <div className="rounded-lg border p-4 bg-muted/30">
+                            <label className="mb-3 block text-sm font-semibold text-foreground">
+                                Units Configuration <span className="text-red-500">*</span>
+                            </label>
+                            
+                            <div className="space-y-3">
+                                {data.units.map((unitObj, index) => (
+                                    <div key={index} className="flex items-center gap-3">
+                                        <div className="flex flex-col items-center justify-center gap-1">
+                                            <input
+                                                type="radio"
+                                                name="edit_default_unit"
+                                                checked={unitObj.is_default}
+                                                onChange={() => handleSetDefaultUnit(index)}
+                                                className="size-4 cursor-pointer accent-[#612A35]"
+                                                title="Set as Default Table Unit"
+                                            />
+                                            {unitObj.is_default && <span className="text-[10px] text-muted-foreground font-semibold">Def.</span>}
+                                        </div>
+                                        
+                                        <div className="flex-1">
+                                            <Select
+                                                value={unitObj.unitID}
+                                                onValueChange={(val) => handleUnitChange(index, val)}
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select Unit" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {units.map((unit) => (
+                                                        <SelectItem key={unit.unitID} value={String(unit.unitID)}>
+                                                            {unit.unit_name} ({unit.unit_short_name})
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {errors[`units.${index}.unitID`] && (
+                                                <p className="mt-1 text-xs text-red-500">Required</p>
+                                            )}
+                                        </div>
+
+                                        {data.units.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => removeUnitRow(index)}
+                                                className="text-red-500 hover:bg-red-50 hover:text-red-700 h-10 w-10 shrink-0"
+                                            >
+                                                <Trash2 className="size-4" />
+                                            </Button>
                                         )}
                                     </div>
-
-                                    {data.units.length > 1 && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => removeUnitRow(index)}
-                                            className="text-red-500 hover:bg-red-50 hover:text-red-700 h-10 w-10 shrink-0"
-                                        >
-                                            <Trash2 className="size-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-
-                        {errors.units && (
-                            <p className="mt-2 text-xs text-red-500">{errors.units}</p>
-                        )}
-
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={addUnitRow}
-                            className="mt-4 w-full border-dashed"
-                        >
-                            <Plus className="mr-2 size-4" />
-                            Add Another Unit
-                        </Button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <Field
-                            label="On Hand Qty"
-                            name="on_hand_quantity"
-                            type="number"
-                            min="0"
-                            value={data.on_hand_quantity}
-                            onChange={handleChange}
-                            error={errors.on_hand_quantity}
-                        />
-                        <Field
-                            label="Re-order Point"
-                            name="re_order_point"
-                            type="number"
-                            min="0"
-                            value={data.re_order_point}
-                            onChange={handleChange}
-                            error={errors.re_order_point}
-                        />
-                    </div>
-
-                    <div>
-                        <label className={labelClass}>Fund Cluster</label>
-                        <Select
-                            value={data.fund_cluster_id}
-                            onValueChange={(value) =>
-                                setData({ ...data, fund_cluster_id: value })
-                            }
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="-- Select Fund Cluster --" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {fundClusters.map((fc) => (
-                                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
-                                        {fc.fund_cluster_id} - {fc.fund_description}
-                                    </SelectItem>
                                 ))}
-                            </SelectContent>
-                        </Select>
-                        {errors.fund_cluster_id && (
-                            <p className="mt-1 text-xs text-red-500">{errors.fund_cluster_id}</p>
-                        )}
+                            </div>
+
+                            {errors.units && (
+                                <p className="mt-2 text-xs text-red-500">{errors.units}</p>
+                            )}
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={addUnitRow}
+                                className="mt-4 w-full border-dashed"
+                            >
+                                <Plus className="mr-2 size-4" />
+                                Add Another Unit
+                            </Button>
+                        </div>
                     </div>
 
-                    <Field
-                        label="Remarks"
-                        name="remarks"
-                        value={data.remarks}
-                        onChange={handleChange}
-                        error={errors.remarks}
-                        placeholder="Optional notes"
-                    />
+                    {/* Section: Inventory Details */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Inventory Details</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <Field
+                                label="On Hand Qty"
+                                name="on_hand_quantity"
+                                type="number"
+                                min="0"
+                                value={data.on_hand_quantity}
+                                onChange={handleChange}
+                                error={errors.on_hand_quantity}
+                            />
+                            <Field
+                                label="Re-order Point"
+                                name="re_order_point"
+                                type="number"
+                                min="0"
+                                value={data.re_order_point}
+                                onChange={handleChange}
+                                error={errors.re_order_point}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Section: Additional Info */}
+                    <div>
+                        <h3 className={sectionTitleClass}>Additional Info</h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div>
+                                <label className={labelClass}>Fund Cluster</label>
+                                <Select
+                                    value={data.fund_cluster_id}
+                                    onValueChange={(value) =>
+                                        setData({ ...data, fund_cluster_id: value })
+                                    }
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="-- Select Fund Cluster --" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {fundClusters.map((fc) => (
+                                            <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
+                                                {fc.fund_cluster_id} - {fc.fund_description}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.fund_cluster_id && (
+                                    <p className="mt-1 text-xs text-red-500">{errors.fund_cluster_id}</p>
+                                )}
+                            </div>
+
+                            <Field
+                                label="Remarks"
+                                name="remarks"
+                                value={data.remarks}
+                                onChange={handleChange}
+                                error={errors.remarks}
+                                placeholder="Optional notes"
+                            />
+                        </div>
+                    </div>
 
                     <div className="flex justify-end gap-3 pt-2">
                         <Button
@@ -361,6 +384,8 @@ export default function StockItemEditForm({
                         </Button>
                     </div>
                 </form>
+            </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

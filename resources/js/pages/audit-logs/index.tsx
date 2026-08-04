@@ -119,11 +119,11 @@ export default function Index({ logs, filters }: Props) {
                             />
                         </div>
                         <Select value={roleFilter} onValueChange={setRoleFilter}>
-                            <SelectTrigger className="w-full sm:w-[180px]">
-                                <SelectValue placeholder="All Roles" />
+                            <SelectTrigger className={`w-full sm:w-[180px] ${roleFilter === 'All' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Role" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="All">All Roles</SelectItem>
+                                <SelectItem value="All">Filter by Role</SelectItem>
                                 <SelectItem value="Admin">Admin</SelectItem>
                                 <SelectItem value="Staff">Staff</SelectItem>
                             </SelectContent>
