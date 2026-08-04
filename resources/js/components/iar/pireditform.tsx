@@ -104,6 +104,30 @@ function Field({
     );
 }
 
+interface LockedFieldProps {
+    label: string;
+    value: string;
+    error?: string;
+    placeholder?: string;
+}
+
+// Read-only display for values derived from the PO — still submitted in
+// the payload (via `data`), just not directly editable.
+function LockedField({ label, value, error, placeholder }: LockedFieldProps) {
+    return (
+        <div>
+            <label className={labelClass}>{label}</label>
+            <Input
+                value={value}
+                disabled
+                placeholder={placeholder}
+                className="bg-muted text-muted-foreground"
+            />
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
 interface SelectFieldProps {
     label: string;
     value: string;
@@ -297,7 +321,7 @@ export default function PirEditForm({
     const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
     const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
 
-const fileInputRef = useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) return;
@@ -429,6 +453,20 @@ const fileInputRef = useRef<HTMLInputElement>(null);
 
     if (!pir) return null;
 
+    const supplierName = suppliers.find(
+        (s) => String(s.supplier_id) === data.supplier_id
+    )?.supplier_name ?? '';
+
+    const officeLabel = (() => {
+        const office = offices.find((o) => o.office_code === data.unit_office);
+        return office ? `${office.office_code} - ${office.office_name}` : data.unit_office;
+    })();
+
+    const fundClusterLabel = (() => {
+        const fc = fundClusters.find((f) => f.fund_cluster_id === data.fund_cluster);
+        return fc ? `${fc.fund_cluster_id} - ${fc.fund_description}` : data.fund_cluster;
+    })();
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
@@ -454,96 +492,65 @@ const fileInputRef = useRef<HTMLInputElement>(null);
                                 error={errors.po_number}
                                 disabled
                             />
-                            <SelectField
+                            <LockedField
                                 label="Supplier"
-                                value={data.supplier_id}
-                                onChange={handleSelectChange('supplier_id')}
+                                value={supplierName}
                                 error={errors.supplier_id}
-                                required
-                                placeholder="-- Select Supplier --"
-                                options={suppliers.map((s) => ({
-                                    value: String(s.supplier_id),
-                                    label: s.supplier_name,
-                                }))}
-                                onRefresh={() => handleRefreshData('suppliers')}
-                                isRefreshing={refreshingField === 'suppliers'}
+                                placeholder="Auto-filled from PO Number"
                             />
-                            <SelectField
+                            <LockedField
                                 label="Unit/Office"
-                                value={data.unit_office}
-                                onChange={handleSelectChange('unit_office')}
+                                value={officeLabel}
                                 error={errors.unit_office}
-                                required
-                                placeholder="-- Select Office --"
-                                options={offices.map((o) => ({
-                                    value: o.office_code,
-                                    label: `${o.office_code} - ${o.office_name}`,
-                                }))}
+                                placeholder="Auto-filled from PO Number"
                             />
-                            <Field
+                            <LockedField
                                 label="PO Date"
-                                name="po_date"
-                                type="date"
                                 value={data.po_date}
-                                onChange={handleChange}
                                 error={errors.po_date}
+                                placeholder="Auto-filled from PO Number"
                             />
-                            <Field
+                            <LockedField
                                 label="Delivery Term (days)"
-                                name="delivery_term"
-                                type="number"
                                 value={data.delivery_term}
-                                onChange={handleChange}
                                 error={errors.delivery_term}
+                                placeholder="Auto-calculated from PO dates"
                             />
-                            <SelectField
+                            <LockedField
                                 label="Fund Cluster"
-                                value={data.fund_cluster}
-                                onChange={handleSelectChange('fund_cluster')}
+                                value={fundClusterLabel}
                                 error={errors.fund_cluster}
-                                placeholder="-- Select Fund Cluster --"
-                                options={fundClusters.map((fc) => ({
-                                    value: fc.fund_cluster_id,
-                                    label: `${fc.fund_cluster_id} - ${fc.fund_description}`,
-                                }))}
+                                placeholder="Auto-filled from PO Number"
                             />
-                            <Field
+                            <LockedField
                                 label="PR Number"
-                                name="pr_number"
                                 value={data.pr_number}
-                                onChange={handleChange}
                                 error={errors.pr_number}
+                                placeholder="Auto-filled from PO Number"
                             />
-                            <Field
+                            <LockedField
                                 label="PR Date"
-                                name="pr_date"
-                                type="date"
                                 value={data.pr_date}
-                                onChange={handleChange}
                                 error={errors.pr_date}
+                                placeholder="Auto-filled from PO Number"
                             />
-                            <Field
+                            <LockedField
                                 label="ORS/BUR Number"
-                                name="ors_bur_number"
                                 value={data.ors_bur_number}
-                                onChange={handleChange}
                                 error={errors.ors_bur_number}
+                                placeholder="Auto-filled from PO Number"
                             />
-                            <Field
+                            <LockedField
                                 label="ORS/BUR Date"
-                                name="ors_bur_date"
-                                type="date"
                                 value={data.ors_bur_date}
-                                onChange={handleChange}
                                 error={errors.ors_bur_date}
+                                placeholder="Auto-filled from PO Number"
                             />
-                            <Field
+                            <LockedField
                                 label="PO Amount"
-                                name="po_amount"
-                                type="number"
                                 value={data.po_amount}
-                                onChange={handleChange}
                                 error={errors.po_amount}
+                                placeholder="Auto-filled from PO Number"
                             />
                             <Field
                                 label="Date Forwarded"
