@@ -99,6 +99,6 @@ class ServePo extends Model
 
 public function getActivityUrl()
 {
-    return route('serve-po.index') . '?highlight_id=' . $this->po_number;
+    return route('purchase-orders.index') . '?highlight_id=' . $this->po_number;
 }
 }
