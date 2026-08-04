@@ -172,3 +172,49 @@ it('stores multiple inspection rows for one PIR', function () {
     expect($pir->inspectionEntries()->where('iar_number', 'IAR-1001')->exists())->toBeTrue();
     expect($pir->inspectionEntries()->where('inspected_by', 'Inspector B')->exists())->toBeTrue();
 });
+
+it('stores multiple inspectors and dates for one IAR number', function () {
+    $supplier = Supplier::create([
+        'supplier_name' => 'Multi Inspection Supplier',
+        'status' => 'active',
+    ]);
+
+    ServePo::create([
+        'po_number' => 'PO-TEST-005',
+        'supplier_id' => $supplier->supplier_id,
+        'total_amount_abc' => 5000,
+        'total_amount_po' => 5000,
+        'total_amount_diff' => 0,
+    ]);
+
+    $response = $this->actingAs(User::factory()->create())->post(route('iar.store'), [
+        'supplier_id' => $supplier->supplier_id,
+        'po_number' => 'PO-TEST-005',
+        'unit_office' => 'Office E',
+        'status' => 'COMPLETED',
+        'inspection_entries' => [
+            [
+                'iar_number' => 'IAR-2001',
+                'inspection_items' => [
+                    [
+                        'inspected_by' => 'Inspector A',
+                        'inspection_date' => '2024-06-01',
+                    ],
+                    [
+                        'inspected_by' => 'Inspector B',
+                        'inspection_date' => '2024-06-02',
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $response->assertRedirect();
+
+    $createdPirId = session('createdPirId');
+    $pir = PirMonitoring::findOrFail($createdPirId);
+
+    expect($pir->inspectionEntries()->count())->toBe(2);
+    expect($pir->inspectionEntries()->where('iar_number', 'IAR-2001')->where('inspected_by', 'Inspector A')->exists())->toBeTrue();
+    expect($pir->inspectionEntries()->where('iar_number', 'IAR-2001')->where('inspected_by', 'Inspector B')->exists())->toBeTrue();
+});
