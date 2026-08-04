@@ -26,6 +26,12 @@ export function PoLettersStatusChart({ data }: Props) {
     const [period, setPeriod] = useState<'This Week' | 'This Month' | 'This Year'>('This Year');
     const rows = data ?? [];
 
+    const maxDataVal = rows.length > 0 
+        ? Math.max(...rows.map(r => Math.max(r.approved, r.disapproved))) 
+        : 0;
+    const domainMax = Math.max(15, Math.ceil(maxDataVal / 5) * 5);
+    const calculatedTickCount = (domainMax / 5) + 1;
+
     return (
         <div className="rounded-xl border border-sidebar-border/70 bg-white p-4 dark:border-sidebar-border dark:bg-neutral-900">
             <div className="mb-2 flex items-center justify-between">
@@ -75,7 +81,14 @@ export function PoLettersStatusChart({ data }: Props) {
                             axisLine={false}
                             tick={{ fontSize: 12, fill: '#a3a3a3' }}
                         />
-                        <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#a3a3a3' }} />
+                        <YAxis 
+                            tickLine={false} 
+                            axisLine={false} 
+                            tick={{ fontSize: 12, fill: '#a3a3a3' }} 
+                            allowDecimals={false}
+                            domain={[0, domainMax]}
+                            tickCount={calculatedTickCount}
+                        />
                         <Tooltip
                             cursor={{ fill: 'rgba(0,0,0,0.04)' }}
                             contentStyle={{ borderRadius: 8, border: '1px solid #e5e5e5', fontSize: 12 }}

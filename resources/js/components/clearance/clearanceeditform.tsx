@@ -14,7 +14,7 @@ interface OfficeOption {
 interface ClearanceRecord {
     clearance_id: number;
     name: string;
-    office: string;
+    office: string | OfficeOption; // Can be a string or an OfficeOption object due to relation overlap
     claim_date: string;
     received_by: string;
     status: string;
@@ -53,12 +53,12 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
         if (record) {
             setData({
                 name: record.name,
-                office: record.office,
+                office: typeof record.office === 'object' && record.office !== null ? record.office.office_code : (record.office || ''),
                 claim_date: record.claim_date,
                 received_by: record.received_by,
                 status: record.status,
-                cleared: record.cleared === true || record.cleared === 'true' || record.cleared === 1 || record.cleared === '1' ? 'true' : 'false',
-                pending: record.pending === true || record.pending === 'true' || record.pending === 1 || record.pending === '1' ? 'true' : 'false',
+                cleared: record.cleared === true || record.cleared === 'true' || record.cleared === '1' ? 'true' : 'false',
+                pending: record.pending === true || record.pending === 'true' || record.pending === '1' ? 'true' : 'false',
                 remarks: record.remarks ?? '',
             });
             setErrors({});

@@ -126,7 +126,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             })
             ->values();
 
-        $poLettersStatus = \App\Models\PoLetterMonitoring::selectRaw("
+        $rawPoLettersStatus = \App\Models\PoLetterMonitoring::selectRaw("
             type_of_letter,
             SUM(CASE WHEN status_of_the_letter = 'APPROVED' THEN 1 ELSE 0 END) as approved_count,
             SUM(CASE WHEN status_of_the_letter = 'DISAPPROVED' THEN 1 ELSE 0 END) as disapproved_count
@@ -134,18 +134,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereIn('type_of_letter', ['EXTENSION', 'WAIVER', 'CANCELLATION', 'REPLACEMENT/ALTERNATIVE OFFER'])
         ->groupBy('type_of_letter')
         ->get()
-        ->map(function ($item) {
-            $type = ucfirst(strtolower($item->type_of_letter));
-            if ($item->type_of_letter === 'REPLACEMENT/ALTERNATIVE OFFER') {
-                $type = 'Replacement';
-            }
+        ->keyBy('type_of_letter');
+
+        $poLettersStatus = collect([
+            'EXTENSION' => 'Extension',
+            'WAIVER' => 'Waiver',
+            'CANCELLATION' => 'Cancellation',
+            'REPLACEMENT/ALTERNATIVE OFFER' => 'Replacement',
+        ])->map(function ($label, $key) use ($rawPoLettersStatus) {
+            $item = $rawPoLettersStatus->get($key);
             return [
-                'type' => $type,
-                'approved' => (int) $item->approved_count,
-                'disapproved' => (int) $item->disapproved_count,
+                'type' => $label,
+                'approved' => $item ? (int) $item->approved_count : 0,
+                'disapproved' => $item ? (int) $item->disapproved_count : 0,
             ];
-        })
-        ->values();
+        })->values();
 
         return Inertia::render('dashboard', [
             'recentActivity' => $recentActivity,

@@ -4,6 +4,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface OfficeOption {
     office_code: string;
@@ -43,7 +44,7 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 function formatBooleanValue(value: boolean | string): string {
-    return value === true || value === 'true' || value === 1 || value === '1' ? 'Yes' : 'No';
+    return value === true || value === 'true' || value === '1' ? 'Yes' : 'No';
 }
 
 export default function ClearanceViewForm({ open, onOpenChange, record }: Props) {
