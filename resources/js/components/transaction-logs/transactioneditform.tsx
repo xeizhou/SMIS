@@ -165,8 +165,6 @@ function SelectField({
     placeholder = 'Select...',
     disabled = false,
     options,
-    onRefresh,
-    isRefreshing = false,
 }: SelectFieldProps) {
     return (
         <div>
@@ -306,6 +304,10 @@ export default function TransactionEditForm({
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    // Snapshot of the type this transaction had when the form was opened.
+    // Used purely to detect whether the user is changing RECEIVE<->ISSUE,
+    // which is treated differently from an ordinary typo correction.
+    const [originalType, setOriginalType] = useState('');
 
     useEffect(() => {
         if (transaction) {
@@ -326,6 +328,7 @@ export default function TransactionEditForm({
                 quantity: String(transaction.quantity),
                 office_code: transaction.office_code,
             });
+            setOriginalType(transaction.transaction_type);
             setErrors({});
         }
     }, [transaction]);
@@ -350,6 +353,12 @@ export default function TransactionEditForm({
         });
     };
 
+    // True only when the user has changed RECEIVE<->ISSUE from what this
+    // transaction originally was. Everything else (reference, quantity,
+    // date, item, fund cluster, office) is treated as an ordinary
+    // in-place correction, regardless of this flag.
+    const isTypeChanged = originalType !== '' && data.transaction_type !== originalType;
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -359,14 +368,18 @@ export default function TransactionEditForm({
 
         setProcessing(true);
 
-        router.put(`/transaction-logs/${transaction.transactionID}`, data, {
-            onSuccess: () => {
-                onOpenChange(false);
-                setErrors({});
-            },
-            onError: (errors) => setErrors(errors),
-            onFinish: () => setProcessing(false),
-        });
+        router.put(
+            `/transaction-logs/${transaction.transactionID}`,
+            { ...data, is_type_changed: isTypeChanged },
+            {
+                onSuccess: () => {
+                    onOpenChange(false);
+                    setErrors({});
+                },
+                onError: (errors) => setErrors(errors),
+                onFinish: () => setProcessing(false),
+            }
+        );
     };
 
     if (!transaction) {
@@ -415,6 +428,15 @@ export default function TransactionEditForm({
                                 placeholder="e.g. RIS No. or PO No."
                             />
                         </div>
+
+                        {isTypeChanged && (
+                            <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                You changed the transaction type from <strong>{originalType}</strong> to{' '}
+                                <strong>{data.transaction_type}</strong>. The original record will be kept
+                                as-is for the audit trail, and a new corrected transaction will be created
+                                instead of overwriting it.
+                            </p>
+                        )}
                     </div>
 
                     {/* Section: Item Details */}
@@ -525,9 +547,13 @@ export default function TransactionEditForm({
                         <Button
                             type="submit"
                             disabled={processing}
-                            style={{ backgroundColor: '#612A35' }}
+                            style={{ backgroundColor: isTypeChanged ? '#92400e' : '#612A35' }}
                         >
-                            {processing ? 'Saving...' : 'Update Transaction'}
+                            {processing
+                                ? 'Saving...'
+                                : isTypeChanged
+                                  ? 'Save as Correcting Transaction'
+                                  : 'Update Transaction'}
                         </Button>
                     </div>
                 </form>

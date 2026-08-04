@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FundCluster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -19,6 +20,11 @@ class StockItemsListController extends Controller
      * report (inner join) — flagging that as a data-quality signal rather
      * than silently falling back to an arbitrary unit.
      *
+     * "Issued" / "Unissued" filter: an item is considered "issued" if it
+     * has at least one ISSUE transaction logged against it, and "unissued"
+     * if it has none. This is inferred from transaction history, since
+     * there's no dedicated status column for it.
+     *
      * CAVEAT: `transactions.item_name` is a plain-text snapshot, not a
      * foreign key to `stock_items`. This report joins on that text
      * match, which is the only link the current schema provides. If two
@@ -31,6 +37,8 @@ class StockItemsListController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $fundCluster = $request->input('fund_cluster');
+        $issuedStatus = $request->input('issued_status'); // 'issued' | 'unissued' | null/all
 
         $query = DB::table('stock_items as i')
             ->join('stock_item_unit as siu', function ($join) {
@@ -38,21 +46,24 @@ class StockItemsListController extends Controller
                     ->where('siu.is_default', '=', true);
             })
             ->join('units as u', 'u.unitID', '=', 'siu.unitID')
+            ->leftJoin('fund_clusters as fc', 'fc.fund_cluster_id', '=', 'i.fund_cluster_id')
             ->leftJoin('transactions as t', 't.item_name', '=', 'i.item_name')
             ->select(
-                'i.stock_no',
                 'i.item_name',
                 'i.description as item_description',
                 'u.unitID',
                 'u.unit_name',
                 'u.unit_short_name',
+                'fc.fund_cluster_id',
+                'fc.fund_description',
                 DB::raw("COALESCE(SUM(
                     CASE
                         WHEN t.transaction_type = 'RECEIVE' THEN t.quantity
                         WHEN t.transaction_type = 'ISSUE' THEN -t.quantity
                         ELSE 0
                     END
-                ), 0) as balance_per_stock_card")
+                ), 0) as balance_per_stock_card"),
+                DB::raw("SUM(CASE WHEN t.transaction_type = 'ISSUE' THEN 1 ELSE 0 END) as issue_count")
             )
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
@@ -60,29 +71,38 @@ class StockItemsListController extends Controller
                         ->orWhere('i.stock_no', 'like', "%{$search}%");
                 });
             })
+            ->when($fundCluster && $fundCluster !== 'all', function ($q) use ($fundCluster) {
+                $q->where('i.fund_cluster_id', $fundCluster);
+            })
             ->groupBy(
                 'i.stock_no',
                 'i.item_name',
                 'i.description',
                 'u.unitID',
                 'u.unit_name',
-                'u.unit_short_name'
+                'u.unit_short_name',
+                'fc.fund_cluster_id',
+                'fc.fund_description'
             )
             ->orderBy('i.item_name');
 
-        $items = $query->paginate(10)->withQueryString();
+        // Filter by issued/unissued after aggregation (HAVING, since it
+        // depends on the aggregated issue_count).
+        if ($issuedStatus === 'issued') {
+            $query->having('issue_count', '>', 0);
+        } elseif ($issuedStatus === 'unissued') {
+            $query->having('issue_count', '=', 0);
+        }
 
-        // Quantity per physical count has no backing feature/table yet —
-        // always null until a physical count module exists.
-        $items->getCollection()->transform(function ($item) {
-            $item->quantity_per_physical_count = null;
-            return $item;
-        });
+        $items = $query->paginate(10)->withQueryString();
 
         return Inertia::render('stock-items-list/index', [
             'items' => $items,
+            'fundClusters' => FundCluster::orderBy('fund_cluster_id')->get(),
             'filters' => [
                 'search' => $search,
+                'fund_cluster' => $fundCluster ?? 'all',
+                'issued_status' => $issuedStatus ?? 'all',
             ],
         ]);
     }
