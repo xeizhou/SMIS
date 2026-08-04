@@ -84,7 +84,7 @@ class StockItemsListController extends Controller
                 'fc.fund_cluster_id',
                 'fc.fund_description'
             )
-            ->orderBy('i.item_name');
+            ->orderByDesc(DB::raw('MAX(t.transaction_date)'));
 
         // Filter by issued/unissued after aggregation (HAVING, since it
         // depends on the aggregated issue_count).
