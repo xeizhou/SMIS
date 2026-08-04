@@ -15,7 +15,10 @@ class RrspMonitoring extends Model
 
     public function getActivityUrl()
     {
-        return route('rrsp-monitoring.index', ['highlight_search' => $this->rrsp_no]);
+        return route('rrsp-monitoring.index', [
+            'highlight_search' => $this->rrsp_no,
+            'highlight_id' => $this->id,
+        ]);
     }
     protected $table = 'rrsp_monitoring';
 
@@ -42,8 +45,5 @@ class RrspMonitoring extends Model
         return $this->hasMany(RegspiMonitoring::class, 'rrsp_no', 'rrsp_no');
     }
 
-    public function getActivityUrl()
-    {
-        return route('rrsp-monitoring.index') . '?highlight_id=' . $this->id;
-    }
+
 }

@@ -17,7 +17,10 @@ class Delivery extends Model
 
     public function getActivityUrl()
     {
-        return route('deliveries.index', ['highlight_search' => $this->po_number]);
+        return route('deliveries.index', [
+            'highlight_search' => $this->po_number,
+            'highlight_id' => $this->id,
+        ]);
     }
 
     protected $table = 'delivery';
@@ -146,8 +149,5 @@ class Delivery extends Model
         );
     }
 
-    public function getActivityUrl()
-    {
-        return route('deliveries.index') . '?highlight_id=' . $this->id;
-    }
+
 }

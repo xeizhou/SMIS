@@ -15,7 +15,10 @@ class RegspiMonitoring extends Model
 
     public function getActivityUrl()
     {
-        return route('regspi-monitoring.index', ['highlight_search' => $this->ics_no ?? $this->rrsp_no]);
+        return route('regspi-monitoring.index', [
+            'highlight_search' => $this->ics_no ?? $this->rrsp_no,
+            'highlight_id' => $this->id,
+        ]);
     }
     protected $table = 'regspi_monitoring';
 
@@ -55,8 +58,5 @@ class RegspiMonitoring extends Model
         return $this->belongsTo(FundCluster::class, 'fund_cluster_id', 'fund_cluster_id');
     }
 
-    public function getActivityUrl()
-    {
-        return route('regspi-monitoring.index') . '?highlight_id=' . $this->id;
-    }
+
 }

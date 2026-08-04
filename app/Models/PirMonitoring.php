@@ -16,8 +16,10 @@ class PirMonitoring extends Model
 
     public function getActivityUrl()
     {
-        return route('iar.index', ['highlight_search' => $this->po_number]); // Change to 'iar.index'
-
+        return route('iar.index', [
+            'highlight_search' => $this->po_number,
+            'highlight_id' => $this->id,
+        ]);
     }
     protected $table = 'pir_monitoring';
 
@@ -134,8 +136,5 @@ class PirMonitoring extends Model
         );
     }
 
-    public function getActivityUrl()
-    {
-        return route('iar.index') . '?highlight_id=' . $this->id;
-    }
+
 }

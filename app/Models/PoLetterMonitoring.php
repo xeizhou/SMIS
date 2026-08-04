@@ -18,7 +18,10 @@ class PoLetterMonitoring extends Model
 
     public function getActivityUrl()
     {
-        return route('po-letter-monitoring.index', ['highlight_search' => $this->po_number ?? $this->reference_no]);
+        return route('po-letter-monitoring.index', [
+            'highlight_search' => $this->po_number ?? $this->reference_no,
+            'highlight_id' => $this->id,
+        ]);
     }
     protected $table = 'po_letter_monitoring';
 
@@ -111,8 +114,5 @@ class PoLetterMonitoring extends Model
         );
     }
 
-    public function getActivityUrl()
-    {
-        return route('po-letter-monitoring.index') . '?highlight_id=' . $this->id;
-    }
+
 }

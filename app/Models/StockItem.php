@@ -16,7 +16,10 @@ class StockItem extends Model
 
     public function getActivityUrl()
     {
-            return route('stock-items.index', ['highlight_search' => $this->stock_no]);
+        return route('stock-items.index', [
+            'highlight_search' => $this->stock_no,
+            'highlight_id' => $this->id,
+        ]);
     }
     protected $table = 'stock_items';
 
@@ -60,8 +63,5 @@ class StockItem extends Model
                     ->withPivot('is_default');
     }
 
-    public function getActivityUrl()
-    {
-        return route('stock-items.index') . '?highlight_id=' . $this->id;
-    }
+
 }
