@@ -29,12 +29,17 @@ import {
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 
+interface RrspItem {
+    id: number;
+    item_description: string;
+    property_no: string | null;
+    cost: number | null;
+}
+
 interface RrspOption {
+    id: number;
     rrsp_no: string;
-    item_description?: string;
-    property_no?: string;
-    amount?: number | string;
-    // Include any other fields your RRSP object might populate
+    items?: RrspItem[];
 }
 
 interface FundClusterOption {
@@ -97,6 +102,7 @@ function Field({
                 placeholder={placeholder}
                 readOnly={readOnly}
                 disabled={disabled}
+                className={readOnly ? "bg-muted text-muted-foreground cursor-not-allowed" : ""}
             />
 
             {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
@@ -323,6 +329,7 @@ function calculateBalance(values: Record<string, string>) {
 
 export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClusters = [] }: Props) {
     const [refreshingField, setRefreshingField] = useState<string | null>(null);
+    const [selectedItem, setSelectedItem] = useState<string>('');
 
     const handleRefreshData = (field: string) => {
         setRefreshingField(field);
@@ -340,6 +347,7 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
         if (open) {
             setData(emptyForm);
             setErrors({});
+            setSelectedItem('');
         }
     }, [open]);
 
@@ -363,16 +371,40 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
 
     const handleRrspChange = (value: string) => {
         const selected = rrsps.find((r) => r.rrsp_no === value);
-        if (selected) {
+        
+        if (selected && selected.items && selected.items.length === 1) {
+            const item = selected.items[0];
             setData((prev) => ({
                 ...prev,
                 rrsp_no: value,
-                item_description: selected.item_description || prev.item_description,
-                semi_expendable_property_no: selected.property_no || prev.semi_expendable_property_no,
-                amount: selected.amount ? String(selected.amount) : prev.amount,
+                item_description: item.item_description || prev.item_description,
+                semi_expendable_property_no: item.property_no || prev.semi_expendable_property_no,
+                amount: item.cost ? String(item.cost) : prev.amount,
             }));
+            setSelectedItem(String(item.id));
         } else {
-            setData((prev) => ({ ...prev, rrsp_no: value }));
+            setData((prev) => ({ 
+                ...prev, 
+                rrsp_no: value,
+                item_description: '',
+                semi_expendable_property_no: '',
+                amount: ''
+            }));
+            setSelectedItem('');
+        }
+    };
+
+    const handleItemChange = (value: string) => {
+        setSelectedItem(value);
+        const rrsp = rrsps.find((r) => r.rrsp_no === data.rrsp_no);
+        const item = rrsp?.items?.find((i) => String(i.id) === value);
+        if (item) {
+            setData((prev) => ({
+                ...prev,
+                item_description: item.item_description || prev.item_description,
+                semi_expendable_property_no: item.property_no || prev.semi_expendable_property_no,
+                amount: item.cost ? String(item.cost) : prev.amount,
+            }));
         }
     };
 
@@ -448,6 +480,25 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                         isRefreshing={refreshingField === 'rrsps'}
                                     />
 
+                                    {(() => {
+                                        const selectedRrsp = rrsps.find((r) => r.rrsp_no === data.rrsp_no);
+                                        if (selectedRrsp && selectedRrsp.items && selectedRrsp.items.length > 1) {
+                                            return (
+                                                <SelectField
+                                                    label="Select Item from RRSP"
+                                                    value={selectedItem}
+                                                    onChange={handleItemChange}
+                                                    placeholder="Select item..."
+                                                    options={selectedRrsp.items.map((item) => ({
+                                                        value: String(item.id),
+                                                        label: item.item_description || 'Unknown Item'
+                                                    }))}
+                                                />
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+
                                     <SelectField
                                         label="Fund Cluster"
                                         value={data.fund_cluster_id}
@@ -469,7 +520,8 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                         onChange={handleChange}
                                         error={errors.semi_expendable_property_no}
                                         required
-                                        placeholder="e.g. 223-01-08-00-0000"
+                                        readOnly
+                                        placeholder="Auto-filled from RRSP"
                                     />
                                     <Field
                                         label="Item Description"
@@ -477,6 +529,7 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                         value={data.item_description}
                                         onChange={handleChange}
                                         error={errors.item_description}
+                                        readOnly
                                         placeholder="Auto-filled from RRSP"
                                     />
                                 </div>
@@ -578,7 +631,8 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                         onChange={handleChange}
                                         error={errors.amount}
                                         required
-                                        placeholder="e.g. 3800.00"
+                                        readOnly
+                                        placeholder="Auto-filled from RRSP"
                                     />
                                     <Field
                                         label="Remarks"

@@ -46,7 +46,8 @@ class RegSPIController extends Controller
                 'rrsp_no' => $rrspNo,
                 'fund_cluster_id' => $fundClusterId,
             ],
-            'rrsps' => RrspMonitoring::select('rrsp_no')
+            'rrsps' => RrspMonitoring::select('id', 'rrsp_no')
+                ->with('items')
                 ->orderByDesc('created_at')
                 ->get(),
             'fundClusters' => FundCluster::select('fund_cluster_id', 'fund_description')
@@ -80,10 +81,7 @@ class RegSPIController extends Controller
             'remarks' => ['nullable', 'string', 'max:255'],
         ]);
 
-        if (! empty($validated['rrsp_no'])) {
-            $rrsp = RrspMonitoring::where('rrsp_no', $validated['rrsp_no'])->first();
-            $validated['item_description'] = $rrsp?->item_description ?? $validated['item_description'];
-        }
+
 
         $validated['issued_qty'] = (int) ($validated['issued_qty'] ?? 0);
         $validated['returned_qty'] = (int) ($validated['returned_qty'] ?? 0);
@@ -121,10 +119,7 @@ class RegSPIController extends Controller
             'remarks' => ['nullable', 'string', 'max:255'],
         ]);
 
-        if (! empty($validated['rrsp_no'])) {
-            $rrsp = RrspMonitoring::where('rrsp_no', $validated['rrsp_no'])->first();
-            $validated['item_description'] = $rrsp?->item_description ?? $validated['item_description'];
-        }
+
 
         $validated['issued_qty'] = (int) ($validated['issued_qty'] ?? 0);
         $validated['returned_qty'] = (int) ($validated['returned_qty'] ?? 0);
