@@ -17,17 +17,9 @@ return new class extends Migration
                 ->constrained('units', 'unitID')
                 ->nullOnDelete();
 
-            $table->integer('on_hand_quantity')->default(0);
-            $table->integer('re_order_point')->default(0);
-
-            $table->string('fund_cluster_id', 20)->nullable();
             $table->string('link', 500)->nullable();
-            $table->text('remarks')->nullable();
+            
             $table->timestamps();
-
-            $table->foreign('fund_cluster_id', 'fk_stockitems_fund_cluster')
-                ->references('fund_cluster_id')->on('fund_clusters')
-                ->nullOnDelete();
         });
     }
 
