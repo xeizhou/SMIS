@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\FundCluster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -37,7 +36,6 @@ class StockItemsListController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
-        $fundCluster = $request->input('fund_cluster');
         $issuedStatus = $request->input('issued_status'); // 'issued' | 'unissued' | null/all
 
         $query = DB::table('stock_items as i')
@@ -46,7 +44,6 @@ class StockItemsListController extends Controller
                     ->where('siu.is_default', '=', true);
             })
             ->join('units as u', 'u.unitID', '=', 'siu.unitID')
-            ->leftJoin('fund_clusters as fc', 'fc.fund_cluster_id', '=', 'i.fund_cluster_id')
             ->leftJoin('transactions as t', 't.item_name', '=', 'i.item_name')
             ->select(
                 'i.item_name',
@@ -54,8 +51,6 @@ class StockItemsListController extends Controller
                 'u.unitID',
                 'u.unit_name',
                 'u.unit_short_name',
-                'fc.fund_cluster_id',
-                'fc.fund_description',
                 DB::raw("COALESCE(SUM(
                     CASE
                         WHEN t.transaction_type = 'RECEIVE' THEN t.quantity
@@ -71,18 +66,13 @@ class StockItemsListController extends Controller
                         ->orWhere('i.stock_no', 'like', "%{$search}%");
                 });
             })
-            ->when($fundCluster && $fundCluster !== 'all', function ($q) use ($fundCluster) {
-                $q->where('i.fund_cluster_id', $fundCluster);
-            })
             ->groupBy(
                 'i.stock_no',
                 'i.item_name',
                 'i.description',
                 'u.unitID',
                 'u.unit_name',
-                'u.unit_short_name',
-                'fc.fund_cluster_id',
-                'fc.fund_description'
+                'u.unit_short_name'
             )
             ->orderByDesc(DB::raw('MAX(t.transaction_date)'));
 
@@ -98,10 +88,8 @@ class StockItemsListController extends Controller
 
         return Inertia::render('stock-items-list/index', [
             'items' => $items,
-            'fundClusters' => FundCluster::orderBy('fund_cluster_id')->get(),
             'filters' => [
                 'search' => $search,
-                'fund_cluster' => $fundCluster ?? 'all',
                 'issued_status' => $issuedStatus ?? 'all',
             ],
         ]);

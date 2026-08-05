@@ -11,19 +11,12 @@ import {
 } from '@/components/ui/select';
 import { useState } from 'react';
 
-interface FundCluster {
-    fund_cluster_id: string;
-    fund_description: string;
-}
-
 interface StockCardItem {
     item_name: string;
     item_description: string | null;
     unitID: number;
     unit_name: string;
     unit_short_name: string;
-    fund_cluster_id: string | null;
-    fund_description: string | null;
     balance_per_stock_card: number;
 }
 
@@ -38,27 +31,23 @@ interface PaginatedItems {
 
 interface Filters {
     search: string | null;
-    fund_cluster: string | null;
     issued_status: string | null;
 }
 
 interface Props {
     items: PaginatedItems;
-    fundClusters: FundCluster[];
     filters: Filters;
 }
 
-export default function Index({ items, fundClusters, filters }: Props) {
+export default function Index({ items, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
-    const [fundCluster, setFundCluster] = useState(filters.fund_cluster ?? 'all');
     const [issuedStatus, setIssuedStatus] = useState(filters.issued_status ?? 'all');
 
-    const applyFilters = (overrides: Partial<{ search: string; fund_cluster: string; issued_status: string }> = {}) => {
+    const applyFilters = (overrides: Partial<{ search: string; issued_status: string }> = {}) => {
         router.get(
             '/stock-items-list',
             {
                 search,
-                fund_cluster: fundCluster,
                 issued_status: issuedStatus,
                 ...overrides,
             },
@@ -77,7 +66,6 @@ export default function Index({ items, fundClusters, filters }: Props) {
 
     const handleClear = () => {
         setSearch('');
-        setFundCluster('all');
         setIssuedStatus('all');
         router.get(
             '/stock-items-list',
@@ -121,26 +109,6 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                 className="pl-9"
                             />
                         </div>
-
-                        <Select
-                            value={fundCluster}
-                            onValueChange={(value) => {
-                                setFundCluster(value);
-                                applyFilters({ fund_cluster: value });
-                            }}
-                        >
-                            <SelectTrigger className="w-[220px]">
-                                <SelectValue placeholder="All Fund Clusters" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Fund Clusters</SelectItem>
-                                {fundClusters.map((fc) => (
-                                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
-                                        {fc.fund_cluster_id} - {fc.fund_description}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
 
                         <Select
                             value={issuedStatus}

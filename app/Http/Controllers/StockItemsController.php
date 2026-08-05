@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\FundCluster;
 use App\Models\StockItem;
 use App\Models\Unit;
 use Illuminate\Http\Request;
@@ -14,8 +13,7 @@ class StockItemsController extends Controller
     {
         $search = $request->input('search');
 
-        // Changed 'unit' to 'units' to eager load the many-to-many relationship
-        $query = StockItem::with(['units', 'fundCluster'])
+        $query = StockItem::with(['units'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
                     $sub->where('stock_no', 'like', "%{$search}%")
@@ -23,10 +21,6 @@ class StockItemsController extends Controller
                         ->orWhere('description', 'like', "%{$search}%");
                 });
             });
-
-        if ($request->filled('fund_cluster_id') && $request->fund_cluster_id !== 'all') {
-            $query->where('fund_cluster_id', $request->fund_cluster_id);
-        }
 
         // Show newest stock items first
         $stockItems = $query->orderByDesc('created_at')
@@ -37,10 +31,8 @@ class StockItemsController extends Controller
             'stockItems' => $stockItems,
             // Lists used in filters: show newest entries first where applicable
             'units' => Unit::orderByDesc('unitID')->get(),
-            'fundClusters' => FundCluster::orderByDesc('created_at')->get(),
             'filters' => [
                 'search' => $search,
-                'fund_cluster_id' => $request->input('fund_cluster_id', 'all'),
             ],
         ]);
     }
@@ -51,12 +43,8 @@ class StockItemsController extends Controller
             'stock_no' => 'required|string|max:255|unique:stock_items,stock_no',
             'item_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:255',
-            'on_hand_quantity' => 'required|integer|min:0',
-            're_order_point' => 'required|integer|min:0',
-            'fund_cluster_id' => 'nullable|exists:fund_clusters,fund_cluster_id',
-            'remarks' => 'nullable|string',
             
-            // New validation for the units array
+            // Validation for the units array
             'units' => 'required|array|min:1',
             'units.*.unitID' => 'required|exists:units,unitID',
             'units.*.is_default' => 'required|boolean',
@@ -79,12 +67,8 @@ class StockItemsController extends Controller
         $validated = $request->validate([
             'item_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:255',
-            'on_hand_quantity' => 'required|integer|min:0',
-            're_order_point' => 'required|integer|min:0',
-            'fund_cluster_id' => 'nullable|exists:fund_clusters,fund_cluster_id',
-            'remarks' => 'nullable|string',
 
-            // New validation for the units array
+            // Validation for the units array
             'units' => 'required|array|min:1',
             'units.*.unitID' => 'required|exists:units,unitID',
             'units.*.is_default' => 'required|boolean',

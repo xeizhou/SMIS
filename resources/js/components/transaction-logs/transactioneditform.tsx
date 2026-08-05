@@ -547,7 +547,7 @@ export default function TransactionEditForm({
                         <Button
                             type="submit"
                             disabled={processing}
-                            style={{ backgroundColor: isTypeChanged ? '#92400e' : '#612A35' }}
+                            style={{ backgroundColor: isTypeChanged ? '#612A35' : '#612A35' }}
                         >
                             {processing
                                 ? 'Saving...'

@@ -10,13 +10,6 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectTrigger,
-    SelectValue,
-    SelectContent,
-    SelectItem,
-} from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
     Command,
@@ -37,21 +30,11 @@ interface Unit {
     };
 }
 
-interface FundCluster {
-    fund_cluster_id: string;
-    fund_description: string;
-}
-
 interface StockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
-    on_hand_quantity: number;
-    re_order_point: number;
-    fund_cluster_id: string | null;
-    remarks: string | null;
     units?: Unit[];
-    fund_cluster: FundCluster | null;
 }
 
 interface Props {
@@ -59,7 +42,6 @@ interface Props {
     onOpenChange: (open: boolean) => void;
     stock: StockItem | null;
     units: Unit[];
-    fundClusters: FundCluster[];
 }
 
 interface FieldProps {
@@ -203,19 +185,15 @@ export default function StockItemEditForm({
     onOpenChange,
     stock,
     units,
-    fundClusters,
 }: Props) {
     const [data, setData] = useState({
         item_name: '',
         description: '',
-        on_hand_quantity: '0',
-        re_order_point: '0',
-        fund_cluster_id: '',
-        remarks: '',
         units: [{ unitID: '', is_default: true }],
     });
     
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         if (stock) {
@@ -230,13 +208,10 @@ export default function StockItemEditForm({
             setData({
                 item_name: stock.item_name,
                 description: stock.description ?? '',
-                on_hand_quantity: String(stock.on_hand_quantity),
-                re_order_point: String(stock.re_order_point),
-                fund_cluster_id: stock.fund_cluster_id ?? '',
-                remarks: stock.remarks ?? '',
                 units: mappedUnits,
             });
             setErrors({});
+            setIsProcessing(false);
         }
     }, [stock, open]);
 
@@ -284,11 +259,18 @@ export default function StockItemEditForm({
         e.preventDefault();
         if (!stock) return;
 
+        setIsProcessing(true);
+
         router.put(`/stock-items/${stock.stock_no}`, data, {
             onSuccess: () => {
                 onOpenChange(false);
             },
-            onError: (errors) => setErrors(errors),
+            onError: (errors) => {
+                setErrors(errors);
+            },
+            onFinish: () => {
+                setIsProcessing(false);
+            }
         });
     };
 
@@ -299,183 +281,121 @@ export default function StockItemEditForm({
             <DialogContent className="max-w-[1000px] w-[95vw] max-h-[90vh] overflow-hidden p-0">
                 <ScrollArea className="max-h-[95vh] w-full">
                     <div className="p-6">
-                <DialogHeader>
-                    <DialogTitle>Edit Stock Item Record — {stock?.stock_no}</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="mt-4 space-y-8">
-                    {/* Section: Item Details */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Item Details</h3>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <Field
-                                label="Item Name"
-                                name="item_name"
-                                value={data.item_name}
-                                onChange={handleChange}
-                                error={errors.item_name}
-                                required
-                                placeholder="e.g. Bond Paper A4"
-                            />
-                            <Field
-                                label="Description"
-                                name="description"
-                                value={data.description}
-                                onChange={handleChange}
-                                error={errors.description}
-                                placeholder="e.g. 70gsm, 500 sheets per ream"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Section: Units Configuration */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Units Configuration</h3>
-                        <div className="rounded-lg border p-4 bg-muted/30">
-                            <label className="mb-3 block text-sm font-semibold text-foreground">
-                                Units Configuration <span className="text-red-500">*</span>
-                            </label>
-                            
-                            <div className="space-y-3">
-                                {data.units.map((unitObj, index) => (
-                                    <div key={index} className="flex items-center gap-3">
-                                        <div className="flex flex-col items-center justify-center gap-1">
-                                            <input
-                                                type="radio"
-                                                name="edit_default_unit"
-                                                checked={unitObj.is_default}
-                                                onChange={() => handleSetDefaultUnit(index)}
-                                                className="size-4 cursor-pointer accent-[#612A35]"
-                                                title="Set as Default Table Unit"
-                                            />
-                                            {unitObj.is_default && <span className="text-[10px] text-muted-foreground font-semibold">Def.</span>}
-                                        </div>
-                                        
-                                        <div className="flex-1">
-                                            <SearchableSelect
-                                                value={unitObj.unitID}
-                                                onChange={(val) => handleUnitChange(index, val)}
-                                                placeholder="Search unit..."
-                                                options={units.map((unit) => ({
-                                                    value: String(unit.unitID),
-                                                    label: `${unit.unit_name} (${unit.unit_short_name})`
-                                                }))}
-                                                error={errors[`units.${index}.unitID`] ? "Required" : undefined}
-                                            />
-                                        </div>
-
-                                        {data.units.length > 1 && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => removeUnitRow(index)}
-                                                className="text-red-500 hover:bg-red-50 hover:text-red-700 h-10 w-10 shrink-0"
-                                            >
-                                                <Trash2 className="size-4" />
-                                            </Button>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {errors.units && (
-                                <p className="mt-2 text-xs text-red-500">{errors.units}</p>
-                            )}
-
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={addUnitRow}
-                                className="mt-4 w-full border-dashed"
-                            >
-                                <Plus className="mr-2 size-4" />
-                                Add Another Unit
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Section: Inventory Details */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Inventory Details</h3>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <Field
-                                label="On Hand Qty"
-                                name="on_hand_quantity"
-                                type="number"
-                                min="0"
-                                value={data.on_hand_quantity}
-                                onChange={handleChange}
-                                error={errors.on_hand_quantity}
-                            />
-                            <Field
-                                label="Re-order Point"
-                                name="re_order_point"
-                                type="number"
-                                min="0"
-                                value={data.re_order_point}
-                                onChange={handleChange}
-                                error={errors.re_order_point}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Section: Additional Info */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Additional Info</h3>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <DialogHeader>
+                            <DialogTitle>Edit Stock Item Record — {stock?.stock_no}</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleSubmit} className="mt-4 space-y-8">
+                            {/* Section: Item Details */}
                             <div>
-                                <label className={labelClass}>Fund Cluster</label>
-                                <Select
-                                    value={data.fund_cluster_id}
-                                    onValueChange={(value) =>
-                                        setData({ ...data, fund_cluster_id: value })
-                                    }
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="-- Select Fund Cluster --" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {fundClusters.map((fc) => (
-                                            <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
-                                                {fc.fund_cluster_id} - {fc.fund_description}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {errors.fund_cluster_id && (
-                                    <p className="mt-1 text-xs text-red-500">{errors.fund_cluster_id}</p>
-                                )}
+                                <h3 className={sectionTitleClass}>Item Details</h3>
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <Field
+                                        label="Item Name"
+                                        name="item_name"
+                                        value={data.item_name}
+                                        onChange={handleChange}
+                                        error={errors.item_name}
+                                        required
+                                        placeholder="e.g. Bond Paper A4"
+                                    />
+                                    <Field
+                                        label="Description"
+                                        name="description"
+                                        value={data.description}
+                                        onChange={handleChange}
+                                        error={errors.description}
+                                        placeholder="e.g. 70gsm, 500 sheets per ream"
+                                    />
+                                </div>
                             </div>
 
-                            <Field
-                                label="Remarks"
-                                name="remarks"
-                                value={data.remarks}
-                                onChange={handleChange}
-                                error={errors.remarks}
-                                placeholder="Optional notes"
-                            />
-                        </div>
-                    </div>
+                            {/* Section: Units Configuration */}
+                            <div>
+                                <h3 className={sectionTitleClass}>Units Configuration</h3>
+                                <div className="rounded-lg border p-4 bg-muted/30">
+                                    <label className="mb-3 block text-sm font-semibold text-foreground">
+                                        Units Configuration <span className="text-red-500">*</span>
+                                    </label>
+                                    
+                                    <div className="space-y-3">
+                                        {data.units.map((unitObj, index) => (
+                                            <div key={index} className="flex items-center gap-3">
+                                                <div className="flex flex-col items-center justify-center gap-1">
+                                                    <input
+                                                        type="radio"
+                                                        name="edit_default_unit"
+                                                        checked={unitObj.is_default}
+                                                        onChange={() => handleSetDefaultUnit(index)}
+                                                        className="size-4 cursor-pointer accent-[#612A35]"
+                                                        title="Set as Default Table Unit"
+                                                    />
+                                                    {unitObj.is_default && <span className="text-[10px] text-muted-foreground font-semibold">Def.</span>}
+                                                </div>
+                                                
+                                                <div className="flex-1">
+                                                    <SearchableSelect
+                                                        value={unitObj.unitID}
+                                                        onChange={(val) => handleUnitChange(index, val)}
+                                                        placeholder="Search unit..."
+                                                        options={units.map((unit) => ({
+                                                            value: String(unit.unitID),
+                                                            label: `${unit.unit_name} (${unit.unit_short_name})`
+                                                        }))}
+                                                        error={errors[`units.${index}.unitID`] ? "Required" : undefined}
+                                                    />
+                                                </div>
 
-                    <div className="flex justify-end gap-3 pt-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => onOpenChange(false)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            style={{ backgroundColor: '#612A35' }}
-                        >
-                            Update Stock Item
-                        </Button>
+                                                {data.units.length > 1 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => removeUnitRow(index)}
+                                                        className="text-red-500 hover:bg-red-50 hover:text-red-700 h-10 w-10 shrink-0"
+                                                    >
+                                                        <Trash2 className="size-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {errors.units && (
+                                        <p className="mt-2 text-xs text-red-500">{errors.units}</p>
+                                    )}
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={addUnitRow}
+                                        className="mt-4 w-full border-dashed"
+                                    >
+                                        <Plus className="mr-2 size-4" />
+                                        Add Another Unit
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-6 pb-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => onOpenChange(false)}
+                                    disabled={isProcessing}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    style={{ backgroundColor: '#612A35' }}
+                                    disabled={isProcessing}
+                                >
+                                    {isProcessing ? 'Updating...' : 'Update Stock Item'}
+                                </Button>
+                            </div>
+                        </form>
                     </div>
-                </form>
-            </div>
                 </ScrollArea>
             </DialogContent>
         </Dialog>

@@ -9,13 +9,6 @@ import StockItemEditForm from '@/components/stock-items/stockitemeditform';
 import StockItemViewForm from '@/components/stock-items/stockitemviewform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectTrigger,
-    SelectValue,
-    SelectContent,
-    SelectItem,
-} from '@/components/ui/select';
 
 interface Unit {
     unitID: number;
@@ -26,21 +19,12 @@ interface Unit {
     };
 }
 
-interface FundCluster {
-    fund_cluster_id: string;
-    fund_description: string;
-}
-
 interface StockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
-    on_hand_quantity: number;
-    re_order_point: number;
-    fund_cluster_id: string | null;
     remarks: string | null;
     units?: Unit[];
-    fund_cluster: FundCluster | null;
 }
 
 interface PaginatedStockItems {
@@ -54,24 +38,20 @@ interface PaginatedStockItems {
 
 interface Filters {
     search: string | null;
-    fund_cluster_id: string | null;
 }
 
 interface Props {
     stockItems: PaginatedStockItems;
     units: Unit[];
-    fundClusters: FundCluster[];
     filters: Filters;
 }
 
 export default function Index({
     stockItems,
     units,
-    fundClusters,
     filters,
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
-    const [fundClusterId, setFundClusterId] = useState(filters.fund_cluster_id ?? 'all'); 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [viewOpen, setViewOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -83,7 +63,7 @@ export default function Index({
         e.preventDefault();
         router.get(
             '/stock-items',
-            { search, fund_cluster_id: fundClusterId },
+            { search },
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -94,7 +74,6 @@ export default function Index({
 
     const handleClear = () => {
         setSearch('');
-        setFundClusterId('all');
         router.get(
             '/stock-items',
             {},
@@ -153,34 +132,6 @@ export default function Index({
                             />
                         </div>
 
-                        <Select
-                            value={fundClusterId}
-                            onValueChange={(value) => {
-                                setFundClusterId(value);
-                                router.get(
-                                    '/stock-items',
-                                    { search, fund_cluster_id: value },
-                                    {
-                                        preserveState: true,
-                                        preserveScroll: true,
-                                        replace: true,
-                                    }
-                                );
-                            }}
-                        >
-                            <SelectTrigger className="w-[220px]">
-                                <SelectValue placeholder="All Fund Clusters" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Fund Clusters</SelectItem>
-                                {fundClusters.map((fc) => (
-                                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
-                                        {fc.fund_cluster_id} - {fc.fund_description}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        
                         <Button type="submit" variant="secondary">
                             Search
                         </Button>
@@ -203,7 +154,8 @@ export default function Index({
                 </form>
 
                 {/* Table */}
-                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
+                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden">
+                    <table className="w-full text-sm">
                         <thead
                             className="border-b"
                             style={{ backgroundColor: '#370001' }}
@@ -211,19 +163,15 @@ export default function Index({
                             <tr>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Stock No.</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Item Name</th>
-                                
-                                
-                                <th className="px-4 py-3 text-center font-semibold text-white">On Hand</th>
-                                
-                                
-                                
+                                <th className="px-4 py-3 text-left font-semibold text-white">Description</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Unit(s)</th>
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {stockItems.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-16 text-center">
+                                    <td colSpan={5} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No stock items added yet.
                                         </p>
@@ -234,17 +182,22 @@ export default function Index({
                                 </tr>
                             ) : (
                                 stockItems.data.map((stock) => {
-                                    // Find the default unit, or fallback to the first unit if none is set
-                                    const defaultUnit = stock.units?.find((u) => u.pivot?.is_default) || stock.units?.[0];
-
                                     return (
                                         <tr
                                             key={stock.stock_no}
                                             className="border-b transition-colors hover:bg-muted/40"
                                         >
-                                            <td className="px-4 py-3">{stock.stock_no}</td>
+                                            <td className="px-4 py-3 font-medium">{stock.stock_no}</td>
                                             <td className="px-4 py-3">{stock.item_name}</td>
-                                            <td className="px-4 py-3 text-center">{stock.on_hand_quantity}</td>
+                                            <td className="px-4 py-3">
+                                                {stock.description || '—'}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {stock.units && stock.units.length > 0 
+                                                    ? stock.units.map(u => u.unit_short_name).join(', ') 
+                                                    : '—'
+                                                }
+                                            </td>
                                             <td className="px-4 py-3 text-center">
                                                 <div className="flex items-center justify-center gap-3">
                                                     <button
@@ -278,7 +231,9 @@ export default function Index({
                                 })
                             )}
                         </tbody>
-                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
+                    </table>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
 
                 {stockItems.data.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-1 p-4">
@@ -306,7 +261,6 @@ export default function Index({
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
                 units={units}
-                fundClusters={fundClusters}
             />
             <StockItemViewForm
                 open={viewOpen}
@@ -318,7 +272,6 @@ export default function Index({
                 onOpenChange={setEditOpen}
                 stock={selectedStock}
                 units={units}
-                fundClusters={fundClusters}
             />
             <StockItemDeleteModal
                 open={isDeleteModalOpen}
