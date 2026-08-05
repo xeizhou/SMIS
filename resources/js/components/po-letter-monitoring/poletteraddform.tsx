@@ -39,6 +39,7 @@ interface PoNumberOption {
     supplier_id?: number | string | null;
     po_received_date?: string | null;
     due_date?: string | null;
+    end_user?: string | null;
 }
 
 interface Props {
@@ -424,6 +425,7 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                 delivery_term: String(
                     daysBetween(dateReceivedBySupplier, dueDate),
                 ),
+                office_end_user: chosenPo?.end_user ?? '',
             });
 
             return;
@@ -562,14 +564,11 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                                 placeholder="Auto-filled from PO Number"
                             />
 
-                            <Field
+                            <LockedField
                                 label="Office End User"
-                                name="office_end_user"
                                 value={data.office_end_user}
-                                onChange={handleChange}
                                 error={errors.office_end_user}
-                                placeholder="GSU, OVPAD, etc."
-                                required
+                                placeholder="Auto-filled from PO Number"
                             />
 
                             <SelectField

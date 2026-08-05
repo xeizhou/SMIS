@@ -1223,31 +1223,6 @@ export default function PirAddForm({
                         </div>
                     </div>
 
-                    {/* Group: FOR PAYMENT (FINANCE) */}
-                    <div>
-                        <h3 className={sectionTitleClass}>For Payment (Finance)</h3>
-                        <div className="grid grid-cols-4 gap-6">
-                            <Field
-                                label="IAR Number"
-                                name="iar_number"
-                                value={data.iar_number}
-                                onChange={handleChange}
-                                error={errors.iar_number}
-                                disabled={afterForReleaseDisabled}
-                                placeholder="Enter IAR Number"
-                            />
-                            <Field
-                                label="Date Forwarded to Finance"
-                                name="date_forwarded_to_finance"
-                                type="date"
-                                value={data.date_forwarded_to_finance}
-                                onChange={handleChange}
-                                error={errors.date_forwarded_to_finance}
-                                disabled={afterForReleaseDisabled}
-                            />
-                        </div>
-                    </div>
-
                     {/* Group: STATUS, REMARKS */}
                     <div>
                         <h3 className={sectionTitleClass}>Status & Remarks</h3>
@@ -1262,7 +1237,16 @@ export default function PirAddForm({
                                 placeholder="-- Select Status --"
                                 options={STATUS_OPTIONS}
                             />
-                            <div className="col-span-3">
+                            <Field
+                                label="Date Forwarded to Finance"
+                                name="date_forwarded_to_finance"
+                                type="date"
+                                value={data.date_forwarded_to_finance}
+                                onChange={handleChange}
+                                error={errors.date_forwarded_to_finance}
+                                disabled={afterForReleaseDisabled}
+                            />
+                            <div className="col-span-2">
                                 <Field
                                     label="Remarks"
                                     name="remarks"

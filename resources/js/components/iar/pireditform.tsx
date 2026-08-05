@@ -84,6 +84,11 @@ interface FieldProps {
 const labelClass = 'mb-1 block text-sm text-foreground';
 const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
+const STATUS_OPTIONS = [
+    { value: 'COMPLETED', label: 'COMPLETED' },
+    { value: 'CANCELLED', label: 'CANCELLED' },
+];
+
 function Field({
     label,
     name,
@@ -1246,17 +1251,19 @@ export default function PirEditForm({
                         </div>
                     </div>
 
-                    {/* Group: FOR PAYMENT (FINANCE) */}
+                    {/* Group: STATUS, REMARKS */}
                     <div>
-                        <h3 className={sectionTitleClass}>For Payment (Finance)</h3>
+                        <h3 className={sectionTitleClass}>Status & Remarks</h3>
                         <div className="grid grid-cols-4 gap-6">
-                            <Field
-                                label="IAR Number"
-                                name="iar_number"
-                                value={data.iar_number}
-                                onChange={handleChange}
-                                error={errors.iar_number}
+                            <SelectField
+                                label="Status"
+                                value={data.status}
+                                onChange={handleSelectChange('status')}
+                                error={errors.status}
+                                required
                                 disabled={!forReleaseComplete}
+                                placeholder="-- Select Status --"
+                                options={STATUS_OPTIONS}
                             />
                             <Field
                                 label="Date Forwarded to Finance"
@@ -1267,6 +1274,17 @@ export default function PirEditForm({
                                 error={errors.date_forwarded_to_finance}
                                 disabled={!forReleaseComplete}
                             />
+                            <div className="col-span-2">
+                                <Field
+                                    label="Remarks"
+                                    name="remarks"
+                                    value={data.remarks}
+                                    onChange={handleChange}
+                                    error={errors.remarks}
+                                    placeholder="Optional notes"
+                                    disabled={!forReleaseComplete}
+                                />
+                            </div>
                         </div>
                     </div>
 
