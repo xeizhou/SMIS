@@ -249,10 +249,7 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                 <th className="px-4 py-3 text-left font-semibold text-white">PO Number</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Supplier</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Date of Delivery</th>
-                                
                                 <th className="px-4 py-3 text-left font-semibold text-white">Status</th>
-                                
-                                
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
