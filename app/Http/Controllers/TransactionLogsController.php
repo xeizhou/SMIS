@@ -50,7 +50,7 @@ class TransactionLogsController extends Controller
             'units' => Unit::orderByDesc('unitID')->get(),
             'fundClusters' => FundCluster::orderByDesc('created_at')->get(),
             'offices' => Office::orderByDesc('office_code')->get(),
-            'stockItems' => StockItem::with('units')->orderByDesc('created_at')->get(['stock_no', 'item_name']),
+            'stockItems' => StockItem::with('units')->orderByDesc('created_at')->get(['stock_no', 'item_name', 'description']),
 
             'filters' => [
                 'search' => $search,
@@ -69,6 +69,7 @@ class TransactionLogsController extends Controller
             'fund_cluster' => 'required|string|exists:fund_clusters,fund_cluster_id',
             'transaction_date' => 'required|date',
             'item_name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
             'unitID' => 'required|exists:units,unitID',
             'reference' => 'required|string|max:255',
             'quantity' => 'required|integer|min:0',
@@ -106,6 +107,7 @@ class TransactionLogsController extends Controller
             'fund_cluster' => 'required|string|exists:fund_clusters,fund_cluster_id',
             'transaction_date' => 'required|date',
             'item_name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
             'unitID' => 'required|exists:units,unitID',
             'reference' => 'required|string|max:255',
             'quantity' => 'required|integer|min:0',

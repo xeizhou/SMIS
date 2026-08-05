@@ -48,6 +48,7 @@ interface Office {
 interface StockItem {
     stock_no: string;
     item_name: string;
+    description: string | null;
     units?: {
         unitID: number;
         pivot?: {
@@ -280,6 +281,7 @@ const getEmptyForm = () => {
         fund_cluster: '',
         transaction_date: `${year}-${month}-${day}`,
         item_name: '',
+        description: '',
         unitID: '',
         reference: '',
         quantity: '0',
@@ -357,6 +359,7 @@ export default function TransactionAddForm({
                     setData((prev) => ({
                         ...prev,
                         item_name: '',
+                        description: '',
                         unitID: '',
                         quantity: '0',
                     }));
@@ -433,6 +436,7 @@ export default function TransactionAddForm({
                                             setData((prev) => ({
                                                 ...prev,
                                                 item_name: val,
+                                                description: selectedItem?.description ?? '',
                                                 unitID: defaultUnitID,
                                             }));
                                         }}
@@ -441,7 +445,9 @@ export default function TransactionAddForm({
                                         placeholder="Search & Select Item..."
                                         options={stockItems.map((item) => ({
                                             value: item.item_name,
-                                            label: item.item_name,
+                                            label: item.description
+                                                ? `${item.item_name} - ${item.description}`
+                                                : item.item_name,
                                         }))}
                                     />
                                     <SelectField

@@ -24,6 +24,7 @@ class Transaction extends Model
         'fund_cluster',
         'transaction_date',
         'item_name',
+        'description',
         'unitID',
         'reference',
         'quantity',
