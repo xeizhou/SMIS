@@ -149,7 +149,7 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
     };
 
     const handleView = (record: PoLetterRecord) => {
-        console.log('record.servePo:', record.servePo);
+        console.log('record.servePo:', record.serve_po);
         setSelectedPoLetter(record);
         setViewDialogOpen(true);
     };
@@ -189,10 +189,8 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Filter by Status</SelectItem>
-                                <SelectItem value="PENDING">PENDING</SelectItem>
-                                <SelectItem value="RECEIVED">RECEIVED</SelectItem>
-                                <SelectItem value="FORWARDED">FORWARDED</SelectItem>
-                                <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                                <SelectItem value="APPROVED">APPROVED</SelectItem>
+                                <SelectItem value="DISAPPROVED">DISAPPROVED</SelectItem>
                             </SelectContent>
                         </Select>
 

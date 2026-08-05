@@ -59,7 +59,7 @@ class DeliveriesController extends Controller
                 ->with(['supplier:supplier_id,supplier_name'])
                 ->orderByDesc('created_at')
                 ->get(),
-            'statuses' => ['PENDING', 'PARTIAL', 'COMPLETED', 'CANCELLED'],
+            'statuses' => ['PENDING', 'PARTIAL', 'COMPLETE', 'CANCELLED'],
             'suppliers' => Supplier::select('supplier_id', 'supplier_name')
                 ->orderByDesc('supplier_id')
                 ->get(),
