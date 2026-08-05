@@ -200,46 +200,43 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
                         </div>
 
                         <div className="mt-4 rounded-md border p-4">
-                            <p className="mb-3 text-sm font-medium text-foreground">Inspection Entries</p>
+                            <div className="mb-3 flex items-center justify-between">
+                                <p className="text-sm font-medium text-foreground">Inspection Entries</p>
+                                {inspectionGroups.length > 0 && (
+                                    <span className="text-xs text-muted-foreground">
+                                        {inspectionGroups.length} IAR{inspectionGroups.length > 1 ? 's' : ''}
+                                    </span>
+                                )}
+                            </div>
+
                             {inspectionGroups.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">No inspection entries added yet.</p>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                     {inspectionGroups.map((group, index) => (
-                                        <div key={`${group.iar_number}-${index}`} className="rounded-md border bg-background/50 p-3">
-                                            <p className={labelClass}>Inspection Number</p>
-                                            <p className="mb-3 text-sm font-medium text-foreground">
-                                                {group.iar_number || 'IAR Number'}
-                                            </p>
-                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                                <div>
-                                                    <p className={labelClass}>Inspected By</p>
-                                                    <div className="mt-2 space-y-1">
-                                                        {group.inspectors.length > 0 ? (
-                                                            group.inspectors.map((inspector, inspectorIndex) => (
-                                                                <p key={`${inspector}-${inspectorIndex}`} className={valueClass}>
-                                                                    {inspector || '—'}
-                                                                </p>
-                                                            ))
-                                                        ) : (
-                                                            <p className={valueClass}>—</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <p className={labelClass}>Inspection Date</p>
-                                                    <div className="mt-2 space-y-1">
-                                                        {group.inspection_dates.length > 0 ? (
-                                                            group.inspection_dates.map((date, dateIndex) => (
-                                                                <p key={`${date}-${dateIndex}`} className={valueClass}>
-                                                                    {formatDate(date)}
-                                                                </p>
-                                                            ))
-                                                        ) : (
-                                                            <p className={valueClass}>—</p>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                        <div
+                                            key={`${group.iar_number}-${index}`}
+                                            className="flex flex-wrap items-start gap-4 rounded-md border bg-background/50 p-3 md:flex-nowrap"
+                                        >
+                                            <div className="w-full shrink-0 md:w-40">
+                                                <p className={labelClass}>IAR Number</p>
+                                                <p className={valueClass + ' font-medium'}>{group.iar_number || '—'}</p>
+                                            </div>
+
+                                            <div className="min-w-0 flex-1">
+                                                <p className={labelClass}>Inspected By</p>
+                                                <p className={valueClass}>
+                                                    {group.inspectors.length > 0 ? group.inspectors.join(', ') : '—'}
+                                                </p>
+                                            </div>
+
+                                            <div className="min-w-0 flex-1">
+                                                <p className={labelClass}>Inspection Date</p>
+                                                <p className={valueClass}>
+                                                    {group.inspection_dates.length > 0
+                                                        ? group.inspection_dates.map((d) => formatDate(d)).join(', ')
+                                                        : '—'}
+                                                </p>
                                             </div>
                                         </div>
                                     ))}

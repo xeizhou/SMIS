@@ -124,7 +124,9 @@ class DatabaseSeeder extends Seeder
         }
 
         if (RrspMonitoring::count() === 0) {
-            $rrsps = RrspMonitoring::factory(40)->create();
+            $rrsps = RrspMonitoring::factory(40)
+                ->has(\App\Models\RrspItem::factory()->count(rand(1, 5)), 'items')
+                ->create();
         } else {
             $rrsps = RrspMonitoring::all();
         }
