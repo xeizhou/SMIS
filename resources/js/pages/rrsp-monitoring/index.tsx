@@ -294,31 +294,31 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                         return (
                                             <tbody key={rrsp.id} className="transition-colors hover:bg-muted/40 group border-b border-border">
                                                 <tr className="border-b border-border/50">
-                                                    <td className="px-4 py-3 font-medium border-r" rowSpan={itemsCount}>
+                                                    <td className="px-4 py-3 font-medium" rowSpan={itemsCount}>
                                                         {rrsp.rrspNo}
                                                     </td>
-                                                    <td className="px-4 py-3 border-r">
+                                                    <td className="px-4 py-3">
                                                         {firstItem?.itemDescription ?? '—'}
                                                     </td>
-                                                    <td className="px-4 py-3 border-r">
+                                                    <td className="px-4 py-3">
                                                         {firstItem?.propertyNo ?? '—'}
                                                     </td>
-                                                    <td className="px-4 py-3 border-r" rowSpan={itemsCount}>
+                                                    <td className="px-4 py-3" rowSpan={itemsCount}>
                                                         {rrsp.endUserName ?? '—'}
                                                     </td>
-                                                    <td className="px-4 py-3 border-r">
+                                                    <td className="px-4 py-3">
                                                         {firstItem?.area ?? '—'}
                                                     </td>
-                                                    <td className="px-4 py-3 border-r" rowSpan={itemsCount}>
+                                                    <td className="px-4 py-3" rowSpan={itemsCount}>
                                                         {formatDate(rrsp.dateReceived)}
                                                     </td>
-                                                    <td className="px-4 py-3 text-center border-r">
+                                                    <td className="px-4 py-3 text-center">
                                                         {firstItem?.quantity ?? '—'}
                                                     </td>
-                                                    <td className="px-4 py-3 text-right border-r">
+                                                    <td className="px-4 py-3 text-right">
                                                         {formatCurrency(firstItem?.cost ?? null)}
                                                     </td>
-                                                    <td className="px-4 py-3 border-r">
+                                                    <td className="px-4 py-3">
                                                         {firstItem?.status ?? '—'}
                                                     </td>
                                                     <td className="px-4 py-3" rowSpan={itemsCount}>
@@ -352,22 +352,22 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                                 </tr>
                                                 {rrsp.items && rrsp.items.length > 1 && rrsp.items.slice(1).map((item) => (
                                                     <tr key={item.id} className="border-b border-border/50">
-                                                        <td className="px-4 py-3 border-r">
+                                                        <td className="px-4 py-3">
                                                             {item.itemDescription ?? '—'}
                                                         </td>
-                                                        <td className="px-4 py-3 border-r">
+                                                        <td className="px-4 py-3">
                                                             {item.propertyNo ?? '—'}
                                                         </td>
-                                                        <td className="px-4 py-3 border-r">
+                                                        <td className="px-4 py-3">
                                                             {item.area ?? '—'}
                                                         </td>
-                                                        <td className="px-4 py-3 text-center border-r">
+                                                        <td className="px-4 py-3 text-center">
                                                             {item.quantity ?? '—'}
                                                         </td>
-                                                        <td className="px-4 py-3 text-right border-r">
+                                                        <td className="px-4 py-3 text-right">
                                                             {formatCurrency(item.cost ?? null)}
                                                         </td>
-                                                        <td className="px-4 py-3 border-r">
+                                                        <td className="px-4 py-3">
                                                             {item.status ?? '—'}
                                                         </td>
                                                     </tr>
