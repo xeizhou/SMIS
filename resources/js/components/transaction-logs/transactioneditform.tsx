@@ -48,6 +48,7 @@ interface Office {
 interface StockItem {
     stock_no: string;
     item_name: string;
+    description: string | null;
     units?: {
         unitID: number;
         pivot?: {
@@ -63,6 +64,7 @@ interface Transaction {
     fund_cluster_detail: FundCluster | null;
     transaction_date: string;
     item_name: string;
+    description: string | null;
     unitID: number;
     reference: string;
     quantity: number;
@@ -286,6 +288,7 @@ const emptyForm = {
     fund_cluster: '',
     transaction_date: '',
     item_name: '',
+    description: '',
     unitID: '',
     reference: '',
     quantity: '0',
@@ -323,6 +326,7 @@ export default function TransactionEditForm({
                 fund_cluster: fundClusterId,
                 transaction_date: transaction.transaction_date?.slice(0, 10) ?? '',
                 item_name: transaction.item_name,
+                description: transaction.description ?? '',
                 unitID: String(transaction.unitID),
                 reference: transaction.reference,
                 quantity: String(transaction.quantity),
@@ -460,6 +464,7 @@ export default function TransactionEditForm({
                                     setData((prev) => ({
                                         ...prev,
                                         item_name: val,
+                                        description: selectedItem?.description ?? '',
                                         unitID: defaultUnitID,
                                     }));
                                 }}
@@ -468,7 +473,9 @@ export default function TransactionEditForm({
                                 placeholder="Search & Select Item..."
                                 options={stockItems.map((item) => ({
                                     value: item.item_name,
-                                    label: item.item_name,
+                                    label: item.description
+                                        ? `${item.item_name} - ${item.description}`
+                                        : item.item_name,
                                 }))}
                             />
                             <SelectField

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use App\Models\FundCluster;
 
 class StockItemsListController extends Controller
 {
@@ -37,6 +38,7 @@ class StockItemsListController extends Controller
     {
         $search = $request->input('search');
         $issuedStatus = $request->input('issued_status'); // 'issued' | 'unissued' | null/all
+        $fundClusterId = $request->input('fund_cluster_id'); // null/all or a fund_cluster_id
 
         $query = DB::table('stock_items as i')
             ->join('stock_item_unit as siu', function ($join) {
@@ -58,12 +60,25 @@ class StockItemsListController extends Controller
                         ELSE 0
                     END
                 ), 0) as balance_per_stock_card"),
-                DB::raw("SUM(CASE WHEN t.transaction_type = 'ISSUE' THEN 1 ELSE 0 END) as issue_count")
+                DB::raw("SUM(CASE WHEN t.transaction_type = 'ISSUE' THEN 1 ELSE 0 END) as issue_count"),
+                DB::raw("MAX(t.transaction_date) as last_transaction_date"),
+                // Distinct fund clusters this item has transacted under (sqlite-compatible)
+                DB::raw("GROUP_CONCAT(DISTINCT t.fund_cluster) as fund_cluster_ids")
             )
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
                     $sub->where('i.item_name', 'like', "%{$search}%")
                         ->orWhere('i.stock_no', 'like', "%{$search}%");
+                });
+            })
+            ->when($fundClusterId && $fundClusterId !== 'all', function ($q) use ($fundClusterId) {
+                // Only include items that have at least one transaction
+                // under the selected fund cluster.
+                $q->whereExists(function ($sub) use ($fundClusterId) {
+                    $sub->select(DB::raw(1))
+                        ->from('transactions as t2')
+                        ->whereColumn('t2.item_name', 'i.item_name')
+                        ->where('t2.fund_cluster', $fundClusterId);
                 });
             })
             ->groupBy(
@@ -74,23 +89,41 @@ class StockItemsListController extends Controller
                 'u.unit_name',
                 'u.unit_short_name'
             )
-            ->orderByDesc(DB::raw('MAX(t.transaction_date)'));
+            ->orderByDesc('last_transaction_date');
 
-        // Filter by issued/unissued after aggregation (HAVING, since it
-        // depends on the aggregated issue_count).
+        $issueCountExpr = "SUM(CASE WHEN t.transaction_type = 'ISSUE' THEN 1 ELSE 0 END)";
+
         if ($issuedStatus === 'issued') {
-            $query->having('issue_count', '>', 0);
+            $query->havingRaw("{$issueCountExpr} > 0");
         } elseif ($issuedStatus === 'unissued') {
-            $query->having('issue_count', '=', 0);
+            $query->havingRaw("{$issueCountExpr} = 0");
         }
 
         $items = $query->paginate(10)->withQueryString();
 
+        // Attach human-readable fund cluster descriptions per row.
+        $fundClusters = FundCluster::orderBy('fund_cluster_id')->get(['fund_cluster_id', 'fund_description']);
+        $fundClusterMap = $fundClusters->keyBy('fund_cluster_id');
+
+        $items->getCollection()->transform(function ($row) use ($fundClusterMap) {
+            $ids = $row->fund_cluster_ids ? array_unique(explode(',', $row->fund_cluster_ids)) : [];
+            $row->fund_clusters = array_values(array_map(function ($id) use ($fundClusterMap) {
+                return [
+                    'fund_cluster_id' => $id,
+                    'fund_description' => $fundClusterMap->get($id)?->fund_description,
+                ];
+            }, $ids));
+            unset($row->fund_cluster_ids);
+            return $row;
+        });
+
         return Inertia::render('stock-items-list/index', [
             'items' => $items,
+            'fundClusters' => $fundClusters,
             'filters' => [
                 'search' => $search,
                 'issued_status' => $issuedStatus ?? 'all',
+                'fund_cluster_id' => $fundClusterId ?? 'all',
             ],
         ]);
     }

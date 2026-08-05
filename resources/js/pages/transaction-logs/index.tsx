@@ -36,6 +36,7 @@ interface Office {
 interface StockItem {
     stock_no: string;
     item_name: string;
+    description: string | null;
     units?: {
         unitID: number;
         pivot?: {
@@ -51,6 +52,7 @@ interface Transaction {
     fund_cluster_detail: FundCluster | null;
     transaction_date: string;
     item_name: string;
+    description: string | null;
     unitID: number;
     reference: string;
     quantity: number;
@@ -282,7 +284,10 @@ export default function Index({
                                             </span>
                                         </td>
                                         <td className="px-4 py-3">{formatDate(tx.transaction_date)}</td>
-                                        <td className="px-4 py-3">{tx.item_name}</td>
+                                        <td className="px-4 py-3">
+                                            {tx.item_name}
+                                            {tx.description ? ` - ${tx.description}` : ''}
+                                        </td>
                                         <td className="px-4 py-3">{tx.unit?.unit_short_name ?? '—'}</td>
                                         <td className="px-4 py-3 text-center">{tx.quantity}</td>
                                         <td className="px-4 py-3">{tx.reference}</td>

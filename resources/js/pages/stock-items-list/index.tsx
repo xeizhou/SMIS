@@ -11,6 +11,11 @@ import {
 } from '@/components/ui/select';
 import { useState } from 'react';
 
+interface FundClusterRef {
+    fund_cluster_id: string;
+    fund_description: string | null;
+}
+
 interface StockCardItem {
     item_name: string;
     item_description: string | null;
@@ -18,6 +23,7 @@ interface StockCardItem {
     unit_name: string;
     unit_short_name: string;
     balance_per_stock_card: number;
+    fund_clusters: FundClusterRef[];
 }
 
 interface PaginatedItems {
@@ -29,26 +35,37 @@ interface PaginatedItems {
     }[];
 }
 
+interface FundCluster {
+    fund_cluster_id: string;
+    fund_description: string | null;
+}
+
 interface Filters {
     search: string | null;
     issued_status: string | null;
+    fund_cluster_id: string | null;
 }
 
 interface Props {
     items: PaginatedItems;
+    fundClusters: FundCluster[];
     filters: Filters;
 }
 
-export default function Index({ items, filters }: Props) {
+export default function Index({ items, fundClusters, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [issuedStatus, setIssuedStatus] = useState(filters.issued_status ?? 'all');
+    const [fundClusterId, setFundClusterId] = useState(filters.fund_cluster_id ?? 'all');
 
-    const applyFilters = (overrides: Partial<{ search: string; issued_status: string }> = {}) => {
+    const applyFilters = (
+        overrides: Partial<{ search: string; issued_status: string; fund_cluster_id: string }> = {}
+    ) => {
         router.get(
             '/stock-items-list',
             {
                 search,
                 issued_status: issuedStatus,
+                fund_cluster_id: fundClusterId,
                 ...overrides,
             },
             {
@@ -67,6 +84,7 @@ export default function Index({ items, filters }: Props) {
     const handleClear = () => {
         setSearch('');
         setIssuedStatus('all');
+        setFundClusterId('all');
         router.get(
             '/stock-items-list',
             {},
@@ -127,6 +145,27 @@ export default function Index({ items, filters }: Props) {
                             </SelectContent>
                         </Select>
 
+                        <Select
+                            value={fundClusterId}
+                            onValueChange={(value) => {
+                                setFundClusterId(value);
+                                applyFilters({ fund_cluster_id: value });
+                            }}
+                        >
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="All Fund Clusters" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Fund Clusters</SelectItem>
+                                {fundClusters.map((fc) => (
+                                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
+                                        {fc.fund_cluster_id}
+                                        {fc.fund_description ? ` - ${fc.fund_description}` : ''}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
                         <Button type="submit" variant="secondary">
                             Search
                         </Button>
@@ -150,13 +189,14 @@ export default function Index({ items, filters }: Props) {
                             <tr>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Item Description</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Unit</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Fund Cluster</th>
                                 <th className="px-4 py-3 text-center font-semibold text-white">Balance per Stock Card</th>
                             </tr>
                         </thead>
                         <tbody>
                             {items.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={3} className="px-6 py-16 text-center">
+                                    <td colSpan={4} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No items found.
                                         </p>
@@ -173,6 +213,13 @@ export default function Index({ items, filters }: Props) {
                                             {item.item_description ? ` - ${item.item_description}` : ''}
                                         </td>
                                         <td className="px-4 py-3">{item.unit_short_name}</td>
+                                        <td className="px-4 py-3">
+                                            {item.fund_clusters.length > 0
+                                                ? item.fund_clusters
+                                                      .map((fc) => fc.fund_cluster_id)
+                                                      .join(', ')
+                                                : '—'}
+                                        </td>
                                         <td className="px-4 py-3 text-center font-medium">
                                             {item.balance_per_stock_card}
                                         </td>
