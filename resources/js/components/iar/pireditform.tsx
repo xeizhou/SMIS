@@ -1067,126 +1067,121 @@ export default function PirEditForm({
                                 onChange={handleChange}
                                 error={errors.ris_number}
                             />
+                           {/* Inspection Entries — compact row-per-IAR layout with inline chips */}
                             <div className="col-span-4">
-                                <div className="rounded-md border p-4">
-                                    <div className="mb-3 flex items-center justify-between">
-                                        <p className="text-sm font-medium text-foreground">Inspection Entries</p>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={addInspectionGroup}
-                                        >
-                                            + Add IAR Row
-                                        </Button>
-                                    </div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-medium text-foreground">
+                                        Inspection Entries
+                                        {data.inspection_groups.length > 0 && (
+                                            <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                                {data.inspection_groups.length} IAR{data.inspection_groups.length > 1 ? 's' : ''}
+                                            </span>
+                                        )}
+                                    </p>
+                                    <Button type="button" variant="outline" size="sm" onClick={addInspectionGroup}>
+                                        <Plus className="mr-1 h-3.5 w-3.5" />
+                                        Add IAR
+                                    </Button>
+                                </div>
 
-                                    <div className="space-y-3">
-                                        {data.inspection_groups.map((group, groupIndex) => (
-                                            <div key={groupIndex} className="rounded-md border bg-background/50 p-3">
-                                                <div className="mb-3 flex items-center justify-between">
-                                                    <div className="w-full max-w-[280px]">
-                                                        <label className="mb-1 block text-xs text-muted-foreground">IAR Number</label>
-                                                        <Input
-                                                            value={group.iar_number}
-                                                            onChange={(e) => updateInspectionGroup(groupIndex, e.target.value)}
-                                                            placeholder="Enter IAR Number"
-                                                        />
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <Button
+                                <div className="space-y-2">
+                                    {data.inspection_groups.map((group, groupIndex) => (
+                                        <div key={groupIndex} className="rounded-md border p-3">
+                                            <div className="flex flex-wrap items-start gap-3 md:flex-nowrap">
+                                                {/* IAR number */}
+                                                <div className="w-full shrink-0 md:w-48">
+                                                    <label className="mb-1 block text-xs text-muted-foreground">IAR Number</label>
+                                                    <Input
+                                                        value={group.iar_number}
+                                                        onChange={(e) => updateInspectionGroup(groupIndex, e.target.value)}
+                                                        placeholder="e.g. IAR-001"
+                                                        className="h-8"
+                                                    />
+                                                </div>
+
+                                                {/* Inspectors */}
+                                                <div className="min-w-0 flex-1">
+                                                    <label className="mb-1 block text-xs text-muted-foreground">Inspected By</label>
+                                                    <div className="flex flex-wrap items-center gap-1.5">
+                                                        {group.inspectors.map((inspector, inspectorIndex) => (
+                                                            <div key={`inspector-${groupIndex}-${inspectorIndex}`} className="flex items-center gap-1">
+                                                                <Input
+                                                                    value={inspector}
+                                                                    onChange={(e) => updateInspectionInspector(groupIndex, inspectorIndex, e.target.value)}
+                                                                    placeholder="Name"
+                                                                    className="h-8 w-36"
+                                                                />
+                                                                {group.inspectors.length > 1 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeInspectionInspector(groupIndex, inspectorIndex)}
+                                                                        className="text-muted-foreground hover:text-red-600"
+                                                                        title="Remove inspector"
+                                                                    >
+                                                                        <X className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                        <button
                                                             type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => removeInspectionGroup(groupIndex)}
-                                                            disabled={data.inspection_groups.length === 1}
-                                                            title="Remove IAR row"
+                                                            onClick={() => addInspectionInspector(groupIndex)}
+                                                            className="flex h-8 w-8 items-center justify-center rounded-md border border-dashed text-muted-foreground hover:bg-muted/40"
+                                                            title="Add inspector"
                                                         >
-                                                            <X className="h-4 w-4" />
-                                                        </Button>
+                                                            <Plus className="h-3.5 w-3.5" />
+                                                        </button>
                                                     </div>
                                                 </div>
 
-                                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                                    <div className="rounded-md border border-dashed p-3">
-                                                        <div className="mb-2 flex items-center justify-between">
-                                                            <label className="block text-xs text-muted-foreground">Inspected By</label>
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => addInspectionInspector(groupIndex)}
-                                                            >
-                                                                <Plus className="mr-1 h-4 w-4" />
-                                                                Add Inspector
-                                                            </Button>
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            {group.inspectors.map((inspector, inspectorIndex) => (
-                                                                <div key={`inspector-${groupIndex}-${inspectorIndex}`} className="flex items-center gap-2">
-                                                                    <Input
-                                                                        value={inspector}
-                                                                        onChange={(e) => updateInspectionInspector(groupIndex, inspectorIndex, e.target.value)}
-                                                                        placeholder="Enter Inspected By"
-                                                                    />
-                                                                    {group.inspectors.length > 1 && (
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8 shrink-0"
-                                                                            onClick={() => removeInspectionInspector(groupIndex, inspectorIndex)}
-                                                                            title="Remove inspector"
-                                                                        >
-                                                                            <X className="h-3.5 w-3.5" />
-                                                                        </Button>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="rounded-md border border-dashed p-3">
-                                                        <div className="mb-2 flex items-center justify-between">
-                                                            <label className="block text-xs text-muted-foreground">Inspection Date</label>
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => addInspectionDate(groupIndex)}
-                                                            >
-                                                                <Plus className="mr-1 h-4 w-4" />
-                                                                Add Date
-                                                            </Button>
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            {group.inspection_dates.map((date, dateIndex) => (
-                                                                <div key={`date-${groupIndex}-${dateIndex}`} className="flex items-center gap-2">
-                                                                    <Input
-                                                                        type="date"
-                                                                        value={date}
-                                                                        onChange={(e) => updateInspectionDate(groupIndex, dateIndex, e.target.value)}
-                                                                    />
-                                                                    {group.inspection_dates.length > 1 && (
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8 shrink-0"
-                                                                            onClick={() => removeInspectionDate(groupIndex, dateIndex)}
-                                                                            title="Remove date"
-                                                                        >
-                                                                            <X className="h-3.5 w-3.5" />
-                                                                        </Button>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </div>
+                                                {/* Dates */}
+                                                <div className="min-w-0 flex-1">
+                                                    <label className="mb-1 block text-xs text-muted-foreground">Inspection Date</label>
+                                                    <div className="flex flex-wrap items-center gap-1.5">
+                                                        {group.inspection_dates.map((date, dateIndex) => (
+                                                            <div key={`date-${groupIndex}-${dateIndex}`} className="flex items-center gap-1">
+                                                                <Input
+                                                                    type="date"
+                                                                    value={date}
+                                                                    onChange={(e) => updateInspectionDate(groupIndex, dateIndex, e.target.value)}
+                                                                    className="h-8 w-36"
+                                                                />
+                                                                {group.inspection_dates.length > 1 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeInspectionDate(groupIndex, dateIndex)}
+                                                                        className="text-muted-foreground hover:text-red-600"
+                                                                        title="Remove date"
+                                                                    >
+                                                                        <X className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => addInspectionDate(groupIndex)}
+                                                            className="flex h-8 w-8 items-center justify-center rounded-md border border-dashed text-muted-foreground hover:bg-muted/40"
+                                                            title="Add date"
+                                                        >
+                                                            <Plus className="h-3.5 w-3.5" />
+                                                        </button>
                                                     </div>
                                                 </div>
+
+                                                {/* Remove whole IAR row */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeInspectionGroup(groupIndex)}
+                                                    disabled={data.inspection_groups.length === 1}
+                                                    className="mt-5 shrink-0 text-muted-foreground hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30"
+                                                    title="Remove IAR row"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
                                             </div>
-                                        ))}
-                                    </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>

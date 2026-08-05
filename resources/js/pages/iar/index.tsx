@@ -148,6 +148,14 @@ function formatCurrency(amount: number | string | null | undefined) {
     }).format(num);
 }
 
+function getIarNumbers(pir: Pir) {
+    const entries = pir.inspection_entries ?? [];
+    const numbers = entries
+        .map((e) => e.iar_number)
+        .filter((v): v is string => !!v && v.trim() !== '');
+    return Array.from(new Set(numbers));
+}
+
 export default function Index({
     pirs,
     suppliers,
@@ -348,7 +356,13 @@ export default function Index({
                                         <td className="px-4 py-3">{pir.unit_office}</td>
                                         <td className="px-4 py-3 text-right">{formatCurrency(pir.po_amount)}</td>
                                         <td className="px-4 py-3">{pir.invoice_number ?? '—'}</td>
-                                        <td className="px-4 py-3">{pir.iar_number ?? '—'}</td>
+                                        <td className="px-4 py-3">
+                                            {(() => {
+                                                const count = getIarNumbers(pir).length;
+                                                if (count === 0) return '—';
+                                                return `${count} IAR${count > 1 ? 's' : ''}`;
+                                            })()}
+                                        </td>
                                         <td className="px-4 py-3 text-center">
                                             <span
                                                 className={
