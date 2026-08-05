@@ -20,7 +20,7 @@ class DeliveryFactory extends Factory
             'received_by_1' => $this->faker->name(),
             'received_by_2' => $this->faker->name(),
             'place_of_delivery' => $this->faker->address(),
-            'status' => $this->faker->randomElement(['Pending', 'Delivered', 'Partial', 'Cancelled']),
+            'status' => $this->faker->randomElement(['PARTIAL', 'COMPLETE', 'PENDING', 'CANCELLED']),   
             'remarks' => $this->faker->optional()->sentence(),
             'total_amount_delivered' => $this->faker->randomFloat(2, 1000, 200000),
             'po_total_amount' => $this->faker->randomFloat(2, 1000, 200000),
