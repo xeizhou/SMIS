@@ -312,6 +312,11 @@ export default function TransactionEditForm({
     // which is treated differently from an ordinary typo correction.
     const [originalType, setOriginalType] = useState('');
 
+    // Tracks the selected stock item by its unique stock_no, since
+    // item_name alone can collide (e.g. two "RTX 3060" variants with
+    // different descriptions). Never sent to the backend.
+    const [selectedStockNo, setSelectedStockNo] = useState('');
+
     useEffect(() => {
         if (transaction) {
             const fundClusterId =
@@ -333,9 +338,21 @@ export default function TransactionEditForm({
                 office_code: transaction.office_code,
             });
             setOriginalType(transaction.transaction_type);
+
+            // Best-effort resolve back to a unique stock item for the
+            // dropdown's selection state — matches on name AND description,
+            // since name alone can be ambiguous (e.g. two "RTX 3060"
+            // variants). If no match is found (item since renamed/deleted),
+            // the dropdown just shows the placeholder, which is fine since
+            // item_name/description above already carry the real snapshot.
+            const matched = stockItems.find(
+                (s) => s.item_name === transaction.item_name && s.description === transaction.description
+            );
+            setSelectedStockNo(matched?.stock_no ?? '');
+
             setErrors({});
         }
-    }, [transaction]);
+    }, [transaction, stockItems]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target;
@@ -449,9 +466,9 @@ export default function TransactionEditForm({
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                             <SearchableSelect
                                 label="Item Name"
-                                value={data.item_name}
+                                value={selectedStockNo}
                                 onChange={(val) => {
-                                    const selectedItem = stockItems.find((s) => s.item_name === val);
+                                    const selectedItem = stockItems.find((s) => s.stock_no === val);
 
                                     let defaultUnitID = '';
                                     if (selectedItem?.units && selectedItem.units.length > 0) {
@@ -461,9 +478,10 @@ export default function TransactionEditForm({
                                         defaultUnitID = String(defUnit.unitID);
                                     }
 
+                                    setSelectedStockNo(val);
                                     setData((prev) => ({
                                         ...prev,
-                                        item_name: val,
+                                        item_name: selectedItem?.item_name ?? '',
                                         description: selectedItem?.description ?? '',
                                         unitID: defaultUnitID,
                                     }));
@@ -472,7 +490,7 @@ export default function TransactionEditForm({
                                 required
                                 placeholder="Search & Select Item..."
                                 options={stockItems.map((item) => ({
-                                    value: item.item_name,
+                                    value: item.stock_no,
                                     label: item.description
                                         ? `${item.item_name} - ${item.description}`
                                         : item.item_name,

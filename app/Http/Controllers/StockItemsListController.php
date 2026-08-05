@@ -46,7 +46,16 @@ class StockItemsListController extends Controller
                     ->where('siu.is_default', '=', true);
             })
             ->join('units as u', 'u.unitID', '=', 'siu.unitID')
-            ->leftJoin('transactions as t', 't.item_name', '=', 'i.item_name')
+            ->leftJoin('transactions as t', function ($join) {
+                $join->on('t.item_name', '=', 'i.item_name')
+                    ->where(function ($q) {
+                        $q->whereColumn('t.description', 'i.description')
+                            ->orWhere(function ($q2) {
+                                $q2->whereNull('t.description')
+                                    ->whereNull('i.description');
+                            });
+                    });
+            })
             ->select(
                 'i.item_name',
                 'i.description as item_description',
@@ -62,7 +71,6 @@ class StockItemsListController extends Controller
                 ), 0) as balance_per_stock_card"),
                 DB::raw("SUM(CASE WHEN t.transaction_type = 'ISSUE' THEN 1 ELSE 0 END) as issue_count"),
                 DB::raw("MAX(t.transaction_date) as last_transaction_date"),
-                // Distinct fund clusters this item has transacted under (sqlite-compatible)
                 DB::raw("GROUP_CONCAT(DISTINCT t.fund_cluster) as fund_cluster_ids")
             )
             ->when($search, function ($q) use ($search) {
@@ -72,12 +80,17 @@ class StockItemsListController extends Controller
                 });
             })
             ->when($fundClusterId && $fundClusterId !== 'all', function ($q) use ($fundClusterId) {
-                // Only include items that have at least one transaction
-                // under the selected fund cluster.
                 $q->whereExists(function ($sub) use ($fundClusterId) {
                     $sub->select(DB::raw(1))
                         ->from('transactions as t2')
                         ->whereColumn('t2.item_name', 'i.item_name')
+                        ->where(function ($q2) {
+                            $q2->whereColumn('t2.description', 'i.description')
+                                ->orWhere(function ($q3) {
+                                    $q3->whereNull('t2.description')
+                                        ->whereNull('i.description');
+                                });
+                        })
                         ->where('t2.fund_cluster', $fundClusterId);
                 });
             })

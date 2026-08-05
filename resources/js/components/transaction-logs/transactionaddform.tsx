@@ -310,7 +310,13 @@ export default function TransactionAddForm({
     const [data, setData] = useState(getEmptyForm());
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
-    
+
+    // Tracks the selected stock item by its unique stock_no, since
+    // item_name alone can collide (e.g. two "RTX 3060" variants with
+    // different descriptions). Never sent to the backend — item_name
+    // and description are what's actually submitted.
+    const [selectedStockNo, setSelectedStockNo] = useState('');
+
     // States for consecutive saves
     const [submitAction, setSubmitAction] = useState<'close' | 'continue'>('close');
     const [savedCount, setSavedCount] = useState(0);
@@ -321,6 +327,7 @@ export default function TransactionAddForm({
             setErrors({});
             setSubmitAction('close');
             setSavedCount(0); // Reset the count every time the modal opens
+            setSelectedStockNo('');
         }
     }, [open]);
 
@@ -355,6 +362,7 @@ export default function TransactionAddForm({
                 if (submitAction === 'close') {
                     onOpenChange(false);
                     setData(getEmptyForm());
+                    setSelectedStockNo('');
                 } else {
                     setData((prev) => ({
                         ...prev,
@@ -363,6 +371,7 @@ export default function TransactionAddForm({
                         unitID: '',
                         quantity: '0',
                     }));
+                    setSelectedStockNo('');
                 }
                 setErrors({});
             },
@@ -421,9 +430,9 @@ export default function TransactionAddForm({
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                     <SearchableSelect
                                         label="Item Name"
-                                        value={data.item_name}
+                                        value={selectedStockNo}
                                         onChange={(val) => {
-                                            const selectedItem = stockItems.find((s) => s.item_name === val);
+                                            const selectedItem = stockItems.find((s) => s.stock_no === val);
 
                                             let defaultUnitID = '';
                                             if (selectedItem?.units && selectedItem.units.length > 0) {
@@ -433,9 +442,10 @@ export default function TransactionAddForm({
                                                 defaultUnitID = String(defUnit.unitID);
                                             }
 
+                                            setSelectedStockNo(val);
                                             setData((prev) => ({
                                                 ...prev,
-                                                item_name: val,
+                                                item_name: selectedItem?.item_name ?? '',
                                                 description: selectedItem?.description ?? '',
                                                 unitID: defaultUnitID,
                                             }));
@@ -444,7 +454,7 @@ export default function TransactionAddForm({
                                         required
                                         placeholder="Search & Select Item..."
                                         options={stockItems.map((item) => ({
-                                            value: item.item_name,
+                                            value: item.stock_no,
                                             label: item.description
                                                 ? `${item.item_name} - ${item.description}`
                                                 : item.item_name,
