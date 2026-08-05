@@ -24,7 +24,7 @@ class PirMonitoringFactory extends Factory
             'inspected_by' => $this->faker->name(),
             'inspection_date' => $this->faker->optional()->dateTimeBetween('-6 months', 'now'),
             'iar_number' => $this->faker->numerify('IAR-####'),
-            'status' => $this->faker->randomElement(['Pending', 'Ongoing', 'Completed']),
+            'status' => $this->faker->randomElement(['COMPLETED', 'CANCELLED']),
             'remarks' => $this->faker->optional()->sentence(),
         ];
         // supplier_id, po_number, unit_office, po_date, fund_cluster, po_amount set explicitly from the ServePo

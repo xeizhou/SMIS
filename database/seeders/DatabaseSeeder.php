@@ -152,12 +152,11 @@ class DatabaseSeeder extends Seeder
         $purchaseOrders->each(function (ServePo $po) {
             Delivery::factory(rand(1, 2))->forServePo($po)->create();
 
-            $letterTypes = collect(['Notice to Proceed', 'Demand Letter', 'Extension Letter'])
+            $letterTypes = collect(['EXTENSION', 'WAIVER', 'CANCELLATION', 'REPLACEMENT/ALTERNATIVE OFFER'])
                 ->shuffle()
                 ->take(rand(0, 2));
 
             $letterTypes->each(function (string $type) use ($po) {
-                // Avoid duplicate letter monitoring entries for the same PO and type
                 if (! PoLetterMonitoring::where('po_number', $po->po_number)->where('type_of_letter', $type)->exists()) {
                     PoLetterMonitoring::factory()
                         ->forServePo($po)
