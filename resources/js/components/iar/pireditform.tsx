@@ -1261,7 +1261,6 @@ export default function PirEditForm({
                                 onChange={handleSelectChange('status')}
                                 error={errors.status}
                                 required
-                                disabled={!forReleaseComplete}
                                 placeholder="-- Select Status --"
                                 options={STATUS_OPTIONS}
                             />
@@ -1272,7 +1271,6 @@ export default function PirEditForm({
                                 value={data.date_forwarded_to_finance}
                                 onChange={handleChange}
                                 error={errors.date_forwarded_to_finance}
-                                disabled={!forReleaseComplete}
                             />
                             <div className="col-span-2">
                                 <Field
@@ -1282,7 +1280,6 @@ export default function PirEditForm({
                                     onChange={handleChange}
                                     error={errors.remarks}
                                     placeholder="Optional notes"
-                                    disabled={!forReleaseComplete}
                                 />
                             </div>
                         </div>

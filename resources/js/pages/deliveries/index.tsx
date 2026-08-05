@@ -84,6 +84,13 @@ interface Props {
     suppliers: Supplier[];
 }
 
+const statusColors: Record<string, string> = {
+    COMPLETE: 'bg-green-100 text-green-700',
+    PARTIAL: 'bg-yellow-100 text-yellow-700',
+    PENDING: 'bg-gray-100 text-gray-700',
+    CANCELLED: 'bg-red-100 text-red-700',
+};
+
 function formatCurrency(value: string | number | null) {
     if (value === null) {
 return '—';
@@ -271,7 +278,16 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                         <td className="px-4 py-3">{delivery.supplier?.supplier_name ?? '—'}</td>
                                         <td className="px-4 py-3">{formatDate(delivery.delivery_date)}</td>
                                         
-                                        <td className="px-4 py-3">{delivery.status ?? '—'}</td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span
+                                                className={
+                                                    'px-2 py-1 rounded-full text-xs font-semibold ' +
+                                                    (statusColors[delivery.status ?? ''] ?? 'bg-muted text-muted-foreground')
+                                                }
+                                            >
+                                                {delivery.status ?? '—'}
+                                            </span>
+                                        </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">
                                                 <button type="button" onClick={() => handleEdit(delivery)} className="text-blue-600 hover:text-blue-800" title="Edit">
