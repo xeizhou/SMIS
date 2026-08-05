@@ -411,6 +411,40 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
     const computedLdDays = daysBetween(data.due_date, data.delivery_date);
 
+    // Status is auto-derived from delivery data — not manually picked, except
+    // CANCELLED which stays a manual override since it can't be inferred.
+    useEffect(() => {
+        setData((prev) => {
+            if (prev.status === 'CANCELLED') {
+                return prev;
+            }
+
+            let nextStatus = '';
+
+            if (!prev.delivery_date) {
+                nextStatus = 'PENDING';
+            } else {
+                const delivered = parseFloat(prev.total_amount_delivered);
+                const poTotal = parseFloat(prev.po_total_amount);
+                const bothValid =
+                    prev.total_amount_delivered !== '' &&
+                    prev.po_total_amount !== '' &&
+                    !Number.isNaN(delivered) &&
+                    !Number.isNaN(poTotal);
+
+                if (bothValid) {
+                    nextStatus = delivered !== poTotal ? 'PARTIAL' : 'COMPLETE';
+                }
+            }
+
+            if (nextStatus === prev.status) {
+                return prev;
+            }
+
+            return { ...prev, status: nextStatus };
+        });
+    }, [data.delivery_date, data.total_amount_delivered, data.po_total_amount]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setData((prev) => ({ ...prev, [name]: value }));
@@ -476,7 +510,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
             po_total_amount: rest.po_total_amount || (selectedPo?.total_amount_po != null ? String(selectedPo.total_amount_po) : ''),
             end_user: rest.end_user || (selectedPo?.end_user ?? ''),
             supplier_id: rest.supplier_id || (selectedPo?.supplier_id ? String(selectedPo.supplier_id) : ''),
-            status: rest.status || (Number(rest.total_amount_delivered || 0) >= Number(rest.po_total_amount || 0) ? 'COMPLETED' : 'PARTIAL'),
+            status: rest.status,
             deleted_attachment_ids: deletedAttachmentIds,
         };
 
@@ -676,20 +710,38 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         placeholder="Auto-filled from PO"
                                     />
 
-                                    <SelectField
-                                        label="Status"
-                                        value={data.status}
-                                        onChange={handleSelectChange('status')}
-                                        error={errors.status}
-                                        required
-                                        placeholder="-- Select Status --"
-                                        options={[
-                                            { value: 'PARTIAL', label: 'PARTIAL' },
-                                            { value: 'COMPLETE', label: 'COMPLETE' },
-                                            { value: 'PENDING', label: 'PENDING' },
-                                            { value: 'CANCELLED', label: 'CANCELLED' },
-                                        ]}
-                                    />
+                                    <div>
+                                        <label className={labelClass}>
+                                            Status
+                                            <span className="text-red-500"> *</span>
+                                        </label>
+                                        <div className="flex items-center gap-2 w-69">
+                                            <Input
+                                                value={data.status}
+                                                disabled
+                                                placeholder="Auto-determined"
+                                                className="bg-muted text-muted-foreground flex-1"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="shrink-0"
+                                                onClick={() =>
+                                                    setData((prev) => ({
+                                                        ...prev,
+                                                        status: prev.status === 'CANCELLED' ? '' : 'CANCELLED',
+                                                    }))
+                                                }
+                                            >
+                                                {data.status === 'CANCELLED' ? 'Undo Cancel' : 'Mark Cancelled'}
+                                            </Button>
+                                        </div>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            PENDING until a delivery date is set; PARTIAL if amounts don't match; COMPLETE if they do.
+                                        </p>
+                                        {errors.status && <p className="mt-1 text-xs text-red-500">{errors.status}</p>}
+                                    </div>
                                 </div>
                             </div>
 
