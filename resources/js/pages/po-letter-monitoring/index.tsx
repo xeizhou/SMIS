@@ -85,6 +85,11 @@ return '—';
     });
 }
 
+const statusColors: Record<string, string> = {
+    APPROVED: 'bg-green-100 text-green-700',
+    DISAPPROVED: 'bg-red-100 text-red-700',
+};
+
 export default function Index({ poLetters, filters, suppliers, poNumbers }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
@@ -244,7 +249,16 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
                                         <td className="px-4 py-3">{record.supplier?.supplier_name ?? '—'}</td>
                                         <td className="px-4 py-3">{record.po_number}</td>
                                         <td className="px-4 py-3">{record.type_of_letter}</td>
-                                        <td className="px-4 py-3">{record.status_of_the_letter}</td>
+                                       <td className="px-4 py-3">
+                                            <span
+                                                className={
+                                                    'px-2 py-1 rounded-full text-xs font-semibold ' +
+                                                    (statusColors[record.status_of_the_letter] ?? 'bg-muted text-muted-foreground')
+                                                }
+                                            >
+                                                {record.status_of_the_letter}
+                                            </span>
+                                        </td>
                                         <td className="px-4 py-3">{formatDate(record.po_date)}</td>
                                         <td className="px-4 py-3">{formatDate(record.due_date)}</td>
                                         <td className="px-4 py-3">

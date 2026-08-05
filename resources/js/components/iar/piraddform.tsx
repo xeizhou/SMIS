@@ -1233,7 +1233,6 @@ export default function PirAddForm({
                                 onChange={handleSelectChange('status')}
                                 error={errors.status}
                                 required
-                                disabled={afterForReleaseDisabled}
                                 placeholder="-- Select Status --"
                                 options={STATUS_OPTIONS}
                             />
@@ -1244,7 +1243,6 @@ export default function PirAddForm({
                                 value={data.date_forwarded_to_finance}
                                 onChange={handleChange}
                                 error={errors.date_forwarded_to_finance}
-                                disabled={afterForReleaseDisabled}
                             />
                             <div className="col-span-2">
                                 <Field
@@ -1254,7 +1252,6 @@ export default function PirAddForm({
                                     onChange={handleChange}
                                     error={errors.remarks}
                                     placeholder="Optional notes"
-                                    disabled={afterForReleaseDisabled}
                                 />
                             </div>
                         </div>
@@ -1267,7 +1264,6 @@ export default function PirAddForm({
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={afterForReleaseDisabled}
                             className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <Paperclip className="size-4" />
