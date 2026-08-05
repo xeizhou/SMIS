@@ -38,6 +38,7 @@ interface PoNumberOption {
     supplier_id?: number | string | null;
     po_received_date?: string | null;
     due_date?: string | null;
+    end_user?: string | null;
 }
 
 interface Attachment {
@@ -466,6 +467,7 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                 date_received_by_supplier: dateReceivedBySupplier,
                 due_date: dueDate,
                 delivery_term: String(daysBetween(dateReceivedBySupplier, dueDate)),
+                office_end_user: chosenPo?.end_user ?? '',
             });
 
             return;
@@ -624,13 +626,11 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                                 placeholder="Auto-filled from PO Number"
                             />
 
-                            <Field
+                            <LockedField
                                 label="Office End User"
-                                name="office_end_user"
                                 value={data.office_end_user}
-                                onChange={handleChange}
                                 error={errors.office_end_user}
-                                required
+                                placeholder="Auto-filled from PO Number"
                             />
 
                             <SelectField
