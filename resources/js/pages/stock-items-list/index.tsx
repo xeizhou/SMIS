@@ -163,9 +163,9 @@ export default function Index({ items, filters }: Props) {
                                     </td>
                                 </tr>
                             ) : (
-                                items.data.map((item) => (
+                                items.data.map((item, index) => (
                                     <tr
-                                        key={item.item_name}
+                                        key={`${item.item_name}-${index}`}
                                         className="border-b transition-colors hover:bg-muted/40"
                                     >
                                         <td className="px-4 py-3">
