@@ -40,13 +40,6 @@ const platformNavItems: NavItem[] = [
     { title: 'Bona Vida Monitoring', href: '/bona-vida-monitoring' },
 ];
 
-const StockNavItems: NavItem[] = [
-    { title: 'Stock Items', href: '/stock-items' },
-    { title: 'Units', href: '/units' },
-    { title: 'Transaction Logs', href: '/transaction-logs' },
-    { title: 'Stock Items List', href: '/stock-items-list' },
-];
-
 const procurementNavItems: NavItem[] = [
     { title: 'Purchase Orders', href: '/purchase-orders' },
     { title: 'PO Letter Monitoring', href: '/po-letter-monitoring' },
@@ -62,6 +55,13 @@ const HRNavItems: NavItem[] = [
     { title: 'Clearance', href: '/clearance' },
 ];
 
+const StockNavItems: NavItem[] = [
+    { title: 'Dashboard', href: '/stock-items-dashboard' },
+    { title: 'Stock Items', href: '/stock-items' },
+    { title: 'Units', href: '/units' },
+    { title: 'Transaction Logs', href: '/transaction-logs' },
+    { title: 'Stock Items List', href: '/stock-items-list' },
+];
 const SystemAdmin: NavItem[] = [
     { title: 'Users', href: '/users' },
     { title: 'Audit Logs', href: '/audit-logs' },
