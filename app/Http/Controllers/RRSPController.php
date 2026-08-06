@@ -33,7 +33,7 @@ class RRSPController extends Controller
 
         $rrspMonitorings = $query
             ->latest()
-            ->paginateWithHighlight(10)
+            ->paginateWithHighlight(2)
             ->withQueryString()
             ->through(function ($rrsp) {
                 return [
