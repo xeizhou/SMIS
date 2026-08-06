@@ -151,6 +151,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         })->values();
 
         $pendingInspectionsCount = \App\Models\PirMonitoring::whereNull('inspection_date')
+            ->whereDoesntHave('inspectionEntries', function($query) {
+                $query->whereNotNull('inspection_date');
+            })
             ->where(function($query) {
                 $query->whereNull('status')
                       ->orWhere('status', '!=', 'CANCELLED');
@@ -159,6 +162,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         $allPendingInspections = \App\Models\PirMonitoring::with('supplier')
             ->whereNull('inspection_date')
+            ->whereDoesntHave('inspectionEntries', function($query) {
+                $query->whereNotNull('inspection_date');
+            })
             ->where(function($query) {
                 $query->whereNull('status')
                       ->orWhere('status', '!=', 'CANCELLED');
@@ -178,6 +184,40 @@ Route::middleware(['auth', 'verified'])->group(function () {
             })
             ->values();
 
+        $pendingClearancesCount = \App\Models\PirMonitoring::where(function($query) {
+                $query->whereNull('receipt_claimed_by')
+                      ->whereNull('items_claimed_by');
+            })
+            ->where(function($query) {
+                $query->whereNull('status')
+                      ->orWhere('status', '!=', 'CANCELLED');
+            })
+            ->count();
+
+        $allPendingClearances = \App\Models\PirMonitoring::with('supplier')
+            ->where(function($query) {
+                $query->whereNull('receipt_claimed_by')
+                      ->whereNull('items_claimed_by');
+            })
+            ->where(function($query) {
+                $query->whereNull('status')
+                      ->orWhere('status', '!=', 'CANCELLED');
+            })
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($issuance) {
+                return [
+                    'pir_id' => $issuance->pir_id,
+                    'po_number' => $issuance->po_number,
+                    'iar_number' => $issuance->iar_number,
+                    'invoice_number' => $issuance->invoice_number,
+                    'supplier' => $issuance->supplier ? [
+                        'supplier_name' => $issuance->supplier->supplier_name,
+                    ] : null,
+                ];
+            })
+            ->values();
+
         return Inertia::render('dashboard', [
             'recentActivity' => $recentActivity,
             'recentDeliveries' => $recentDeliveries,
@@ -188,6 +228,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'poLettersStatus' => $poLettersStatus,
             'pendingInspections' => $pendingInspectionsCount,
             'allPendingInspections' => $allPendingInspections,
+            'pendingClearances' => $pendingClearancesCount,
+            'allPendingClearances' => $allPendingClearances,
         ]);
     })->name('dashboard');
 

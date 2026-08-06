@@ -60,6 +60,13 @@ type DashboardPageProps = {
         invoice_number?: string | null;
         supplier?: { supplier_name: string } | null;
     }[];
+    allPendingClearances?: {
+        pir_id: string;
+        po_number: string;
+        iar_number?: string | null;
+        invoice_number?: string | null;
+        supplier?: { supplier_name: string } | null;
+    }[];
     // recentActivity?: RecentActivityRow[];
 };
 
@@ -73,6 +80,7 @@ export default function Dashboard() {
         deliveriesLastWeek,
         allPendingDeliveries,
         allPendingInspections,
+        allPendingClearances,
         recentActivity,
         recentDeliveries,
     } = usePage<DashboardPageProps>().props;
@@ -84,6 +92,7 @@ export default function Dashboard() {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
     const [isPendingInspectionsModalOpen, setIsPendingInspectionsModalOpen] = useState(false);
+    const [isPendingClearancesModalOpen, setIsPendingClearancesModalOpen] = useState(false);
 
     // Initialize from localStorage on mount
     useEffect(() => {
@@ -149,6 +158,37 @@ export default function Dashboard() {
         }, 5000);
 
         return () => clearInterval(interval);
+    }, []);
+
+    // Auto-refresh data periodically and on tab focus to keep dashboard "real-time"
+    useEffect(() => {
+        const refreshData = () => {
+            router.reload({
+                only: [
+                    'pendingDeliveries', 'allPendingDeliveries',
+                    'pendingInspections', 'allPendingInspections',
+                    'pendingClearances', 'allPendingClearances',
+                    'deliveries', 'deliveriesLastWeek',
+                    'poLettersStatus', 'recentDeliveries'
+                ],
+            });
+        };
+
+        // Refresh every 15 seconds
+        const pollInterval = setInterval(refreshData, 15000);
+
+        // Refresh when returning to the tab
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                refreshData();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(pollInterval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     const markAsRead = (id: string | number) => {
@@ -298,10 +338,10 @@ export default function Dashboard() {
                             />
                             <StatCard
                                 label="Pending Issuance"
-                                value={pendingClearances ?? 18}
-                                change="+ 5 last week"
+                                value={pendingClearances ?? 0}
                                 icon={FileText}
                                 iconClassName="bg-rose-100 text-rose-500"
+                                onClick={() => setIsPendingClearancesModalOpen(true)}
                             />
                         </div>
                         
@@ -411,6 +451,57 @@ export default function Dashboard() {
                         ) : (
                             <div className="flex h-32 items-center justify-center text-muted-foreground mt-4">
                                 No pending inspections found.
+                            </div>
+                        )}
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isPendingClearancesModalOpen} onOpenChange={setIsPendingClearancesModalOpen}>
+                <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0">
+                    <DialogHeader className="p-6 pb-4 border-b border-border/50">
+                        <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                            <FileText className="size-5 text-rose-500" />
+                            Pending Issuances ({pendingClearances ?? 0})
+                        </DialogTitle>
+                    </DialogHeader>
+                    
+                    <ScrollArea className="flex-1 p-6 pt-2">
+                        {allPendingClearances && allPendingClearances.length > 0 ? (
+                            <div className="grid gap-3 mt-4">
+                                {allPendingClearances.map((issuance) => (
+                                    <div key={issuance.pir_id} className="flex items-start justify-between rounded-lg border border-border p-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
+                                        <div className="grid gap-1">
+                                            <Link href={`/iar?highlight_search=${issuance.po_number}`} className="font-semibold text-primary hover:underline">
+                                                {issuance.po_number}
+                                            </Link>
+                                            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-1">
+                                                <span className="font-medium text-foreground/80">{issuance.supplier?.supplier_name || 'Unknown Supplier'}</span>
+                                                {(issuance.iar_number || issuance.invoice_number) && (
+                                                    <span className="text-muted-foreground/40">•</span>
+                                                )}
+                                                {issuance.iar_number && (
+                                                    <span>IAR: {issuance.iar_number}</span>
+                                                )}
+                                                {issuance.iar_number && issuance.invoice_number && (
+                                                    <span className="text-muted-foreground/40">•</span>
+                                                )}
+                                                {issuance.invoice_number && (
+                                                    <span>Invoice: {issuance.invoice_number}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2">
+                                            <div className="rounded-md bg-rose-100 px-2 py-1 text-xs font-semibold text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">
+                                                PENDING
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex h-32 items-center justify-center text-muted-foreground mt-4">
+                                No pending issuances found.
                             </div>
                         )}
                     </ScrollArea>
