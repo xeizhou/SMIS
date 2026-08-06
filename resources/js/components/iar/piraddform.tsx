@@ -410,7 +410,7 @@ export default function PirAddForm({
     const handleRefreshData = (field: string) => {
         setRefreshingField(field);
         router.reload({
-            only: ['purchaseOrders', 'suppliers', 'offices', 'fundClusters'],
+            only: ['purchaseOrders', 'suppliers', 'offices', 'fundClusters', 'poLetters'],
             onFinish: () => setRefreshingField(null),
         });
     };
@@ -695,12 +695,17 @@ export default function PirAddForm({
     // letter, COMPLETED once every "For Release" field and at least one full
     // inspection entry exists, otherwise blank.
     useEffect(() => {
+        console.log('poLetters:', poLetters);
+        console.log('current po_number:', data.po_number);
+        
         const poCancelled = poLetters.some(
             (letter) =>
                 letter.po_number === data.po_number &&
                 letter.type_of_letter === 'CANCELLATION' &&
                 letter.status_of_the_letter === 'APPROVED'
         );
+        
+        console.log('poCancelled:', poCancelled);
 
         setData((prev) => {
             const nextStatus = poCancelled
@@ -748,13 +753,13 @@ export default function PirAddForm({
                     <div>
                         <h3 className={sectionTitleClass}>PO From VPAD</h3>
                         <div className="grid grid-cols-4 gap-6">
-                            <SelectField
+                            <SearchableSelect
                                 label="PO Number"
                                 value={data.po_number}
                                 onChange={handlePoChange}
                                 error={errors.po_number}
                                 required
-                                placeholder="-- Select PO Number --"
+                                placeholder="Search PO Number..."
                                 options={purchaseOrders.map((po) => ({
                                     value: po.po_number,
                                     label: po.po_number,
