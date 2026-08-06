@@ -1,52 +1,38 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
 
-interface StatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+interface StatusBadgeProps {
     status: string | null | undefined;
+    className?: string;
 }
 
-export function StatusBadge({ status, className, ...props }: StatusBadgeProps) {
-    if (!status) return <span className="text-gray-500">-</span>;
+export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
+    if (!status) {
+        return <span className="text-muted-foreground">—</span>;
+    }
 
-    const normalizedStatus = status.trim().toUpperCase();
+    const normalized = status.trim().toUpperCase();
 
-    let colorClass = 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+    let colorStyles = 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
 
-    switch (normalizedStatus) {
-        // Green
-        case 'COMPLETE':
-        case 'SERVICEABLE':
-        case 'IN USE':
-            colorClass = 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400';
-            break;
-        // Red
-        case 'CANCELLED':
-        case 'UNSERVICEABLE':
-        case 'DISPOSED':
-            colorClass = 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400';
-            break;
-        // Yellow/Orange
-        case 'PARTIAL':
-        case 'FOR REPAIR':
-            colorClass = 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-400';
-            break;
-        // Blue/Gray
-        case 'PENDING':
-        case 'IDLE':
-            colorClass = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400';
-            break;
-        default:
-            break;
+    if (normalized === 'UNSERVICEABLE' || normalized === 'CANCELLED' || normalized === 'STOLEN' || normalized === 'LOST') {
+        colorStyles = 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800/60';
+    } else if (normalized === 'SERVICEABLE' || normalized === 'COMPLETE' || normalized === 'APPROVED') {
+        colorStyles = 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800/60';
+    } else if (normalized === 'IN USE' || normalized === 'IN-USE' || normalized === 'PENDING') {
+        colorStyles = 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800/60';
+    } else if (normalized === 'FOR REPAIR' || normalized === 'FOR-REPAIR' || normalized === 'PRE-REPAIR' || normalized === 'PARTIAL') {
+        colorStyles = 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800/60';
+    } else if (normalized === 'DISPOSED') {
+        colorStyles = 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-400 dark:border-purple-800/60';
+    } else if (normalized === 'IDLE') {
+        colorStyles = 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+    } else if (normalized === 'TRANSFERRED' || normalized === 'RETURNED') {
+        colorStyles = 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-800/60';
     }
 
     return (
         <span
-            className={cn(
-                'inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap',
-                colorClass,
-                className
-            )}
-            {...props}
+            className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold border tracking-wide uppercase shadow-xs ${colorStyles} ${className}`}
         >
             {status}
         </span>

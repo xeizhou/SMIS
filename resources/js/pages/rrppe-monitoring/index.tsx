@@ -6,6 +6,7 @@ import RrppeAddForm from '@/components/rrppe-monitoring/rrppe-add-form';
 import RrppeDeleteModal from '@/components/rrppe-monitoring/rrppe-delete-modal';
 import RrppeEditForm from '@/components/rrppe-monitoring/rrppe-edit-form';
 import RrppeViewModal from '@/components/rrppe-monitoring/rrppe-view-modal';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,7 +16,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { StatusBadge } from '@/components/ui/status-badge';
 
 export type RRPPEMonitoring = {
     id: number;

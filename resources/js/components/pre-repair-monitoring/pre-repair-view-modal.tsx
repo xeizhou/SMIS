@@ -7,6 +7,7 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog';
 import type { PreRepairMonitoring } from '@/pages/pre-repair-monitoring/index';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 interface Props {
     open: boolean;
@@ -78,7 +79,7 @@ export default function PreRepairViewModal({
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                             <Detail label="Location" value={item.location} />
                             <Detail label="Amount" value={formatCurrency(item.amount)} />
-                            <Detail label="Condition of PPE" value={item.condition_of_ppe} />
+                            <Detail label="Condition of PPE" value={<StatusBadge status={item.condition_of_ppe} />} />
                             
                             {item.condition_of_ppe === 'Unserviceable' && (
                                 <div className="sm:col-span-3">
