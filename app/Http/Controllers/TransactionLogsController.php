@@ -80,7 +80,7 @@ class TransactionLogsController extends Controller
 
         $this->logAudit("Created transaction #{$transaction->transactionID} ({$transaction->transaction_type}, {$transaction->item_name}, qty {$transaction->quantity}).");
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Transaction created successfully.');
     }
 
     /**
@@ -135,7 +135,7 @@ class TransactionLogsController extends Controller
                 $validated['reference']
             ));
 
-            return redirect()->back();
+            return redirect()->back()->with('success', 'Transaction corrected and converted successfully.');
         }
 
         $before = $transaction->only([
@@ -150,7 +150,7 @@ class TransactionLogsController extends Controller
             $this->diffSummary($before, $validated)
         ));
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Transaction updated successfully.');
     }
 
     /**
@@ -169,7 +169,7 @@ class TransactionLogsController extends Controller
             ]);
         }
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Transaction deleted successfully.');
     }
 
     /**

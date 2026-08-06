@@ -18,6 +18,7 @@ class RrspItem extends Model
         'status',
         'kind_of_semi_expendable',
         'area',
+        'remarks',
     ];
 
     public function rrsp()

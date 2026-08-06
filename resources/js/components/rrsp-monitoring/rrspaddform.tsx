@@ -10,6 +10,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
 import {
@@ -40,6 +41,7 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                 kindOfSemiExpendable: '',
                 status: '',
                 area: '',
+                remarks: '',
             }
         ]
     });
@@ -55,6 +57,7 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                 kindOfSemiExpendable: '',
                 status: '',
                 area: '',
+                remarks: '',
             }
         ]);
     };
@@ -248,6 +251,17 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                                                 </SelectContent>
                                             </Select>
                                         </div>
+                                        {item.status === 'Unserviceable' && (
+                                            <div className="space-y-1.5 md:col-span-4">
+                                                <Label htmlFor={`item-${index}-remarks`}>Remarks / Findings</Label>
+                                                <Textarea
+                                                    id={`item-${index}-remarks`}
+                                                    placeholder="Remarks or Findings..."
+                                                    value={item.remarks || ''}
+                                                    onChange={(e) => updateItem(index, 'remarks', e.target.value)}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}

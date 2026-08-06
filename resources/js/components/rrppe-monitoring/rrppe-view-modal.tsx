@@ -96,9 +96,11 @@ export default function RrppeViewModal({ open, onOpenChange, item }: Props) {
                                     '-'
                                 )
                             } />
-                            <div className="sm:col-span-3">
-                                <Detail label="Remarks" value={item.remarks || '-'} />
-                            </div>
+                            {item.status === 'UNSERVICEABLE' && (
+                                <div className="sm:col-span-3">
+                                    <Detail label="Remarks / Findings" value={item.remarks || '-'} />
+                                </div>
+                            )}
                         </div>
                     </section>
                 </div>

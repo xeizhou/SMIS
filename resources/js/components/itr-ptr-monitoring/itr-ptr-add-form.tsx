@@ -111,6 +111,7 @@ const emptyForm = {
     description: '',
     amount: '',
     condition_of_ppe: '',
+    remarks: '',
     location: '',
     date_received: '',
 };
@@ -275,6 +276,18 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                             </p>
                                         )}
                                     </div>
+                                    
+                                    {data.condition_of_ppe === 'Unserviceable' && (
+                                        <div className="md:col-span-3">
+                                            <TextareaField
+                                                label="Remarks / Findings"
+                                                name="remarks"
+                                                value={data.remarks}
+                                                onChange={handleChange}
+                                                error={errors.remarks}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

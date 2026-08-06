@@ -57,6 +57,7 @@ class ITRPTRController extends Controller
             'condition_of_ppe' => 'required|string|max:50',
             'location' => 'required|string|max:100',
             'date_received' => 'required|date',
+            'remarks' => 'nullable|string',
         ]);
 
         ItrPtrMonitoring::create($validated);
@@ -80,6 +81,7 @@ class ITRPTRController extends Controller
             'condition_of_ppe' => 'required|string|max:50',
             'location' => 'required|string|max:100',
             'date_received' => 'required|date',
+            'remarks' => 'nullable|string',
         ]);
 
         Schema::disableForeignKeyConstraints();

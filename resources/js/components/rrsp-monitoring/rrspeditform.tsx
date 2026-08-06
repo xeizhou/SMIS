@@ -11,6 +11,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
     Select,
@@ -29,6 +30,7 @@ interface RrspItem {
     kindOfSemiExpendable: string | null;
     status: string | null;
     area: string | null;
+    remarks?: string | null;
 }
 
 interface RrspMonitoring {
@@ -60,6 +62,7 @@ export default function RrspEditForm({ open, onOpenChange, rrsp }: Props) {
                 kindOfSemiExpendable: '',
                 status: '',
                 area: '',
+                remarks: '',
             }
         ]
     });
@@ -78,6 +81,7 @@ export default function RrspEditForm({ open, onOpenChange, rrsp }: Props) {
                     kindOfSemiExpendable: item.kindOfSemiExpendable ?? '',
                     status: item.status ?? '',
                     area: item.area ?? '',
+                    remarks: item.remarks ?? '',
                 })) : [{
                     itemDescription: '',
                     quantity: '',
@@ -86,6 +90,7 @@ export default function RrspEditForm({ open, onOpenChange, rrsp }: Props) {
                     kindOfSemiExpendable: '',
                     status: '',
                     area: '',
+                    remarks: '',
                 }],
             });
         }
@@ -103,6 +108,7 @@ export default function RrspEditForm({ open, onOpenChange, rrsp }: Props) {
                 kindOfSemiExpendable: '',
                 status: '',
                 area: '',
+                remarks: '',
             }
         ]);
     };
@@ -291,6 +297,17 @@ return;
                                                 </SelectContent>
                                             </Select>
                                         </div>
+                                        {item.status === 'Unserviceable' && (
+                                            <div className="space-y-1.5 md:col-span-4">
+                                                <Label htmlFor={`edit-item-${index}-remarks`}>Remarks / Findings</Label>
+                                                <Textarea
+                                                    id={`edit-item-${index}-remarks`}
+                                                    placeholder="Remarks or Findings..."
+                                                    value={item.remarks || ''}
+                                                    onChange={(e) => updateItem(index, 'remarks', e.target.value)}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
