@@ -17,7 +17,7 @@ class RrspMonitoring extends Model
     {
         return route('rrsp-monitoring.index', [
             'highlight_search' => $this->rrsp_no,
-            'highlight_id' => $this->id,
+            'highlight_id' => $this->getKey(),
         ]);
     }
     protected $table = 'rrsp_monitoring';

@@ -33,7 +33,7 @@ interface Props {
 }
 
 export default function Index({ units, filters }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
@@ -157,7 +157,7 @@ export default function Index({ units, filters }: Props) {
                                 units.data.map((unit) => (
                                     <tr
                                         key={unit.unitID}
-                                        className="border-b transition-colors hover:bg-muted/40"
+                                        className={'border-b transition-colors hover:bg-muted/40'} data-search-0={unit.unit_name} data-record-id={unit.unitID}
                                     >
                                         <td className="px-4 py-3">{unit.unit_name}</td>
                                         <td className="px-4 py-3">{unit.unit_short_name}</td>

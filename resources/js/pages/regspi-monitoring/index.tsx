@@ -57,7 +57,7 @@ return '—';
 
 
 export default function Index({ regspis, filters, rrsps, fundClusters }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [rrspNo, setRrspNo] = useState(filters.rrsp_no ?? 'all');
     const [fundClusterId, setFundClusterId] = useState(filters.fund_cluster_id ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -215,7 +215,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                                 </tr>
                             ) : (
                                 regspis.data.map((record) => (
-                                    <tr key={record.regspi_id} className="border-b transition-colors hover:bg-muted/40">
+                                    <tr key={record.regspi_id} className={'border-b transition-colors hover:bg-muted/40'} data-search-0={record.property_no} data-search-1={record.regspi_no} data-record-id={record.regspi_id}>
                                         <td className="px-4 py-3 font-medium">{record.semi_expendable_property_no}</td>
                                         <td className="px-4 py-3">{record.item_description}</td>
                                         <td className="px-4 py-3">{record.issued_qty ?? '—'}</td>

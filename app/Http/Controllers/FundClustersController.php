@@ -23,7 +23,7 @@ class FundClustersController extends Controller
         })
             // Fund clusters have timestamps; show newest first
             ->orderByDesc('created_at')
-            ->paginate(10)
+            ->paginateWithHighlight(10)
             ->withQueryString();
 
         return Inertia::render('fundclusters/index', [

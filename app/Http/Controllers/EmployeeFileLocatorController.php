@@ -31,7 +31,7 @@ class EmployeeFileLocatorController extends Controller
 
         $records = (clone $query)
             ->orderBy('last_name')
-            ->paginate(10)
+            ->paginateWithHighlight(10)
             ->withQueryString();
 
         $statuses = (clone $query)

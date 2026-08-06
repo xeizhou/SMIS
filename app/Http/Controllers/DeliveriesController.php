@@ -44,7 +44,7 @@ class DeliveriesController extends Controller
             ->when($status, fn ($query, $status) => $query->where('status', $status))
             ->when($poNumber, fn ($query, $poNumber) => $query->where('po_number', $poNumber))
             ->orderByDesc('data_entry_timestamp')
-            ->paginate(10)
+            ->paginateWithHighlight(10)
             ->withQueryString();
 
         return Inertia::render('deliveries/index', [

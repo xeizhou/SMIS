@@ -47,7 +47,7 @@ interface Props {
 }
 
 export default function Index({ records, filters, statuses, offices }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? '');
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -155,7 +155,7 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                                 </tr>
                             ) : (
                                 records.data.map((record) => (
-                                    <tr key={record.clearance_id} className="border-b transition-colors hover:bg-muted/40">
+                                    <tr key={record.clearance_id} className={'border-b transition-colors hover:bg-muted/40'} data-search-0={record.clearance_no} data-record-id={record.clearance_id}>
                                         <td className="px-4 py-3">{record.name}</td>
                                         <td className="px-4 py-3">
                                             {typeof record.office === 'string'

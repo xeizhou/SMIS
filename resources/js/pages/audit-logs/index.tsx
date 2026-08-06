@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { auditLogsHighlight } from './auditLogsHighlight';
 import { Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -47,29 +48,8 @@ interface Props {
 export default function Index({ logs, filters }: Props) {
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [roleFilter, setRoleFilter] = useState(filters.role || 'All');
-    const [highlightId, setHighlightId] = useState<number | null>(null);
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const highlight = params.get('highlight_id');
-        const highlightSearch = params.get('highlight_search');
-
-        if (highlight) {
-            setHighlightId(Number(highlight));
-            const timer = setTimeout(() => setHighlightId(null), 3000);
-            return () => clearTimeout(timer);
-        } else if (highlightSearch && logs.data) {
-            const matched = logs.data.find(log => 
-                String(log.log_id) === highlightSearch || 
-                log.action.toLowerCase().includes(highlightSearch.toLowerCase())
-            );
-            if (matched) {
-                setHighlightId(matched.log_id);
-                const timer = setTimeout(() => setHighlightId(null), 3000);
-                return () => clearTimeout(timer);
-            }
-        }
-    }, [logs.data]);
+    
 
     // Handle search debounce
     useEffect(() => {
@@ -156,11 +136,8 @@ export default function Index({ logs, filters }: Props) {
                                 logs.data.map((row) => (
                                     <tr 
                                         key={row.log_id} 
-                                        className={`transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 ${
-                                            highlightId === row.log_id 
-                                                ? 'bg-yellow-100 dark:bg-yellow-900/40' 
-                                                : ''
-                                        }`}
+                                        data-record-id={row.log_id}
+                                        className="transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
                                     >
                                         <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                                             {row.log_id}
@@ -170,7 +147,17 @@ export default function Index({ logs, filters }: Props) {
                                         <td className="px-4 py-3">{row.role}</td>
                                         <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                                             {row.target_url ? (
-                                                <Link href={row.target_url} className="font-bold text-gray-900 underline hover:text-blue-600 dark:text-gray-50 dark:hover:text-blue-400">
+                                                <Link 
+                                                    href={row.target_url}
+                                                    onClick={() => {
+                                                        const url = new URL(row.target_url!, 'http://localhost');
+                                                        const highlightSearch = url.searchParams.get('highlight_search') || url.searchParams.get('highlight_id');
+                                                        if (highlightSearch) {
+                                                            auditLogsHighlight(highlightSearch, url.pathname);
+                                                        }
+                                                    }}
+                                                    className="font-bold text-gray-900 underline hover:text-blue-600 dark:text-gray-50 dark:hover:text-blue-400"
+                                                >
                                                     {row.action}
                                                 </Link>
                                             ) : (

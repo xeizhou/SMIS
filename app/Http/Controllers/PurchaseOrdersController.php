@@ -47,7 +47,7 @@ class PurchaseOrdersController extends Controller
             })
             ->when($fundCluster, fn ($query, $fundCluster) => $query->where('fund_cluster_id', $fundCluster))
             ->latest()
-            ->paginate(10)
+            ->paginateWithHighlight(10)
             ->withQueryString();
 
         return Inertia::render('purchase-orders/index', [

@@ -40,6 +40,6 @@ class ForDisposalMonitoring extends Model
 
     public function getActivityUrl()
     {
-        return route('for-disposal-monitoring.index') . '?highlight_id=' . $this->id;
+        return route('for-disposal-monitoring.index') . '?highlight_id=' . $this->getKey();
     }
 }

@@ -32,7 +32,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
     }
 
     export default function Index({ fundClusters, filters }: Props) {
-        const [search, setSearch] = useState(filters.search ?? '');
+            const [search, setSearch] = useState(filters.search ?? '');
         const [dialogOpen, setDialogOpen] = useState(false);
         const [editOpen, setEditOpen] = useState(false);
         const [selectedFundCluster, setSelectedFundCluster] = useState<FundCluster | null>(null);
@@ -155,7 +155,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
                                     fundClusters.data.map((fc) => (
                                         <tr
                                             key={fc.fund_cluster_id}
-                                            className="border-b transition-colors hover:bg-muted/40"
+                                            className={'border-b transition-colors hover:bg-muted/40'} data-search-0={fc.fund_cluster} data-record-id={fc.fund_cluster_id}
                                         >
                                             <td className="px-4 py-3">{fc.fund_cluster_id}</td>
                                             <td className="px-4 py-3">{fc.fund_description}</td>

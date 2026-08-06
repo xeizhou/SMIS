@@ -50,7 +50,7 @@ class POLetterMonitoringController extends Controller
         ->when($status, fn ($query, $status) => $query->where('status_of_the_letter', $status))
         ->when($type, fn ($query, $type) => $query->where('type_of_letter', $type))
         ->orderByDesc('created_at')
-        ->paginate(10)
+        ->paginateWithHighlight(10)
         ->withQueryString();
 
         return Inertia::render('po-letter-monitoring/index', [

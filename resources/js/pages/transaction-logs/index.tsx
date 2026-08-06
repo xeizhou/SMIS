@@ -110,7 +110,7 @@ export default function Index({
     stockItems,
     filters,
 }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [transactionType, setTransactionType] = useState(filters.transaction_type ?? 'all');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -269,7 +269,7 @@ export default function Index({
                                 transactions.data.map((tx) => (
                                     <tr
                                         key={tx.transactionID}
-                                        className="border-b transition-colors hover:bg-muted/40"
+                                        className={'border-b transition-colors hover:bg-muted/40'} data-search-0={tx.action} data-record-id={tx.transactionID}
                                     >
                                         <td className="px-4 py-3">
                                             <span

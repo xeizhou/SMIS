@@ -30,7 +30,7 @@ class BonaVidaController extends Controller
 
         $records = (clone $query)
             ->orderBy('date_received', 'desc')
-            ->paginate(10)
+            ->paginateWithHighlight(10)
             ->withQueryString();
 
         $offices = Office::orderBy('office_name')->get();

@@ -24,6 +24,87 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        \Illuminate\Database\Eloquent\Builder::macro('paginateWithHighlight', function ($perPage = null, $columns = ['*'], $pageName = 'page', $page = null) {
+            /** @var \Illuminate\Database\Eloquent\Builder $this */
+            $request = request();
+            
+            $highlightId = $request->query('highlight_id');
+            $highlightSearch = $request->query('highlight_search');
+            
+            if (($highlightId || $highlightSearch) && !$request->has($pageName)) {
+                $queryClone = clone $this;
+                $queryClone->setEagerLoads([]);
+                
+                $position = 0;
+                $found = false;
+                $model = $this->getModel();
+                
+                if ($highlightId) {
+                    $ids = $queryClone->pluck($model->qualifyColumn($model->getKeyName()))->toArray();
+                    $index = array_search((string)$highlightId, array_map('strval', $ids), true);
+                    if ($index !== false) {
+                        $position = $index;
+                        $found = true;
+                    }
+                } elseif ($highlightSearch) {
+                    $highlightColumn = $request->query('highlight_column');
+                    if ($highlightColumn) {
+                        $values = $queryClone->pluck($model->qualifyColumn($highlightColumn))->toArray();
+                        $index = array_search((string)$highlightSearch, array_map('strval', $values), true);
+                        if ($index !== false) {
+                            $position = $index;
+                            $found = true;
+                        }
+                    } else {
+                        // Fallback to iterating for highlightSearch if column isn't provided
+                        $queryClone->chunk(500, function ($models) use (&$position, &$found, $highlightSearch) {
+                            foreach ($models as $m) {
+                                foreach ($m->getAttributes() as $val) {
+                                    if ((string)$val === (string)$highlightSearch) {
+                                        $found = true;
+                                        return false;
+                                    }
+                                }
+                                $position++;
+                            }
+                        });
+                    }
+                }
+                
+                if ($found) {
+                    $perPage = $perPage ?: $model->getPerPage();
+                    $targetPage = (int) ceil(($position + 1) / $perPage);
+                    
+                    $currentPage = (int) $request->query($pageName, 1);
+                    
+                    if ($targetPage !== $currentPage) {
+                        // Mutate the Request URI so Inertia seamlessly updates the frontend URL
+                        $request->query->set($pageName, $targetPage);
+                        $newQueryString = http_build_query($request->query());
+                        
+                        $request->server->set('QUERY_STRING', $newQueryString);
+                        $baseUri = strtok($request->server->get('REQUEST_URI'), '?');
+                        $request->server->set('REQUEST_URI', $baseUri . '?' . $newQueryString);
+                        
+                        // Flush the cached Symfony requestUri so getRequestUri() re-reads the mutated server variables
+                        $reflection = new \ReflectionClass($request);
+                        $parent = $reflection->getParentClass(); // Illuminate\Http\Request -> Symfony\Component\HttpFoundation\Request
+                        if ($parent && $parent->hasProperty('requestUri')) {
+                            $property = $parent->getProperty('requestUri');
+                            $property->setAccessible(true);
+                            $property->setValue($request, null);
+                        }
+                    }
+                    
+                    \Illuminate\Pagination\Paginator::currentPageResolver(function () use ($targetPage) {
+                        return $targetPage;
+                    });
+                }
+            }
+            
+            return $this->paginate($perPage, $columns, $pageName, $page);
+        });
     }
 
     /**

@@ -7,7 +7,7 @@ export interface IUser {
 }
 
 export interface IEvent {
-  id: number;
+  id: number | string;
   startDate: string;
   endDate: string;
   title: string;

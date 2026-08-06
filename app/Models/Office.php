@@ -53,7 +53,7 @@ class Office extends Model
 
     public function getActivityUrl()
     {
-        return route('offices.index') . '?highlight_id=' . $this->id;
+        return route('offices.index') . '?highlight_id=' . $this->getKey();
     }
     
 }

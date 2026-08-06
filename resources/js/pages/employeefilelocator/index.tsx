@@ -37,7 +37,7 @@ interface Props {
 }
 
 export default function Index({ records, filters, statuses }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? '');
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -184,7 +184,7 @@ export default function Index({ records, filters, statuses }: Props) {
                                 </tr>
                             ) : (
                                 records.data.map((record) => (
-                                    <tr key={record.efr_id} className="border-b transition-colors hover:bg-muted/40">
+                                    <tr key={record.efr_id} className={'border-b transition-colors hover:bg-muted/40'} data-search-0={record.employee_no} data-record-id={record.efr_id}>
                                         <td className="px-4 py-3">
                                             {`${record.last_name}, ${record.first_name}${record.middle_name ? ` ${record.middle_name}` : ''}`}
                                         </td>

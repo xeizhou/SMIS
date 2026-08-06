@@ -35,7 +35,7 @@ class ClearanceController extends Controller
 
         $records = (clone $query)
             ->orderByDesc('claim_date')
-            ->paginate(10)
+            ->paginateWithHighlight(10)
             ->withQueryString();
 
         $statuses = Clearance::query()

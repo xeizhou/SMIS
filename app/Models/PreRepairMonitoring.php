@@ -41,7 +41,7 @@ class PreRepairMonitoring extends Model
 
     public function getActivityUrl()
     {
-        return route('pre-repair-monitoring.index') . '?highlight_id=' . $this->id;
+        return route('pre-repair-monitoring.index') . '?highlight_id=' . $this->getKey();
     }
 
     public function forDisposalMonitorings(): HasMany

@@ -41,6 +41,6 @@ class Unit extends Model
 
     public function getActivityUrl()
     {
-        return route('units.index') . '?highlight_id=' . $this->id;
+        return route('units.index') . '?highlight_id=' . $this->getKey();
     }
 }

@@ -20,7 +20,7 @@ class PoLetterMonitoring extends Model
     {
         return route('po-letter-monitoring.index', [
             'highlight_search' => $this->po_number ?? $this->reference_no,
-            'highlight_id' => $this->id,
+            'highlight_id' => $this->getKey(),
         ]);
     }
     protected $table = 'po_letter_monitoring';

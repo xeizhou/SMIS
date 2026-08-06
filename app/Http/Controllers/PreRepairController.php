@@ -35,7 +35,7 @@ class PreRepairController extends Controller
             $query->where('condition_of_ppe', $condition_of_ppe);
         }
 
-        $data = $query->latest()->paginate(10)->withQueryString();
+        $data = $query->latest()->paginateWithHighlight(10)->withQueryString();
 
         $itrPtrs = ItrPtrMonitoring::all();
 

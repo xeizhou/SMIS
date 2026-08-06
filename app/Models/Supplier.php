@@ -48,6 +48,6 @@ class Supplier extends Model
 
     public function getActivityUrl()
     {
-        return route('supplier.index') . '?highlight_id=' . $this->id;
+        return route('supplier.index') . '?highlight_id=' . $this->getKey();
     }
 }

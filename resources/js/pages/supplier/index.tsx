@@ -46,7 +46,7 @@ export default function Index({
     suppliers,
     filters,
 }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -242,7 +242,7 @@ export default function Index({
                                 suppliers.data.map((supplier) => (
                                     <tr
                                         key={supplier.supplier_id}
-                                        className="border-b hover:bg-muted/40 transition-colors"
+                                        className={'border-b hover:bg-muted/40 transition-colors'} data-search-0={supplier.supplier_name} data-record-id={supplier.supplier_id}
                                     >
                                         <td className="px-4 py-3">
                                             {supplier.supplier_id}
