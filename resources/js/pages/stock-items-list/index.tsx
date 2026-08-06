@@ -122,7 +122,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                             // or fallback to `items.data.length` (though that only counts the current page).
                             totalItems={items.total ?? items.data.length} 
                             filters={{
-                                fundCluster: fundClusterId === 'all' ? 'None' : fundClusterId,
+                                fundCluster: fundClusterId === 'all' ? 'All' : fundClusterId,
                                 unissuedOnly: issuedStatus === 'unissued',
                                 searchQuery: search.trim() === '' ? 'None' : search,
                             }}
