@@ -37,7 +37,9 @@ type DashboardPageProps = {
     deliveries?: DueDelivery[];
     poLettersStatus?: POLetterStatusRow[];
     pendingInspections?: number;
+    inspectionsLastWeek?: number;
     pendingClearances?: number;
+    clearancesLastWeek?: number;
     pendingDeliveries?: number;
     deliveriesLastWeek?: number;
     recentDeliveries?: { 
@@ -85,7 +87,9 @@ export default function Dashboard() {
         deliveries,
         poLettersStatus,
         pendingInspections,
+        inspectionsLastWeek,
         pendingClearances,
+        clearancesLastWeek,
         pendingDeliveries,
         deliveriesLastWeek,
         allPendingDeliveries,
@@ -354,7 +358,7 @@ export default function Dashboard() {
                             <StatCard
                                 label="Pending Deliveries"
                                 value={pendingDeliveries ?? 0}
-                                change={deliveriesLastWeek !== undefined ? `+ ${deliveriesLastWeek} last week` : ""}
+                                change={deliveriesLastWeek !== undefined ? `+ ${deliveriesLastWeek} this week` : ""}
                                 icon={Truck}
                                 iconClassName="bg-blue-100 text-blue-500"
                                 onClick={() => setIsPendingModalOpen(true)}
@@ -362,6 +366,7 @@ export default function Dashboard() {
                             <StatCard
                                 label="Pending Inspection"
                                 value={pendingInspections ?? 0}
+                                change={inspectionsLastWeek !== undefined ? `+ ${inspectionsLastWeek} this week` : ""}
                                 icon={ClipboardCheck}
                                 iconClassName="bg-amber-100 text-amber-600"
                                 onClick={() => setIsPendingInspectionsModalOpen(true)}
@@ -369,6 +374,7 @@ export default function Dashboard() {
                             <StatCard
                                 label="Pending Issuance"
                                 value={pendingClearances ?? 0}
+                                change={clearancesLastWeek !== undefined ? `+ ${clearancesLastWeek} this week` : ""}
                                 icon={FileText}
                                 iconClassName="bg-rose-100 text-rose-500"
                                 onClick={() => setIsPendingClearancesModalOpen(true)}

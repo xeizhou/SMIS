@@ -161,6 +161,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
             })
             ->count();
 
+        $inspectionsLastWeek = \App\Models\PirMonitoring::whereNull('inspection_date')
+            ->whereDoesntHave('inspectionEntries', function($query) {
+                $query->whereNotNull('inspection_date');
+            })
+            ->where(function($query) {
+                $query->whereNull('status')
+                      ->orWhere('status', '!=', 'CANCELLED');
+            })
+            ->where('created_at', '>=', now()->subWeek())
+            ->count();
+
         $allPendingInspections = \App\Models\PirMonitoring::with('supplier')
             ->whereNull('inspection_date')
             ->whereDoesntHave('inspectionEntries', function($query) {
@@ -193,6 +204,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 $query->whereNull('status')
                       ->orWhere('status', '!=', 'CANCELLED');
             })
+            ->count();
+
+        $clearancesLastWeek = \App\Models\PirMonitoring::where(function($query) {
+                $query->whereNull('receipt_claimed_by')
+                      ->whereNull('items_claimed_by');
+            })
+            ->where(function($query) {
+                $query->whereNull('status')
+                      ->orWhere('status', '!=', 'CANCELLED');
+            })
+            ->where('created_at', '>=', now()->subWeek())
             ->count();
 
         $allPendingClearances = \App\Models\PirMonitoring::with('supplier')
@@ -247,8 +269,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'allPendingDeliveries' => $allPendingDeliveries,
             'poLettersStatus' => $poLettersStatus,
             'pendingInspections' => $pendingInspectionsCount,
+            'inspectionsLastWeek' => $inspectionsLastWeek,
             'allPendingInspections' => $allPendingInspections,
             'pendingClearances' => $pendingClearancesCount,
+            'clearancesLastWeek' => $clearancesLastWeek,
             'allPendingClearances' => $allPendingClearances,
             'reportsStats' => $reportsStats,
             'reportsYear' => (int) $reportsYear,
