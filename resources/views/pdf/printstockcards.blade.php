@@ -2,14 +2,14 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>STOCK CARD</title>
+    <title>{{ $pdfTitle }}</title>
     <style>
         @page {
-            margin: 40px 40px 70px 40px;
+            margin: 75px 60px 70px 60px;
         }
         body { 
             font-family: Arial, sans-serif; 
-            font-size: 11px; 
+            font-size: 12px; 
             color: #000;
         }
         .stock-card {
@@ -22,43 +22,38 @@
         .header-title {
             text-align: center;
             font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-        .entity-name {
-            font-weight: bold;
-            margin-bottom: 15px;
+            font-size: 26.7px;
+            margin-bottom: 10px;
         }
 
         table.info-table {
             width: 100%;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             border: none;
         }
         table.info-table td {
-            padding: 2px 5px;
+            padding: 3.5px 0px;
             vertical-align: top;
             border: none;
+            font-size: 14.5px;
+        }
+        table.info-table td.label {
+            font-weight: bold;
             white-space: nowrap;
         }
-        /* Let the value columns wrap/shrink as needed, but keep labels on one line */
-        table.info-table td:nth-child(2),
-        table.info-table td:nth-child(4) {
-            white-space: normal;
-        }
 
-        table.trans-table {
-            width: 100%;
-            border-collapse: collapse;
+        table.trans-table { 
+            width: 100%; 
+            border-collapse: collapse; 
         }
-        table.trans-table th, table.trans-table td {
-            border: 1px solid #000;
-            padding: 5px;
-            text-align: center;
+        table.trans-table th, table.trans-table td { 
+            border: 1px solid #000; 
+            padding: 8px; 
+            text-align: center; 
         }
-        table.trans-table th {
-            background-color: #fff;
-            font-weight: bold;
+        table.trans-table th { 
+            background-color: #D9D9D9; 
+            font-weight: bold; 
         }
     </style>
 </head>
@@ -67,25 +62,28 @@
         @foreach($stockItems as $item)
         <div class="stock-card">
             <div class="header-title">STOCK CARD</div>
-            <div class="entity-name">ENTITY NAME: University of Southeastern Philippines - Supply Management Unit</div>
 
             <table class="info-table">
                 <tr>
-                    <td style="width: 15%;">ITEM:</td>
-                    <td style="width: 35%;"><strong>{{ $item->item_name }}</strong></td>
-                    <td style="width: 20%;">FUND CLUSTER:</td>
+                    <td class="label" style="width: 15%;">ENTITY NAME:</td>
+                    <td colspan="3">University of Southeastern Philippines - Supply Management Unit</td>
+                </tr>
+                <tr>
+                    <td class="label" style="width: 15%;">ITEM:</td>
+                    <td style="width: 35%;">{{ $item->item_name }}</td>
+                    <td class="label" style="width: 20%;">FUND CLUSTER:</td>
                     <td style="width: 30%;">{{ $item->display_fund_cluster }}</td>
                 </tr>
                 <tr>
-                    <td>DESCRIPTION:</td>
+                    <td class="label">DESCRIPTION:</td>
                     <td>{{ $item->description ?? '' }}</td>
-                    <td>STOCK NO:</td>
+                    <td class="label">STOCK NO:</td>
                     <td>{{ $item->stock_no }}</td>
                 </tr>
                 <tr>
-                    <td>RE-ORDER POINT:</td>
+                    <td class="label">RE-ORDER POINT:</td>
                     <td>{{ $item->reorder_point ?? '' }}</td>
-                    <td>UNIT:</td>
+                    <td class="label">UNIT:</td>
                     <td>{{ $item->unit_name ?? $item->unit_short_name }}</td>
                 </tr>
             </table>
@@ -93,13 +91,16 @@
             <table class="trans-table">
                 <thead>
                     <tr>
-                        <th>DATE</th>
-                        <th>REFERENCE</th>
-                        <th>RECEIPT<br>QTY</th>
-                        <th>ISSUE<br>QTY</th>
+                        <th rowspan="2">DATE</th>
+                        <th rowspan="2">REFERENCE</th>
+                        <th rowspan="2">RECEIPT<br>QTY</th>
+                        <th colspan="2">ISSUE</th>
+                        <th rowspan="2">BALANCE</th>
+                        <th rowspan="2">NO. OF DAYS<br>TO CONSUME</th>
+                    </tr>
+                    <tr>
+                        <th>QTY</th>
                         <th>OFFICE</th>
-                        <th>BALANCE</th>
-                        <th>NO. OF DAYS<br>TO CONSUME</th>
                     </tr>
                 </thead>
                 <tbody>
