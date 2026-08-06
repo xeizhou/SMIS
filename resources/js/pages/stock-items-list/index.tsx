@@ -11,6 +11,9 @@ import {
 } from '@/components/ui/select';
 import { useState } from 'react';
 
+// Make sure the path matches where you saved the component
+import PrintStockCardsButton from '@/components/PrintStockCardsButton';
+
 interface FundClusterRef {
     fund_cluster_id: string;
     fund_description: string | null;
@@ -28,6 +31,7 @@ interface StockCardItem {
 
 interface PaginatedItems {
     data: StockCardItem[];
+    total: number; // Assuming your Laravel pagination resource includes a 'total' property
     links: {
         url: string | null;
         label: string;
@@ -109,6 +113,20 @@ export default function Index({ items, fundClusters, filters }: Props) {
                         <p className="mt-1 text-sm text-muted-foreground">
                             Stock card balances computed from receive/issue transactions.
                         </p>
+                    </div>
+                    
+                    {/* Added the Print Button Component Here */}
+                    <div>
+                        <PrintStockCardsButton 
+                            // Note: If `items.total` isn't available, you might need to adjust your backend to send it, 
+                            // or fallback to `items.data.length` (though that only counts the current page).
+                            totalItems={items.total ?? items.data.length} 
+                            filters={{
+                                fundCluster: fundClusterId === 'all' ? 'None' : fundClusterId,
+                                unissuedOnly: issuedStatus === 'unissued',
+                                searchQuery: search.trim() === '' ? 'None' : search,
+                            }}
+                        />
                     </div>
                 </div>
 

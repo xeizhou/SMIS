@@ -216,6 +216,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/stock-items-list', [StockItemsListController::class, 'index'])->name('stock-items-list.index');
 
+    Route::get('/stock-items/print-cards', [StockItemsListController::class, 'printCards'])->name('stock-items.print-cards');
+
     // Purchase Order Monitoring
     Route::get('/purchase-orders', [PurchaseOrdersController::class, 'index'])->name('purchase-orders.index');
     Route::post('/purchase-orders', [PurchaseOrdersController::class, 'store'])->name('purchase-orders.store');
