@@ -29,6 +29,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
 
 // Remove MOCK_NOTIFICATIONS
 
@@ -246,18 +247,20 @@ export default function Dashboard() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <div className="relative cursor-pointer">
-                                    <button
-                                        className="flex items-center justify-center size-8 rounded-md border border-sidebar-border/70 text-neutral-600 transition hover:bg-neutral-100 dark:border-sidebar-border dark:text-neutral-300 dark:hover:bg-neutral-800"
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="relative"
                                         aria-label="Notifications"
                                         title="Incoming Deliveries"
                                     >
                                         <Bell className="size-4" />
                                         {unreadCount > 0 && (
-                                            <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[8px] text-white ring-2 ring-white dark:ring-neutral-900">
+                                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-background">
                                                 {unreadCount}
                                             </span>
                                         )}
-                                    </button>
+                                    </Button>
                                 </div>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-[320px]">
@@ -333,14 +336,14 @@ export default function Dashboard() {
                                 </ScrollArea>
                             </DropdownMenuContent>
                         </DropdownMenu>
-                        <button
+                        <Button
+                            variant="outline"
                             onClick={handleRefresh}
                             disabled={isRefreshing}
-                            className="flex items-center gap-1.5 rounded-md border border-sidebar-border/70 px-3 py-1.5 text-sm text-neutral-600 transition hover:bg-neutral-100 disabled:opacity-50 dark:border-sidebar-border dark:text-neutral-300 dark:hover:bg-neutral-800"
                         >
                             <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                             Refresh
-                        </button>
+                        </Button>
                         <CalendarButton deliveries={deliveries} />
                     </div>
                 </div>
