@@ -150,6 +150,34 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ];
         })->values();
 
+        $pendingInspectionsCount = \App\Models\PirMonitoring::whereNull('inspection_date')
+            ->where(function($query) {
+                $query->whereNull('status')
+                      ->orWhere('status', '!=', 'CANCELLED');
+            })
+            ->count();
+
+        $allPendingInspections = \App\Models\PirMonitoring::with('supplier')
+            ->whereNull('inspection_date')
+            ->where(function($query) {
+                $query->whereNull('status')
+                      ->orWhere('status', '!=', 'CANCELLED');
+            })
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($inspection) {
+                return [
+                    'pir_id' => $inspection->pir_id,
+                    'po_number' => $inspection->po_number,
+                    'iar_number' => $inspection->iar_number,
+                    'invoice_number' => $inspection->invoice_number,
+                    'supplier' => $inspection->supplier ? [
+                        'supplier_name' => $inspection->supplier->supplier_name,
+                    ] : null,
+                ];
+            })
+            ->values();
+
         return Inertia::render('dashboard', [
             'recentActivity' => $recentActivity,
             'recentDeliveries' => $recentDeliveries,
@@ -158,6 +186,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'deliveriesLastWeek' => $deliveriesLastWeek,
             'allPendingDeliveries' => $allPendingDeliveries,
             'poLettersStatus' => $poLettersStatus,
+            'pendingInspections' => $pendingInspectionsCount,
+            'allPendingInspections' => $allPendingInspections,
         ]);
     })->name('dashboard');
 

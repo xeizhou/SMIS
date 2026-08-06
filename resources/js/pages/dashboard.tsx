@@ -53,6 +53,13 @@ type DashboardPageProps = {
         end_user?: string;
         supplier?: { supplier_name: string } | null;
     }[];
+    allPendingInspections?: {
+        pir_id: string;
+        po_number: string;
+        iar_number?: string | null;
+        invoice_number?: string | null;
+        supplier?: { supplier_name: string } | null;
+    }[];
     // recentActivity?: RecentActivityRow[];
 };
 
@@ -65,6 +72,7 @@ export default function Dashboard() {
         pendingDeliveries,
         deliveriesLastWeek,
         allPendingDeliveries,
+        allPendingInspections,
         recentActivity,
         recentDeliveries,
     } = usePage<DashboardPageProps>().props;
@@ -75,6 +83,7 @@ export default function Dashboard() {
     const [notifFilter, setNotifFilter] = useState<'all' | 'unread'>('all');
     const [isLoaded, setIsLoaded] = useState(false);
     const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
+    const [isPendingInspectionsModalOpen, setIsPendingInspectionsModalOpen] = useState(false);
 
     // Initialize from localStorage on mount
     useEffect(() => {
@@ -282,10 +291,10 @@ export default function Dashboard() {
                             />
                             <StatCard
                                 label="Pending Inspection"
-                                value={pendingInspections ?? 42}
-                                change="+ 5 last week"
+                                value={pendingInspections ?? 0}
                                 icon={ClipboardCheck}
                                 iconClassName="bg-amber-100 text-amber-600"
+                                onClick={() => setIsPendingInspectionsModalOpen(true)}
                             />
                             <StatCard
                                 label="Pending Issuance"
@@ -351,6 +360,57 @@ export default function Dashboard() {
                         ) : (
                             <div className="flex h-32 items-center justify-center text-muted-foreground mt-4">
                                 No pending deliveries found.
+                            </div>
+                        )}
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isPendingInspectionsModalOpen} onOpenChange={setIsPendingInspectionsModalOpen}>
+                <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0">
+                    <DialogHeader className="p-6 pb-4 border-b border-border/50">
+                        <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                            <ClipboardCheck className="size-5 text-amber-500" />
+                            Pending Inspections ({pendingInspections ?? 0})
+                        </DialogTitle>
+                    </DialogHeader>
+                    
+                    <ScrollArea className="flex-1 p-6 pt-2">
+                        {allPendingInspections && allPendingInspections.length > 0 ? (
+                            <div className="grid gap-3 mt-4">
+                                {allPendingInspections.map((inspection) => (
+                                    <div key={inspection.pir_id} className="flex items-start justify-between rounded-lg border border-border p-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
+                                        <div className="grid gap-1">
+                                            <Link href={`/iar?highlight_search=${inspection.po_number}`} className="font-semibold text-primary hover:underline">
+                                                {inspection.po_number}
+                                            </Link>
+                                            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-1">
+                                                <span className="font-medium text-foreground/80">{inspection.supplier?.supplier_name || 'Unknown Supplier'}</span>
+                                                {(inspection.iar_number || inspection.invoice_number) && (
+                                                    <span className="text-muted-foreground/40">•</span>
+                                                )}
+                                                {inspection.iar_number && (
+                                                    <span>IAR: {inspection.iar_number}</span>
+                                                )}
+                                                {inspection.iar_number && inspection.invoice_number && (
+                                                    <span className="text-muted-foreground/40">•</span>
+                                                )}
+                                                {inspection.invoice_number && (
+                                                    <span>Invoice: {inspection.invoice_number}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2">
+                                            <div className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                                                PENDING
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex h-32 items-center justify-center text-muted-foreground mt-4">
+                                No pending inspections found.
                             </div>
                         )}
                     </ScrollArea>
