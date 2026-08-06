@@ -27,6 +27,7 @@ class ItrPtrMonitoring extends Model
         'condition_of_ppe',
         'location',
         'date_received',
+        'remarks',
     ];
 
     protected $casts = [

@@ -23,6 +23,7 @@ export type ITRPTRMonitoring = {
     condition_of_ppe: string;
     location: string;
     date_received: string;
+    remarks?: string;
     created_at?: string;
     updated_at?: string;
 };

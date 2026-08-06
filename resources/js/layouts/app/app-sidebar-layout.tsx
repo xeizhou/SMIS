@@ -16,9 +16,9 @@ export default function AppSidebarLayout({
     
     const hasErrors = errors && Object.keys(errors).length > 0;
     const firstError = hasErrors ? Object.values(errors)[0] as string : null;
-    const errorMessage = flash?.error || firstError;
+    const errorMessage = flash?.error || flash?.deleteError || firstError;
     const successMessage = flash?.success;
-    const infoMessage = flash?.message;
+    const infoMessage = flash?.message || flash?.status;
 
     const alertMessage = errorMessage || successMessage || infoMessage;
     

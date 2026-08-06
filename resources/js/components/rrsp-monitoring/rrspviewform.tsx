@@ -15,6 +15,7 @@ interface RrspItem {
     kindOfSemiExpendable: string | null;
     status: string | null;
     area: string | null;
+    remarks?: string | null;
 }
 
 interface RrspMonitoring {
@@ -127,6 +128,11 @@ return (
                                     <Detail label="Kind of Semi-Expendable" value={item.kindOfSemiExpendable ?? '—'} />
                                     <Detail label="Area" value={item.area ?? '—'} />
                                     <Detail label="Status" value={item.status ?? '—'} />
+                                    {item.status === 'Unserviceable' && (
+                                        <div className="sm:col-span-4 mt-2">
+                                            <Detail label="Remarks / Findings" value={item.remarks ?? '—'} />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}

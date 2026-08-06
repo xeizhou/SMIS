@@ -63,7 +63,7 @@ class BonaVidaController extends Controller
 
         BonaVidaMonitoring::create($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Bona Vida record created successfully.');
     }
 
     /**
@@ -84,7 +84,7 @@ class BonaVidaController extends Controller
 
         $bonavida->update($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Bona Vida record updated successfully.');
     }
 
     /**
@@ -94,7 +94,7 @@ class BonaVidaController extends Controller
     {
         $bonavida->delete();
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Bona Vida record deleted successfully.');
     }
 
     /**

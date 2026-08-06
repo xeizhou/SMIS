@@ -104,6 +104,7 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
         description: '',
         amount: '',
         condition_of_ppe: '',
+        remarks: '',
         location: '',
         date_received: '',
     });
@@ -125,6 +126,7 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                 description: item.description || '',
                 amount: item.amount ? item.amount.toString() : '',
                 condition_of_ppe: item.condition_of_ppe || '',
+                remarks: (item as any).remarks || '',
                 location: item.location || '',
                 date_received: item.date_received || '',
             });
@@ -253,9 +255,21 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                                     <SelectItem value="Serviceable">Serviceable</SelectItem>
                                     <SelectItem value="Unserviceable">Unserviceable</SelectItem>
                                 </SelectContent>
-                            </Select>
+                                </Select>
                                 {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
                             </div>
+
+                            {data.condition_of_ppe === 'Unserviceable' && (
+                                <div className="md:col-span-3">
+                                    <TextareaField
+                                        label="Remarks / Findings"
+                                        name="remarks"
+                                        value={data.remarks}
+                                        onChange={handleChange}
+                                        error={errors.remarks}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
 

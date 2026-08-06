@@ -53,6 +53,7 @@ class RRSPController extends Controller
                             'status' => $i->status,
                             'kindOfSemiExpendable' => $i->kind_of_semi_expendable,
                             'area' => $i->area,
+                            'remarks' => $i->remarks,
                         ];
                     }),
                 ];
@@ -88,6 +89,7 @@ class RRSPController extends Controller
             'items.*.kindOfSemiExpendable' => 'nullable|string|max:255',
             'items.*.status' => 'nullable|string|max:100',
             'items.*.area' => 'nullable|string|max:255',
+            'items.*.remarks' => 'nullable|string',
         ]);
 
         $rrsp = RrspMonitoring::create([
@@ -105,6 +107,7 @@ class RRSPController extends Controller
                 'kind_of_semi_expendable' => $item['kindOfSemiExpendable'],
                 'status' => $item['status'],
                 'area' => $item['area'],
+                'remarks' => $item['remarks'] ?? null,
             ]);
         }
 
@@ -125,6 +128,7 @@ class RRSPController extends Controller
             'items.*.kindOfSemiExpendable' => 'nullable|string|max:255',
             'items.*.status' => 'nullable|string|max:100',
             'items.*.area' => 'nullable|string|max:255',
+            'items.*.remarks' => 'nullable|string',
         ]);
 
         $rrsp->update([
@@ -143,6 +147,7 @@ class RRSPController extends Controller
                 'kind_of_semi_expendable' => $item['kindOfSemiExpendable'],
                 'status' => $item['status'],
                 'area' => $item['area'],
+                'remarks' => $item['remarks'] ?? null,
             ]);
         }
 

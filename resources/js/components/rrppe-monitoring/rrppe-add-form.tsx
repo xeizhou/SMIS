@@ -10,6 +10,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
     Select,
     SelectContent,
@@ -58,6 +59,34 @@ function Field({
 
             <Input
                 type={type}
+                name={name}
+                value={value as string}
+                onChange={onChange}
+                placeholder={placeholder}
+            />
+
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+function TextareaField({
+    label,
+    name,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = '',
+}: FieldProps) {
+    return (
+        <div>
+            <label className={labelClass}>
+                {label}
+                {required && <span className="text-red-500"> *</span>}
+            </label>
+
+            <Textarea
                 name={name}
                 value={value as string}
                 onChange={onChange}
@@ -297,15 +326,17 @@ export default function RrppeAddForm({ open, onOpenChange }: Props) {
                                     },
                                 ]}
                             />
-                            <div className="md:col-span-3">
-                                <Field
-                                    label="Remarks"
-                                    name="remarks"
-                                    value={data.remarks}
-                                    onChange={handleChange}
-                                    error={errors.remarks}
-                                />
-                            </div>
+                            {data.status === 'UNSERVICEABLE' && (
+                                <div className="md:col-span-3">
+                                    <TextareaField
+                                        label="Remarks / Findings"
+                                        name="remarks"
+                                        value={data.remarks}
+                                        onChange={handleChange}
+                                        error={errors.remarks}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
 
