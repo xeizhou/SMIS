@@ -28,7 +28,7 @@ class TransactionFactory extends Factory
         }
 
         return [
-            'transaction_type' => fake()->randomElement(['IN', 'OUT']),
+            'transaction_type' => fake()->randomElement(['ISSUE', 'RECEIVE']),
             'fund_cluster' => FundCluster::inRandomOrder()->value('fund_cluster_id'),
             'transaction_date' => fake()->dateTimeBetween('-1 year', 'now'),
             'item_name' => $stockItem ? $stockItem->item_name : fake()->word(),

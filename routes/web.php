@@ -23,6 +23,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransactionLogsController;
 use App\Http\Controllers\UnitsController;
 use App\Http\Controllers\UsersController;
+use App\Http\Controllers\StockItemDashboardController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -255,7 +256,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ]);
     })->name('dashboard');
 
-    // Property Monitoring
+    // ==========================================================
+    // Assets (sidebar: "Assets")
+    // ==========================================================
     Route::get('/rrppe-monitoring', [RRPPEController::class, 'index'])->name('rrppe-monitoring.index');
     Route::post('/rrppe-monitoring', [RRPPEController::class, 'store'])->name('rrppe-monitoring.store');
     Route::put('/rrppe-monitoring/{id}', [RRPPEController::class, 'update'])->name('rrppe-monitoring.update');
@@ -286,33 +289,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/for-disposal-monitoring/{id}', [ForDisposalController::class, 'update'])->name('for-disposal-monitoring.update');
     Route::delete('/for-disposal-monitoring/{id}', [ForDisposalController::class, 'destroy'])->name('for-disposal-monitoring.destroy');
 
-    Route::get('/transaction-logs', [TransactionLogsController::class, 'index'])->name('transaction-logs.index');
-    Route::post('/transaction-logs', [TransactionLogsController::class, 'store'])->name('transaction-logs.store');
-    Route::put('/transaction-logs/{transaction}', [TransactionLogsController::class, 'update'])->name('transaction-logs.update');
-    Route::delete('/transaction-logs/{transaction}', [TransactionLogsController::class, 'destroy'])->name('transaction-logs.destroy');
-
     Route::get('/bona-vida-monitoring', [BonaVidaController::class, 'index'])->name('bona-vida-monitoring.index');
     Route::get('/bona-vida-monitoring/summary', [BonaVidaController::class, 'summary'])->name('bona-vida-monitoring.summary');
     Route::post('/bona-vida-monitoring', [BonaVidaController::class, 'store'])->name('bona-vida-monitoring.store');
     Route::put('/bona-vida-monitoring/{bonavida}', [BonaVidaController::class, 'update'])->name('bona-vida-monitoring.update');
     Route::delete('/bona-vida-monitoring/{bonavida}', [BonaVidaController::class, 'destroy'])->name('bona-vida-monitoring.destroy');
 
-    // Stock Items Monitoring
-    Route::get('/stock-items', [StockItemsController::class, 'index'])->name('stock-items.index');
-    Route::post('/stock-items', [StockItemsController::class, 'store'])->name('stock-items.store');
-    Route::put('/stock-items/{stockItem}', [StockItemsController::class, 'update'])->name('stock-items.update');
-    Route::delete('/stock-items/{stockItem}', [StockItemsController::class, 'destroy'])->name('stock-items.destroy');
-
-    Route::get('/units', [UnitsController::class, 'index'])->name('units.index');
-    Route::post('/units', [UnitsController::class, 'store'])->name('units.store');
-    Route::put('/units/{unit}', [UnitsController::class, 'update'])->name('units.update');
-    Route::delete('/units/{unit}', [UnitsController::class, 'destroy'])->name('units.destroy');
-
-    Route::get('/stock-items-list', [StockItemsListController::class, 'index'])->name('stock-items-list.index');
-
-    Route::get('/stock-items/print-cards', [StockItemsListController::class, 'printCards'])->name('stock-items.print-cards');
-
-    // Purchase Order Monitoring
+    // ==========================================================
+    // Procurement (sidebar: "Procurement")
+    // ==========================================================
     Route::get('/purchase-orders', [PurchaseOrdersController::class, 'index'])->name('purchase-orders.index');
     Route::post('/purchase-orders', [PurchaseOrdersController::class, 'store'])->name('purchase-orders.store');
     Route::put('/purchase-orders/{servePo}', [PurchaseOrdersController::class, 'update'])->name('purchase-orders.update');
@@ -342,6 +327,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->where('po_number', '[^/]+')
         ->name('iar.attachments.upload');
 
+    Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
+    Route::post('/supplier', [SupplierController::class, 'store']);
+    Route::put('/supplier/{supplier}', [SupplierController::class, 'update']);
+    Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
+
+    Route::get('/fund-clusters', [FundClustersController::class, 'index'])->name('fund-clusters.index');
+    Route::post('/fund-clusters', [FundClustersController::class, 'store'])->name('fund-clusters.store');
+    Route::put('/fund-clusters/{fundCluster}', [FundClustersController::class, 'update'])->name('fund-clusters.update');
+    Route::delete('/fund-clusters/{fundCluster}', [FundClustersController::class, 'destroy'])->name('fund-clusters.destroy');
+
     // Shared polymorphic attachment delete route — used by Purchase Orders,
     // Deliveries, and PIR. Previously this was declared separately (and
     // duplicated) under both PO and Deliveries pointing at different
@@ -354,22 +349,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/offices/{office}/send-test-email', [OfficesController::class, 'sendTestEmail'])
     ->name('offices.send-test-email');
 
-    Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
-    Route::post('/supplier', [SupplierController::class, 'store']);
-    Route::put('/supplier/{supplier}', [SupplierController::class, 'update']);
-    Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
-
-    Route::get('/clearance', [ClearanceController::class, 'index'])->name('clearance.index');
-    Route::post('/clearance', [ClearanceController::class, 'store'])->name('clearance.store');
-    Route::put('/clearance/{clearance}', [ClearanceController::class, 'update'])->name('clearance.update');
-    Route::delete('/clearance/{clearance}', [ClearanceController::class, 'destroy'])->name('clearance.destroy');
-
-    Route::get('/fund-clusters', [FundClustersController::class, 'index'])->name('fund-clusters.index');
-    Route::post('/fund-clusters', [FundClustersController::class, 'store'])->name('fund-clusters.store');
-    Route::put('/fund-clusters/{fundCluster}', [FundClustersController::class, 'update'])->name('fund-clusters.update');
-    Route::delete('/fund-clusters/{fundCluster}', [FundClustersController::class, 'destroy'])->name('fund-clusters.destroy');
-
-    // Human Resource Monitoring
+    // ==========================================================
+    // Personnel Files (sidebar: "Personnel Files")
+    // ==========================================================
     Route::get('/employee-file-locator', [EmployeeFileLocatorController::class, 'index'])->name('employee-file-locator.index');
     Route::post('/employee-file-locator', [EmployeeFileLocatorController::class, 'store'])->name('employee-file-locator.store');
     Route::put('/employee-file-locator/{employeefilelocator}', [EmployeeFileLocatorController::class, 'update'])->name('employee-file-locator.update');
@@ -377,10 +359,42 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/offices', [OfficesController::class, 'index'])->name('offices.index');
     Route::post('/offices', [OfficesController::class, 'store'])->name('offices.store');
-    Route::put('/offices/{office}', [OfficesController::class, 'update']);
+    Route::put('/offices/{office}', [OfficesController::class, 'update'])->name('offices.update');
     Route::delete('/offices/{office}', [OfficesController::class, 'destroy']);
 
-    // System/Admin Monitoring
+    Route::get('/clearance', [ClearanceController::class, 'index'])->name('clearance.index');
+    Route::post('/clearance', [ClearanceController::class, 'store'])->name('clearance.store');
+    Route::put('/clearance/{clearance}', [ClearanceController::class, 'update'])->name('clearance.update');
+    Route::delete('/clearance/{clearance}', [ClearanceController::class, 'destroy'])->name('clearance.destroy');
+
+    // ==========================================================
+    // Stock Cards (sidebar: "Stock Cards")
+    // ==========================================================
+
+    Route::get('/stock-items-dashboard', [StockItemDashboardController::class, 'index'])
+    ->name('stock-items-dashboard.index');
+
+    Route::get('/stock-items', [StockItemsController::class, 'index'])->name('stock-items.index');
+    Route::post('/stock-items', [StockItemsController::class, 'store'])->name('stock-items.store');
+    Route::put('/stock-items/{stockItem}', [StockItemsController::class, 'update'])->name('stock-items.update');
+    Route::delete('/stock-items/{stockItem}', [StockItemsController::class, 'destroy'])->name('stock-items.destroy');
+
+    Route::get('/units', [UnitsController::class, 'index'])->name('units.index');
+    Route::post('/units', [UnitsController::class, 'store'])->name('units.store');
+    Route::put('/units/{unit}', [UnitsController::class, 'update'])->name('units.update');
+    Route::delete('/units/{unit}', [UnitsController::class, 'destroy'])->name('units.destroy');
+
+    Route::get('/transaction-logs', [TransactionLogsController::class, 'index'])->name('transaction-logs.index');
+    Route::post('/transaction-logs', [TransactionLogsController::class, 'store'])->name('transaction-logs.store');
+    Route::put('/transaction-logs/{transaction}', [TransactionLogsController::class, 'update'])->name('transaction-logs.update');
+    Route::delete('/transaction-logs/{transaction}', [TransactionLogsController::class, 'destroy'])->name('transaction-logs.destroy');
+
+    Route::get('/stock-items-list', [StockItemsListController::class, 'index'])->name('stock-items-list.index');
+    Route::get('/stock-items/print-cards', [StockItemsListController::class, 'printCards'])->name('stock-items.print-cards');
+
+    // ==========================================================
+    // System/Administration (sidebar: "System/Administration")
+    // ==========================================================
     Route::get('/users', [UsersController::class, 'index'])->name('users.index');
     Route::get('/audit-logs', [AuditLogsController::class, 'index'])->name('audit-logs.index');
 
