@@ -46,6 +46,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
                 'deleteError' => fn () => $request->session()->get('deleteError'),
+                'uuid' => \Illuminate\Support\Str::uuid()->toString(),
             ],   
         ];
     }
