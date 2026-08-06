@@ -12,6 +12,7 @@ use App\Models\PirInspectionEntry;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
+use App\Models\PoLetterMonitoring;
 
 class IARController extends Controller
 {
@@ -98,14 +99,17 @@ class IARController extends Controller
         $search = $request->input('search');
 
         $query = PirMonitoring::with(['supplier', 'fundCluster', 'attachments', 'inspectionEntries'])
-            ->when($search, function ($q) use ($search) {
-                $q->where(function ($sub) use ($search) {
-                    $sub->where('po_number', 'like', "%{$search}%")
-                        ->orWhere('invoice_number', 'like', "%{$search}%")
-                        ->orWhere('iar_number', 'like', "%{$search}%")
-                        ->orWhere('ris_number', 'like', "%{$search}%");
-                });
+        ->when($search, function ($q) use ($search) {
+            $q->where(function ($sub) use ($search) {
+                $sub->where('po_number', 'like', "%{$search}%")
+                    ->orWhere('invoice_number', 'like', "%{$search}%")
+                    ->orWhere('iar_number', 'like', "%{$search}%")
+                    ->orWhere('ris_number', 'like', "%{$search}%")
+                    ->orWhereHas('servePo', function ($poQuery) use ($search) {
+                        $poQuery->where('item_description', 'like', "%{$search}%");
+                    });
             });
+        });
 
         if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
@@ -142,6 +146,13 @@ class IARController extends Controller
                 'supplier_id',
                 'end_user'
             )->orderByDesc('created_at')->get(),
+            // Needed so the PIR form can auto-derive CANCELLED status when
+            // a PO has an approved cancellation letter on file.
+            'poLetters' => \App\Models\PoLetterMonitoring::select(
+                'po_number',
+                'type_of_letter',
+                'status_of_the_letter'
+            )->get(),
             'filters' => [
                 'search' => $search,
                 'status' => $request->input('status', 'all'),
@@ -197,7 +208,7 @@ class IARController extends Controller
             'coa_stamp_notified_via' => 'nullable|string|max:255',
             'receipt_claimed_notified_date' => 'nullable|date',
             'receipt_claimed_notified_via' => 'nullable|string|max:255',
-            'status' => 'required|in:COMPLETED,CANCELLED',
+            'status' => 'nullable|in:COMPLETED,CANCELLED',
             'remarks' => 'nullable|string',
             'inspection_entries' => 'nullable|array',
             'inspection_entries.*.iar_number' => 'nullable|string|max:255',
@@ -308,7 +319,7 @@ class IARController extends Controller
             'coa_stamp_notified_via' => 'nullable|string|max:255',
             'receipt_claimed_notified_date' => 'nullable|date',
             'receipt_claimed_notified_via' => 'nullable|string|max:255',
-            'status' => 'required|in:COMPLETED,CANCELLED',
+            'status' => 'nullable|in:COMPLETED,CANCELLED',
             'remarks' => 'nullable|string',
             'inspection_entries' => 'nullable|array',
             'inspection_entries.*.iar_number' => 'nullable|string|max:255',

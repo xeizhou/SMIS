@@ -38,8 +38,13 @@ class POLetterMonitoringController extends Controller
                     ->orWhere('po_number', 'like', "%{$search}%")
                     ->orWhere('office_end_user', 'like', "%{$search}%")
                     ->orWhere('received_by', 'like', "%{$search}%")
-                    ->orWhereHas('servePo', fn ($poQuery) => $poQuery->where('item_description', 'like', "%{$search}%"))
-                    ->orWhereHas('supplier', fn ($supplierQuery) => $supplierQuery->where('supplier_name', 'like', "%{$search}%"));
+                    ->orWhereHas('servePo', function ($poQuery) use ($search) {
+                        $poQuery->where('item_description', 'like', "%{$search}%")
+                                ->orWhere('end_user', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('supplier', function ($supplierQuery) use ($search) {
+                        $supplierQuery->where('supplier_name', 'like', "%{$search}%");
+                    });
             });
         })
         ->when($status, fn ($query, $status) => $query->where('status_of_the_letter', $status))

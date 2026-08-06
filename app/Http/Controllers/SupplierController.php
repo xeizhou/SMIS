@@ -31,7 +31,7 @@ class SupplierController extends Controller
         return Inertia::render('supplier/index', [
             'suppliers' => $query
                 // Supplier model has no timestamps; order by primary key desc to show newest
-                ->orderByDesc('supplier_id')
+                ->orderBy('supplier_id', 'asc')
                 ->paginate(10)
                 ->withQueryString(),
 

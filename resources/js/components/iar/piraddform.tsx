@@ -1,5 +1,5 @@
 import { Paperclip, RefreshCw, X, Check, ChevronsUpDown, Plus } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
 import {
@@ -59,6 +59,12 @@ interface PurchaseOrder {
     due_date: string | null;
 }
 
+interface PoLetterInfo {
+    po_number: string;
+    type_of_letter: string;
+    status_of_the_letter: string;
+}
+
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -66,6 +72,7 @@ interface Props {
     fundClusters: FundCluster[];
     offices: Office[];
     purchaseOrders: PurchaseOrder[];
+    poLetters: PoLetterInfo[];
 }
 
 interface FieldProps {
@@ -395,6 +402,7 @@ export default function PirAddForm({
     fundClusters,
     offices,
     purchaseOrders,
+    poLetters,
 }: Props) {
 
     const [refreshingField, setRefreshingField] = useState<string | null>(null);
@@ -682,6 +690,33 @@ export default function PirAddForm({
 
     const afterForReleaseDisabled = !poSelected || !forReleaseComplete;
 
+
+    // Status is auto-derived: CANCELLED if the PO has an approved CANCELLATION
+    // letter, COMPLETED once every "For Release" field and at least one full
+    // inspection entry exists, otherwise blank.
+    useEffect(() => {
+        const poCancelled = poLetters.some(
+            (letter) =>
+                letter.po_number === data.po_number &&
+                letter.type_of_letter === 'CANCELLATION' &&
+                letter.status_of_the_letter === 'APPROVED'
+        );
+
+        setData((prev) => {
+            const nextStatus = poCancelled
+                ? 'CANCELLED'
+                : forReleaseComplete
+                ? 'COMPLETED'
+                : '';
+
+            if (nextStatus === prev.status) {
+                return prev;
+            }
+
+            return { ...prev, status: nextStatus };
+        });
+    }, [forReleaseComplete, data.po_number, poLetters]);
+
     const supplierName = suppliers.find(
         (s) => String(s.supplier_id) === data.supplier_id
     )?.supplier_name ?? '';
@@ -950,7 +985,7 @@ export default function PirAddForm({
                             For Release
                             {poSelected && !forReleaseComplete && (
                                 <span className="ml-2 text-xs font-normal text-amber-600">
-                                    (Complete this section to unlock the rest of the form)
+                                    (Complete this section to unlock Receipt and Item/s Claimed by End-User)
                                 </span>
                             )}
                         </h3>
@@ -1227,15 +1262,43 @@ export default function PirAddForm({
                     <div>
                         <h3 className={sectionTitleClass}>Status & Remarks</h3>
                         <div className="grid grid-cols-4 gap-6">
-                            <SelectField
-                                label="Status"
-                                value={data.status}
-                                onChange={handleSelectChange('status')}
-                                error={errors.status}
-                                required
-                                placeholder="-- Select Status --"
-                                options={STATUS_OPTIONS}
-                            />
+                            <div>
+                                <label className={labelClass}>
+                                    Status
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        value={data.status}
+                                        disabled
+                                        placeholder="Auto-determined"
+                                        className="bg-muted text-muted-foreground flex-1"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="shrink-0"
+                                        disabled={poLetters.some(
+                                            (letter) =>
+                                                letter.po_number === data.po_number &&
+                                                letter.type_of_letter === 'CANCELLATION' &&
+                                                letter.status_of_the_letter === 'APPROVED'
+                                        )}
+                                        onClick={() =>
+                                            setData((prev) => ({
+                                                ...prev,
+                                                status: prev.status === 'CANCELLED' ? '' : 'CANCELLED',
+                                            }))
+                                        }
+                                    >
+                                        {data.status === 'CANCELLED' ? 'Undo Cancel' : 'Mark Cancelled'}
+                                    </Button>
+                                </div>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Auto-CANCELLED if this PO has an approved cancellation letter; otherwise COMPLETED once For Release and Inspection Entries are fully filled out.
+                                </p>
+                                {errors.status && <p className="mt-1 text-xs text-red-500">{errors.status}</p>}
+                            </div>
                             <Field
                                 label="Date Forwarded to Finance"
                                 name="date_forwarded_to_finance"
