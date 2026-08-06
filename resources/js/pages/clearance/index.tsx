@@ -8,6 +8,7 @@ import ClearanceEditForm from '@/components/clearance/clearanceeditform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 interface OfficeOption {
     office_code: string;
@@ -155,14 +156,14 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                                 </tr>
                             ) : (
                                 records.data.map((record) => (
-                                    <tr key={record.clearance_id} className={'border-b transition-colors hover:bg-muted/40'} data-search-0={record.clearance_no} data-record-id={record.clearance_id}>
+                                    <tr key={record.clearance_id} className={'border-b transition-colors hover:bg-muted/40'} data-search-0={record.name} data-record-id={record.clearance_id}>
                                         <td className="px-4 py-3">{record.name}</td>
                                         <td className="px-4 py-3">
                                             {typeof record.office === 'string'
                                                 ? record.office
                                                 : record.office?.office_name ?? record.office_data?.office_name ?? '—'}
                                         </td>
-                                        <td className="px-4 py-3">{record.status}</td>
+                                        <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">
                                                 <button type="button" onClick={() => openEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">

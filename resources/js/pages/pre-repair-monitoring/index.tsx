@@ -9,6 +9,7 @@ import PreRepairViewModal from '@/components/pre-repair-monitoring/pre-repair-vi
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status-badge';
 import type { ITRPTRMonitoring } from '@/pages/itr-ptr-monitoring/index';
 
 export type PreRepairMonitoring = {
@@ -197,7 +198,7 @@ export default function Index({ data = { data: [], links: [] }, filters = {}, it
                                         <td className="px-4 py-3">{item.description}</td>
                                         
                                         
-                                        <td className="px-4 py-3">{item.condition_of_ppe}</td>
+                                        <td className="px-4 py-3"><StatusBadge status={item.condition_of_ppe} /></td>
                                         
                                         <td className="px-4 py-3">{formatCurrency(item.amount)}</td>
                                         <td className="px-4 py-3">

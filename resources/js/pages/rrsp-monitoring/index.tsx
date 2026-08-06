@@ -15,6 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 interface RrspItem {
     id: number;
@@ -319,7 +320,7 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                                         {formatCurrency(firstItem?.cost ?? null)}
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        {firstItem?.status ?? '—'}
+                                                        {firstItem?.status ? <StatusBadge status={firstItem.status} /> : '—'}
                                                     </td>
                                                     <td className="px-4 py-3" rowSpan={itemsCount}>
                                                         <div className="flex items-center justify-center gap-3">
@@ -368,7 +369,7 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                                             {formatCurrency(item.cost ?? null)}
                                                         </td>
                                                         <td className="px-4 py-3">
-                                                            {item.status ?? '—'}
+                                                            {item.status ? <StatusBadge status={item.status} /> : '—'}
                                                         </td>
                                                     </tr>
                                                 ))}

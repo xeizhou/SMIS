@@ -15,6 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 export type RRPPEMonitoring = {
     id: number;
@@ -201,9 +202,7 @@ export default function Index({ data, filters = {} }: { data: PaginatedRRPPE, fi
                                         <td className="px-4 py-3">{item.end_user_name}</td>
                                         
                                         <td className="px-4 py-3">
-                                            <span className="font-medium text-gray-700 dark:text-gray-300">
-                                                {item.status}
-                                            </span>
+                                            <StatusBadge status={item.status} />
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">

@@ -191,7 +191,7 @@ export default function Index({ data = { data: [], links: [] }, filters = {} }: 
                                 data.data.map((item) => (
                                     <tr 
                                         key={item.id} 
-                                        className={'transition-colors duration-1000 ' + 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'} data-search-0={item.property_no} data-search-1={item.ptr_no} data-record-id={item.id}
+                                        className={'transition-colors duration-1000 ' + 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'} data-search-0={item.property_no} data-search-1={item.transaction_no} data-record-id={item.id}
                                     >
                                         <td className="px-4 py-3 font-medium">{item.transaction_no}</td>
                                         
