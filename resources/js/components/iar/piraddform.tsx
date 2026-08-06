@@ -884,10 +884,11 @@ export default function PirAddForm({
                                 placeholder="Enter email or number"
                             />
                             <div>
-                                <label className={labelClass}>Email VPAD</label>
+                                <label className={labelClass}>Email OVPAD</label>
                                 <Button
                                     type="button"
                                     variant="outline"
+                                     className="w-full"
                                     disabled={!data.unit_office || sendingOfficeEmail}
                                     onClick={() => sendOfficeEmail('pir_created')}
                                 >
@@ -1014,6 +1015,7 @@ export default function PirAddForm({
                                     type="button"
                                     variant="outline"
                                     disabled={!forReleaseComplete || !data.unit_office || sendingOfficeEmail}
+                                     className="w-full"
                                     onClick={() => sendOfficeEmail('pir_coa_received')}
                                 >
                                     <Mail className="mr-2 h-4 w-4" />
@@ -1305,6 +1307,7 @@ export default function PirAddForm({
                                     type="button"
                                     variant="outline"
                                     disabled={!data.unit_office || sendingOfficeEmail}
+                                    className="w-full"
                                     onClick={() => sendOfficeEmail('pir_completed')}
                                 >
                                     <Mail className="mr-2 h-4 w-4" />
