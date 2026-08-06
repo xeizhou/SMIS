@@ -8,6 +8,8 @@ import {
 } from '@/components/ui/dialog';
 import type { RRPPEMonitoring } from '@/pages/rrppe-monitoring/index';
 
+import { StatusBadge } from '@/components/ui/status-badge';
+
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -81,21 +83,7 @@ export default function RrppeViewModal({ open, onOpenChange, item }: Props) {
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                             <Detail label="End User Name" value={item.end_user_name || '-'} />
                             <Detail label="Area" value={item.area || '-'} />
-                            <Detail label="Status" value={
-                                item.status ? (
-                                    <span
-                                        className={
-                                            item.status === 'SERVICEABLE'
-                                                ? 'inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800'
-                                                : 'inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800'
-                                        }
-                                    >
-                                        {item.status}
-                                    </span>
-                                ) : (
-                                    '-'
-                                )
-                            } />
+                            <Detail label="Status" value={<StatusBadge status={item.status} />} />
                             {item.status === 'UNSERVICEABLE' && (
                                 <div className="sm:col-span-3">
                                     <Detail label="Remarks / Findings" value={item.remarks || '-'} />

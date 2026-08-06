@@ -5,6 +5,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 interface RrspItem {
     id: number;
@@ -39,11 +40,11 @@ const valueClass = 'text-sm text-foreground mt-0.5';
 const sectionTitleClass =
     'text-xs font-semibold uppercase tracking-wide text-muted-foreground/80 mb-3 pb-2 border-b';
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({ label, value }: { label: string; value: React.ReactNode }) {
     return (
         <div>
             <p className={labelClass}>{label}</p>
-            <p className={valueClass}>{value}</p>
+            <div className={valueClass}>{value}</div>
         </div>
     );
 }
@@ -127,7 +128,7 @@ return (
                                     <Detail label="Cost" value={formatCurrency(item.cost)} />
                                     <Detail label="Kind of Semi-Expendable" value={item.kindOfSemiExpendable ?? '—'} />
                                     <Detail label="Area" value={item.area ?? '—'} />
-                                    <Detail label="Status" value={item.status ?? '—'} />
+                                    <Detail label="Status" value={<StatusBadge status={item.status} />} />
                                     {item.status === 'Unserviceable' && (
                                         <div className="sm:col-span-4 mt-2">
                                             <Detail label="Remarks / Findings" value={item.remarks ?? '—'} />
