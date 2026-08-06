@@ -46,7 +46,7 @@ class PurchaseOrdersController extends Controller
                 });
             })
             ->when($fundCluster, fn ($query, $fundCluster) => $query->where('fund_cluster_id', $fundCluster))
-            ->orderByDesc('po_date')
+            ->latest()
             ->paginate(10)
             ->withQueryString();
 
