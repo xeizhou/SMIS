@@ -82,7 +82,7 @@
                 </tr>
                 <tr>
                     <td class="label">RE-ORDER POINT:</td>
-                    <td>{{ $item->reorder_point ?? '' }}</td>
+                    <td></td>
                     <td class="label">UNIT:</td>
                     <td>{{ $item->unit_name ?? $item->unit_short_name }}</td>
                 </tr>
