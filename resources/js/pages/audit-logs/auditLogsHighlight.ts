@@ -12,7 +12,7 @@ export function auditLogsHighlight(recordId: string, expectedPath: string) {
         let timeoutId: NodeJS.Timeout;
 
         const highlightElement = (element: Element) => {
-            element.classList.add('bg-yellow-100', 'dark:bg-yellow-900/40', 'transition-colors', 'duration-1000');
+            element.classList.add('!bg-yellow-100', '!dark:bg-yellow-900/40', 'transition-colors', 'duration-1000');
             
             // Clean the URL so a manual page refresh doesn't retain the highlight filter,
             // but preserve the 'page' parameter so we stay on the correct pagination page!
@@ -32,7 +32,7 @@ export function auditLogsHighlight(recordId: string, expectedPath: string) {
             }
 
             setTimeout(() => {
-                element.classList.remove('bg-yellow-100', 'dark:bg-yellow-900/40');
+                element.classList.remove('!bg-yellow-100', '!dark:bg-yellow-900/40');
             }, 3000);
         };
 
