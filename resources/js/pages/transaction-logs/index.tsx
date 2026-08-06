@@ -269,7 +269,6 @@ export default function Index({
                                 transactions.data.map((tx) => (
                                     <tr
                                         key={tx.transactionID}
-                                        className={'border-b transition-colors hover:bg-muted/40'} data-search-0={tx.action} data-record-id={tx.transactionID}
                                     >
                                         <td className="px-4 py-3">
                                             <span
@@ -284,15 +283,18 @@ export default function Index({
                                             </span>
                                         </td>
                                         <td className="px-4 py-3">{formatDate(tx.transaction_date)}</td>
-                                        <td className="px-4 py-3">
+                                        <td
+                                            className="px-4 py-3 max-w-[250px] truncate"
+                                            title={`${tx.item_name}${tx.description ? ` - ${tx.description}` : ''}`}
+                                        >
                                             {tx.item_name}
                                             {tx.description ? ` - ${tx.description}` : ''}
                                         </td>
                                         <td className="px-4 py-3">{tx.unit?.unit_short_name ?? '—'}</td>
                                         <td className="px-4 py-3 text-center">{tx.quantity}</td>
                                         <td className="px-4 py-3">{tx.reference}</td>
-                                        <td className="px-4 py-3">{tx.fund_cluster_detail?.fund_description ?? '—'}</td>
-                                        <td className="px-4 py-3">{tx.office?.office_name ?? '—'}</td>
+                                        <td className="px-4 py-3">{tx.fund_cluster_detail?.fund_cluster_id ?? '—'}</td>
+                                        <td className="px-4 py-3">{tx.office?.office_code ?? '—'}</td>
                                         <td className="px-4 py-3 text-center">
                                             <div className="flex items-center justify-center gap-3">
                                                 <button
