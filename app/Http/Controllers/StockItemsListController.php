@@ -257,29 +257,83 @@ class StockItemsListController extends Controller
             $item->ledger = $ledger;
         }
 
-        // 4. Generate the PDF
-            $pdf = Pdf::loadView('pdf.printstockcards', [
-                'stockItems' => $items
-            ]);
+        // Build a human-readable title: specific item name if printing a single
+        // card, otherwise a summary of whatever filters were active, falling
+        // back to "All Items" if nothing was filtered.
+        if ($items->count() === 1) {
+            $singleItem = $items->first();
+            $pdfTitle = 'Stock Card - ' . $singleItem->item_name
+                . ($singleItem->description ? " ({$singleItem->description})" : '');
+        } else {
+            $summaryParts = [];
 
-            $pdf->setPaper('A4', 'portrait');
+            if ($fundClusterId && $fundClusterId !== 'None') {
+                $summaryParts[] = "Fund Cluster: {$fundClusterId}";
+            }
+            if ($isUnissued) {
+                $summaryParts[] = 'Unissued Only';
+            }
+            if ($search && $search !== 'None') {
+                $summaryParts[] = "Search: {$search}";
+            }
 
-            // Add page numbers + generated timestamp using DomPDF's native canvas API,
-            // since the CSS counter(pages) trick breaks DomPDF's layout pass on this template.
-            $dompdf = $pdf->getDomPDF();
-            $canvas = $dompdf->getCanvas();
-
-            $generatedAt = now()->format('F d, Y \a\t h:i A');
-
-            $canvas->page_text(
-                40,                          // x position
-                $canvas->get_height() - 40,  // y position (near bottom)
-                "Page {PAGE_NUM} of {PAGE_COUNT}    Generated: {$generatedAt}",
-                null,                        // font (null = default)
-                10,                          // font size
-                [0, 0, 0]                    // color (black)
-            );
-
-            return $pdf->stream('printstockcards.pdf');
+            $pdfTitle = $summaryParts
+                ? 'Stock Cards - ' . implode(', ', $summaryParts)
+                : 'Stock Cards - All Items';
         }
+
+        // Sanitize for use as a filename (strip characters that are awkward
+        // in downloaded file names, collapse spaces).
+        $pdfFilename = preg_replace('/[^A-Za-z0-9_\- ]/', '', $pdfTitle);
+        $pdfFilename = preg_replace('/\s+/', '_', trim($pdfFilename));
+
+        // 4. Generate the PDF
+        $pdf = Pdf::loadView('pdf.printstockcards', [
+            'stockItems' => $items,
+            'pdfTitle' => $pdfTitle,
+        ]);
+
+        $pdf->setPaper('A4', 'portrait');
+
+        // Force a full render pass FIRST, so DomPDF has already computed
+        // every page break before we try to stamp footer text.
+        $dompdf = $pdf->getDomPDF();
+        $dompdf->render();
+
+        $canvas = $dompdf->getCanvas();
+        $fontMetrics = $dompdf->getFontMetrics();
+
+        $generatedAt = now()->format('F d, Y \a\t h:i A');
+        $font = $fontMetrics->getFont('Arial', 'normal');
+        $fontSize = 10;
+
+        // Left-aligned page number
+        $canvas->page_text(
+            40,
+            $canvas->get_height() - 40,
+            "Page {PAGE_NUM} of {PAGE_COUNT}",
+            $font,
+            $fontSize,
+            [0, 0, 0]
+        );
+
+        // Right-aligned "Generated:" text
+        $generatedText = "Generated: {$generatedAt}";
+        $textWidth = $fontMetrics->getTextWidth($generatedText, $font, $fontSize);
+
+        $canvas->page_text(
+            $canvas->get_width() - 40 - $textWidth,
+            $canvas->get_height() - 40,
+            $generatedText,
+            $font,
+            $fontSize,
+            [0, 0, 0]
+        );
+
+        // Re-render so the stamped footer text actually gets painted
+        // onto every page now that the page count is known.
+        $dompdf->render();
+
+        return $pdf->stream("{$pdfFilename}.pdf");
     }
+}

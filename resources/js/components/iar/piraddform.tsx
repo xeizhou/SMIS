@@ -1014,7 +1014,7 @@ export default function PirAddForm({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    disabled={!forReleaseComplete || !data.unit_office || sendingOfficeEmail}
+                                    disabled={!data.unit_office || sendingOfficeEmail}
                                      className="w-full"
                                     onClick={() => sendOfficeEmail('pir_coa_received')}
                                 >
@@ -1306,7 +1306,7 @@ export default function PirAddForm({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    disabled={!data.unit_office || sendingOfficeEmail}
+                                     disabled={!forReleaseComplete || !data.unit_office || sendingOfficeEmail}
                                     className="w-full"
                                     onClick={() => sendOfficeEmail('pir_completed')}
                                 >
