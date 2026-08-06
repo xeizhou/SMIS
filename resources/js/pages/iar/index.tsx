@@ -478,7 +478,7 @@ Index.layout = {
             href: '#',
         },
         {
-            title: 'PIR',
+            title: 'Reports Monitoring',
             href: '/iar',
         },
     ],
