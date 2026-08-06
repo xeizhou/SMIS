@@ -59,14 +59,20 @@ interface PurchaseOrder {
     end_user: string | null;
 }
 
+interface PoLetterInfo {
+    po_number: string;
+    type_of_letter: string;
+    status_of_the_letter: string;
+}
+
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    pir: Pir | null;
     suppliers: Supplier[];
     fundClusters: FundCluster[];
     offices: Office[];
     purchaseOrders: PurchaseOrder[];
+    poLetters: PoLetterInfo[];
 }
 
 interface FieldProps {
@@ -434,6 +440,7 @@ export default function PirEditForm({
     fundClusters,
     offices,
     purchaseOrders,
+    poLetters,
 }: Props) {
 
     const [refreshingField, setRefreshingField] = useState<string | null>(null);
@@ -777,6 +784,34 @@ export default function PirEditForm({
 
     const forReleaseComplete = forReleaseFieldsComplete && forReleaseInspectionComplete;
 
+    // Status is auto-derived: CANCELLED if the PO has an approved CANCELLATION
+    // letter, COMPLETED once every "For Release" field and at least one full
+    // inspection entry exists, otherwise blank.
+    useEffect(() => {
+        const poCancelled = poLetters.some(
+            (letter) =>
+                letter.po_number === data.po_number &&
+                letter.type_of_letter === 'CANCELLATION' &&
+                letter.status_of_the_letter === 'APPROVED'
+        );
+
+        setData((prev) => {
+            const nextStatus = poCancelled
+                ? 'CANCELLED'
+                : forReleaseComplete
+                ? 'COMPLETED'
+                : '';
+
+            if (nextStatus === prev.status) {
+                return prev;
+            }
+
+            return { ...prev, status: nextStatus };
+        });
+    }, [forReleaseComplete, data.po_number, poLetters]);
+
+    if (!pir) return null;
+
     if (!pir) return null;
 
     const supplierName = suppliers.find(
@@ -1023,7 +1058,7 @@ export default function PirEditForm({
                             For Release
                             {!forReleaseComplete && (
                                 <span className="ml-2 text-xs font-normal text-amber-600">
-                                    (Complete this section to unlock the rest of the form)
+                                    (Complete this section to unlock Receipt and Item/s Claimed by End-User)
                                 </span>
                             )}
                         </h3>
@@ -1255,15 +1290,44 @@ export default function PirEditForm({
                     <div>
                         <h3 className={sectionTitleClass}>Status & Remarks</h3>
                         <div className="grid grid-cols-4 gap-6">
-                            <SelectField
-                                label="Status"
-                                value={data.status}
-                                onChange={handleSelectChange('status')}
-                                error={errors.status}
-                                required
-                                placeholder="-- Select Status --"
-                                options={STATUS_OPTIONS}
-                            />
+                            <div>
+                                <label className={labelClass}>
+                                    Status
+                                    <span className="text-red-500"> *</span>
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        value={data.status}
+                                        disabled
+                                        placeholder="Auto-determined"
+                                        className="bg-muted text-muted-foreground flex-1"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="shrink-0"
+                                        disabled={poLetters.some(
+                                            (letter) =>
+                                                letter.po_number === data.po_number &&
+                                                letter.type_of_letter === 'CANCELLATION' &&
+                                                letter.status_of_the_letter === 'APPROVED'
+                                        )}
+                                        onClick={() =>
+                                            setData((prev) => ({
+                                                ...prev,
+                                                status: prev.status === 'CANCELLED' ? '' : 'CANCELLED',
+                                            }))
+                                        }
+                                    >
+                                        {data.status === 'CANCELLED' ? 'Undo Cancel' : 'Mark Cancelled'}
+                                    </Button>
+                                </div>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Auto-CANCELLED if this PO has an approved cancellation letter; otherwise COMPLETED once For Release and Inspection Entries are fully filled out.
+                                </p>
+                                {errors.status && <p className="mt-1 text-xs text-red-500">{errors.status}</p>}
+                            </div>
                             <Field
                                 label="Date Forwarded to Finance"
                                 name="date_forwarded_to_finance"
@@ -1292,7 +1356,6 @@ export default function PirEditForm({
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={!forReleaseComplete}
                             className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <Paperclip className="size-4" />

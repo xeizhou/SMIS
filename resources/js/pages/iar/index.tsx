@@ -124,12 +124,19 @@ interface Filters {
     status: string | null;
 }
 
+interface PoLetterInfo {
+    po_number: string;
+    type_of_letter: string;
+    status_of_the_letter: string;
+}
+
 interface Props {
     pirs: PaginatedPirs;
     suppliers: Supplier[];
     fundClusters: FundCluster[];
     offices: Office[];
     purchaseOrders: PurchaseOrder[];
+    poLetters: PoLetterInfo[];
     filters: Filters;
 }
 
@@ -162,6 +169,7 @@ export default function Index({
     fundClusters,
     offices,
     purchaseOrders,
+    poLetters,
     filters,
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -437,6 +445,7 @@ export default function Index({
                 fundClusters={fundClusters}
                 offices={offices}
                 purchaseOrders={purchaseOrders}
+                poLetters={poLetters}
             />
             <PirEditForm
                 open={editOpen}
@@ -446,6 +455,7 @@ export default function Index({
                 fundClusters={fundClusters}
                 offices={offices}
                 purchaseOrders={purchaseOrders}
+                poLetters={poLetters}
             />
             <PirDeleteModal
                 open={isDeleteModalOpen}
