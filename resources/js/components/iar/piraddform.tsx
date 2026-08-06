@@ -332,6 +332,7 @@ function generateFileId() {
 
 const STATUS_OPTIONS = [
     { value: 'COMPLETED', label: 'COMPLETED' },
+    { value: 'ONGOING', label: 'ONGOING' },
     { value: 'CANCELLED', label: 'CANCELLED' },
 ];
 
@@ -712,7 +713,7 @@ export default function PirAddForm({
                 ? 'CANCELLED'
                 : forReleaseComplete
                 ? 'COMPLETED'
-                : '';
+                : 'ONGOING';
 
             if (nextStatus === prev.status) {
                 return prev;

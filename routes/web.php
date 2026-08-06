@@ -31,7 +31,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
+    Route::get('dashboard', function (\Illuminate\Http\Request $request) {
         $recentActivity = \App\Models\AuditLog::with('user')
             ->orderBy('log_timestamp', 'desc')
             ->take(50)
@@ -218,6 +218,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
             })
             ->values();
 
+        $reportsYear = $request->input('reports_year', now()->year);
+        $reportsQuarter = $request->input('reports_quarter', now()->quarter);
+        $startMonth = ($reportsQuarter - 1) * 3 + 1;
+        $endMonth = $startMonth + 2;
+
+        $reportsQuery = \App\Models\PirMonitoring::whereYear('created_at', $reportsYear)
+            ->whereMonth('created_at', '>=', $startMonth)
+            ->whereMonth('created_at', '<=', $endMonth);
+
+        $reportsStats = [
+            'COMPLETED' => (clone $reportsQuery)->where('status', 'COMPLETED')->count(),
+            'CANCELLED' => (clone $reportsQuery)->where('status', 'CANCELLED')->count(),
+            'ONGOING' => (clone $reportsQuery)->where(function($q) {
+                $q->where('status', 'ONGOING')
+                  ->orWhereNull('status')
+                  ->orWhere('status', '');
+            })->count(),
+        ];
+
         return Inertia::render('dashboard', [
             'recentActivity' => $recentActivity,
             'recentDeliveries' => $recentDeliveries,
@@ -230,6 +249,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'allPendingInspections' => $allPendingInspections,
             'pendingClearances' => $pendingClearancesCount,
             'allPendingClearances' => $allPendingClearances,
+            'reportsStats' => $reportsStats,
+            'reportsYear' => (int) $reportsYear,
+            'reportsQuarter' => (int) $reportsQuarter,
         ]);
     })->name('dashboard');
 

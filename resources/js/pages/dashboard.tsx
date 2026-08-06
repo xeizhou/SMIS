@@ -9,6 +9,7 @@ import type {POLetterStatusRow} from '@/components/po-letter-status-chart';
 // import { RecentActivity  } from '@/components/recent-activity';
 // import type {RecentActivityRow} from '@/components/recent-activity';
 import { StatCard } from '@/components/stat-card';
+import { ReportsMonitoringWidget } from '@/components/reports-monitoring-widget';
 import { dashboard } from '@/routes';
 import {
     DropdownMenu,
@@ -68,6 +69,13 @@ type DashboardPageProps = {
         invoice_number?: string | null;
         supplier?: { supplier_name: string } | null;
     }[];
+    reportsStats?: {
+        COMPLETED: number;
+        CANCELLED: number;
+        ONGOING: number;
+    };
+    reportsYear?: number;
+    reportsQuarter?: number;
     // recentActivity?: RecentActivityRow[];
 };
 
@@ -84,6 +92,9 @@ export default function Dashboard() {
         allPendingClearances,
         recentActivity,
         recentDeliveries,
+        reportsStats,
+        reportsYear,
+        reportsQuarter,
     } = usePage<DashboardPageProps>().props;
 
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -364,6 +375,16 @@ export default function Dashboard() {
                         <div className="flex-1">
                             <PoLettersStatusChart data={poLettersStatus} />
                         </div>
+                        
+                        {reportsStats && reportsYear && reportsQuarter && (
+                            <div className="w-full sm:w-2/3">
+                                <ReportsMonitoringWidget 
+                                    stats={reportsStats}
+                                    year={reportsYear}
+                                    quarter={reportsQuarter}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="md:col-span-1 h-full max-h-[416px]">
