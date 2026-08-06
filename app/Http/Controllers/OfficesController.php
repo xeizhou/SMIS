@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Office;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Mail\EmailFunction;
+use Illuminate\Support\Facades\Mail;
 
 class OfficesController extends Controller
 {
@@ -35,6 +37,30 @@ class OfficesController extends Controller
                 'search' => $request->search,
             ],
         ]);
+    }
+
+    public function sendTestEmail(Request $request, Office $office)
+    {
+        if (!$office->email) {
+            return back()->with('error', "No email address on file for {$office->office_name}.");
+        }
+
+        $validated = $request->validate([
+            'type' => 'required|in:' . implode(',', EmailFunction::TYPES),
+            'po_number' => 'nullable|string',
+            'supplier_name' => 'nullable|string',
+        ]);
+
+        Mail::to($office->email)->send(
+            new EmailFunction(
+                $office,
+                $validated['type'],
+                $validated['po_number'] ?? null,
+                $validated['supplier_name'] ?? null
+            )
+        );
+
+        return back()->with('success', "Email sent to {$office->office_name} ({$office->email}).");
     }
 
     public function store(Request $request)

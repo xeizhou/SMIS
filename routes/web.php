@@ -328,6 +328,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])
         ->name('attachments.delete');
 
+    // Email Functionality
+    Route::post('/offices/{office}/send-test-email', [OfficesController::class, 'sendTestEmail'])
+    ->name('offices.send-test-email');
+
     Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
     Route::post('/supplier', [SupplierController::class, 'store']);
     Route::put('/supplier/{supplier}', [SupplierController::class, 'update']);

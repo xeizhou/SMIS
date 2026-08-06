@@ -1,4 +1,4 @@
-import { Paperclip, RefreshCw, X, Check, ChevronsUpDown, Plus } from 'lucide-react';
+import { Paperclip, RefreshCw, X, Check, ChevronsUpDown, Plus, Mail } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
@@ -731,6 +731,21 @@ export default function PirAddForm({
         return office ? `${office.office_code} - ${office.office_name}` : data.unit_office;
     })();
 
+    const [sendingOfficeEmail, setSendingOfficeEmail] = useState(false);
+
+    const sendOfficeEmail = (type: string) => {
+        if (!data.unit_office) return;
+        setSendingOfficeEmail(true);
+        router.post(
+            `/offices/${encodeURIComponent(data.unit_office)}/send-test-email`,
+            { type, po_number: data.po_number, supplier_name: supplierName },
+            {
+                preserveScroll: true,
+                onFinish: () => setSendingOfficeEmail(false),
+            }
+        );
+    };
+
     const fundClusterLabel = (() => {
         const fc = fundClusters.find((f) => f.fund_cluster_id === data.fund_cluster);
         return fc ? `${fc.fund_cluster_id} - ${fc.fund_description}` : data.fund_cluster;
@@ -868,6 +883,18 @@ export default function PirAddForm({
                                 disabled={!poSelected}
                                 placeholder="Enter email or number"
                             />
+                            <div>
+                                <label className={labelClass}>Email VPAD</label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={!data.unit_office || sendingOfficeEmail}
+                                    onClick={() => sendOfficeEmail('pir_created')}
+                                >
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    {sendingOfficeEmail ? 'Sending...' : 'Notify Office'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
@@ -981,6 +1008,18 @@ export default function PirAddForm({
                                 disabled={!poSelected}
                                 placeholder="Enter email or number"
                             />
+                            <div>
+                                <label className={labelClass}>COA Received</label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={!forReleaseComplete || !data.unit_office || sendingOfficeEmail}
+                                    onClick={() => sendOfficeEmail('pir_coa_received')}
+                                >
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    {sendingOfficeEmail ? 'Sending...' : 'Notify Office'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
@@ -1260,6 +1299,18 @@ export default function PirAddForm({
                                 disabled={afterForReleaseDisabled}
                                 placeholder="Enter email or number"
                             />
+                            <div>
+                                <label className={labelClass}>For Release</label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={!data.unit_office || sendingOfficeEmail}
+                                    onClick={() => sendOfficeEmail('pir_completed')}
+                                >
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    {sendingOfficeEmail ? 'Sending...' : 'Notify Office'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
 

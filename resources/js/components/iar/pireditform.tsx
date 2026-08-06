@@ -1,4 +1,4 @@
-import { Eye, Paperclip, RefreshCw, Trash2, X, File, FileImage, FileText, FileSpreadsheet, FileArchive, Check, ChevronsUpDown, Plus } from 'lucide-react';
+import { Eye, Paperclip, RefreshCw, Trash2, X, File, FileImage, FileText, FileSpreadsheet, FileArchive, Check, ChevronsUpDown, Plus, Mail } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
@@ -68,6 +68,7 @@ interface PoLetterInfo {
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    pir: Pir | null;
     suppliers: Supplier[];
     fundClusters: FundCluster[];
     offices: Office[];
@@ -680,6 +681,28 @@ export default function PirEditForm({
         }));
     };
 
+    const supplierName = suppliers.find(
+        (s) => String(s.supplier_id) === data.supplier_id
+    )?.supplier_name ?? '';
+
+    const [sendingOfficeEmail, setSendingOfficeEmail] = useState(false);
+
+    // Matches PirAddForm: sends type + po_number + supplier_name so every
+    // template (pir_created, pir_coa_received, pir_completed, etc.) has
+    // what it needs regardless of which section the button lives in.
+    const sendOfficeEmail = (type: string) => {
+        if (!data.unit_office) return;
+        setSendingOfficeEmail(true);
+        router.post(
+            `/offices/${encodeURIComponent(data.unit_office)}/send-test-email`,
+            { type, po_number: data.po_number, supplier_name: supplierName },
+            {
+                preserveScroll: true,
+                onFinish: () => setSendingOfficeEmail(false),
+            }
+        );
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!pir) return;
@@ -811,12 +834,6 @@ export default function PirEditForm({
     }, [forReleaseComplete, data.po_number, poLetters]);
 
     if (!pir) return null;
-
-    if (!pir) return null;
-
-    const supplierName = suppliers.find(
-        (s) => String(s.supplier_id) === data.supplier_id
-    )?.supplier_name ?? '';
 
     const officeLabel = (() => {
         const office = offices.find((o) => o.office_code === data.unit_office);
@@ -950,6 +967,18 @@ export default function PirEditForm({
                                 error={errors.po_vpad_notified_via}
                                 placeholder="Enter email or number"
                             />
+                            <div>
+                                <label className={labelClass}>Email VPAD</label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={!data.unit_office || sendingOfficeEmail}
+                                    onClick={() => sendOfficeEmail('pir_created')}
+                                >
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    {sendingOfficeEmail ? 'Sending...' : 'Notify Office'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
@@ -1049,6 +1078,18 @@ export default function PirEditForm({
                                 error={errors.coa_stamp_notified_via}
                                 placeholder="Enter email or number"
                             />
+                            <div>
+                                <label className={labelClass}>COA Received</label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={!data.unit_office || sendingOfficeEmail}
+                                    onClick={() => sendOfficeEmail('pir_coa_received')}
+                                >
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    {sendingOfficeEmail ? 'Sending...' : 'Notify Office'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
@@ -1283,6 +1324,18 @@ export default function PirEditForm({
                                 disabled={!forReleaseComplete}
                                 placeholder="Enter email or number"
                             />
+                            <div>
+                                <label className={labelClass}>For Release</label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={!forReleaseComplete || !data.unit_office || sendingOfficeEmail}
+                                    onClick={() => sendOfficeEmail('pir_completed')}
+                                >
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    {sendingOfficeEmail ? 'Sending...' : 'Notify Office'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
