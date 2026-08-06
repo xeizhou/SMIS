@@ -93,7 +93,7 @@ return '—';
 }
 
 export default function Index({ rrspMonitorings, filters }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -292,8 +292,8 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                         const firstItem = rrsp.items && rrsp.items.length > 0 ? rrsp.items[0] : null;
                                         
                                         return (
-                                            <tbody key={rrsp.id} className="transition-colors hover:bg-muted/40 group border-b border-border">
-                                                <tr className="border-b border-border/50">
+                                            <tbody key={rrsp.id} className="group border-b border-border">
+                                                <tr className={'border-b border-border/50 transition-colors duration-1000 hover:bg-muted/40'} data-search-0={rrsp.propertyNo} data-search-1={rrsp.rrspNo} data-record-id={rrsp.id}>
                                                     <td className="px-4 py-3 font-medium" rowSpan={itemsCount}>
                                                         {rrsp.rrspNo}
                                                     </td>
@@ -351,7 +351,7 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                                     </td>
                                                 </tr>
                                                 {rrsp.items && rrsp.items.length > 1 && rrsp.items.slice(1).map((item) => (
-                                                    <tr key={item.id} className="border-b border-border/50">
+                                                    <tr key={item.id} className={'border-b border-border/50 transition-colors duration-1000 hover:bg-muted/40'} data-search-0={rrsp.propertyNo} data-search-1={rrsp.rrspNo} data-record-id={rrsp.id}>
                                                         <td className="px-4 py-3">
                                                             {item.itemDescription ?? '—'}
                                                         </td>

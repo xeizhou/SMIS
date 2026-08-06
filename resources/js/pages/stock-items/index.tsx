@@ -51,7 +51,7 @@ export default function Index({
     units,
     filters,
 }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [viewOpen, setViewOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -185,7 +185,7 @@ export default function Index({
                                     return (
                                         <tr
                                             key={stock.stock_no}
-                                            className="border-b transition-colors hover:bg-muted/40"
+                                            className={'border-b transition-colors hover:bg-muted/40'} data-search-0={stock.item_name} data-record-id={stock.stock_no}
                                         >
                                             <td className="px-4 py-3 font-medium">{stock.stock_no}</td>
                                             <td className="px-4 py-3">{stock.item_name}</td>

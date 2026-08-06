@@ -17,7 +17,7 @@ class RegspiMonitoring extends Model
     {
         return route('regspi-monitoring.index', [
             'highlight_search' => $this->ics_no ?? $this->rrsp_no,
-            'highlight_id' => $this->id,
+            'highlight_id' => $this->getKey(),
         ]);
     }
     protected $table = 'regspi_monitoring';

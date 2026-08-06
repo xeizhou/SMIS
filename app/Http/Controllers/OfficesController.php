@@ -30,7 +30,7 @@ class OfficesController extends Controller
             'offices' => $query
                 // Offices table has no timestamps; show newest by office_code desc
                 ->orderByDesc('office_code')
-                ->paginate(10)
+                ->paginateWithHighlight(10)
                 ->withQueryString(),
 
             'filters' => [

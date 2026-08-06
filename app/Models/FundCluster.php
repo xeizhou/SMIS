@@ -48,6 +48,6 @@ class FundCluster extends Model
 
     public function getActivityUrl()
     {
-        return route('fund-clusters.index') . '?highlight_id=' . $this->id;
+        return route('fund-clusters.index') . '?highlight_id=' . $this->getKey();
     }
 }

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Link } from '@inertiajs/react';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { notificationsHighlight } from './notificationsHighlight';
 import {
     Dialog,
     DialogContent,
@@ -118,7 +119,7 @@ export default function Dashboard() {
                     text: d.is_overdue 
                         ? `Delivery ${d.po_number} is OVERDUE (${d.days_overdue}d)`
                         : `Incoming Delivery ${d.po_number}`,
-                    target_url: `/deliveries?highlight_search=${d.po_number}`,
+                    target_url: `/deliveries?highlight_id=${d.delivery_id}`,
                     time: d.time_ago,
                     isOverdue: d.is_overdue,
                     daysOverdue: d.days_overdue,
@@ -278,7 +279,22 @@ export default function Dashboard() {
                                      {filteredNotifs.length > 0 ? (
                                         filteredNotifs.map((notif) => (
                                             <DropdownMenuItem key={notif.id} asChild className="p-3 cursor-pointer items-start">
-                                                <Link href={notif.target_url} onClick={() => markAsRead(notif.id)} className="flex gap-2 w-full">
+                                                <Link 
+                                                    href={notif.target_url} 
+                                                    onClick={() => {
+                                                        markAsRead(notif.id);
+                                                        try {
+                                                            const url = new URL(notif.target_url, window.location.origin);
+                                                            const highlightId = url.searchParams.get('highlight_id');
+                                                            if (highlightId) {
+                                                                notificationsHighlight(highlightId, url.pathname);
+                                                            }
+                                                        } catch (e) {
+                                                            console.error("Failed to parse notification URL for highlight", e);
+                                                        }
+                                                    }} 
+                                                    className="flex gap-2 w-full"
+                                                >
                                                     {!notif.isRead && (
                                                         <span className={`mt-1.5 flex h-2 w-2 shrink-0 rounded-full ${notif.isOverdue ? 'bg-rose-600' : 'bg-blue-600'}`} />
                                                     )}
@@ -371,7 +387,7 @@ export default function Dashboard() {
                                 {allPendingDeliveries.map((delivery) => (
                                     <div key={delivery.delivery_id} className="flex items-start justify-between rounded-lg border border-border p-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
                                         <div className="grid gap-1">
-                                            <Link href={`/deliveries?highlight_search=${delivery.po_number}`} className="font-semibold text-primary hover:underline">
+                                            <Link href={`/deliveries?highlight_id=${delivery.delivery_id}`} className="font-semibold text-primary hover:underline">
                                                 {delivery.po_number}
                                             </Link>
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">

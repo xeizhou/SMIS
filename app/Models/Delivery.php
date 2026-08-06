@@ -19,7 +19,7 @@ class Delivery extends Model
     {
         return route('deliveries.index', [
             'highlight_search' => $this->po_number,
-            'highlight_id' => $this->id,
+            'highlight_id' => $this->getKey(),
         ]);
     }
 

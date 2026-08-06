@@ -91,7 +91,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function Index({ poLetters, filters, suppliers, poNumbers }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [type, setType] = useState(filters.type ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -154,7 +154,6 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
     };
 
     const handleView = (record: PoLetterRecord) => {
-        console.log('record.servePo:', record.serve_po);
         setSelectedPoLetter(record);
         setViewDialogOpen(true);
     };
@@ -244,7 +243,7 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
                                 </tr>
                             ) : (
                                 poLetters.data.map((record) => (
-                                    <tr key={record.id} className="border-b transition-colors hover:bg-muted/40">
+                                    <tr key={record.id} className={'border-b transition-colors hover:bg-muted/40'} data-search-0={record.reference_no} data-search-1={record.po_number} data-record-id={record.id}>
                                         <td className="px-4 py-3 font-medium">{record.reference_no ?? '—'}</td>
                                         <td className="px-4 py-3">{record.supplier?.supplier_name ?? '—'}</td>
                                         <td className="px-4 py-3">{record.po_number}</td>

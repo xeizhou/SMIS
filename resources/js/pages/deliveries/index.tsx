@@ -121,7 +121,7 @@ return '—';
 }
 
 export default function Index({ deliveries, filters, purchaseOrders, statuses, suppliers }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [poNumber, setPoNumber] = useState(filters.po_number ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -130,20 +130,8 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedDelivery, setSelectedDelivery] = useState<DeliveryRecord | null>(null);
     const [deliveryToDelete, setDeliveryToDelete] = useState<DeliveryRecord | null>(null);
-    const [highlightId, setHighlightId] = useState<string | null>(null);
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const highlightSearch = params.get('highlight_search');
-        
-        if (highlightSearch && deliveries.data) {
-            const matched = deliveries.data.find(item => item.po_number === highlightSearch);
-            if (matched) {
-                setHighlightId(matched.delivery_id);
-                setTimeout(() => setHighlightId(null), 3000);
-            }
-        }
-    }, [deliveries.data]);
+    
 
     const runSearch = (nextStatus?: string, nextPoNumber?: string) => {
         router.get(
@@ -272,7 +260,7 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                 deliveries.data.map((delivery) => (
                                     <tr 
                                         key={delivery.delivery_id} 
-                                        className={`border-b transition-colors duration-1000 hover:bg-muted/40 ${highlightId === delivery.delivery_id ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}
+                                        className={'border-b transition-colors duration-1000 hover:bg-muted/40'} data-search-0={delivery.delivery_no} data-search-1={delivery.po_number} data-record-id={delivery.delivery_id}
                                     >
                                         <td className="px-4 py-3 font-medium">{delivery.po_number}</td>
                                         <td className="px-4 py-3">{delivery.supplier?.supplier_name ?? '—'}</td>

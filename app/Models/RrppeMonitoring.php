@@ -29,6 +29,6 @@ class RRPPEMonitoring extends Model
 
     public function getActivityUrl()
     {
-        return route('rrppe-monitoring.index') . '?highlight_id=' . $this->id;
+        return route('rrppe-monitoring.index') . '?highlight_id=' . $this->getKey();
     }
 }

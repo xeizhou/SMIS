@@ -116,7 +116,7 @@ class IARController extends Controller
         }
 
         $pirs = $query->orderBy('pir_id', 'desc')
-            ->paginate(10)
+            ->paginateWithHighlight(10)
             ->withQueryString();
 
         // Avoid key collision: relation "fundCluster" snake-cases to "fund_cluster",

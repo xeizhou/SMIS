@@ -38,7 +38,7 @@ export default function Index({
     offices,
     filters,
 }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [selectedOffice, setSelectedOffice] =
@@ -203,7 +203,7 @@ export default function Index({
                                 offices.data.map((office) => (
                                     <tr
                                         key={office.office_code}
-                                        className="border-b transition-colors hover:bg-muted/40"
+                                        className={'border-b transition-colors hover:bg-muted/40'} data-search-0={office.office_name} data-record-id={office.office_code}
                                     >
                                         <td className="px-4 py-3">
                                             {office.office_code}

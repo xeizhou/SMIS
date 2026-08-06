@@ -33,7 +33,7 @@ class RRSPController extends Controller
 
         $rrspMonitorings = $query
             ->latest()
-            ->paginate(10)
+            ->paginateWithHighlight(10)
             ->withQueryString()
             ->through(function ($rrsp) {
                 return [
@@ -145,6 +145,10 @@ class RRSPController extends Controller
                 'area' => $item['area'],
             ]);
         }
+
+        // Force an update to the parent's timestamp so the LogsActivity trait
+        // always registers an 'updated' event, even if only the items changed.
+        $rrsp->touch();
 
         return back()->with('success', 'RRSP record updated successfully.');
     }

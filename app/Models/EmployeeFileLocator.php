@@ -26,6 +26,6 @@ class EmployeeFileLocator extends Model
 
     public function getActivityUrl()
     {
-        return route('employee-file-locator.index') . '?highlight_id=' . $this->id;
+        return route('employee-file-locator.index') . '?highlight_id=' . $this->getKey();
     }
 }

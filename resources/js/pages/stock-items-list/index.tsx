@@ -224,7 +224,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                 items.data.map((item, index) => (
                                     <tr
                                         key={`${item.item_name}-${index}`}
-                                        className="border-b transition-colors hover:bg-muted/40"
+                                        className={'border-b transition-colors hover:bg-muted/40'} data-search-0={item.item_name} data-record-id={item.item_name}
                                     >
                                         <td className="px-4 py-3">
                                             {item.item_name}

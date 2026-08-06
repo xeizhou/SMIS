@@ -19,7 +19,7 @@ class PirMonitoring extends Model
     {
         return route('iar.index', [
             'highlight_search' => $this->po_number,
-            'highlight_id' => $this->id,
+            'highlight_id' => $this->getKey(),
         ]);
     }
     protected $table = 'pir_monitoring';

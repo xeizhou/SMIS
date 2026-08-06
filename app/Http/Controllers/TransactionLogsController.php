@@ -34,7 +34,7 @@ class TransactionLogsController extends Controller
         }
 
         $transactions = $query->orderBy('transactionID', 'desc')
-            ->paginate(10)
+            ->paginateWithHighlight(10)
             ->withQueryString();
 
         // Avoid key collision: relation "fundCluster" snake-cases to "fund_cluster",

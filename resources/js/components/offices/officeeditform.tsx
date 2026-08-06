@@ -15,7 +15,7 @@ interface Office {
     office_name: string;
     entity_name: string;
     office_head: string;
-    email: string;
+    email: string | null;
 }
 
 interface Props {

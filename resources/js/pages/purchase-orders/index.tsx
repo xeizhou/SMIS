@@ -119,7 +119,7 @@ export default function Index({
     fundClusters,
     offices,
 }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [fundCluster, setFundCluster] = useState(filters.fund_cluster ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -313,7 +313,7 @@ export default function Index({
                                 purchaseOrders.data.map((po) => (
                                     <tr
                                         key={po.po_number}
-                                        className="border-b transition-colors hover:bg-muted/40"
+                                        className={'border-b transition-colors hover:bg-muted/40'} data-search-0={po.po_number} data-record-id={po.po_number}
                                     >
                                         <td className="px-4 py-3 font-medium">
                                             {po.po_number}

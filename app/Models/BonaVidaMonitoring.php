@@ -43,6 +43,6 @@ class BonaVidaMonitoring extends Model
 
     public function getActivityUrl()
     {
-        return route('bona-vida-monitoring.index') . '?highlight_id=' . $this->id;
+        return route('bona-vida-monitoring.index') . '?highlight_id=' . $this->getKey();
     }
 }

@@ -41,6 +41,6 @@ class Clearance extends Model
 
     public function getActivityUrl()
     {
-        return route('clearance.index') . '?highlight_id=' . $this->id;
+        return route('clearance.index') . '?highlight_id=' . $this->getKey();
     }
 }

@@ -26,7 +26,7 @@ class RRPPEController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        $data = $query->latest()->paginate(10)->withQueryString();
+        $data = $query->latest()->paginateWithHighlight(10)->withQueryString();
 
         return Inertia::render('rrppe-monitoring/index', [
             'data' => $data,

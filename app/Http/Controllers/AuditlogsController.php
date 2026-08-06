@@ -31,7 +31,8 @@ class AuditLogsController extends Controller
             })
             ->orderBy('log_timestamp', 'desc');
 
-        $logs = $query->paginate(15)->withQueryString();
+        $logs = $query->paginateWithHighlight(10)->withQueryString();
+        
 
         // Map the items to a more frontend-friendly format
         $logs->getCollection()->transform(function ($log) {

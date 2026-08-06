@@ -24,7 +24,7 @@ class StockItemsController extends Controller
 
         // Show newest stock items first
         $stockItems = $query->orderByDesc('created_at')
-            ->paginate(10)
+            ->paginateWithHighlight(10)
             ->withQueryString();
 
         return Inertia::render('stock-items/index', [

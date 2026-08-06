@@ -32,7 +32,7 @@ class SupplierController extends Controller
             'suppliers' => $query
                 // Supplier model has no timestamps; order by primary key desc to show newest
                 ->orderBy('supplier_id', 'asc')
-                ->paginate(10)
+                ->paginateWithHighlight(10)
                 ->withQueryString(),
 
             'filters' => [

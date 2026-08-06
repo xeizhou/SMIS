@@ -18,7 +18,7 @@ class StockItem extends Model
     {
         return route('stock-items.index', [
             'highlight_search' => $this->stock_no,
-            'highlight_id' => $this->id,
+            'highlight_id' => $this->getKey(),
         ]);
     }
     protected $table = 'stock_items';

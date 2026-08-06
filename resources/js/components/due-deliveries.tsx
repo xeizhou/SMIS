@@ -1,5 +1,6 @@
-import { router } from '@inertiajs/react';
+import { router, Link } from '@inertiajs/react';
 import { RefreshCw, User, CalendarDays, ClipboardList, Package, MoveRight } from 'lucide-react';
+import { dueDeliveriesHighlight } from './dueDeliveriesHighlight';
 import { useState } from 'react';
 import {
     Tooltip,
@@ -196,12 +197,13 @@ export function DueDeliveries({ deliveries }: Props) {
                                         </div>
 
                                         <div className="mt-2 flex justify-end">
-                                            <a 
-                                                href={`/deliveries?highlight_search=${item.po_number}`}
+                                            <Link 
+                                                href={`/deliveries?highlight_id=${item.delivery_id}`}
+                                                onClick={() => dueDeliveriesHighlight(item.delivery_id.toString(), '/deliveries')}
                                                 className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-900 dark:text-neutral-100 shadow-sm transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-700 focus-visible:outline-none"
                                             >
                                                 Go to <MoveRight className="size-4" />
-                                            </a>
+                                            </Link>
                                         </div>
                                     </TooltipContent>
                                 </Tooltip>

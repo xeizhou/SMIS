@@ -78,7 +78,7 @@ export function ClientContainer({ deliveries = [] }: { deliveries?: DueDelivery[
       endDate.setHours(17, 0, 0, 0);
 
       return {
-        id: Number(d.delivery_id) || index,
+        id: d.delivery_id ?? index,
         title: d.po_number,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),

@@ -172,7 +172,7 @@ export default function Index({
     poLetters,
     filters,
 }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+        const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -181,21 +181,8 @@ export default function Index({
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [pirToDelete, setPirToDelete] = useState<number | null>(null);
     const [viewOpen, setViewOpen] = useState(false);
-    const [highlightId, setHighlightId] = useState<number | null>(null);
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const highlightSearch = params.get('highlight_search');
-
-        if (highlightSearch && pirs.data) {
-            const matched = pirs.data.find(item => item.po_number === highlightSearch || item.pr_number === highlightSearch);
-            if (matched) {
-                setHighlightId(matched.pir_id);
-                const timer = setTimeout(() => setHighlightId(null), 3000);
-                return () => clearTimeout(timer);
-            }
-        }
-    }, [pirs.data]);
+    
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -353,11 +340,7 @@ export default function Index({
                                 pirs.data.map((pir) => (
                                     <tr 
                                         key={pir.pir_id} 
-                                        className={`transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 ${
-                                            highlightId === pir.pir_id 
-                                                ? 'bg-yellow-100 dark:bg-yellow-900/40' 
-                                                : ''
-                                        }`}
+                                        className={'transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50'} data-search-0={pir.iar_no} data-record-id={pir.pir_id}
                                     >
                                         <td className="px-4 py-3">{pir.po_number}</td>
                                         <td className="px-4 py-3">{pir.supplier?.supplier_name ?? '—'}</td>

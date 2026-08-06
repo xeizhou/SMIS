@@ -49,6 +49,6 @@ class ItrPtrMonitoring extends Model
 
     public function getActivityUrl()
     {
-        return route('itr-ptr-monitoring.index') . '?highlight_id=' . $this->id;
+        return route('itr-ptr-monitoring.index') . '?highlight_id=' . $this->getKey();
     }
 }

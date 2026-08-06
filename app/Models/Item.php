@@ -39,6 +39,6 @@ class Item extends Model
 
     public function getActivityUrl()
     {
-        return route('stock-items-list.index') . '?highlight_id=' . $this->id;
+        return route('stock-items-list.index') . '?highlight_id=' . $this->getKey();
     }
 }

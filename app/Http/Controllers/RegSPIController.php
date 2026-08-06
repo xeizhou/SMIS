@@ -36,7 +36,7 @@ class RegSPIController extends Controller
             ->when($rrspNo, fn ($query, $rrspNo) => $query->where('rrsp_no', $rrspNo))
             ->when($fundClusterId, fn ($query, $fundClusterId) => $query->where('fund_cluster_id', $fundClusterId))
             ->orderByDesc('created_at')
-            ->paginate(10)
+            ->paginateWithHighlight(10)
             ->withQueryString();
 
         return Inertia::render('regspi-monitoring/index', [

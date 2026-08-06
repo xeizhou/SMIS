@@ -23,7 +23,7 @@ class UnitsController extends Controller
         })
             // Units table has no timestamps; show newest by primary key desc
             ->orderByDesc('unitID')
-            ->paginate(10)
+            ->paginateWithHighlight(10)
             ->withQueryString();
 
         return Inertia::render('units/index', [
