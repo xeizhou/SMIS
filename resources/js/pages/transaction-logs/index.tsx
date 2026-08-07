@@ -51,6 +51,7 @@ interface Transaction {
     fund_cluster: string;
     fund_cluster_detail: FundCluster | null;
     transaction_date: string;
+    stock_no: string | null;
     item_name: string;
     description: string | null;
     unitID: number;

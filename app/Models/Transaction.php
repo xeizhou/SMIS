@@ -23,6 +23,7 @@ class Transaction extends Model
         'transaction_type',
         'fund_cluster',
         'transaction_date',
+        'stock_no',
         'item_name',
         'description',
         'unitID',
@@ -38,6 +39,11 @@ class Transaction extends Model
     public function fundCluster(): BelongsTo
     {
         return $this->belongsTo(FundCluster::class, 'fund_cluster', 'fund_cluster_id');
+    }
+
+    public function stockItem(): BelongsTo
+    {
+        return $this->belongsTo(StockItem::class, 'stock_no', 'stock_no');
     }
 
     public function office(): BelongsTo

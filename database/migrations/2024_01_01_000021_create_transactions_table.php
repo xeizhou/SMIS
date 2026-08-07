@@ -12,6 +12,11 @@ return new class extends Migration
             $table->id('transactionID');
             $table->string('transaction_type', 15);
 
+            $table->string('stock_no', 50)->nullable();
+            $table->foreign('stock_no', 'fk_transactions_stock_no')
+                ->references('stock_no')->on('stock_items')
+                ->restrictOnDelete();
+
             $table->string('fund_cluster', 20);
 
             $table->dateTime('transaction_date');

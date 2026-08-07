@@ -241,7 +241,7 @@ function SearchableSelect({
                                 {options.map((opt) => (
                                     <CommandItem
                                         key={opt.value}
-                                        value={opt.label}
+                                        value={`${opt.label} ${opt.value}`}
                                         onSelect={() => {
                                             onChange(opt.value);
                                             setOpen(false);
@@ -354,11 +354,14 @@ export default function TransactionAddForm({
     };
 
     const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setProcessing(true);
+                e.preventDefault();
+                setProcessing(true);
 
-        router.post('/transaction-logs', data, {
-            onSuccess: () => {
+                router.post('/transaction-logs', {
+                    ...data,
+                    stock_no: selectedStockNo,
+                }, {
+                    onSuccess: () => {
                 setSavedCount((prev) => prev + 1); // Increment count on success
 
                 if (submitAction === 'close') {

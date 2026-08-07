@@ -63,6 +63,7 @@ interface Transaction {
     fund_cluster: string | FundCluster;
     fund_cluster_detail: FundCluster | null;
     transaction_date: string;
+    stock_no: string | null;
     item_name: string;
     description: string | null;
     unitID: number;
@@ -254,7 +255,7 @@ function SearchableSelect({
                                 {options.map((opt) => (
                                     <CommandItem
                                         key={opt.value}
-                                        value={opt.label}
+                                        value={`${opt.label} ${opt.value}`}
                                         onSelect={() => {
                                             onChange(opt.value);
                                             setOpen(false);
@@ -341,20 +342,14 @@ export default function TransactionEditForm({
             });
             setOriginalType(transaction.transaction_type);
 
-            // Best-effort resolve back to a unique stock item for the
-            // dropdown's selection state — matches on name AND description,
-            // since name alone can be ambiguous (e.g. two "RTX 3060"
-            // variants). If no match is found (item since renamed/deleted),
-            // the dropdown just shows the placeholder, which is fine since
-            // item_name/description above already carry the real snapshot.
-            const matched = stockItems.find(
-                (s) => s.item_name === transaction.item_name && s.description === transaction.description
-            );
-            setSelectedStockNo(matched?.stock_no ?? '');
+            // stock_no is now stored directly on the transaction, so no need
+            // to re-derive it by matching item_name/description (which could
+            // be ambiguous if two stock items share the same name+description).
+            setSelectedStockNo(transaction.stock_no ?? '');
 
             setErrors({});
         }
-    }, [transaction, stockItems]);
+    }, [transaction,]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target;
@@ -393,7 +388,7 @@ export default function TransactionEditForm({
 
         router.put(
             `/transaction-logs/${transaction.transactionID}`,
-            { ...data, is_type_changed: isTypeChanged },
+            { ...data, stock_no: selectedStockNo, is_type_changed: isTypeChanged },
             {
                 onSuccess: () => {
                     onOpenChange(false);

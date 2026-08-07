@@ -26,127 +26,109 @@ class StockItemsListController extends Controller
      * if it has none. This is inferred from transaction history, since
      * there's no dedicated status column for it.
      *
-     * CAVEAT: `transactions.item_name` is a plain-text snapshot, not a
-     * foreign key to `stock_items`. This report joins on that text
-     * match, which is the only link the current schema provides. If two
-     * items ever share the same name, or an item's name is edited after
-     * transactions were logged, the balance computed here can drift from
-     * reality. The more reliable fix is adding a `stock_no` column to
-     * `transactions` that FKs to `stock_items` directly — flagging
-     * this as a follow-up rather than changing the transactions table here.
+     * Transactions now carry a `stock_no` FK back to `stock_items`, so
+     * this report joins on that directly instead of matching on the
+     * item_name/description text snapshot (which could collide when two
+     * items shared the same name+description).
      */
     public function index(Request $request)
-    {
-        $search = $request->input('search');
-        $issuedStatus = $request->input('issued_status'); // 'issued' | 'unissued' | null/all
-        $fundClusterId = $request->input('fund_cluster_id'); // null/all or a fund_cluster_id
+        {
+            $search = $request->input('search');
+            $issuedStatus = $request->input('issued_status'); // 'issued' | 'unissued' | null/all
+            $fundClusterId = $request->input('fund_cluster_id'); // null/all or a fund_cluster_id
 
-        $query = DB::table('stock_items as i')
-            ->join('stock_item_unit as siu', function ($join) {
-                $join->on('siu.stock_no', '=', 'i.stock_no')
-                    ->where('siu.is_default', '=', true);
-            })
-            ->join('units as u', 'u.unitID', '=', 'siu.unitID')
-            ->leftJoin('transactions as t', function ($join) {
-                $join->on('t.item_name', '=', 'i.item_name')
-                    ->where(function ($q) {
-                        $q->whereColumn('t.description', 'i.description')
-                            ->orWhere(function ($q2) {
-                                $q2->whereNull('t.description')
-                                    ->whereNull('i.description');
-                            });
+            $query = DB::table('stock_items as i')
+                ->join('stock_item_unit as siu', function ($join) {
+                    $join->on('siu.stock_no', '=', 'i.stock_no')
+                        ->where('siu.is_default', '=', true);
+                })
+                ->join('units as u', 'u.unitID', '=', 'siu.unitID')
+                ->leftJoin('transactions as t', 't.stock_no', '=', 'i.stock_no')
+                ->select(
+                    'i.item_name',
+                    'i.description as item_description',
+                    'u.unitID',
+                    'u.unit_name',
+                    'u.unit_short_name',
+                    DB::raw("COALESCE(SUM(
+                        CASE
+                            WHEN t.transaction_type = 'RECEIVE' THEN t.quantity
+                            WHEN t.transaction_type = 'ISSUE' THEN -t.quantity
+                            ELSE 0
+                        END
+                    ), 0) as balance_per_stock_card"),
+                    DB::raw("SUM(CASE WHEN t.transaction_type = 'ISSUE' THEN 1 ELSE 0 END) as issue_count"),
+                    DB::raw("MAX(t.transaction_date) as last_transaction_date"),
+                    DB::raw("MAX(t.transactionID) as last_transaction_id"),
+                    DB::raw("GROUP_CONCAT(DISTINCT t.fund_cluster) as fund_cluster_ids")
+                )
+                ->when($search, function ($q) use ($search) {
+                    $q->where(function ($sub) use ($search) {
+                        $sub->where('i.item_name', 'like', "%{$search}%")
+                            ->orWhere('i.stock_no', 'like', "%{$search}%");
                     });
-            })
-            ->select(
-                'i.item_name',
-                'i.description as item_description',
-                'u.unitID',
-                'u.unit_name',
-                'u.unit_short_name',
-                DB::raw("COALESCE(SUM(
-                    CASE
-                        WHEN t.transaction_type = 'RECEIVE' THEN t.quantity
-                        WHEN t.transaction_type = 'ISSUE' THEN -t.quantity
-                        ELSE 0
-                    END
-                ), 0) as balance_per_stock_card"),
-                DB::raw("SUM(CASE WHEN t.transaction_type = 'ISSUE' THEN 1 ELSE 0 END) as issue_count"),
-                DB::raw("MAX(t.transaction_date) as last_transaction_date"),
-                DB::raw("GROUP_CONCAT(DISTINCT t.fund_cluster) as fund_cluster_ids")
-            )
-            ->when($search, function ($q) use ($search) {
-                $q->where(function ($sub) use ($search) {
-                    $sub->where('i.item_name', 'like', "%{$search}%")
-                        ->orWhere('i.stock_no', 'like', "%{$search}%");
-                });
-            })
-            ->when($fundClusterId && $fundClusterId !== 'all', function ($q) use ($fundClusterId) {
-                $q->whereExists(function ($sub) use ($fundClusterId) {
-                    $sub->select(DB::raw(1))
-                        ->from('transactions as t2')
-                        ->whereColumn('t2.item_name', 'i.item_name')
-                        ->where(function ($q2) {
-                            $q2->whereColumn('t2.description', 'i.description')
-                                ->orWhere(function ($q3) {
-                                    $q3->whereNull('t2.description')
-                                        ->whereNull('i.description');
-                                });
-                        })
-                        ->where('t2.fund_cluster', $fundClusterId);
-                });
-            })
-            ->groupBy(
-                'i.stock_no',
-                'i.item_name',
-                'i.description',
-                'u.unitID',
-                'u.unit_name',
-                'u.unit_short_name'
-            )
-            ->orderByDesc('last_transaction_date');
+                })
+                ->when($fundClusterId && $fundClusterId !== 'all', function ($q) use ($fundClusterId) {
+                    $q->whereExists(function ($sub) use ($fundClusterId) {
+                        $sub->select(DB::raw(1))
+                            ->from('transactions as t2')
+                            ->whereColumn('t2.stock_no', 'i.stock_no')
+                            ->where('t2.fund_cluster', $fundClusterId);
+                    });
+                })
+                ->groupBy(
+                    'i.stock_no',
+                    'i.item_name',
+                    'i.description',
+                    'u.unitID',
+                    'u.unit_name',
+                    'u.unit_short_name'
+                )
+                ->orderByRaw('last_transaction_id IS NULL')
+                ->orderByDesc('last_transaction_id');
 
-        $issueCountExpr = "SUM(CASE WHEN t.transaction_type = 'ISSUE' THEN 1 ELSE 0 END)";
+            $issueCountExpr = "SUM(CASE WHEN t.transaction_type = 'ISSUE' THEN 1 ELSE 0 END)";
 
-        if ($issuedStatus === 'issued') {
-            $query->havingRaw("{$issueCountExpr} > 0");
-        } elseif ($issuedStatus === 'unissued') {
-            $query->havingRaw("{$issueCountExpr} = 0");
+            if ($issuedStatus === 'issued') {
+                $query->havingRaw("{$issueCountExpr} > 0");
+            } elseif ($issuedStatus === 'unissued') {
+                $query->havingRaw("{$issueCountExpr} = 0");
+            }
+
+            $items = $query->paginate(10)->withQueryString();
+
+            // Attach human-readable fund cluster descriptions per row.
+            $fundClusters = FundCluster::orderBy('fund_cluster_id')->get(['fund_cluster_id', 'fund_description']);
+            $fundClusterMap = $fundClusters->keyBy('fund_cluster_id');
+
+            $items->getCollection()->transform(function ($row) use ($fundClusterMap) {
+                $ids = $row->fund_cluster_ids ? array_unique(explode(',', $row->fund_cluster_ids)) : [];
+                $row->fund_clusters = array_values(array_map(function ($id) use ($fundClusterMap) {
+                    return [
+                        'fund_cluster_id' => $id,
+                        'fund_description' => $fundClusterMap->get($id)?->fund_description,
+                    ];
+                }, $ids));
+                unset($row->fund_cluster_ids);
+                return $row;
+            });
+
+            return Inertia::render('stock-items-list/index', [
+                'items' => $items,
+                'fundClusters' => $fundClusters,
+                'filters' => [
+                    'search' => $search,
+                    'issued_status' => $issuedStatus ?? 'all',
+                    'fund_cluster_id' => $fundClusterId ?? 'all',
+                ],
+            ]);
         }
-
-        $items = $query->paginate(10)->withQueryString();
-
-        // Attach human-readable fund cluster descriptions per row.
-        $fundClusters = FundCluster::orderBy('fund_cluster_id')->get(['fund_cluster_id', 'fund_description']);
-        $fundClusterMap = $fundClusters->keyBy('fund_cluster_id');
-
-        $items->getCollection()->transform(function ($row) use ($fundClusterMap) {
-            $ids = $row->fund_cluster_ids ? array_unique(explode(',', $row->fund_cluster_ids)) : [];
-            $row->fund_clusters = array_values(array_map(function ($id) use ($fundClusterMap) {
-                return [
-                    'fund_cluster_id' => $id,
-                    'fund_description' => $fundClusterMap->get($id)?->fund_description,
-                ];
-            }, $ids));
-            unset($row->fund_cluster_ids);
-            return $row;
-        });
-
-        return Inertia::render('stock-items-list/index', [
-            'items' => $items,
-            'fundClusters' => $fundClusters,
-            'filters' => [
-                'search' => $search,
-                'issued_status' => $issuedStatus ?? 'all',
-                'fund_cluster_id' => $fundClusterId ?? 'all',
-            ],
-        ]);
-    }
 
     public function printCards(Request $request)
     {
         $search = $request->input('search');
         $isUnissued = $request->boolean('unissued'); // Passed as true/false from our new React button
-        $fundClusterId = $request->input('fund_cluster'); 
+        $fundClusterId = $request->input('fund_cluster');
 
         // 1. Fetch the filtered items using the exact same logic as your index method
         $query = DB::table('stock_items as i')
@@ -155,16 +137,7 @@ class StockItemsListController extends Controller
                     ->where('siu.is_default', '=', true);
             })
             ->join('units as u', 'u.unitID', '=', 'siu.unitID')
-            ->leftJoin('transactions as t', function ($join) {
-                $join->on('t.item_name', '=', 'i.item_name')
-                    ->where(function ($q) {
-                        $q->whereColumn('t.description', 'i.description')
-                            ->orWhere(function ($q2) {
-                                $q2->whereNull('t.description')
-                                    ->whereNull('i.description');
-                            });
-                    });
-            })
+            ->leftJoin('transactions as t', 't.stock_no', '=', 'i.stock_no')
             ->select(
                 'i.*', // Grabs stock_no, item_name, description, reorder_point (if exists)
                 'u.unit_name',
@@ -181,14 +154,7 @@ class StockItemsListController extends Controller
                 $q->whereExists(function ($sub) use ($fundClusterId) {
                     $sub->select(DB::raw(1))
                         ->from('transactions as t2')
-                        ->whereColumn('t2.item_name', 'i.item_name')
-                        ->where(function ($q2) {
-                            $q2->whereColumn('t2.description', 'i.description')
-                                ->orWhere(function ($q3) {
-                                    $q3->whereNull('t2.description')
-                                        ->whereNull('i.description');
-                                });
-                        })
+                        ->whereColumn('t2.stock_no', 'i.stock_no')
                         ->where('t2.fund_cluster', $fundClusterId);
                 });
             })
@@ -199,7 +165,7 @@ class StockItemsListController extends Controller
                 'u.unitID',
                 'u.unit_name',
                 'u.unit_short_name'
-                // NOTE: If you get a strict mode group-by error for other columns in `i.*`, 
+                // NOTE: If you get a strict mode group-by error for other columns in `i.*`,
                 // list the explicit columns here instead of i.* (e.g., 'i.reorder_point').
             );
 
@@ -210,12 +176,12 @@ class StockItemsListController extends Controller
 
         $items = $query->get();
 
-        // 2. Fetch ALL transactions for the filtered items to calculate running balance
-        // We match by name since transactions don't have stock_no
-        $itemNames = $items->pluck('item_name')->filter()->unique()->values()->toArray();
-        
+        // 2. Fetch ALL transactions for the filtered items to calculate running balance.
+        // Matched by stock_no now, not name/description text.
+        $stockNos = $items->pluck('stock_no')->filter()->unique()->values()->toArray();
+
         $transactions = DB::table('transactions')
-            ->whereIn('item_name', $itemNames)
+            ->whereIn('stock_no', $stockNos)
             ->orderBy('transaction_date', 'asc')
             ->orderBy('transactionID', 'asc')
             ->get();
@@ -229,9 +195,9 @@ class StockItemsListController extends Controller
                 $item->display_fund_cluster = $item->fund_cluster_ids ? str_replace(',', ', ', $item->fund_cluster_ids) : '—';
             }
 
-            // Get transactions specific to this item
-            $itemTransactions = $transactions->filter(function($t) use ($item) {
-                return $t->item_name === $item->item_name && $t->description === $item->description;
+            // Get transactions specific to this item, matched by stock_no
+            $itemTransactions = $transactions->filter(function ($t) use ($item) {
+                return $t->stock_no === $item->stock_no;
             });
 
             // Calculate running balance
@@ -240,7 +206,7 @@ class StockItemsListController extends Controller
             foreach ($itemTransactions as $t) {
                 $receiptQty = $t->transaction_type === 'RECEIVE' ? (float) $t->quantity : null;
                 $issueQty = $t->transaction_type === 'ISSUE' ? (float) $t->quantity : null;
-                
+
                 if ($receiptQty) $balance += $receiptQty;
                 if ($issueQty) $balance -= $issueQty;
 
