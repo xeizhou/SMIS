@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Printer } from 'lucide-react';
 import {
     Select,
     SelectTrigger,
@@ -9,6 +9,13 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
 import { useState } from 'react';
 
 // Make sure the path matches where you saved the component
@@ -20,6 +27,7 @@ interface FundClusterRef {
 }
 
 interface StockCardItem {
+    stock_no: string;
     item_name: string;
     item_description: string | null;
     unitID: number;
@@ -31,7 +39,7 @@ interface StockCardItem {
 
 interface PaginatedItems {
     data: StockCardItem[];
-    total: number; // Assuming your Laravel pagination resource includes a 'total' property
+    total: number;
     links: {
         url: string | null;
         label: string;
@@ -60,6 +68,9 @@ export default function Index({ items, fundClusters, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [issuedStatus, setIssuedStatus] = useState(filters.issued_status ?? 'all');
     const [fundClusterId, setFundClusterId] = useState(filters.fund_cluster_id ?? 'all');
+
+    const [printConfirmOpen, setPrintConfirmOpen] = useState(false);
+    const [itemToPrint, setItemToPrint] = useState<StockCardItem | null>(null);
 
     const applyFilters = (
         overrides: Partial<{ search: string; issued_status: string; fund_cluster_id: string }> = {}
@@ -100,6 +111,21 @@ export default function Index({ items, fundClusters, filters }: Props) {
         );
     };
 
+    const handlePrintClick = (item: StockCardItem) => {
+        setItemToPrint(item);
+        setPrintConfirmOpen(true);
+    };
+
+    const handleConfirmPrintSingle = () => {
+        if (!itemToPrint) return;
+        window.open(
+            `/stock-items/print-cards?search=${encodeURIComponent(itemToPrint.stock_no)}`,
+            '_blank'
+        );
+        setPrintConfirmOpen(false);
+        setItemToPrint(null);
+    };
+
     return (
         <>
             <Head title="Stock Items List" />
@@ -114,13 +140,11 @@ export default function Index({ items, fundClusters, filters }: Props) {
                             Stock card balances computed from receive/issue transactions.
                         </p>
                     </div>
-                    
-                    {/* Added the Print Button Component Here */}
+
+                    {/* Bulk Print Button (icon + confirmation rendered inside PrintStockCardsButton) */}
                     <div>
-                        <PrintStockCardsButton 
-                            // Note: If `items.total` isn't available, you might need to adjust your backend to send it, 
-                            // or fallback to `items.data.length` (though that only counts the current page).
-                            totalItems={items.total ?? items.data.length} 
+                        <PrintStockCardsButton
+                            totalItems={items.total ?? items.data.length}
                             filters={{
                                 fundCluster: fundClusterId === 'all' ? 'All' : fundClusterId,
                                 unissuedOnly: issuedStatus === 'unissued',
@@ -209,12 +233,13 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                 <th className="px-4 py-3 text-left font-semibold text-white">Unit</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Fund Cluster</th>
                                 <th className="px-4 py-3 text-center font-semibold text-white">Balance per Stock Card</th>
+                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {items.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-16 text-center">
+                                    <td colSpan={5} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No items found.
                                         </p>
@@ -223,8 +248,8 @@ export default function Index({ items, fundClusters, filters }: Props) {
                             ) : (
                                 items.data.map((item, index) => (
                                     <tr
-                                        key={`${item.item_name}-${index}`}
-                                        className={'border-b transition-colors hover:bg-muted/40'} data-search-0={item.item_name} data-record-id={item.item_name}
+                                        key={item.stock_no ?? `${item.item_name}-${index}`}
+                                        className={'border-b transition-colors hover:bg-muted/40'} data-search-0={item.item_name} data-record-id={item.stock_no}
                                     >
                                         <td className="px-4 py-3">
                                             {item.item_name}
@@ -240,6 +265,16 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                         </td>
                                         <td className="px-4 py-3 text-center font-medium">
                                             {item.balance_per_stock_card}
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => handlePrintClick(item)}
+                                                className="text-[#612A35] hover:text-[#612A35]/70"
+                                                title="Print this stock card"
+                                            >
+                                                <Printer className="size-4" />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))
@@ -269,6 +304,41 @@ export default function Index({ items, fundClusters, filters }: Props) {
                     </div>
                 )}
             </div>
+
+            {/* Per-row print confirmation dialog */}
+            <Dialog open={printConfirmOpen} onOpenChange={setPrintConfirmOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Printer className="size-5 text-[#612A35]" />
+                            Print Confirmation
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="py-2">
+                        <p className="text-sm text-muted-foreground">
+                            Print the stock card for{' '}
+                            <span className="font-medium text-foreground">
+                                {itemToPrint?.item_name}
+                                {itemToPrint?.item_description ? ` - ${itemToPrint.item_description}` : ''}
+                            </span>
+                            ?
+                        </p>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setPrintConfirmOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleConfirmPrintSingle}
+                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
+                        >
+                            Continue
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
