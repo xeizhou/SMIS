@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, Filter, PackageX, Search, CheckCircle2, Circle } from 'lucide-react';
+import { Printer, Filter, PackageX, Search } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -109,16 +109,9 @@ export default function PrintStockCardsButton({ totalItems, filters }: PrintStoc
                                             {label}
                                         </span>
                                     </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className={active ? 'text-foreground' : 'text-muted-foreground'}>
-                                            {value}
-                                        </span>
-                                        {active ? (
-                                            <CheckCircle2 className="size-3.5 text-[#612A35]" />
-                                        ) : (
-                                            <Circle className="size-3.5 text-muted-foreground/40" />
-                                        )}
-                                    </div>
+                                    <span className={active ? 'text-foreground' : 'text-muted-foreground'}>
+                                        {value}
+                                    </span>
                                 </div>
                             ))}
                         </div>

@@ -45,6 +45,7 @@ class StockItemsListController extends Controller
                 ->join('units as u', 'u.unitID', '=', 'siu.unitID')
                 ->leftJoin('transactions as t', 't.stock_no', '=', 'i.stock_no')
                 ->select(
+                    'i.stock_no',
                     'i.item_name',
                     'i.description as item_description',
                     'u.unitID',
