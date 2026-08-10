@@ -127,29 +127,45 @@ Route::middleware(['auth', 'verified'])->group(function () {
             })
             ->values();
 
-        $rawPoLettersStatus = \App\Models\PoLetterMonitoring::selectRaw("
-            type_of_letter,
-            SUM(CASE WHEN status_of_the_letter = 'APPROVED' THEN 1 ELSE 0 END) as approved_count,
-            SUM(CASE WHEN status_of_the_letter = 'DISAPPROVED' THEN 1 ELSE 0 END) as disapproved_count
-        ")
-        ->whereIn('type_of_letter', ['EXTENSION', 'WAIVER', 'CANCELLATION', 'REPLACEMENT/ALTERNATIVE OFFER'])
-        ->groupBy('type_of_letter')
-        ->get()
-        ->keyBy('type_of_letter');
+        $getPoLettersStatusByPeriod = function ($period) {
+            $query = \App\Models\PoLetterMonitoring::selectRaw("
+                type_of_letter,
+                SUM(CASE WHEN status_of_the_letter = 'APPROVED' THEN 1 ELSE 0 END) as approved_count,
+                SUM(CASE WHEN status_of_the_letter = 'DISAPPROVED' THEN 1 ELSE 0 END) as disapproved_count
+            ")
+            ->whereIn('type_of_letter', ['EXTENSION', 'WAIVER', 'CANCELLATION', 'REPLACEMENT/ALTERNATIVE OFFER'])
+            ->groupBy('type_of_letter');
 
-        $poLettersStatus = collect([
-            'EXTENSION' => 'Extension',
-            'WAIVER' => 'Waiver',
-            'CANCELLATION' => 'Cancellation',
-            'REPLACEMENT/ALTERNATIVE OFFER' => 'Replacement',
-        ])->map(function ($label, $key) use ($rawPoLettersStatus) {
-            $item = $rawPoLettersStatus->get($key);
-            return [
-                'type' => $label,
-                'approved' => $item ? (int) $item->approved_count : 0,
-                'disapproved' => $item ? (int) $item->disapproved_count : 0,
-            ];
-        })->values();
+            if ($period === 'This Week') {
+                $query->where('created_at', '>=', now()->startOfWeek());
+            } elseif ($period === 'This Month') {
+                $query->where('created_at', '>=', now()->startOfMonth());
+            } elseif ($period === 'This Year') {
+                $query->where('created_at', '>=', now()->startOfYear());
+            }
+
+            $raw = $query->get()->keyBy('type_of_letter');
+
+            return collect([
+                'EXTENSION' => 'Extension',
+                'WAIVER' => 'Waiver',
+                'CANCELLATION' => 'Cancellation',
+                'REPLACEMENT/ALTERNATIVE OFFER' => 'Replacement',
+            ])->map(function ($label, $key) use ($raw) {
+                $item = $raw->get($key);
+                return [
+                    'type' => $label,
+                    'approved' => $item ? (int) $item->approved_count : 0,
+                    'disapproved' => $item ? (int) $item->disapproved_count : 0,
+                ];
+            })->values();
+        };
+
+        $poLettersStatus = [
+            'This Week' => $getPoLettersStatusByPeriod('This Week'),
+            'This Month' => $getPoLettersStatusByPeriod('This Month'),
+            'This Year' => $getPoLettersStatusByPeriod('This Year'),
+        ];
 
         $pendingInspectionsCount = \App\Models\PirMonitoring::whereNull('inspection_date')
             ->whereDoesntHave('inspectionEntries', function($query) {

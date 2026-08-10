@@ -17,14 +17,12 @@ export type POLetterStatusRow = {
 };
 
 type Props = {
-    data?: POLetterStatusRow[];
+    data?: Record<string, POLetterStatusRow[]>;
 };
-
-
 
 export function PoLettersStatusChart({ data }: Props) {
     const [period, setPeriod] = useState<'This Week' | 'This Month' | 'This Year'>('This Year');
-    const rows = data ?? [];
+    const rows = data?.[period] ?? [];
 
     const maxDataVal = rows.length > 0 
         ? Math.max(...rows.map(r => Math.max(r.approved, r.disapproved))) 

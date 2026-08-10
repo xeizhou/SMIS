@@ -35,7 +35,7 @@ import { Button } from '@/components/ui/button';
 
 type DashboardPageProps = {
     deliveries?: DueDelivery[];
-    poLettersStatus?: POLetterStatusRow[];
+    poLettersStatus?: Record<string, POLetterStatusRow[]>;
     pendingInspections?: number;
     inspectionsLastWeek?: number;
     pendingClearances?: number;
