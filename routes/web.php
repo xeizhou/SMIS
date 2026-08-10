@@ -381,6 +381,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('po-letter-monitoring.attachments.upload');
 
     Route::get('/deliveries', [DeliveriesController::class, 'index'])->name('deliveries.index');
+    Route::get('/notice-of-delivery', [\App\Http\Controllers\NoticeOfDeliveryReportController::class, 'index'])->name('notice-of-delivery.index');
     Route::post('/deliveries', [DeliveriesController::class, 'store'])->name('deliveries.store');
     Route::put('/deliveries/{delivery}', [DeliveriesController::class, 'update'])->name('deliveries.update');
     Route::delete('/deliveries/{delivery}', [DeliveriesController::class, 'destroy'])->name('deliveries.destroy');
