@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Search, Trash2} from 'lucide-react';
 import { useState, useEffect } from 'react';
 import DeliveryAddForm from '@/components/deliveries/deliveryaddform';
 import DeliveryDeleteModal from '@/components/deliveries/deliverydeletemodal';
@@ -260,7 +260,7 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                 deliveries.data.map((delivery) => (
                                     <tr 
                                         key={delivery.delivery_id} 
-                                        className={'border-b transition-colors duration-1000 hover:bg-muted/40'} data-search-0={delivery.delivery_no} data-search-1={delivery.po_number} data-record-id={delivery.delivery_id}
+                                        className={'border-b transition-colors duration-1000 hover:bg-muted/40'} data-search-0={delivery.delivery_id} data-search-1={delivery.po_number} data-record-id={delivery.delivery_id}
                                     >
                                         <td className="px-4 py-3 font-medium">{delivery.po_number}</td>
                                         <td className="px-4 py-3">{delivery.supplier?.supplier_name ?? '—'}</td>

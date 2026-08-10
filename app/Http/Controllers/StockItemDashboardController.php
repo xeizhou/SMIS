@@ -14,11 +14,10 @@ class StockItemDashboardController extends Controller
     /**
      * Display the Stock Item Dashboard.
      *
-     * NOTE: transactions.item_name is matched against stock_items.item_name
-     * (there's no stock_no FK on the transactions table today). Balances
-     * below are computed off that name match — if two stock items ever
-     * share a name, or an item gets renamed, this will misattribute
-     * quantities. Worth adding a stock_no column to transactions.
+     * Balances are computed per `stock_no` (not item_name — several stock
+     * items can legitimately share the same name, e.g. "Bond Paper A4" in
+     * different units/fund clusters, and grouping by name text would merge
+     * their transactions into one shared, wrong total).
      */
     public function index(Request $request)
     {
@@ -44,13 +43,13 @@ class StockItemDashboardController extends Controller
 
     private function getStockItems()
     {
-        $balances = $this->balancesByItemName();
+        $balances = $this->balancesByStockNo();
 
         return StockItem::with('units')
             ->orderBy('item_name')
             ->get()
             ->map(function ($item) use ($balances) {
-                $bal = $balances->get($item->item_name);
+                $bal = $balances->get($item->stock_no);
                 $balance = $bal->balance ?? 0;
 
                 return [
@@ -72,8 +71,8 @@ class StockItemDashboardController extends Controller
     }
 
     /**
-     * Paginated + filterable transaction log, scoped to a single month.
-     * Query params: page, per_page, office_code, fund_cluster, type, month (YYYY-MM)
+     * Paginated + filterable transaction log, scoped to a single quarter.
+     * Query params: page, per_page, office_code, fund_cluster, type, year, quarter
      */
     private function getTransactions(Request $request)
     {
@@ -132,13 +131,13 @@ class StockItemDashboardController extends Controller
 
     private function getKpis()
     {
-        $balances = $this->balancesByItemName();
-        $items = StockItem::all(['stock_no', 'item_name', 'reorder_point'])->keyBy('item_name');
+        $balances = $this->balancesByStockNo();
+        $items = StockItem::all(['stock_no', 'item_name', 'reorder_point']);
 
         $low = 0;
         $out = 0;
-        foreach ($items as $itemName => $item) {
-            $balance = $balances->get($itemName)->balance ?? 0;
+        foreach ($items as $item) {
+            $balance = $balances->get($item->stock_no)->balance ?? 0;
             if ($balance <= 0) {
                 $out++;
             } elseif ($balance < ($item->reorder_point ?? 10)) {
@@ -156,16 +155,32 @@ class StockItemDashboardController extends Controller
         ];
     }
 
-    private function balancesByItemName()
+    /**
+     * Balances keyed by stock_no (the FK now present on transactions),
+     * NOT item_name — multiple stock items can share the same display
+     * name across different units/fund clusters, and grouping by name
+     * text would incorrectly merge their transaction histories together.
+     *
+     * NOTE: this only counts transactions that have stock_no populated.
+     * If any legacy rows predate that column being backfilled, they will
+     * not be reflected in any item's balance. Worth checking:
+     *   Transaction::whereNull('stock_no')->count()
+     */
+    private function balancesByStockNo()
     {
         return Transaction::selectRaw("
-                item_name,
-                SUM(CASE WHEN transaction_type = 'IN' THEN quantity ELSE -quantity END) AS balance,
+                stock_no,
+                SUM(CASE
+                    WHEN transaction_type = 'RECEIVE' THEN quantity
+                    WHEN transaction_type = 'ISSUE' THEN -quantity
+                    ELSE 0
+                END) AS balance,
                 MAX(transaction_date) AS last_date
             ")
-            ->groupBy('item_name')
+            ->whereNotNull('stock_no')
+            ->groupBy('stock_no')
             ->get()
-            ->keyBy('item_name');
+            ->keyBy('stock_no');
     }
 
     private function statusFor(int $balance, int $reorderPoint): string
