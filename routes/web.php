@@ -59,14 +59,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 $isOverdue = false;
                 $daysOverdue = 0;
+                $diffDays = null;
 
                 if ($due) {
+                    $dueStart = $due->copy()->startOfDay();
+                    $diffDays = (int) $today->diffInDays($dueStart, false);
                     if ($deliveryDate && $deliveryDate->gt($due)) {
                         $isOverdue = true;
                         $daysOverdue = (int) $due->diffInDays($deliveryDate);
-                    } else if (!$deliveryDate && $today->gt($due)) {
+                    } else if (!$deliveryDate && $today->gt($dueStart)) {
                         $isOverdue = true;
-                        $daysOverdue = (int) $due->diffInDays($today);
+                        $daysOverdue = (int) $dueStart->diffInDays($today);
                     }
                 }
 
@@ -75,8 +78,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     'po_number' => $delivery->po_number,
                     'time_ago' => ($delivery->data_entry_timestamp ?? now())->diffForHumans(),
                     'is_overdue' => $isOverdue,
-                    'days_overdue' => $daysOverdue,
-                    'due_date' => $due ? $due->format('M d, Y') : null,
+                    'daysOverdue' => $daysOverdue,
+                    'diff_days' => $diffDays,
+                    'due_date' => $due ? $due->format('Y-m-d') : null,
+                    'due_date_formatted' => $due ? $due->format('M d, Y') : null,
                 ];
             });
 
@@ -89,12 +94,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->sortBy(function ($delivery) {
                 return $delivery->due_date;
             })
-            ->take(5)
             ->map(function ($delivery) {
+                $due = $delivery->due_date;
+                $deliveryDate = $delivery->delivery_date;
+                $today = now()->startOfDay();
+
+                $isOverdue = false;
+                $daysOverdue = 0;
+                $diffDays = 0;
+
+                if ($due) {
+                    $dueStart = $due->copy()->startOfDay();
+                    $diffDays = (int) $today->diffInDays($dueStart, false);
+                    if ($deliveryDate && $deliveryDate->gt($due)) {
+                        $isOverdue = true;
+                        $daysOverdue = (int) $due->diffInDays($deliveryDate);
+                    } else if (!$deliveryDate && $today->gt($dueStart)) {
+                        $isOverdue = true;
+                        $daysOverdue = (int) $dueStart->diffInDays($today);
+                    }
+                }
+
                 return [
                     'delivery_id' => $delivery->delivery_id,
                     'po_number' => $delivery->po_number,
-                    'due_date' => $delivery->due_date->format('Y-m-d'),
+                    'due_date' => $due ? $due->format('Y-m-d') : null,
+                    'due_date_formatted' => $due ? $due->format('M d, Y') : null,
+                    'is_overdue' => $isOverdue,
+                    'days_overdue' => $daysOverdue,
+                    'diff_days' => $diffDays,
                     'status' => $delivery->status,
                     'end_user' => $delivery->end_user,
                     'supplier' => $delivery->supplier ? [

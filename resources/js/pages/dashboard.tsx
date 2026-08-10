@@ -122,60 +122,91 @@ export default function Dashboard() {
         setIsLoaded(true);
     }, []);
 
-    // Sync notifications when recentDeliveries updates (e.g. on Inertia reload)
+    // Sync notifications when recentDeliveries or deliveries updates
     useEffect(() => {
-        if (!isLoaded || !recentDeliveries) return;
+        if (!isLoaded) return;
+
         setNotifications(prev => {
-            // Keep existing ones to preserve createdAt, add new ones
-            const existingIds = new Set(prev.map(n => String(n.id)));
-            const newNotifs = recentDeliveries
-                .filter(d => !existingIds.has(String(d.delivery_id)))
-                .map(d => ({
-                    id: d.delivery_id,
-                    text: d.is_overdue 
-                        ? `Delivery ${d.po_number} is OVERDUE (${d.days_overdue}d)`
-                        : `Incoming Delivery ${d.po_number}`,
-                    target_url: `/deliveries?highlight_id=${d.delivery_id}`,
-                    time: d.time_ago,
-                    isOverdue: d.is_overdue,
-                    daysOverdue: d.days_overdue,
-                    dueDate: d.due_date,
-                    isRead: readIds.includes(String(d.delivery_id)),
-                    createdAt: Date.now()
-                }));
-            
-            // Update time for existing ones, leave createdAt alone
-            const updatedExisting = prev.map(n => {
-                const updatedData = recentDeliveries.find(d => String(d.delivery_id) === String(n.id));
-                if (updatedData) {
-                    return { 
-                        ...n, 
-                        text: updatedData.is_overdue 
-                            ? `Delivery ${updatedData.po_number} is OVERDUE (${updatedData.days_overdue}d)`
-                            : `Incoming Delivery ${updatedData.po_number}`,
-                        time: updatedData.time_ago, 
-                        isOverdue: updatedData.is_overdue,
-                        daysOverdue: updatedData.days_overdue,
-                        dueDate: updatedData.due_date,
-                        isRead: readIds.includes(String(updatedData.delivery_id)) || n.isRead 
-                    };
+            const notifMap = new Map<string, any>();
+            const prevMap = new Map(prev.map(n => [String(n.id), n]));
+
+            const formatItem = (d: any) => {
+                const idStr = String(d.delivery_id);
+                const prevItem = prevMap.get(idStr);
+
+                let text = `Incoming Delivery ${d.po_number}`;
+                let time = d.time_ago || (d.due_date ? `Due ${d.due_date_formatted || d.due_date}` : '');
+                let isOverdue = !!d.is_overdue;
+                let daysOverdue = d.days_overdue || 0;
+                let isDueToday = false;
+                let isDueSoon = false;
+
+                if (d.due_date) {
+                    if (d.is_overdue) {
+                        text = `Delivery ${d.po_number} is OVERDUE (${daysOverdue}d)`;
+                        time = d.time_ago ? `${d.time_ago} • ${daysOverdue}d overdue` : `${daysOverdue} day(s) overdue`;
+                    } else if (d.diff_days === 0) {
+                        text = `Delivery ${d.po_number} is DUE TODAY`;
+                        time = d.time_ago ? `${d.time_ago} • Due today` : 'Due today';
+                        isDueToday = true;
+                    } else if (d.diff_days === 1) {
+                        text = `Delivery ${d.po_number} is DUE TOMORROW`;
+                        time = d.time_ago ? `${d.time_ago} • Due tomorrow` : 'Due tomorrow';
+                        isDueSoon = true;
+                    } else if (d.diff_days !== undefined && d.diff_days !== null && d.diff_days > 1) {
+                        text = `Delivery ${d.po_number} is due on ${d.due_date_formatted || d.due_date}`;
+                        time = d.time_ago ? `${d.time_ago} • Due in ${d.diff_days}d` : `Due in ${d.diff_days} days`;
+                        if (d.diff_days <= 7) {
+                            isDueSoon = true;
+                        }
+                    }
                 }
-                return n;
-            });
 
-            return [...newNotifs, ...updatedExisting];
+                return {
+                    id: idStr,
+                    text,
+                    target_url: `/deliveries?highlight_id=${d.delivery_id}`,
+                    time,
+                    isOverdue,
+                    daysOverdue,
+                    isDueToday,
+                    isDueSoon,
+                    dueDate: d.due_date,
+                    isRead: readIds.includes(idStr) || (prevItem ? prevItem.isRead : false),
+                };
+            };
+
+            // 1. Process recent deliveries
+            if (recentDeliveries) {
+                recentDeliveries.forEach(d => {
+                    const item = formatItem(d);
+                    notifMap.set(item.id, item);
+                });
+            }
+
+            // 2. Process due deliveries (add any missing or enrich)
+            if (deliveries) {
+                deliveries.forEach(d => {
+                    const item = formatItem(d);
+                    if (notifMap.has(item.id)) {
+                        const existing = notifMap.get(item.id);
+                        notifMap.set(item.id, {
+                            ...existing,
+                            text: (item.isOverdue || item.isDueToday || item.isDueSoon) ? item.text : existing.text,
+                            time: item.time || existing.time,
+                            isOverdue: existing.isOverdue || item.isOverdue,
+                            isDueToday: existing.isDueToday || item.isDueToday,
+                            isDueSoon: existing.isDueSoon || item.isDueSoon,
+                        });
+                    } else {
+                        notifMap.set(item.id, item);
+                    }
+                });
+            }
+
+            return Array.from(notifMap.values());
         });
-    }, [recentDeliveries, isLoaded]); // intentionally left readIds out so we don't reset createdAt on every read
-
-    useEffect(() => {
-        // Auto-delete notifications older than 2 minutes (120,000 ms)
-        const interval = setInterval(() => {
-            const now = Date.now();
-            setNotifications(prev => prev.filter(n => (now - n.createdAt) < 120000));
-        }, 5000);
-
-        return () => clearInterval(interval);
-    }, []);
+    }, [recentDeliveries, deliveries, isLoaded, readIds]);
 
     // Auto-refresh data periodically and on tab focus to keep dashboard "real-time"
     useEffect(() => {
@@ -314,18 +345,26 @@ export default function Dashboard() {
                                                     className="flex gap-2 w-full"
                                                 >
                                                     {!notif.isRead && (
-                                                        <span className={`mt-1.5 flex h-2 w-2 shrink-0 rounded-full ${notif.isOverdue ? 'bg-rose-600' : 'bg-blue-600'}`} />
+                                                        <span className={`mt-1.5 flex h-2 w-2 shrink-0 rounded-full ${notif.isOverdue ? 'bg-rose-600' : notif.isDueToday ? 'bg-amber-500' : 'bg-blue-600'}`} />
                                                     )}
                                                     <div className="flex flex-col gap-1 w-full">
                                                         <div className="flex items-center justify-between gap-2">
-                                                            <span className={`text-sm ${!notif.isRead ? 'font-semibold' : 'font-medium'} ${notif.isOverdue ? 'text-rose-600 dark:text-rose-400' : ''}`}>
+                                                            <span className={`text-sm ${!notif.isRead ? 'font-semibold' : 'font-medium'} ${notif.isOverdue ? 'text-rose-600 dark:text-rose-400' : notif.isDueToday ? 'text-amber-600 dark:text-amber-400' : ''}`}>
                                                                 {notif.text}
                                                             </span>
-                                                            {notif.isOverdue && (
+                                                            {notif.isOverdue ? (
                                                                 <span className="text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 shrink-0">
                                                                     Overdue
                                                                 </span>
-                                                            )}
+                                                            ) : notif.isDueToday ? (
+                                                                <span className="text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 shrink-0">
+                                                                    Due Today
+                                                                </span>
+                                                            ) : notif.isDueSoon ? (
+                                                                <span className="text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 shrink-0">
+                                                                    Due Soon
+                                                                </span>
+                                                            ) : null}
                                                         </div>
                                                         <span className="text-xs text-muted-foreground">{notif.time}</span>
                                                     </div>
