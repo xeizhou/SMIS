@@ -1,13 +1,31 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { usePoll } from '@inertiajs/react';
-import { AlertTriangle, PackageX, Boxes, Activity, X, Printer, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+    AlertTriangle,
+    PackageX,
+    Boxes,
+    Activity,
+    X,
+    ChevronLeft,
+    ChevronRight,
+    ArrowDownToLine,
+    ArrowUpFromLine,
+    ReceiptText,
+    Search,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { ArrowDownToLine, ArrowUpFromLine, PackageMinus, PackagePlus, ReceiptText } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
-
+// ---------------------------------------------------------------------------
+// Brand tokens (matches the maroon theme already used across Stock Items List
+// and the print stock cards button elsewhere in SMIS).
+// ---------------------------------------------------------------------------
+const BRAND = '#612A35';
+const BRAND_DARK = '#370001';
 
 type Unit = {
     unit_name: string;
@@ -28,7 +46,7 @@ type StockItem = {
 
 type Transaction = {
     transactionID: number;
-    transaction_type: 'IN' | 'OUT' | 'ISSUE' | 'RECEIVE';
+    transaction_type: 'RECEIVE' | 'ISSUE';
     transaction_date: string;
     item_name: string;
     reference: string;
@@ -45,6 +63,7 @@ type TransactionPage = {
     last_page: number;
     total: number;
     per_page: number;
+    quarter: string;
 };
 
 type Kpis = {
@@ -87,8 +106,17 @@ const STATUS_FILTERS: { key: 'all' | StockItem['status']; label: string }[] = [
     { key: 'out', label: 'Out' },
 ];
 
-// NOTE: adjust to your actual stock items index route.
-const STOCK_ITEMS_PAGE = '/stock-items';
+const movementChartConfig = {
+    received: {
+        label: 'Received',
+        color: '#10b981',
+    },
+    issued: {
+        label: 'Issued',
+        color: BRAND,
+    },
+} satisfies ChartConfig;
+
 
 export default function Index({ kpis, stockItems, transactions, filters }: Props) {
     const [search, setSearch] = useState('');
@@ -102,7 +130,6 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
     const prevBalances = useRef<Map<string, number>>(new Map(stockItems.map((i) => [i.stock_no, i.balance])));
     const listRef = useRef<HTMLDivElement>(null);
 
-    // --- Real-time polling ---
     usePoll(5000, { onSuccess: () => setLastUpdated(new Date()) });
 
     useEffect(() => {
@@ -144,24 +171,34 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
             .filter((t) => t.item_name === selectedItem.item_name)
             .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date))
             .map((t) => {
-                running += t.transaction_type === 'IN' ? t.quantity : -t.quantity;
+                running += t.transaction_type === 'RECEIVE' ? t.quantity : -t.quantity;
                 return { ...t, running };
             })
             .reverse();
     }, [selectedItem, transactions.data]);
 
+    const movementData = useMemo(() => {
+        const byDay = new Map<string, { date: string; received: number; issued: number }>();
+        for (const t of transactions.data) {
+            const day = t.transaction_date.slice(0, 10);
+            const entry = byDay.get(day) ?? { date: day, received: 0, issued: 0 };
+            if (t.transaction_type === 'RECEIVE') entry.received += t.quantity;
+            if (t.transaction_type === 'ISSUE') entry.issued += t.quantity;
+            byDay.set(day, entry);
+        }
+        return Array.from(byDay.values())
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .slice(-14);
+    }, [transactions.data]);
+
     const TYPE_STYLES: Record<Transaction['transaction_type'], string> = {
-        IN: 'bg-emerald-100 text-emerald-700',
-        OUT: 'bg-red-100 text-red-700',
+        RECEIVE: 'bg-emerald-100 text-emerald-700',
         ISSUE: 'bg-amber-100 text-amber-700',
-        RECEIVE: 'bg-sky-100 text-sky-700',
     };
 
     const TYPE_ICON: Record<Transaction['transaction_type'], React.ReactNode> = {
-        IN: <ArrowDownToLine className="size-3" />,
-        OUT: <ArrowUpFromLine className="size-3" />,
-        ISSUE: <PackageMinus className="size-3" />,
-        RECEIVE: <PackagePlus className="size-3" />,
+        RECEIVE: <ArrowDownToLine className="size-3" />,
+        ISSUE: <ArrowUpFromLine className="size-3" />,
     };
 
     function applyTransactionFilters(overrides: Record<string, string> = {}) {
@@ -193,43 +230,43 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
         <>
             <Head title="Stock Item Dashboard" />
 
-            <div className="space-y-6 p-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold">Stock Card Dashboard</h1>
-                        <p className="text-sm text-muted-foreground">
-                            Live view of stock items, balances, and recent movements.
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
-                            Updated {secondsAgo <= 1 ? 'just now' : `${secondsAgo}s ago`}
-                        </span>
-                        <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                            <span className="relative flex h-2 w-2">
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            <div className="space-y-6 p-4 sm:p-6">
+                {/* Header */}
+                
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">Stock Card Dashboard</h1>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Live view of stock items, balances, and recent movements.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                                Updated {secondsAgo <= 1 ? 'just now' : `${secondsAgo}s ago`}
                             </span>
-                            Live
+                            <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                                </span>
+                                Live
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* KPI strip — clickable */}
+                {/* KPI strip */}
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                     <KpiCard
                         icon={<Boxes className="size-4" />}
                         label="Total Stock Items"
                         value={kpis.total_items}
                         onClick={() => handleKpiClick('all')}
-                        href={STOCK_ITEMS_PAGE}
                     />
                     <KpiCard
                         icon={<Activity className="size-4" />}
                         label="Total Stock on Hand"
                         value={kpis.total_stock_on_hand}
                         onClick={() => handleKpiClick('all')}
-                        href={STOCK_ITEMS_PAGE}
                     />
                     <KpiCard
                         icon={<AlertTriangle className="size-4" />}
@@ -237,7 +274,6 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                         value={kpis.low_stock_count}
                         tone={kpis.low_stock_count > 0 ? 'warn' : 'default'}
                         onClick={() => handleKpiClick('low')}
-                        href={`${STOCK_ITEMS_PAGE}?status=low`}
                     />
                     <KpiCard
                         icon={<PackageX className="size-4" />}
@@ -245,22 +281,68 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                         value={kpis.out_of_stock_count}
                         tone={kpis.out_of_stock_count > 0 ? 'danger' : 'default'}
                         onClick={() => handleKpiClick('out')}
-                        href={`${STOCK_ITEMS_PAGE}?status=out`}
                     />
                 </div>
 
+                {/* Stock movement chart — Received vs Issued per day (shadcn chart + recharts) */}
+                <div className="rounded-xl border bg-card p-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h2 className="font-semibold">Stock Movement</h2>
+                            <p className="text-xs text-muted-foreground">Received vs. issued quantity, {transactions.quarter}</p>
+                        </div>
+                    </div>
+                    {movementData.length === 0 ? (
+                        <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
+                            No transactions to chart for this period.
+                        </div>
+                    ) : (
+                        <ChartContainer config={movementChartConfig} className="h-[220px] w-full">
+                            <BarChart data={movementData}>
+                                <CartesianGrid vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={8}
+                                    tickFormatter={(value) =>
+                                        new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                    }
+                                />
+                                <ChartTooltip
+                                    content={
+                                        <ChartTooltipContent
+                                            labelFormatter={(value) =>
+                                                new Date(value as string).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                })
+                                            }
+                                        />
+                                    }
+                                />
+                                <Bar dataKey="received" fill="var(--color-received)" radius={4} />
+                                <Bar dataKey="issued" fill="var(--color-issued)" radius={4} />
+                            </BarChart>
+                        </ChartContainer>
+                    )}
+                </div>
+
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
-                    {/* Stock Item List */}
+                    {/* Stock Item List — no print action here by design */}
                     <div ref={listRef} className="rounded-xl border bg-card xl:col-span-3">
                         <div className="space-y-3 border-b p-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="font-semibold">Stock Item List</h2>
-                                <Input
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    placeholder="Search item name or stock no..."
-                                    className="h-8 w-56 text-sm"
-                                />
+                                <div className="relative w-56">
+                                    <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                                    <Input
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        placeholder="Search item name or stock no..."
+                                        className="h-8 pl-8 text-sm"
+                                    />
+                                </div>
                             </div>
                             <div className="flex gap-1.5">
                                 {STATUS_FILTERS.map((f) => (
@@ -269,9 +351,10 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                                         onClick={() => setStatusFilter(f.key)}
                                         className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                                             statusFilter === f.key
-                                                ? 'bg-primary text-primary-foreground'
+                                                ? 'text-white'
                                                 : 'bg-muted text-muted-foreground hover:bg-muted/70'
                                         }`}
+                                        style={statusFilter === f.key ? { backgroundColor: BRAND } : undefined}
                                     >
                                         {f.label}
                                     </button>
@@ -280,13 +363,13 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                         </div>
                         <ScrollArea className="h-[520px]">
                             <table className="w-full text-sm">
-                                <thead className="sticky top-0 bg-muted/50 text-left text-xs text-muted-foreground">
+                                <thead className="sticky top-0 text-left text-xs text-white" style={{ backgroundColor: BRAND_DARK }}>
                                     <tr>
-                                        <th className="p-3">Stock No</th>
-                                        <th className="p-3">Item Name</th>
-                                        <th className="p-3">Unit</th>
-                                        <th className="p-3 text-right">Balance</th>
-                                        <th className="p-3">Status</th>
+                                        <th className="p-3 font-semibold">Stock No</th>
+                                        <th className="p-3 font-semibold">Item Name</th>
+                                        <th className="p-3 font-semibold">Unit</th>
+                                        <th className="p-3 text-right font-semibold">Balance</th>
+                                        <th className="p-3 font-semibold">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -331,7 +414,7 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <ReceiptText className="size-4 text-muted-foreground" />
-                                    <h2 className="font-semibold">Transactions This Month</h2>
+                                    <h2 className="font-semibold">Transactions ({transactions.quarter})</h2>
                                 </div>
                                 <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                                     {transactions.total} total
@@ -396,9 +479,7 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                                     {transactions.data.map((t, i) => (
                                         <tr
                                             key={t.transactionID}
-                                            className={`border-t transition-colors hover:bg-muted/40 ${
-                                                i % 2 === 1 ? 'bg-muted/10' : ''
-                                            }`}
+                                            className={`border-t transition-colors hover:bg-muted/40 ${i % 2 === 1 ? 'bg-muted/10' : ''}`}
                                         >
                                             <td className="p-3 whitespace-nowrap text-xs text-muted-foreground">
                                                 {formatDate(t.transaction_date)}
@@ -418,9 +499,7 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                                             </td>
                                             <td className="p-3 text-right font-medium tabular-nums">
                                                 {t.quantity}
-                                                <span className="ml-1 text-xs font-normal text-muted-foreground">
-                                                    {t.unit_short_name}
-                                                </span>
+                                                <span className="ml-1 text-xs font-normal text-muted-foreground">{t.unit_short_name}</span>
                                             </td>
                                         </tr>
                                     ))}
@@ -438,8 +517,7 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
 
                         <div className="flex items-center justify-between border-t bg-muted/20 p-3 text-xs text-muted-foreground">
                             <span>
-                                Page <span className="font-medium text-foreground">{transactions.current_page}</span> of{' '}
-                                {transactions.last_page}
+                                Page <span className="font-medium text-foreground">{transactions.current_page}</span> of {transactions.last_page}
                             </span>
                             <div className="flex gap-1">
                                 <button
@@ -462,7 +540,7 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                 </div>
             </div>
 
-            {/* Stock Card drill-down */}
+            {/* Stock Card drill-down — view only, no print action */}
             {selectedItem && (
                 <StockCardPanel item={selectedItem} entries={stockCardEntries} onClose={() => setSelectedItem(null)} />
             )}
@@ -501,7 +579,6 @@ function StockCardPanel({
                             <h2 className="text-lg font-bold">{item.item_name}</h2>
                             <p className="text-sm text-muted-foreground">
                                 Current balance: <span className="font-semibold">{item.balance}</span>
-                                {' · '}Reorder point: {item.reorder_point}
                             </p>
                         </div>
                         <button onClick={onClose} className="rounded-md p-1 hover:bg-muted">
@@ -510,16 +587,6 @@ function StockCardPanel({
                     </div>
 
                     <div className="flex items-center gap-2">
-                        
-                        <a
-                            href={`/stock-items/print-cards?stock_no=${encodeURIComponent(item.stock_no)}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"
-                        >
-                            <Printer className="size-3.5" />
-                            Print Card
-                        </a>
                         <div className="flex items-center gap-1.5">
                             <label className="text-xs text-muted-foreground">Jump to date:</label>
                             <input
@@ -539,8 +606,8 @@ function StockCardPanel({
                                 <th className="py-2">Date</th>
                                 <th className="py-2">Reference</th>
                                 <th className="py-2">Office</th>
-                                <th className="py-2 text-right">IN</th>
-                                <th className="py-2 text-right">OUT</th>
+                                <th className="py-2 text-right">Received</th>
+                                <th className="py-2 text-right">Issued</th>
                                 <th className="py-2 text-right">Balance</th>
                             </tr>
                         </thead>
@@ -556,8 +623,12 @@ function StockCardPanel({
                                     <td className="py-2 whitespace-nowrap">{formatDate(e.transaction_date)}</td>
                                     <td className="py-2 font-mono text-xs">{e.reference}</td>
                                     <td className="py-2">{e.office_code}</td>
-                                    <td className="py-2 text-right text-emerald-600">{e.transaction_type === 'IN' ? e.quantity : ''}</td>
-                                    <td className="py-2 text-right text-red-600">{e.transaction_type === 'OUT' ? e.quantity : ''}</td>
+                                    <td className="py-2 text-right text-emerald-600">
+                                        {e.transaction_type === 'RECEIVE' ? e.quantity : ''}
+                                    </td>
+                                    <td className="py-2 text-right text-red-600">
+                                        {e.transaction_type === 'ISSUE' ? e.quantity : ''}
+                                    </td>
                                     <td className="py-2 text-right font-medium">{e.running}</td>
                                 </tr>
                             ))}
@@ -582,14 +653,12 @@ function KpiCard({
     value,
     tone = 'default',
     onClick,
-    href,
 }: {
     icon: React.ReactNode;
     label: string;
     value: number;
     tone?: 'default' | 'warn' | 'danger';
     onClick?: () => void;
-    href?: string;
 }) {
     const toneStyles = {
         default: 'text-foreground',
@@ -600,23 +669,13 @@ function KpiCard({
     return (
         <button
             onClick={onClick}
-            className="group relative w-full rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40"
+            className="group relative w-full rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/40"
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = `${BRAND}80`)}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = '')}
         >
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span className="flex items-center gap-2">
-                    {icon}
-                    {label}
-                </span>
-                {href && (
-                    <Link
-                        href={href}
-                        onClick={(e) => e.stopPropagation()}
-                        className="opacity-0 transition-opacity group-hover:opacity-100"
-                        title="Go to full page"
-                    >
-                        <ChevronRight className="size-3.5" />
-                    </Link>
-                )}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {icon}
+                {label}
             </div>
             <p className={`mt-2 text-2xl font-bold ${toneStyles}`}>{value}</p>
         </button>

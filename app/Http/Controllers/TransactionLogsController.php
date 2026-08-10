@@ -33,7 +33,7 @@ class TransactionLogsController extends Controller
             $query->where('transaction_type', $request->transaction_type);
         }
 
-        $transactions = $query->orderBy('transactionID', 'desc')
+        $transactions = $query->orderBy('transaction_date', 'desc')
             ->paginateWithHighlight(10)
             ->withQueryString();
 
