@@ -396,9 +396,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('iar.attachments.upload');
 
     Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
-    Route::post('/supplier', [SupplierController::class, 'store']);
+    Route::post('/supplier', [SupplierController::class, 'store'])->name('supplier.store');
     Route::put('/supplier/{supplier}', [SupplierController::class, 'update']);
     Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
+    Route::get('/supplier/export', [SupplierController::class, 'export'])->name('supplier.export');
+    Route::post('/supplier/import', [SupplierController::class, 'import'])->name('supplier.import');    
 
     Route::get('/fund-clusters', [FundClustersController::class, 'index'])->name('fund-clusters.index');
     Route::post('/fund-clusters', [FundClustersController::class, 'store'])->name('fund-clusters.store');
@@ -429,6 +431,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/offices', [OfficesController::class, 'store'])->name('offices.store');
     Route::put('/offices/{office}', [OfficesController::class, 'update'])->name('offices.update');
     Route::delete('/offices/{office}', [OfficesController::class, 'destroy']);
+    Route::get('/offices/export', [OfficesController::class, 'export'])->name('offices.export');
+    Route::post('/offices/import', [OfficesController::class, 'import'])->name('offices.import');
 
     Route::get('/clearance', [ClearanceController::class, 'index'])->name('clearance.index');
     Route::post('/clearance', [ClearanceController::class, 'store'])->name('clearance.store');

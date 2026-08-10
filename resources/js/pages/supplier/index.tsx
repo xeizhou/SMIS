@@ -1,12 +1,19 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Pencil, Trash2, UploadCloud } from 'lucide-react';
+import { useRef, useState } from 'react';
 import SupplierAddForm from '@/components/suppliers/supplieraddform';
 import SupplierDeleteModal from '@/components/suppliers/supplierdeletemodal';
 import SupplierEditForm from '@/components/suppliers/suppliereditform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
 import {
     Select,
     SelectContent,
@@ -18,6 +25,7 @@ import {
 interface Supplier {
     supplier_id: number;
     supplier_name: string;
+    contact_person: string | null;
     contact_number: string | null;
     email_address: string | null;
     status: 'active' | 'inactive';
@@ -46,10 +54,12 @@ export default function Index({
     suppliers,
     filters,
 }: Props) {
-        const [search, setSearch] = useState(filters.search ?? '');
+    const [search, setSearch] = useState(filters.search ?? '');
+    const importInputRef = useRef<HTMLInputElement>(null);
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
+    const [importInfoOpen, setImportInfoOpen] = useState(false);
     const [selectedSupplier, setSelectedSupplier] =
         useState<Supplier | null>(null);
 
@@ -177,6 +187,51 @@ export default function Index({
 
                     <Button
                         type="button"
+                        className="w-full lg:w-auto"
+                        style={{ backgroundColor: 'white', color: '#612A35', border: '1px solid #612A35' }}
+                        onClick={() => {
+                            const params = new URLSearchParams();
+                            if (search) params.set('search', search);
+                            if (status && status !== 'all') params.set('status', status);
+                            window.location.href = `/supplier/export?${params.toString()}`;
+                        }}
+                    >
+                        Export Supplier
+                    </Button>
+
+                    <input
+                        ref={importInputRef}
+                        type="file"
+                        accept=".csv,.txt"
+                        className="hidden"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            const formData = new FormData();
+                            formData.append('file', file);
+
+                            router.post('/supplier/import', formData, {
+                                forceFormData: true,
+                                preserveScroll: true,
+                                onFinish: () => {
+                                    if (importInputRef.current) importInputRef.current.value = '';
+                                },
+                            });
+                        }}
+                    />
+
+                    <Button
+                        type="button"
+                        className="w-full lg:w-auto"
+                        style={{ backgroundColor: '#612A35' }}
+                        onClick={() => setImportInfoOpen(true)}
+                    >
+                        Import Suppliers
+                    </Button>
+
+                    <Button
+                        type="button"
                         onClick={() => setDialogOpen(true)}
                         className="w-full lg:w-auto"
                         style={{ backgroundColor: '#612A35' }}
@@ -203,6 +258,10 @@ export default function Index({
 
                                 <th className="px-4 py-3 text-left font-semibold text-white">
                                     Contact Number
+                                </th>
+
+                                <th className="px-4 py-3 text-left font-semibold text-white">
+                                    Contact Person
                                 </th>
 
                                 <th className="px-4 py-3 text-left font-semibold text-white">
@@ -254,6 +313,10 @@ export default function Index({
 
                                         <td className="px-4 py-3">
                                             {supplier.contact_number ?? '—'}
+                                        </td>
+
+                                        <td className="px-4 py-3">
+                                            {supplier.contact_person ?? '—'}
                                         </td>
 
                                         <td className="px-4 py-3">
@@ -322,6 +385,100 @@ export default function Index({
                     </div>
                 )}
             </div>
+
+            <Dialog
+                open={importInfoOpen}
+                onOpenChange={setImportInfoOpen}
+            >
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Import Suppliers</DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-3 text-sm text-muted-foreground">
+                        <p>
+                            Upload a <strong>.csv</strong> file. The first row
+                            must be a header row containing a{' '}
+                            <strong>Supplier Name</strong> column — the
+                            importer matches columns by name, so order
+                            doesn't matter.
+                        </p>
+
+                        <div>
+                            <p className="mb-1 font-medium text-foreground">
+                                Recognized columns
+                            </p>
+                            <ul className="list-disc space-y-1 pl-5">
+                                <li>
+                                    <strong>Supplier Name</strong> — required
+                                </li>
+                                <li>Contact Person — optional</li>
+                                <li>
+                                    Contact No. (or "Contact Number") —
+                                    optional
+                                </li>
+                                <li>Email (or "Email Address") — optional</li>
+                                <li>
+                                    Status — optional, must be "active" or
+                                    "inactive"; defaults to{' '}
+                                    <strong>active</strong> if left blank or
+                                    omitted
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <p className="mb-1 font-medium text-foreground">
+                                Rules
+                            </p>
+                            <ul className="list-disc space-y-1 pl-5">
+                                <li>
+                                    Rows with a blank supplier name are
+                                    skipped.
+                                </li>
+                                <li>
+                                    Rows whose supplier name already exists
+                                    are skipped (no duplicates, no
+                                    overwriting).
+                                </li>
+                                <li>
+                                    Any other columns (e.g. Address,
+                                    Position) are ignored.
+                                </li>
+                                <li>Max file size: 5 MB.</li>
+                            </ul>
+                        </div>
+
+                        <p className="text-xs">
+                            After import, a summary shows how many suppliers
+                            were added and how many were skipped, with
+                            reasons.
+                        </p>
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setImportInfoOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+
+                        <Button
+                            type="button"
+                            style={{ backgroundColor: '#612A35' }}
+                            onClick={() => {
+                                setImportInfoOpen(false);
+                                importInputRef.current?.click();
+                            }}
+                        >
+                            <UploadCloud className="mr-2 h-4 w-4" />
+                            Choose File
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <SupplierAddForm
                 open={dialogOpen}

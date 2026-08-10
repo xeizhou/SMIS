@@ -1,12 +1,19 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Pencil, Trash2, UploadCloud } from 'lucide-react';
+import { useRef, useState } from 'react';
 import OfficeAddForm from '@/components/offices/officeaddform';
 import OfficeDeleteModal from '@/components/offices/officedeletemodal';
 import OfficeEditForm from '@/components/offices/officeeditform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
 
 interface Office {
     office_code: string;
@@ -41,6 +48,8 @@ export default function Index({
         const [search, setSearch] = useState(filters.search ?? '');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
+    const [importInfoOpen, setImportInfoOpen] = useState(false);
+    const importInputRef = useRef<HTMLInputElement>(null);
     const [selectedOffice, setSelectedOffice] =
     useState<Office | null>(null);
 
@@ -134,6 +143,50 @@ export default function Index({
                             Clear
                         </Button>
                     </div>
+
+                    <Button
+                        type="button"
+                        className="w-full lg:w-auto"
+                        style={{ backgroundColor: 'white', color: '#612A35', border: '1px solid #612A35' }}
+                        onClick={() => {
+                            const params = new URLSearchParams();
+                            if (search) params.set('search', search);
+                            window.location.href = `/offices/export?${params.toString()}`;
+                        }}
+                    >
+                        Export Offices
+                    </Button>
+
+                    <input
+                        ref={importInputRef}
+                        type="file"
+                        accept=".csv,.txt"
+                        className="hidden"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            const formData = new FormData();
+                            formData.append('file', file);
+
+                            router.post('/offices/import', formData, {
+                                forceFormData: true,
+                                preserveScroll: true,
+                                onFinish: () => {
+                                    if (importInputRef.current) importInputRef.current.value = '';
+                                },
+                            });
+                        }}
+                    />
+
+                    <Button
+                        type="button"
+                        className="w-full lg:w-auto"
+                        style={{ backgroundColor: '#612A35' }}
+                        onClick={() => setImportInfoOpen(true)}
+                    >
+                        Import Offices
+                    </Button>
 
                     <Button
                         type="button"
@@ -277,6 +330,89 @@ export default function Index({
             )}
 
             </div>
+
+            <Dialog
+                open={importInfoOpen}
+                onOpenChange={setImportInfoOpen}
+            >
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Import Offices</DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-3 text-sm text-muted-foreground">
+                        <p>
+                            Upload a <strong>.csv</strong> file. The header
+                            row must contain an <strong>Office Code</strong>{' '}
+                            column — the importer matches columns by name, so
+                            order doesn't matter, and any leading title rows
+                            (e.g. "EMAIL DIRECTORY") are skipped automatically.
+                        </p>
+
+                        <div>
+                            <p className="mb-1 font-medium text-foreground">
+                                Recognized columns
+                            </p>
+                            <ul className="list-disc space-y-1 pl-5">
+                                <li>
+                                    <strong>Office Code</strong> — required
+                                </li>
+                                <li>
+                                    Office Name — optional (falls back to
+                                    office code if blank)
+                                </li>
+                                <li>Entity Name — optional</li>
+                                <li>Office Head — optional</li>
+                                <li>Email — optional</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <p className="mb-1 font-medium text-foreground">
+                                Rules
+                            </p>
+                            <ul className="list-disc space-y-1 pl-5">
+                                <li>
+                                    Rows with a blank office code are skipped.
+                                </li>
+                                <li>
+                                    Rows whose office code already exists are
+                                    skipped (no duplicates, no overwriting).
+                                </li>
+                                <li>Max file size: 5 MB.</li>
+                            </ul>
+                        </div>
+
+                        <p className="text-xs">
+                            If your file is an Excel spreadsheet (.xlsx),
+                            save it as CSV first (File → Save As / Download →
+                            CSV) before uploading.
+                        </p>
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setImportInfoOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+
+                        <Button
+                            type="button"
+                            style={{ backgroundColor: '#612A35' }}
+                            onClick={() => {
+                                setImportInfoOpen(false);
+                                importInputRef.current?.click();
+                            }}
+                        >
+                            <UploadCloud className="mr-2 h-4 w-4" />
+                            Choose File
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <OfficeAddForm
                 open={dialogOpen}
