@@ -456,7 +456,11 @@ export default function Dashboard() {
                                 {allPendingDeliveries.map((delivery) => (
                                     <div key={delivery.delivery_id} className="flex items-start justify-between rounded-lg border border-border p-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
                                         <div className="grid gap-1">
-                                            <Link href={`/deliveries?highlight_id=${delivery.delivery_id}`} className="font-semibold text-primary hover:underline">
+                                            <Link 
+                                                href={`/deliveries?highlight_id=${delivery.delivery_id}`} 
+                                                onClick={() => notificationsHighlight(String(delivery.delivery_id), '/deliveries')}
+                                                className="font-semibold text-primary hover:underline"
+                                            >
                                                 {delivery.po_number}
                                             </Link>
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
@@ -506,7 +510,11 @@ export default function Dashboard() {
                                 {allPendingInspections.map((inspection) => (
                                     <div key={inspection.pir_id} className="flex items-start justify-between rounded-lg border border-border p-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
                                         <div className="grid gap-1">
-                                            <Link href={`/iar?highlight_search=${inspection.po_number}`} className="font-semibold text-primary hover:underline">
+                                            <Link 
+                                                href={`/iar?highlight_search=${inspection.po_number}`} 
+                                                onClick={() => notificationsHighlight(inspection.po_number, '/iar')}
+                                                className="font-semibold text-primary hover:underline"
+                                            >
                                                 {inspection.po_number}
                                             </Link>
                                             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-1">
@@ -557,7 +565,11 @@ export default function Dashboard() {
                                 {allPendingClearances.map((issuance) => (
                                     <div key={issuance.pir_id} className="flex items-start justify-between rounded-lg border border-border p-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
                                         <div className="grid gap-1">
-                                            <Link href={`/iar?highlight_search=${issuance.po_number}`} className="font-semibold text-primary hover:underline">
+                                            <Link 
+                                                href={`/iar?highlight_search=${issuance.po_number}`} 
+                                                onClick={() => notificationsHighlight(issuance.po_number, '/iar')}
+                                                className="font-semibold text-primary hover:underline"
+                                            >
                                                 {issuance.po_number}
                                             </Link>
                                             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-1">

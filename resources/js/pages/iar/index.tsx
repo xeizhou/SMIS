@@ -340,7 +340,10 @@ export default function Index({
                                 pirs.data.map((pir) => (
                                     <tr 
                                         key={pir.pir_id} 
-                                        className={'transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50'} data-search-0={pir.iar_no} data-record-id={pir.pir_id}
+                                        className={'transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50'} 
+                                        data-search-0={pir.iar_number} 
+                                        data-search-1={pir.po_number}
+                                        data-record-id={pir.pir_id}
                                     >
                                         <td className="px-4 py-3">{pir.po_number}</td>
                                         <td className="px-4 py-3">{pir.supplier?.supplier_name ?? '—'}</td>
