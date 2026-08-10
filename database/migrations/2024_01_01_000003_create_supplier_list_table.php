@@ -13,6 +13,8 @@ return new class extends Migration
 
             $table->string('supplier_name', 255)->unique();
 
+            $table->string('contact_person', 255)->nullable();    
+
             $table->string('contact_number', 20)->nullable();
 
             $table->string('email_address')->nullable();

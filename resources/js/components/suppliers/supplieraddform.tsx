@@ -75,6 +75,7 @@ function Field({
 
 const emptyForm = {
     supplier_name: '',
+    contact_person: '',
     contact_number: '',
     email_address: '',
     status: '',
@@ -88,9 +89,7 @@ export default function SupplierForm({
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const handleChange = (
-        e: React.ChangeEvent<
-            HTMLInputElement | HTMLSelectElement
-        >
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => {
         setData({
             ...data,
@@ -135,6 +134,15 @@ export default function SupplierForm({
                         error={errors.supplier_name}
                         required
                         placeholder="e.g. ABC Trading"
+                    />
+
+                    <Field
+                        label="Contact Person"
+                        name="contact_person"
+                        value={data.contact_person}
+                        onChange={handleChange}
+                        error={errors.contact_person}
+                        placeholder="e.g. Juan Dela Cruz"
                     />
 
                     <Field

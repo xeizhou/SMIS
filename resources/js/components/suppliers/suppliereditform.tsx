@@ -20,6 +20,7 @@ import {
 interface Supplier {
     supplier_id: number;
     supplier_name: string;
+    contact_person: string | null;
     contact_number: string | null;
     email_address: string | null;
     status: 'active' | 'inactive';
@@ -82,6 +83,7 @@ function Field({
 const emptyForm = {
     supplier_id: 0,
     supplier_name: '',
+    contact_person: '',
     contact_number: '',
     email_address: '',
     status: 'active' as 'active' | 'inactive',
@@ -100,6 +102,7 @@ export default function SupplierEditForm({
             setData({
                 supplier_id: supplier.supplier_id,
                 supplier_name: supplier.supplier_name,
+                contact_person: supplier.contact_person ?? '',
                 contact_number: supplier.contact_number ?? '',
                 email_address: supplier.email_address ?? '',
                 status: supplier.status,
@@ -162,6 +165,14 @@ export default function SupplierEditForm({
                         onChange={handleChange}
                         error={errors.supplier_name}
                         required
+                    />
+
+                    <Field
+                        label="Contact Person"
+                        name="contact_person"
+                        value={data.contact_person}
+                        onChange={handleChange}
+                        error={errors.contact_person}
                     />
 
                     <Field
