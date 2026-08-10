@@ -1,5 +1,5 @@
 import { Head, usePage, router } from '@inertiajs/react';
-import { RefreshCw, ClipboardCheck, FileText, Truck, Bell } from 'lucide-react';
+import { RefreshCw, ClipboardCheck, FileText, Truck, Bell, Tv } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { CalendarButton } from '@/calendar/components/calendar-button';
 import { DueDeliveries  } from '@/components/due-deliveries';
@@ -279,6 +279,21 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-semibold">Welcome to Dashboard, {auth?.user?.name || 'User'}!</h1>
                     <div className="flex items-center gap-2">
+                        <Button asChild variant="outline" className="gap-2 bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-950 dark:hover:bg-red-900 dark:text-red-300 dark:border-red-800">
+                            <Link href="/notice-of-delivery">
+                                <Truck className="size-4" />
+                                <span className="hidden sm:inline">Notice of Delivery</span>
+                            </Link>
+                        </Button>
+                        <CalendarButton deliveries={deliveries} />
+                        <Button
+                            variant="outline"
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                        >
+                            <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            <span className="hidden sm:inline">Refresh</span>
+                        </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <div className="relative cursor-pointer">
@@ -379,15 +394,6 @@ export default function Dashboard() {
                                 </ScrollArea>
                             </DropdownMenuContent>
                         </DropdownMenu>
-                        <Button
-                            variant="outline"
-                            onClick={handleRefresh}
-                            disabled={isRefreshing}
-                        >
-                            <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                            Refresh
-                        </Button>
-                        <CalendarButton deliveries={deliveries} />
                     </div>
                 </div>
 

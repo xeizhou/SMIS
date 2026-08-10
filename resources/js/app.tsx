@@ -18,7 +18,7 @@ createInertiaApp({
     resolve: (name) =>
         resolvePageComponent(
             `./pages/${name}.tsx`,
-            import.meta.glob('./pages/**/*.tsx'),
+            import.meta.glob<any>('./pages/**/*.tsx'),
         ),
     layout: (name) => {
         switch (true) {

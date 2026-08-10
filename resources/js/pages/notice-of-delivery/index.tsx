@@ -1,0 +1,451 @@
+import { Head, Link, router } from '@inertiajs/react';
+import {
+    ArrowLeft,
+    ArrowRight,
+    Calendar,
+    ClipboardList,
+    Clock,
+    Download,
+    Inbox,
+    Maximize2,
+    Minimize2,
+    Package,
+    Printer,
+    RefreshCw,
+    Tv,
+    User,
+} from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from '@/components/ui/hover-card';
+import { dueDeliveriesHighlight } from '@/components/dueDeliveriesHighlight';
+
+interface DeliveryItem {
+    delivery_id: string;
+    po_number: string;
+    supplier_name: string;
+    status: string;
+    delivery_date: string;
+    end_user: string;
+    total_amount_delivered: number;
+    po_total_amount: number;
+    remarks?: string | null;
+    item_description?: string;
+}
+
+interface Stats {
+    total_count: number;
+    complete_count: number;
+    pending_count: number;
+    partial_count: number;
+    cancelled_count: number;
+    total_delivered_amount: number;
+}
+
+interface Props {
+    todayDate: string;
+    todayDateFormatted: string;
+    yesterdayDate: string;
+    yesterdayDateFormatted: string;
+    todayDeliveries: DeliveryItem[];
+    yesterdayDeliveries: DeliveryItem[];
+    todayStats: Stats;
+    yesterdayStats: Stats;
+}
+
+export default function NoticeOfDeliveryReport({
+    todayDate,
+    todayDateFormatted,
+    yesterdayDate,
+    yesterdayDateFormatted,
+    todayDeliveries = [],
+    yesterdayDeliveries = [],
+    todayStats = {
+        total_count: 0,
+        complete_count: 0,
+        pending_count: 0,
+        partial_count: 0,
+        cancelled_count: 0,
+        total_delivered_amount: 0,
+    },
+    yesterdayStats = {
+        total_count: 0,
+        complete_count: 0,
+        pending_count: 0,
+        partial_count: 0,
+        cancelled_count: 0,
+        total_delivered_amount: 0,
+    },
+}: Props) {
+    const [selectedTodayDate, setSelectedTodayDate] = useState(todayDate);
+    const [selectedYesterdayDate, setSelectedYesterdayDate] = useState(yesterdayDate);
+    const [autoRefreshSecs, setAutoRefreshSecs] = useState<number>(0);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [currentTime, setCurrentTime] = useState<string>('');
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // Update real-time clock
+    useEffect(() => {
+        const updateClock = () => {
+            const now = new Date();
+            setCurrentTime(
+                now.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true,
+                })
+            );
+        };
+        updateClock();
+        const timer = setInterval(updateClock, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Handle date changes
+    const handleFilterChange = (newToday?: string, newYesterday?: string) => {
+        const tDate = newToday !== undefined ? newToday : selectedTodayDate;
+        const yDate = newYesterday !== undefined ? newYesterday : selectedYesterdayDate;
+
+        router.get(
+            '/notice-of-delivery',
+            { today_date: tDate, yesterday_date: yDate },
+            { preserveState: true, preserveScroll: true }
+        );
+    };
+
+    // Auto-refresh interval for TV screencast mode
+    useEffect(() => {
+        if (autoRefreshSecs <= 0) return;
+
+        const interval = setInterval(() => {
+            setIsRefreshing(true);
+            router.reload({
+                onFinish: () => setIsRefreshing(false),
+            });
+        }, autoRefreshSecs * 1000);
+
+        return () => clearInterval(interval);
+    }, [autoRefreshSecs]);
+
+    const handleManualRefresh = () => {
+        setIsRefreshing(true);
+        router.reload({
+            onFinish: () => setIsRefreshing(false),
+        });
+    };
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            containerRef.current?.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+        } else {
+            document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+        }
+    };
+
+    const getStatusBadge = (status: string) => {
+        const normalized = (status || '').toUpperCase();
+        const badgeSize = isFullscreen ? 'px-3.5 py-1 text-sm' : 'px-2.5 py-0.5 text-xs';
+        switch (normalized) {
+            case 'COMPLETE':
+            case 'COMPLETED':
+                return `inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 dark:bg-emerald-500/20 border border-emerald-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
+            case 'PENDING':
+                return `inline-flex items-center gap-1 bg-amber-500/15 text-amber-700 dark:text-amber-300 dark:bg-amber-500/20 border border-amber-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
+            case 'PARTIAL':
+                return `inline-flex items-center gap-1 bg-blue-500/15 text-blue-700 dark:text-blue-300 dark:bg-blue-500/20 border border-blue-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
+            case 'CANCELLED':
+                return `inline-flex items-center gap-1 bg-rose-500/15 text-rose-700 dark:text-rose-300 dark:bg-rose-500/20 border border-rose-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
+            default:
+                return `inline-flex items-center gap-1 bg-neutral-500/15 text-neutral-700 dark:text-neutral-300 dark:bg-neutral-500/20 border border-neutral-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
+        }
+    };
+
+    const renderTable = (
+        titleLabel: string,
+        dateFormatted: string,
+        deliveries: DeliveryItem[],
+        stats: Stats,
+        headerBgClass: string
+    ) => (
+        <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900 transition-all">
+            {/* Table Header Bar */}
+            <div className={`flex items-center justify-between px-5 text-white ${headerBgClass} ${isFullscreen ? 'py-4' : 'py-3.5'}`}>
+                <div className="flex items-center gap-2.5">
+                    <Calendar className={isFullscreen ? 'size-6' : 'size-5'} />
+                    <h2 className={`font-extrabold tracking-wide uppercase ${isFullscreen ? 'text-xl md:text-2xl' : 'text-base md:text-lg'}`}>
+                        {titleLabel} <span className="font-medium opacity-85">({dateFormatted})</span>
+                    </h2>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className={`rounded-full bg-white/20 backdrop-blur-md px-3.5 py-1 font-black tracking-wider uppercase text-white border border-white/20 shadow-sm ${isFullscreen ? 'text-sm md:text-base' : 'text-xs'}`}>
+                        COUNT: {stats.total_count}
+                    </span>
+                </div>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className={`flex flex-wrap items-center justify-between border-b border-neutral-200/80 bg-neutral-50/80 px-5 font-medium text-neutral-700 dark:border-neutral-800 dark:bg-neutral-850/50 dark:text-neutral-300 backdrop-blur-sm ${isFullscreen ? 'py-3 text-base md:text-lg gap-4' : 'py-2.5 text-xs gap-3'}`}>
+                <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-200/60 dark:border-emerald-800/40">
+                        Complete: <strong className="font-bold">{stats.complete_count}</strong>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 text-amber-700 dark:text-amber-400 font-semibold border border-amber-200/60 dark:border-amber-800/40">
+                        Pending: <strong className="font-bold">{stats.pending_count}</strong>
+                    </span>
+                    {stats.partial_count > 0 && (
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 text-blue-700 dark:text-blue-400 font-semibold border border-blue-200/60 dark:border-blue-800/40">
+                            Partial: <strong className="font-bold">{stats.partial_count}</strong>
+                        </span>
+                    )}
+                </div>
+                {stats.total_delivered_amount > 0 && (
+                    <div className="font-bold text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 px-3 py-0.5 rounded-md border border-neutral-200 dark:border-neutral-700 shadow-2xs">
+                        Total Delivered: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">₱{stats.total_delivered_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Table Content */}
+            <div className="flex-1 overflow-auto">
+                <table className={`w-full table-fixed text-left ${isFullscreen ? 'text-base md:text-lg lg:text-xl' : 'text-xs md:text-sm'}`}>
+                    <thead className={`sticky top-0 z-10 bg-neutral-100/90 font-extrabold uppercase tracking-wider text-neutral-600 backdrop-blur dark:bg-neutral-800/90 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-800 ${isFullscreen ? 'text-xs md:text-sm' : 'text-[11px]'}`}>
+                        <tr>
+                            <th className={`px-5 w-[30%] whitespace-nowrap ${isFullscreen ? 'py-3.5' : 'py-2.5'}`}>P.O. NUMBER</th>
+                            <th className={`px-5 w-[50%] ${isFullscreen ? 'py-3.5' : 'py-2.5'}`}>SUPPLIER'S NAME</th>
+                            <th className={`px-5 w-[20%] text-center whitespace-nowrap ${isFullscreen ? 'py-3.5' : 'py-2.5'}`}>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-200/70 dark:divide-neutral-800/60">
+                        {deliveries.length > 0 ? (
+                            deliveries.map((item, idx) => (
+                                <tr
+                                    key={item.delivery_id || idx}
+                                    className="transition-colors hover:bg-red-50/40 dark:hover:bg-red-950/20 group"
+                                >
+                                    <td className={`px-5 font-bold tracking-tight text-neutral-900 whitespace-nowrap dark:text-neutral-100 ${isFullscreen ? 'py-4' : 'py-3'}`}>
+                                        <HoverCard openDelay={200} closeDelay={100}>
+                                            <HoverCardTrigger asChild>
+                                                <Link
+                                                    href={`/deliveries?highlight_id=${item.delivery_id}`}
+                                                    onClick={() => dueDeliveriesHighlight(item.delivery_id.toString(), '/deliveries')}
+                                                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-neutral-900 dark:text-neutral-100 font-bold hover:text-red-700 dark:hover:text-red-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
+                                                >
+                                                    {item.po_number}
+                                                </Link>
+                                            </HoverCardTrigger>
+                                            <HoverCardContent className="w-84 p-5 shadow-xl rounded-2xl border-neutral-200 dark:border-neutral-800" align="start">
+                                                <div className="flex flex-col gap-4">
+                                                    <div className="border-b border-neutral-100 pb-3 dark:border-neutral-800">
+                                                        <h4 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{item.po_number}</h4>
+                                                        <p className="text-xs text-neutral-500 font-medium">Notice of Delivery Record</p>
+                                                    </div>
+                                                    
+                                                    <div className="grid gap-3 text-sm">
+                                                        <div className="flex gap-3 items-start">
+                                                            <User className="mt-0.5 size-4 text-red-600 dark:text-red-400 shrink-0" />
+                                                            <div>
+                                                                <p className="font-semibold text-xs text-neutral-500 uppercase tracking-wider mb-0.5">Supplier</p>
+                                                                <p className="font-medium text-neutral-800 dark:text-neutral-200">{item.supplier_name}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-3 items-start">
+                                                            <Calendar className="mt-0.5 size-4 text-red-600 dark:text-red-400 shrink-0" />
+                                                            <div>
+                                                                <p className="font-semibold text-xs text-neutral-500 uppercase tracking-wider mb-0.5">Delivery Date</p>
+                                                                <p className="font-medium text-neutral-800 dark:text-neutral-200">{item.delivery_date}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-3 items-start">
+                                                            <ClipboardList className="mt-0.5 size-4 text-red-600 dark:text-red-400 shrink-0" />
+                                                            <div>
+                                                                <p className="font-semibold text-xs text-neutral-500 uppercase tracking-wider mb-0.5">Status</p>
+                                                                <p className="font-medium text-neutral-800 dark:text-neutral-200">{item.status}</p>
+                                                            </div>
+                                                        </div>
+                                                        {item.end_user && (
+                                                            <div className="flex gap-3 items-start">
+                                                                <Package className="mt-0.5 size-4 text-red-600 dark:text-red-400 shrink-0" />
+                                                                <div>
+                                                                    <p className="font-semibold text-xs text-neutral-500 uppercase tracking-wider mb-0.5">End User</p>
+                                                                    <p className="font-medium text-neutral-800 dark:text-neutral-200">{item.end_user}</p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    <div className="flex justify-end pt-2">
+                                                        <Button variant="default" size="sm" asChild className="gap-2 bg-red-700 hover:bg-red-800 text-white rounded-xl font-medium shadow-sm">
+                                                            <Link 
+                                                                href={`/deliveries?highlight_id=${item.delivery_id}`}
+                                                                onClick={() => dueDeliveriesHighlight(item.delivery_id.toString(), '/deliveries')}
+                                                            >
+                                                                Go to <ArrowRight className="size-4" />
+                                                            </Link>
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </HoverCardContent>
+                                        </HoverCard>
+                                    </td>
+                                    <td className={`px-5 font-semibold text-neutral-800 uppercase dark:text-neutral-200 ${isFullscreen ? 'py-4' : 'py-3'}`}>
+                                        <div className="truncate font-bold">{item.supplier_name}</div>
+                                        {item.end_user && (
+                                            <div className={`font-medium text-neutral-500 dark:text-neutral-400 truncate ${isFullscreen ? 'text-sm mt-0.5' : 'text-xs'}`}>
+                                                End-user: <span className="text-neutral-700 dark:text-neutral-300">{item.end_user}</span>
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className={`px-5 text-center ${isFullscreen ? 'py-4' : 'py-3'}`}>
+                                        <span className={getStatusBadge(item.status)}>
+                                            {item.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={3} className={`text-center ${isFullscreen ? 'py-24' : 'py-16'}`}>
+                                    <div className="flex flex-col items-center justify-center gap-2 text-neutral-400 dark:text-neutral-500">
+                                        <Inbox className={isFullscreen ? 'size-12' : 'size-8'} />
+                                        <p className={`font-semibold ${isFullscreen ? 'text-lg' : 'text-sm'}`}>
+                                            No delivery records found for this date.
+                                        </p>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+
+    return (
+        <>
+            <Head title="Notice of Delivery Report" />
+            <div ref={containerRef} className={`flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-2xl p-4 transition-all bg-neutral-100 dark:bg-neutral-950 ${isFullscreen ? 'p-6' : ''}`}>
+                {/* Header Navigation & TV Controls */}
+                <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 relative backdrop-blur-md">
+                    {!isFullscreen && (
+                        <div className="absolute left-5 top-5">
+                            <Button variant="outline" size="icon" asChild title="Back to Dashboard" className="rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                                <Link href="/dashboard">
+                                    <ArrowLeft className="size-4" />
+                                </Link>
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Centered Title */}
+                    <div className="text-center px-12 pt-1">
+                        <h1 className={`font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-red-700 via-red-600 to-rose-700 dark:from-red-500 dark:to-rose-400 ${isFullscreen ? 'text-4xl md:text-5xl lg:text-6xl' : 'text-2xl md:text-3xl lg:text-4xl'}`}>
+                            NOTICE OF DELIVERY REPORT
+                        </h1>
+                    </div>
+
+                    {/* Filter Controls & Screencast Tools */}
+                    <div className="flex w-full flex-wrap items-center justify-center gap-3 pt-3 border-t border-neutral-100 dark:border-neutral-800/80">
+                        {/* Live Clock */}
+                        <div className={`flex items-center gap-2 rounded-xl bg-red-50 dark:bg-red-950/50 px-3.5 py-1.5 font-bold text-red-700 dark:text-red-300 border border-red-200/80 dark:border-red-900/60 shadow-2xs ${isFullscreen ? 'text-base md:text-lg' : 'text-xs'}`}>
+                            <Clock className={isFullscreen ? 'size-5' : 'size-4'} />
+                            <span className="font-mono tracking-wide">{currentTime || '00:00:00 AM'}</span>
+                        </div>
+
+                        <div className="hidden h-5 w-px bg-neutral-200 sm:block dark:bg-neutral-800" />
+
+                        {/* Date Filters Group */}
+                        <div className="flex items-center gap-3 bg-neutral-50/80 px-3 py-1.5 rounded-xl border border-neutral-200/80 dark:bg-neutral-800/50 dark:border-neutral-700/80">
+                            <div className="flex items-center gap-1.5">
+                                <span className={`font-extrabold text-neutral-500 uppercase tracking-wider dark:text-neutral-400 ${isFullscreen ? 'text-sm' : 'text-xs'}`}>Today:</span>
+                                <input
+                                    type="date"
+                                    value={selectedTodayDate}
+                                    onChange={(e) => {
+                                        setSelectedTodayDate(e.target.value);
+                                        handleFilterChange(e.target.value, undefined);
+                                    }}
+                                    className={`rounded-lg border border-neutral-300/80 bg-white px-2.5 font-semibold text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 shadow-2xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all ${isFullscreen ? 'h-9 w-38 text-sm' : 'h-8 w-34 text-xs'}`}
+                                />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className={`font-extrabold text-neutral-500 uppercase tracking-wider dark:text-neutral-400 ${isFullscreen ? 'text-sm' : 'text-xs'}`}>Prev:</span>
+                                <input
+                                    type="date"
+                                    value={selectedYesterdayDate}
+                                    onChange={(e) => {
+                                        setSelectedYesterdayDate(e.target.value);
+                                        handleFilterChange(undefined, e.target.value);
+                                    }}
+                                    className={`rounded-lg border border-neutral-300/80 bg-white px-2.5 font-semibold text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 shadow-2xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all ${isFullscreen ? 'h-9 w-38 text-sm' : 'h-8 w-34 text-xs'}`}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="hidden h-5 w-px bg-neutral-200 sm:block dark:bg-neutral-800" />
+
+                        {/* Tools Group */}
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size={isFullscreen ? "default" : "sm"}
+                                onClick={handleManualRefresh}
+                                disabled={isRefreshing}
+                                className="rounded-xl border-neutral-200 dark:border-neutral-700 shadow-2xs"
+                                title="Refresh Data"
+                            >
+                                <RefreshCw className={`${isFullscreen ? 'size-5' : 'size-4'} ${isRefreshing ? 'animate-spin' : ''}`} />
+                            </Button>
+
+                            <Button
+                                variant={isFullscreen ? "secondary" : "default"}
+                                size={isFullscreen ? "default" : "sm"}
+                                onClick={toggleFullscreen}
+                                className={!isFullscreen ? "bg-red-700 hover:bg-red-800 text-white gap-2 rounded-xl shadow-xs" : "gap-2 rounded-xl shadow-xs"}
+                                title="Toggle Fullscreen"
+                            >
+                                {isFullscreen ? <Minimize2 className={isFullscreen ? 'size-5' : 'size-4'} /> : <Maximize2 className="size-4" />}
+                                <span className="font-semibold">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Main Dual-Column Tables (Today vs Yesterday) */}
+                <div className="grid flex-1 gap-5 md:grid-cols-2">
+                    {/* TODAY'S DELIVERY */}
+                    {renderTable(
+                        "TODAY'S DELIVERY",
+                        todayDateFormatted,
+                        todayDeliveries,
+                        todayStats,
+                        'bg-gradient-to-r from-red-700 via-red-800 to-rose-900'
+                    )}
+
+                    {/* YESTERDAY DELIVERY */}
+                    {renderTable(
+                        "YESTERDAY DELIVERY",
+                        yesterdayDateFormatted,
+                        yesterdayDeliveries,
+                        yesterdayStats,
+                        'bg-gradient-to-r from-red-800 via-red-900 to-rose-950'
+                    )}
+                </div>
+            </div>
+        </>
+    );
+}
