@@ -14,6 +14,10 @@ export type DueDelivery = {
     delivery_id: string;
     po_number: string;
     due_date: string; // ISO date string, e.g. "2026-07-23"
+    due_date_formatted?: string | null;
+    is_overdue?: boolean;
+    days_overdue?: number;
+    diff_days?: number;
     status?: string | null;
     end_user?: string | null;
     supplier?: { supplier_name: string } | null;
