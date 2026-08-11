@@ -1,7 +1,6 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Pencil, Search, Trash2 } from 'lucide-react';
+import { Pencil, Search, Trash2, Mail, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -88,6 +87,15 @@ export default function Index({ users }: Props) {
         }
     }
 
+    function initials(name: string) {
+        return name
+            .split(' ')
+            .map((part) => part[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase();
+    }
+
     return (
         <>
             <Head title="Users" />
@@ -127,78 +135,73 @@ export default function Index({ users }: Props) {
                     </Button>
                 </div>
 
-                {/* Table */}
-                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden">
-                    <table className="w-full text-sm">
-                        <thead className="border-b" style={{ backgroundColor: '#370001' }}>
-                            <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Name
-                                </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Email
-                                </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Role
-                                </th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {filteredUsers.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-16 text-center">
-                                        <p className="text-base font-medium text-muted-foreground">
-                                            No users found.
-                                        </p>
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                            Click <strong>&quot;Add User&quot;</strong> to create your first entry.
-                                        </p>
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredUsers.map((user) => (
-                                    <tr
-                                        key={user.id}
-                                        className="border-b transition-colors hover:bg-muted/40"
-                                    >
-                                        <td className="px-4 py-3 font-medium">{user.name}</td>
-                                        <td className="px-4 py-3">{user.email}</td>
-                                        <td className="px-4 py-3">
-                                            <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                {/* KPI Cards */}
+                {filteredUsers.length === 0 ? (
+                    <div className="rounded-md border border-border bg-card px-6 py-16 text-center">
+                        <p className="text-base font-medium text-muted-foreground">
+                            No users found.
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Click <strong>&quot;Add User&quot;</strong> to create your first entry.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {filteredUsers.map((user) => (
+                            <div
+                                key={user.id}
+                                className="group relative rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md"
+                            >
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div
+                                            className="flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
+                                            style={{ backgroundColor: '#370001' }}
+                                        >
+                                            {initials(user.name)}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="truncate font-semibold text-foreground">
+                                                {user.name}
+                                            </p>
+                                            <Badge
+                                                variant={user.role === 'admin' ? 'default' : 'secondary'}
+                                                className="mt-1"
+                                            >
+                                                <ShieldCheck className="mr-1 size-3" />
                                                 {user.role.toUpperCase()}
                                             </Badge>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openEdit(user)}
-                                                    className="text-blue-600 hover:text-blue-800"
-                                                    title="Edit"
-                                                >
-                                                    <Pencil className="size-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => destroy(user)}
-                                                    className="text-red-600 hover:text-red-800"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                    <ScrollBar orientation="horizontal" />
-                </ScrollArea>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                        <button
+                                            type="button"
+                                            onClick={() => openEdit(user)}
+                                            className="text-blue-600 hover:text-blue-800"
+                                            title="Edit"
+                                        >
+                                            <Pencil className="size-4" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => destroy(user)}
+                                            className="text-red-600 hover:text-red-800"
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Mail className="size-3.5 shrink-0" />
+                                    <span className="truncate">{user.email}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <Dialog open={open} onOpenChange={setOpen}>

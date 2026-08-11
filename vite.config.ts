@@ -14,20 +14,17 @@ export default defineConfig({
             fonts: [
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],
+                    optimizedFallbacks: false, 
                 }),
             ],
         }),
         inertia({
             ssr: false,
         }),
-        react({
-            babel: {
-                plugins: [],
-            },
-        }),
+        react(),
         tailwindcss(),
         wayfinder({
-            formVariants: true,
+            formVariants: false, 
         }),
     ],
 });
