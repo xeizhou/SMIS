@@ -353,6 +353,37 @@ function FileIconDisplay({ type }: { type: string }) {
     }
 }
 
+function formatIarNumberInput(raw: string): string {
+    // 12 digits: YYYYMMDD + 4-digit sequence, auto-clamped as you type
+    const digits = raw.replace(/\D/g, '').slice(0, 12);
+
+    if (digits.length >= 6) {
+        const month = digits.slice(4, 6);
+        const m = parseInt(month, 10);
+        if (m < 1 || m > 12) {
+            // reject the invalid month digit(s), keep year only
+            return digits.slice(0, 4) + digits.slice(6);
+        }
+    }
+
+    if (digits.length >= 8) {
+        const day = digits.slice(6, 8);
+        const dNum = parseInt(day, 10);
+        if (dNum < 1 || dNum > 31) {
+            return digits.slice(0, 6) + digits.slice(8);
+        }
+    }
+
+    return digits;
+}
+
+function isValidIarNumber(value: string): boolean {
+    if (!/^\d{12}$/.test(value)) return false;
+    const month = parseInt(value.slice(4, 6), 10);
+    const day = parseInt(value.slice(6, 8), 10);
+    return month >= 1 && month <= 12 && day >= 1 && day <= 31;
+}
+
 function formatBytes(bytes: number) {
     const kb = bytes / 1024;
     return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
@@ -578,10 +609,11 @@ export default function PirEditForm({
     };
 
     const updateInspectionGroup = (groupIndex: number, value: string) => {
+        const formatted = formatIarNumberInput(value);
         setData((prev) => ({
             ...prev,
             inspection_groups: prev.inspection_groups.map((group, index) =>
-                index === groupIndex ? { ...group, iar_number: value } : group
+                index === groupIndex ? { ...group, iar_number: formatted } : group
             ),
         }));
     };
@@ -1174,13 +1206,27 @@ export default function PirEditForm({
                                             <div className="flex flex-wrap items-start gap-3 md:flex-nowrap">
                                                 {/* IAR number */}
                                                 <div className="w-full shrink-0 md:w-48">
-                                                    <label className="mb-1 block text-xs text-muted-foreground">IAR Number</label>
+                                                    <label className="mb-1 block text-xs text-muted-foreground">
+                                                        IAR Number
+                                                    </label>
                                                     <Input
                                                         value={group.iar_number}
                                                         onChange={(e) => updateInspectionGroup(groupIndex, e.target.value)}
-                                                        placeholder="e.g. IAR-001"
-                                                        className="h-8"
+                                                        placeholder="202603190005"
+                                                        maxLength={12}
+                                                        className={`h-8 ${
+                                                            group.iar_number.length > 0 && !isValidIarNumber(group.iar_number)
+                                                                ? 'border-red-500'
+                                                                : ''
+                                                        }`}
                                                     />
+                                                    {group.iar_number.length > 0 && !isValidIarNumber(group.iar_number) && (
+                                                        <p className="mt-1 text-xs text-red-500">
+                                                            {group.iar_number.length < 12
+                                                                ? `${12 - group.iar_number.length} more digit(s) needed`
+                                                                : 'Invalid IAR number format (YYYYMMDDNNNN)'}
+                                                        </p>
+                                                    )}
                                                 </div>
 
                                                 {/* Inspectors */}
