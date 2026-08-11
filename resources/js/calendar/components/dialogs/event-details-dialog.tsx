@@ -1,5 +1,5 @@
 import { parseISO } from "date-fns";
-import { Calendar, Clock, Text, User, MoveRight } from "lucide-react";
+import { Calendar, Clock, Text, User, ArrowRight, ClipboardList, Package } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { IEvent } from "@/calendar/interfaces";
@@ -28,52 +28,58 @@ export function EventDetailsDialog({ event, children }: IProps) {
         <DialogTrigger asChild>{children}</DialogTrigger>
 
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{event.title}</DialogTitle>
-            <DialogDescription>{t("events.viewEventDetails")}</DialogDescription>
+          <DialogHeader className="border-b border-neutral-100 pb-3 dark:border-neutral-800 space-y-1">
+            <DialogTitle className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{event.title}</DialogTitle>
+            <DialogDescription className="text-xs text-neutral-500 font-medium">View delivery details</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="flex items-start gap-2">
-              <User className="mt-1 size-4 shrink-0" />
+          <div className="grid gap-3 text-sm">
+            <div className="flex gap-3 items-start">
+              <User className="mt-0.5 size-4 text-red-600 dark:text-red-400 shrink-0" />
               <div>
-                <p className="text-sm font-medium">{t("events.user")}</p>
-                <p className="text-sm text-muted-foreground">{event.user.name}</p>
+                <p className="font-semibold text-xs text-neutral-500 uppercase tracking-wider mb-0.5">Supplier</p>
+                <p className="font-medium text-neutral-800 dark:text-neutral-200">
+                  {event.description?.match(/Supplier:\s*(.*?)\s*(?:Status:|End User:|$)/)?.[1]?.trim() || event.user.name || "—"}
+                </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-2">
-              <Calendar className="mt-1 size-4 shrink-0" />
+            <div className="flex gap-3 items-start">
+              <Calendar className="mt-0.5 size-4 text-red-600 dark:text-red-400 shrink-0" />
               <div>
-                <p className="text-sm font-medium">{t("events.startDate")}</p>
-                <p className="text-sm text-muted-foreground">{formatDate(startDate, "dateTimeWithTime", i18n.language, locale)}</p>
+                <p className="font-semibold text-xs text-neutral-500 uppercase tracking-wider mb-0.5">Due Date</p>
+                <p className="font-medium text-neutral-800 dark:text-neutral-200">{formatDate(startDate, "fullDate", i18n.language, locale)}</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-2">
-              <Clock className="mt-1 size-4 shrink-0" />
+            <div className="flex gap-3 items-start">
+              <ClipboardList className="mt-0.5 size-4 text-red-600 dark:text-red-400 shrink-0" />
               <div>
-                <p className="text-sm font-medium">{t("events.endDate")}</p>
-                <p className="text-sm text-muted-foreground">{formatDate(endDate, "dateTimeWithTime", i18n.language, locale)}</p>
+                <p className="font-semibold text-xs text-neutral-500 uppercase tracking-wider mb-0.5">Status</p>
+                <p className="font-medium text-neutral-800 dark:text-neutral-200">
+                  {event.description?.match(/Status:\s*(.*?)\s*(?:Supplier:|End User:|$)/)?.[1]?.trim() || "—"}
+                </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-2">
-              <Text className="mt-1 size-4 shrink-0" />
+            <div className="flex gap-3 items-start">
+              <Package className="mt-0.5 size-4 text-red-600 dark:text-red-400 shrink-0" />
               <div>
-                <p className="text-sm font-medium">{t("events.description")}</p>
-                <p className="text-sm text-muted-foreground">{event.description}</p>
+                <p className="font-semibold text-xs text-neutral-500 uppercase tracking-wider mb-0.5">End User</p>
+                <p className="font-medium text-neutral-800 dark:text-neutral-200">
+                  {event.description?.match(/End User:\s*(.*?)\s*(?:Supplier:|Status:|$)/)?.[1]?.trim() || "—"}
+                </p>
               </div>
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="pt-2">
             <Link 
                 href={`/deliveries?highlight_id=${event.id}`}
                 onClick={() => calendarHighlight(event.id.toString(), '/deliveries')}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-900 dark:text-neutral-100 shadow-sm transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-700 focus-visible:outline-none w-full sm:w-auto"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 hover:bg-red-800 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors focus-visible:outline-none w-full sm:w-auto"
             >
-                Go to <MoveRight className="size-4" />
+                Go to <ArrowRight className="size-4" />
             </Link>
           </DialogFooter>
         </DialogContent>

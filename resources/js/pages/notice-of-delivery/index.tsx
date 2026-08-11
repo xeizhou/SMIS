@@ -40,10 +40,6 @@ interface DeliveryItem {
 
 interface Stats {
     total_count: number;
-    complete_count: number;
-    pending_count: number;
-    partial_count: number;
-    cancelled_count: number;
     total_delivered_amount: number;
 }
 
@@ -67,18 +63,10 @@ export default function NoticeOfDeliveryReport({
     yesterdayDeliveries = [],
     todayStats = {
         total_count: 0,
-        complete_count: 0,
-        pending_count: 0,
-        partial_count: 0,
-        cancelled_count: 0,
         total_delivered_amount: 0,
     },
     yesterdayStats = {
         total_count: 0,
-        complete_count: 0,
-        pending_count: 0,
-        partial_count: 0,
-        cancelled_count: 0,
         total_delivered_amount: 0,
     },
 }: Props) {
@@ -164,12 +152,6 @@ export default function NoticeOfDeliveryReport({
             case 'COMPLETE':
             case 'COMPLETED':
                 return `inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 dark:bg-emerald-500/20 border border-emerald-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
-            case 'PENDING':
-                return `inline-flex items-center gap-1 bg-amber-500/15 text-amber-700 dark:text-amber-300 dark:bg-amber-500/20 border border-amber-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
-            case 'PARTIAL':
-                return `inline-flex items-center gap-1 bg-blue-500/15 text-blue-700 dark:text-blue-300 dark:bg-blue-500/20 border border-blue-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
-            case 'CANCELLED':
-                return `inline-flex items-center gap-1 bg-rose-500/15 text-rose-700 dark:text-rose-300 dark:bg-rose-500/20 border border-rose-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
             default:
                 return `inline-flex items-center gap-1 bg-neutral-500/15 text-neutral-700 dark:text-neutral-300 dark:bg-neutral-500/20 border border-neutral-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
         }
@@ -185,49 +167,30 @@ export default function NoticeOfDeliveryReport({
         <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900 transition-all">
             {/* Table Header Bar */}
             <div className={`flex items-center justify-between px-5 text-white ${headerBgClass} ${isFullscreen ? 'py-4' : 'py-3.5'}`}>
-                <div className="flex items-center gap-2.5">
-                    <Calendar className={isFullscreen ? 'size-6' : 'size-5'} />
-                    <h2 className={`font-extrabold tracking-wide uppercase ${isFullscreen ? 'text-xl md:text-2xl' : 'text-base md:text-lg'}`}>
-                        {titleLabel} <span className="font-medium opacity-85">({dateFormatted})</span>
+                <div className="flex items-center gap-3">
+                    <div className="bg-white/15 p-1.5 rounded-lg shadow-inner">
+                        <Calendar className={isFullscreen ? 'size-6' : 'size-5'} />
+                    </div>
+                    <h2 className={`font-black tracking-[0.03em] uppercase ${isFullscreen ? 'text-xl md:text-2xl' : 'text-lg md:text-xl'}`}>
+                        {titleLabel} <span className={`font-semibold text-white/70 tracking-normal ml-1.5 ${isFullscreen ? 'text-base md:text-lg' : 'text-sm'}`}>({dateFormatted})</span>
                     </h2>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className={`rounded-full bg-white/20 backdrop-blur-md px-3.5 py-1 font-black tracking-wider uppercase text-white border border-white/20 shadow-sm ${isFullscreen ? 'text-sm md:text-base' : 'text-xs'}`}>
+                    <span className={`rounded-full bg-white px-3.5 py-1 font-black tracking-wider uppercase text-red-900 shadow-sm ${isFullscreen ? 'text-sm md:text-base' : 'text-xs'}`}>
                         COUNT: {stats.total_count}
                     </span>
                 </div>
             </div>
 
-            {/* Quick Metrics Bar */}
-            <div className={`flex flex-wrap items-center justify-between border-b border-neutral-200/80 bg-neutral-50/80 px-5 font-medium text-neutral-700 dark:border-neutral-800 dark:bg-neutral-850/50 dark:text-neutral-300 backdrop-blur-sm ${isFullscreen ? 'py-3 text-base md:text-lg gap-4' : 'py-2.5 text-xs gap-3'}`}>
-                <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-200/60 dark:border-emerald-800/40">
-                        Complete: <strong className="font-bold">{stats.complete_count}</strong>
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 text-amber-700 dark:text-amber-400 font-semibold border border-amber-200/60 dark:border-amber-800/40">
-                        Pending: <strong className="font-bold">{stats.pending_count}</strong>
-                    </span>
-                    {stats.partial_count > 0 && (
-                        <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 text-blue-700 dark:text-blue-400 font-semibold border border-blue-200/60 dark:border-blue-800/40">
-                            Partial: <strong className="font-bold">{stats.partial_count}</strong>
-                        </span>
-                    )}
-                </div>
-                {stats.total_delivered_amount > 0 && (
-                    <div className="font-bold text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 px-3 py-0.5 rounded-md border border-neutral-200 dark:border-neutral-700 shadow-2xs">
-                        Total Delivered: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">₱{stats.total_delivered_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                )}
-            </div>
 
             {/* Table Content */}
             <div className="flex-1 overflow-auto">
                 <table className={`w-full table-fixed text-left ${isFullscreen ? 'text-base md:text-lg lg:text-xl' : 'text-xs md:text-sm'}`}>
-                    <thead className={`sticky top-0 z-10 bg-neutral-100/90 font-extrabold uppercase tracking-wider text-neutral-600 backdrop-blur dark:bg-neutral-800/90 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-800 ${isFullscreen ? 'text-xs md:text-sm' : 'text-[11px]'}`}>
+                    <thead className="sticky top-0 z-10 bg-neutral-100/95 font-black uppercase tracking-wider text-black backdrop-blur-md dark:bg-neutral-800/95 dark:text-neutral-100 border-b-2 border-neutral-300 dark:border-neutral-600">
                         <tr>
-                            <th className={`px-5 w-[30%] whitespace-nowrap ${isFullscreen ? 'py-3.5' : 'py-2.5'}`}>P.O. NUMBER</th>
-                            <th className={`px-5 w-[50%] ${isFullscreen ? 'py-3.5' : 'py-2.5'}`}>SUPPLIER'S NAME</th>
-                            <th className={`px-5 w-[20%] text-center whitespace-nowrap ${isFullscreen ? 'py-3.5' : 'py-2.5'}`}>STATUS</th>
+                            <th className={`pl-8 pr-4 w-[30%] whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}>P.O. NUMBER</th>
+                            <th className={`px-4 w-[50%] whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}>SUPPLIER'S NAME</th>
+                            <th className={`pl-4 pr-8 w-[20%] text-center whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}>STATUS</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-200/70 dark:divide-neutral-800/60">
@@ -237,13 +200,13 @@ export default function NoticeOfDeliveryReport({
                                     key={item.delivery_id || idx}
                                     className="transition-colors hover:bg-red-50/40 dark:hover:bg-red-950/20 group"
                                 >
-                                    <td className={`px-5 font-bold tracking-tight text-neutral-900 whitespace-nowrap dark:text-neutral-100 ${isFullscreen ? 'py-4' : 'py-3'}`}>
+                                    <td className={`pl-8 pr-4 font-medium tracking-tight text-neutral-900 truncate dark:text-neutral-100 align-middle ${isFullscreen ? 'py-4' : 'py-3'}`}>
                                         <HoverCard openDelay={200} closeDelay={100}>
                                             <HoverCardTrigger asChild>
                                                 <Link
                                                     href={`/deliveries?highlight_id=${item.delivery_id}`}
                                                     onClick={() => dueDeliveriesHighlight(item.delivery_id.toString(), '/deliveries')}
-                                                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-neutral-900 dark:text-neutral-100 font-bold hover:text-red-700 dark:hover:text-red-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
+                                                    className="-ml-2 inline-flex items-center gap-1.5 max-w-full truncate rounded-md px-2 py-0.5 text-neutral-900 dark:text-neutral-100 font-medium hover:text-red-700 dark:hover:text-red-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
                                                 >
                                                     {item.po_number}
                                                 </Link>
@@ -302,15 +265,15 @@ export default function NoticeOfDeliveryReport({
                                             </HoverCardContent>
                                         </HoverCard>
                                     </td>
-                                    <td className={`px-5 font-semibold text-neutral-800 uppercase dark:text-neutral-200 ${isFullscreen ? 'py-4' : 'py-3'}`}>
-                                        <div className="truncate font-bold">{item.supplier_name}</div>
+                                    <td className={`px-4 font-medium text-neutral-800 uppercase dark:text-neutral-200 align-middle ${isFullscreen ? 'py-4' : 'py-3'}`}>
+                                        <div className="truncate font-medium">{item.supplier_name}</div>
                                         {item.end_user && (
                                             <div className={`font-medium text-neutral-500 dark:text-neutral-400 truncate ${isFullscreen ? 'text-sm mt-0.5' : 'text-xs'}`}>
                                                 End-user: <span className="text-neutral-700 dark:text-neutral-300">{item.end_user}</span>
                                             </div>
                                         )}
                                     </td>
-                                    <td className={`px-5 text-center ${isFullscreen ? 'py-4' : 'py-3'}`}>
+                                    <td className={`pl-4 pr-8 text-center align-middle ${isFullscreen ? 'py-4' : 'py-3'}`}>
                                         <span className={getStatusBadge(item.status)}>
                                             {item.status}
                                         </span>
@@ -320,8 +283,10 @@ export default function NoticeOfDeliveryReport({
                         ) : (
                             <tr>
                                 <td colSpan={3} className={`text-center ${isFullscreen ? 'py-24' : 'py-16'}`}>
-                                    <div className="flex flex-col items-center justify-center gap-2 text-neutral-400 dark:text-neutral-500">
-                                        <Inbox className={isFullscreen ? 'size-12' : 'size-8'} />
+                                    <div className="flex flex-col items-center justify-center gap-3 text-red-700/60 dark:text-red-400/60">
+                                        <div className={`flex items-center justify-center rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 ${isFullscreen ? 'p-6' : 'p-4'}`}>
+                                            <Inbox className={isFullscreen ? 'size-12' : 'size-8'} />
+                                        </div>
                                         <p className={`font-semibold ${isFullscreen ? 'text-lg' : 'text-sm'}`}>
                                             No delivery records found for this date.
                                         </p>
@@ -331,6 +296,13 @@ export default function NoticeOfDeliveryReport({
                         )}
                     </tbody>
                 </table>
+            </div>
+            
+            {/* Table Footer */}
+            <div className="px-5 py-3 border-t border-neutral-200/80 dark:border-neutral-800/80 bg-neutral-50/50 dark:bg-neutral-900/50 text-neutral-500 dark:text-neutral-400 flex items-center">
+                <span className={`font-medium tracking-wide ${isFullscreen ? 'text-sm' : 'text-xs'}`}>
+                    Showing {stats.total_count} of {stats.total_count} record{stats.total_count !== 1 ? 's' : ''} for {titleLabel.toLowerCase().includes('today') ? 'today' : 'yesterday'}.
+                </span>
             </div>
         </div>
     );
@@ -353,7 +325,7 @@ export default function NoticeOfDeliveryReport({
 
                     {/* Centered Title */}
                     <div className="text-center px-12 pt-1">
-                        <h1 className={`font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-red-700 via-red-600 to-rose-700 dark:from-red-500 dark:to-rose-400 ${isFullscreen ? 'text-4xl md:text-5xl lg:text-6xl' : 'text-2xl md:text-3xl lg:text-4xl'}`}>
+                        <h1 className={`font-black uppercase tracking-tight text-red-700 dark:text-red-600 ${isFullscreen ? 'text-4xl md:text-5xl lg:text-6xl' : 'text-2xl md:text-3xl lg:text-4xl'}`}>
                             NOTICE OF DELIVERY REPORT
                         </h1>
                     </div>
@@ -433,7 +405,7 @@ export default function NoticeOfDeliveryReport({
                         todayDateFormatted,
                         todayDeliveries,
                         todayStats,
-                        'bg-gradient-to-r from-red-700 via-red-800 to-rose-900'
+                        'bg-gradient-to-r from-red-600 via-red-700 to-rose-800 shadow-[0_4px_12px_rgba(220,38,38,0.25)] relative z-10'
                     )}
 
                     {/* YESTERDAY DELIVERY */}
@@ -442,7 +414,7 @@ export default function NoticeOfDeliveryReport({
                         yesterdayDateFormatted,
                         yesterdayDeliveries,
                         yesterdayStats,
-                        'bg-gradient-to-r from-red-800 via-red-900 to-rose-950'
+                        'bg-gradient-to-r from-neutral-700 via-neutral-800 to-neutral-900 shadow-[0_4px_12px_rgba(0,0,0,0.15)] relative z-10'
                     )}
                 </div>
             </div>
