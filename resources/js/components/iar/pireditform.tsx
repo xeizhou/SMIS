@@ -718,20 +718,23 @@ export default function PirEditForm({
         (s) => String(s.supplier_id) === data.supplier_id
     )?.supplier_name ?? '';
 
-    const [sendingOfficeEmail, setSendingOfficeEmail] = useState(false);
+    // Keyed by email `type` (not a single boolean) so clicking one
+    // "Notify Office" button doesn't flip every other button's label
+    // to "Sending..." too — each button only reacts to its own type.
+    const [sendingOfficeEmail, setSendingOfficeEmail] = useState<string | null>(null);
 
     // Matches PirAddForm: sends type + po_number + supplier_name so every
     // template (pir_created, pir_coa_received, pir_completed, etc.) has
     // what it needs regardless of which section the button lives in.
     const sendOfficeEmail = (type: string) => {
         if (!data.unit_office) return;
-        setSendingOfficeEmail(true);
+        setSendingOfficeEmail(type);
         router.post(
             `/offices/${encodeURIComponent(data.unit_office)}/send-test-email`,
             { type, po_number: data.po_number, supplier_name: supplierName },
             {
                 preserveScroll: true,
-                onFinish: () => setSendingOfficeEmail(false),
+                onFinish: () => setSendingOfficeEmail(null),
             }
         );
     };
@@ -1006,11 +1009,11 @@ export default function PirEditForm({
                                     type="button"
                                     variant="outline"
                                     className="w-full"
-                                    disabled={!data.unit_office || sendingOfficeEmail}
+                                    disabled={!data.unit_office || sendingOfficeEmail !== null}
                                     onClick={() => sendOfficeEmail('pir_created')}
                                 >
                                     <Mail className="mr-2 h-4 w-4" />
-                                    {sendingOfficeEmail ? 'Sending...' : 'Notify Office'}
+                                    {sendingOfficeEmail === 'pir_created' ? 'Sending...' : 'Notify Office'}
                                 </Button>
                             </div>
                         </div>
@@ -1117,12 +1120,12 @@ export default function PirEditForm({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    disabled={!data.unit_office || sendingOfficeEmail}
+                                    disabled={!data.unit_office || sendingOfficeEmail !== null}
                                     className="w-full"
                                     onClick={() => sendOfficeEmail('pir_coa_received')}
                                 >
                                     <Mail className="mr-2 h-4 w-4" />
-                                    {sendingOfficeEmail ? 'Sending...' : 'Notify Office'}
+                                    {sendingOfficeEmail === 'pir_coa_received' ? 'Sending...' : 'Notify Office'}
                                 </Button>
                             </div>
                         </div>
@@ -1378,12 +1381,12 @@ export default function PirEditForm({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    disabled={!forReleaseComplete || !data.unit_office || sendingOfficeEmail}
+                                    disabled={!forReleaseComplete || !data.unit_office || sendingOfficeEmail !== null}
                                     onClick={() => sendOfficeEmail('pir_completed')}
                                     className="w-full"
                                 >
                                     <Mail className="mr-2 h-4 w-4" />
-                                    {sendingOfficeEmail ? 'Sending...' : 'Notify Office'}
+                                    {sendingOfficeEmail === 'pir_completed' ? 'Sending...' : 'Notify Office'}
                                 </Button>
                             </div>
                         </div>
