@@ -76,11 +76,13 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
-    const { url } = usePage();
+    const { url, props } = usePage();
     const { state, isMobile } = useSidebar();
     const isCollapsed = state === 'collapsed' && !isMobile;
     const [searchQuery, setSearchQuery] = useState('');
     const sidebarRef = useRef<HTMLDivElement>(null);
+
+    const isAdmin = (props.auth as any)?.user?.role === 'admin';
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -104,6 +106,38 @@ export function AppSidebar() {
             setSearchQuery('');
         }
     }, [isCollapsed]);
+
+    const sections = [
+        {
+            title: 'Assets',
+            icon: Archive,
+            items: platformNavItems,
+        },
+        {
+            title: 'Procurement',
+            icon: ShoppingCart,
+            items: procurementNavItems,
+        },
+        {
+            title: 'Personnel Files',
+            icon: Files,
+            items: HRNavItems,
+        },
+        {
+            title: 'Stock Cards',
+            icon: ClipboardCheck,
+            items: StockNavItems,
+        },
+        ...(isAdmin
+            ? [
+                  {
+                      title: 'System/Administration',
+                      icon: UsersRound,
+                      items: SystemAdmin,
+                  },
+              ]
+            : []),
+    ];
 
     return (
         <Sidebar 
@@ -170,33 +204,7 @@ export function AppSidebar() {
                 <SidebarContent>
                     <NavMain
                         searchQuery={searchQuery}
-                        sections={[
-                            {
-                                title: 'Assets',
-                                icon: Archive,
-                                items: platformNavItems,
-                            },
-                            {
-                                title: 'Procurement',
-                                icon: ShoppingCart,
-                                items: procurementNavItems,
-                            },
-                            {
-                                title: 'Personnel Files',
-                                icon: Files,
-                                items: HRNavItems,
-                            },
-                            {
-                                title: 'Stock Cards',
-                                icon: ClipboardCheck,
-                                items: StockNavItems,
-                            },
-                            {
-                                title: 'System/Administration',
-                                icon: UsersRound,
-                                items: SystemAdmin,
-                            },
-                        ]}
+                        sections={sections}
                     />
                 </SidebarContent>
                 <SidebarFooter>
