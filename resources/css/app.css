@@ -17,7 +17,6 @@
 
     --font-sfpro: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
     --font-cinzel: 'Cinzel', serif;
-        
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -93,14 +92,24 @@
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
     --radius: 0.625rem;
-    --sidebar: oklch(0.18 0.05 15);              
-    --sidebar-foreground: oklch(0.95 0.01 15);    
-    --sidebar-primary: oklch(0.95 0.01 15);       
-    --sidebar-primary-foreground: oklch(0.18 0.05 15); 
-    --sidebar-accent: oklch(0.25 0.06 15);         
-    --sidebar-accent-foreground: oklch(1 0 0);    
-    --sidebar-border: oklch(0.95 0.01 15);       
-    --sidebar-ring: oklch(0.95 0.01 15);           
+    --sidebar: oklch(0.18 0.05 15);
+    --sidebar-foreground: oklch(0.95 0.01 15);
+    --sidebar-primary: oklch(0.95 0.01 15);
+    --sidebar-primary-foreground: oklch(0.18 0.05 15);
+    --sidebar-accent: oklch(0.25 0.06 15);
+    --sidebar-accent-foreground: oklch(1 0 0);
+    --sidebar-border: oklch(0.95 0.01 15);
+    --sidebar-ring: oklch(0.95 0.01 15);
+}
+
+/* Hide native scrollbar globally — scrolling still works, just no visible bar */
+* {
+    scrollbar-width: none;       /* Firefox */
+    -ms-overflow-style: none;    /* old Edge/IE */
+}
+
+*::-webkit-scrollbar {
+    display: none;                /* Chrome/Safari/new Edge */
 }
 
 @utility bg-sidebar-gradient {
