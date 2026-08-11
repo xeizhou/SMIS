@@ -360,9 +360,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'reportsYear' => (int) $reportsYear,
             'reportsQuarter' => (int) $reportsQuarter,
             'poStats' => $poStats,
-            'userNotifications' => clone $request->user()->notifications,
+            'userNotifications' => $request->user()->notifications()->latest()->take(20)->get(),
         ]);
     })->name('dashboard');
+
+    Route::post('/notifications/clear', function (\Illuminate\Http\Request $request) {
+        $request->user()->notifications()->delete();
+        return back();
+    })->name('notifications.clear');
+
+    Route::post('/notifications/{id}/read', function (\Illuminate\Http\Request $request, $id) {
+        $notification = $request->user()->notifications()->find($id);
+        if ($notification) {
+            $notification->markAsRead();
+        }
+        return response()->json(['success' => true]);
+    })->name('notifications.read');
 
     // ==========================================================
     // Assets (sidebar: "Assets")

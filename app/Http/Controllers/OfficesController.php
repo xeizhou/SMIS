@@ -79,7 +79,7 @@ class OfficesController extends Controller
             \Illuminate\Support\Facades\Auth::user()->notify(new \App\Notifications\OfficeNotified($message, $targetUrl));
         }
 
-        return back()->with('success', "Notification sent successfully to {$office->office_name}.");
+        return back()->with('success', "Email sent successfully to {$office->office_name}.");
     }
 
     public function store(Request $request)
