@@ -88,13 +88,13 @@ export default function NoticeOfDeliveryReport({
     usePoll(
         5000,
         {
+            only: ['todayDeliveries', 'yesterdayDeliveries', 'todayStats', 'yesterdayStats'],
             onStart: () => setIsRefreshing(true),
             onSuccess: () => {
                 setIsRefreshing(false);
                 setLastUpdated(new Date());
             },
-        },
-        { only: ['todayDeliveries', 'yesterdayDeliveries', 'todayStats', 'yesterdayStats'] }
+        }
     );
 
     // "Updated Xs ago" ticker
