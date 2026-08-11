@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function AppSidebarLayout({
     children,
@@ -46,26 +47,29 @@ export default function AppSidebarLayout({
             <AppContent variant="sidebar">
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 
-                <div 
-                    className={`fixed bottom-6 right-6 z-[9999] w-full max-w-md shadow-2xl transition-all duration-500 ease-in-out pointer-events-none ${
-                        isVisible && alertMessage 
-                            ? 'translate-x-0 opacity-100' 
-                            : 'translate-x-[120%] opacity-0'
-                    }`}
-                >
-                    <div className="pointer-events-auto">
-                        <Alert 
-                            variant={isError ? "destructive" : "default"} 
-                            className={`p-5 [&>svg]:size-6 has-[>svg]:grid-cols-[calc(var(--spacing)*6)_1fr] ${isSuccess ? "border-green-500 text-green-700 dark:text-green-400 dark:border-green-800 bg-background" : "bg-background"}`}
-                        >
-                            {isError ? <AlertCircle /> : isSuccess ? <CheckCircle2 /> : <Info />}
-                            <AlertTitle className="text-lg font-bold mb-1">{isError ? "Error" : isSuccess ? "Success" : "Notice"}</AlertTitle>
-                            <AlertDescription className="text-base opacity-90">
-                                {alertMessage}
-                            </AlertDescription>
-                        </Alert>
-                    </div>
-                </div>
+                {typeof window !== 'undefined' && createPortal(
+                    <div 
+                        className={`fixed bottom-6 right-6 z-[999999] w-full max-w-md shadow-2xl transition-all duration-500 ease-in-out pointer-events-none ${
+                            isVisible && alertMessage 
+                                ? 'translate-x-0 opacity-100' 
+                                : 'translate-x-[120%] opacity-0'
+                        }`}
+                    >
+                        <div className="pointer-events-auto">
+                            <Alert 
+                                variant={isError ? "destructive" : "default"} 
+                                className={`p-5 [&>svg]:size-6 has-[>svg]:grid-cols-[calc(var(--spacing)*6)_1fr] ${isSuccess ? "border-green-500 text-green-700 dark:text-green-400 dark:border-green-800 bg-background" : "bg-background"}`}
+                            >
+                                {isError ? <AlertCircle /> : isSuccess ? <CheckCircle2 /> : <Info />}
+                                <AlertTitle className="text-lg font-bold mb-1">{isError ? "Error" : isSuccess ? "Success" : "Notice"}</AlertTitle>
+                                <AlertDescription className="text-base opacity-90">
+                                    {alertMessage}
+                                </AlertDescription>
+                            </Alert>
+                        </div>
+                    </div>,
+                    document.body
+                )}
                 
                 {children}
             </AppContent>

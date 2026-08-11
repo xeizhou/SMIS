@@ -322,6 +322,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'reportsStats' => $reportsStats,
             'reportsYear' => (int) $reportsYear,
             'reportsQuarter' => (int) $reportsQuarter,
+            'userNotifications' => clone $request->user()->notifications,
         ]);
     })->name('dashboard');
 

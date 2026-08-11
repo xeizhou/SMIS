@@ -79,6 +79,7 @@ type DashboardPageProps = {
     };
     reportsYear?: number;
     reportsQuarter?: number;
+    userNotifications?: any[];
     // recentActivity?: RecentActivityRow[];
 };
 
@@ -100,6 +101,7 @@ export default function Dashboard() {
         reportsStats,
         reportsYear,
         reportsQuarter,
+        userNotifications,
     } = usePage<DashboardPageProps>().props;
 
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -176,7 +178,36 @@ export default function Dashboard() {
                 };
             };
 
-            // 1. Process recent deliveries
+            // 1. Process backend userNotifications
+            if (userNotifications) {
+                userNotifications.forEach((dbNotif) => {
+                    const idStr = `db_${dbNotif.id}`;
+                    const prevItem = prevMap.get(idStr);
+                    
+                    const notifData = dbNotif.data || {};
+                    const msg = notifData.message || 'Notification';
+                    
+                    const dateObj = new Date(dbNotif.created_at);
+                    const isToday = dateObj.toDateString() === new Date().toDateString();
+                    const timeStr = isToday ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : dateObj.toLocaleDateString();
+
+                    const item = {
+                        id: idStr,
+                        text: msg,
+                        target_url: '#',
+                        time: timeStr,
+                        isOverdue: false,
+                        daysOverdue: 0,
+                        isDueToday: false,
+                        isDueSoon: false,
+                        isSystem: true,
+                        isRead: readIds.includes(idStr) || (prevItem ? prevItem.isRead : false),
+                    };
+                    notifMap.set(item.id, item);
+                });
+            }
+
+            // 2. Process recent deliveries
             if (recentDeliveries) {
                 recentDeliveries.forEach(d => {
                     const item = formatItem(d);
@@ -204,9 +235,16 @@ export default function Dashboard() {
                 });
             }
 
-            return Array.from(notifMap.values());
+            return Array.from(notifMap.values()).sort((a, b) => {
+                // simple sort to put newer notifications roughly first if needed
+                // but deliveries don't have exact timestamps, so let's keep it mostly appended,
+                // or put unread system notifications first
+                if (!a.isRead && b.isRead) return -1;
+                if (a.isRead && !b.isRead) return 1;
+                return 0;
+            });
         });
-    }, [recentDeliveries, deliveries, isLoaded, readIds]);
+    }, [recentDeliveries, deliveries, userNotifications, isLoaded, readIds]);
 
     // Auto-refresh data periodically and on tab focus to keep dashboard "real-time"
     useEffect(() => {
