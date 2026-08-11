@@ -117,7 +117,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
             <Head title="Inventory Report" />
             <div className="p-4 space-y-6 sm:p-6">
                 {/* Header */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative sticky top-16 group-has-data-[collapsible=icon]/sidebar-wrapper:top-12 transition-[all] ease-linear z-30 -mx-4 -mt-4 mb-6 bg-background/95 backdrop-blur px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">
                             Inventory Report
@@ -138,6 +138,8 @@ export default function Index({ items, fundClusters, filters }: Props) {
                             Export Excel
                         </Button>
                     </div>
+                    {/* Horizontal fading border */}
+                    <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
                 </div>
 
                 {/* Filters */}
