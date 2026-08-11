@@ -81,8 +81,9 @@ type DashboardPageProps = {
     reportsYear?: number;
     reportsQuarter?: number;
     poStats?: {
-        COMPLETED: number;
-        ONGOING: number;
+        COMPLETE: number;
+        PARTIAL: number;
+        PENDING: number;
         CANCELLED: number;
     };
     userNotifications?: any[];
@@ -107,6 +108,8 @@ export default function Dashboard() {
         reportsStats,
         reportsYear,
         reportsQuarter,
+        poStats,
+        userNotifications,
     } = usePage<DashboardPageProps>().props;
 
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -185,7 +188,7 @@ export default function Dashboard() {
 
             // 1. Process backend userNotifications
             if (userNotifications) {
-                userNotifications.forEach((dbNotif) => {
+                userNotifications.forEach((dbNotif: any) => {
                     const idStr = `db_${dbNotif.id}`;
                     const prevItem = prevMap.get(idStr);
                     
