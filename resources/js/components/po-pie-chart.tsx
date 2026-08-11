@@ -21,7 +21,7 @@ export function PoPieChart({ stats }: Props) {
     const hasData = data.length > 0;
 
     return (
-        <div className="relative flex flex-col rounded-xl border border-sidebar-border/70 bg-white p-6 dark:border-sidebar-border dark:bg-neutral-900 h-full">
+        <div className="relative flex flex-col rounded-xl border border-sidebar-border/70 bg-white p-6 overflow-hidden dark:border-sidebar-border dark:bg-neutral-900 h-full">
             <div className="mb-2 flex items-center justify-between">
                 <div>
                     <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
@@ -40,8 +40,8 @@ export function PoPieChart({ stats }: Props) {
                         <PieChart>
                             <Pie
                                 data={data}
-                                innerRadius={60}
-                                outerRadius={80}
+                                innerRadius="60%"
+                                outerRadius="80%"
                                 paddingAngle={5}
                                 dataKey="value"
                             >
