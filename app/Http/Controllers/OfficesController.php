@@ -69,9 +69,14 @@ class OfficesController extends Controller
         ];
         $typeName = $typeNames[$validated['type']] ?? 'Notification';
         $message = "You have successfully sent an email to {$office->office_name} ({$office->email}) for {$typeName}.";
+        
+        $targetUrl = null;
+        if (!empty($validated['po_number'])) {
+            $targetUrl = '/iar?highlight_search=' . urlencode($validated['po_number']);
+        }
 
         if (\Illuminate\Support\Facades\Auth::check()) {
-            \Illuminate\Support\Facades\Auth::user()->notify(new \App\Notifications\OfficeNotified($message));
+            \Illuminate\Support\Facades\Auth::user()->notify(new \App\Notifications\OfficeNotified($message, $targetUrl));
         }
 
         return back()->with('success', "Notification sent successfully to {$office->office_name}.");

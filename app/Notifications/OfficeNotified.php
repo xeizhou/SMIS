@@ -14,7 +14,7 @@ class OfficeNotified extends Notification
     /**
      * Create a new notification instance.
      */
-    public function __construct(public string $message)
+    public function __construct(public string $message, public ?string $target_url = null)
     {
     }
 
@@ -37,6 +37,7 @@ class OfficeNotified extends Notification
     {
         return [
             'message' => $this->message,
+            'target_url' => $this->target_url,
         ];
     }
 }
