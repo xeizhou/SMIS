@@ -251,7 +251,10 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                         key={item.stock_no ?? `${item.item_name}-${index}`}
                                         className={'border-b transition-colors hover:bg-muted/40'} data-search-0={item.item_name} data-record-id={item.stock_no}
                                     >
-                                        <td className="px-4 py-3">
+                                        <td 
+                                            className="px-4 py-3 max-w-[600px] truncate"
+                                            title={`${item.item_name}${item.item_description ? ` - ${item.item_description}` : ''}`}
+                                        >
                                             {item.item_name}
                                             {item.item_description ? ` - ${item.item_description}` : ''}
                                         </td>
