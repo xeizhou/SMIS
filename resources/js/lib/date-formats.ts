@@ -430,6 +430,11 @@ export function getDateFormat(language: string, formatKey: DateFormatKey): strin
  */
 export function formatDate(date: Date, formatKey: DateFormatKey, language: string, locale: Locale): string {
   const formatPattern = getDateFormat(language, formatKey);
+  
+  if (!formatPattern) {
+    console.error(`[formatDate Error] formatPattern is undefined for language="${language}", formatKey="${formatKey}"`);
+    return dateFnsFormat(date, "MMMM d, yyyy", { locale });
+  }
 
   return dateFnsFormat(date, formatPattern, { locale });
 }

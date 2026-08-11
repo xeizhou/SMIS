@@ -25,6 +25,7 @@ class NoticeOfDeliveryReportController extends Controller
             return Delivery::query()
                 ->with(['supplier:supplier_id,supplier_name', 'servePo:po_number,end_user,total_amount_po,item_description,due_date'])
                 ->whereDate('delivery_date', $date->format('Y-m-d'))
+                ->where('status', 'COMPLETE')
                 ->orderBy('po_number', 'asc')
                 ->get()
                 ->map(function ($delivery) {
@@ -32,7 +33,7 @@ class NoticeOfDeliveryReportController extends Controller
                         'delivery_id' => $delivery->delivery_id,
                         'po_number' => $delivery->po_number,
                         'supplier_name' => $delivery->supplier?->supplier_name ?? 'N/A',
-                        'status' => $delivery->status ?? 'PENDING',
+                        'status' => $delivery->status ?? 'COMPLETE',
                         'delivery_date' => $delivery->delivery_date?->format('Y-m-d') ?? 'N/A',
                         'end_user' => $delivery->end_user ?? $delivery->servePo?->end_user ?? 'N/A',
                         'total_amount_delivered' => (float) ($delivery->total_amount_delivered ?? 0),
@@ -51,9 +52,6 @@ class NoticeOfDeliveryReportController extends Controller
             return [
                 'total_count' => $deliveries->count(),
                 'complete_count' => $deliveries->where('status', 'COMPLETE')->count(),
-                'pending_count' => $deliveries->where('status', 'PENDING')->count(),
-                'partial_count' => $deliveries->where('status', 'PARTIAL')->count(),
-                'cancelled_count' => $deliveries->where('status', 'CANCELLED')->count(),
                 'total_delivered_amount' => $deliveries->sum('total_amount_delivered'),
             ];
         };
