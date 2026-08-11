@@ -232,7 +232,7 @@ export function DueDeliveries({ deliveries }: Props) {
                 </ScrollArea>
 
                 <div className="relative mt-2 border-t border-neutral-200 dark:border-neutral-800 pt-3 text-center">
-                    <div className="pointer-events-none absolute bottom-[100%] left-[-16px] right-[-16px] h-12 bg-gradient-to-t from-white to-transparent dark:from-neutral-900" />
+                    <div className="pointer-events-none absolute bottom-[100%] left-[-16px] right-[-16px] h-8 z-10 bg-gradient-to-t from-white to-white/0 dark:from-neutral-900 dark:to-neutral-900/0" />
                     <DialogTrigger className="text-sm font-semibold text-red-700 dark:text-red-500 hover:underline focus:outline-none">
                         View all due deliveries
                     </DialogTrigger>

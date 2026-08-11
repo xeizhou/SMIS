@@ -61,7 +61,20 @@ class OfficesController extends Controller
             )
         );
 
-        return back()->with('success', "Email sent to {$office->office_name} ({$office->email}).");
+        $typeNames = [
+            'pir_created' => 'VPAD',
+            'pir_for_release' => 'For Release',
+            'pir_coa_received' => 'COA Stamp',
+            'pir_completed' => 'Claiming',
+        ];
+        $typeName = $typeNames[$validated['type']] ?? 'Notification';
+        $message = "You have successfully sent an email to {$office->office_name} ({$office->email}) for {$typeName}.";
+
+        if (\Illuminate\Support\Facades\Auth::check()) {
+            \Illuminate\Support\Facades\Auth::user()->notify(new \App\Notifications\OfficeNotified($message));
+        }
+
+        return back()->with('success', "Notification sent successfully to {$office->office_name}.");
     }
 
     public function store(Request $request)
