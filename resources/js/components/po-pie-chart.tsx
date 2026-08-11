@@ -59,6 +59,9 @@ export function PoPieChart({ stats }: Props) {
                                 height={36} 
                                 iconType="circle"
                                 wrapperStyle={{ fontSize: '12px' }}
+                                wrapperStyle={{ fontSize: '11px', paddingTop: '16px' }}
+                                iconSize={10}
+                                formatter={(value) => <span className="text-neutral-600 dark:text-neutral-300">{value}</span>}
                             />
                         </PieChart>
                     </ResponsiveContainer>
