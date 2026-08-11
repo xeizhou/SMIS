@@ -452,6 +452,29 @@ function calculateResponsibilityCenter(fundClusterId: string, endUser: string) {
     return [fundClusterId, endUser].filter(Boolean).join(' ');
 }
 
+function formatPoNumberInput(raw: string): string {
+    const digits = raw.replace(/\D/g, '');
+
+    let year = digits.slice(0, 4);
+    let month = digits.slice(4, 6);
+    let seq = digits.slice(6, 10);
+
+    if (month.length === 1 && !['0', '1'].includes(month)) {
+        month = ''; 
+    }
+    if (month.length === 2) {
+        const m = parseInt(month, 10);
+        if (m < 1 || m > 12) {
+            month = month[0]; 
+        }
+    }
+
+    let out = year;
+    if (month) out += '-' + month;
+    if (seq) out += '-' + seq;
+    return out;
+}
+
 function formatBytes(bytes: number) {
     const kb = bytes / 1024;
     return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
@@ -610,6 +633,13 @@ export default function PurchaseOrderEditForm({
         submitUpdate();
     };
 
+    const handlePoNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setData((prev) => ({
+            ...prev,
+            po_number: formatPoNumberInput(e.target.value),
+        }));
+    };
+
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
@@ -632,8 +662,9 @@ export default function PurchaseOrderEditForm({
                                     label="Purchase Order No."
                                     name="po_number"
                                     value={data.po_number}
-                                    onChange={handleChange}
+                                    onChange={handlePoNumberChange}
                                     error={errors.po_number}
+                                    placeholder="2026-01-0001"
                                     required
                                 />
                                 <SelectField
