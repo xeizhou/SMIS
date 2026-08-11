@@ -59,6 +59,7 @@ interface Attachment {
     original_name: string;
     file_size: number;
     created_at: string;
+    file_path: string; // add this
 }
 
 interface PurchaseOrder {
@@ -928,7 +929,7 @@ export default function PurchaseOrderEditForm({
                                                             </Badge>
                                                             <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
                                                                 <a
-                                                                    href={`/purchase-orders/attachments/${att.id}`}
+                                                                href={`/storage/${att.file_path}`}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                 >

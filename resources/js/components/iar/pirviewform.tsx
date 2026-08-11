@@ -130,7 +130,7 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-[95vw] max-h-[90vh] overflow-hidden p-0"
+                className="w-[95vw] max-h-[95vh] overflow-hidden p-0"
                 style={{ maxWidth: '1200px' }}
             >
                 <ScrollArea className="max-h-[95vh] w-full">
