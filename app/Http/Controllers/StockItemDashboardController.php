@@ -21,17 +21,33 @@ class StockItemDashboardController extends Controller
      */
     public function index(Request $request)
     {
+        // First visit has no ?quarter= at all. Default it to the current
+        // quarter so what's rendered matches what the quarter dropdown
+        // shows by default (getCurrentQuarter() on the frontend) instead
+        // of silently falling back to "All Quarters".
+        if (! $request->has('quarter')) {
+            $request->merge(['quarter' => $this->currentQuarterLabel()]);
+        }
+
         return Inertia::render('stock-items-dashboard/index', [
             'kpis' => $this->getKpis(),
             'stockItems' => $this->getStockItems(),
             'transactions' => $this->getTransactions($request),
+            'movement' => $this->getMovement($request),
             'filters' => [
                 'offices' => Office::orderBy('office_name')->get(['office_code', 'office_name']),
                 'fundClusters' => FundCluster::orderBy('fund_cluster_id')->get(['fund_cluster_id', 'fund_description']),
-                'quarters' => ['Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026'], 
-
+                'quarters' => ['Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026'],
             ],
         ]);
+    }
+
+    private function currentQuarterLabel(): string
+    {
+        $now = now();
+        $q = intdiv($now->month - 1, 3) + 1;
+
+        return "Q{$q} {$now->year}";
     }
 
     public function data(Request $request)
@@ -40,6 +56,7 @@ class StockItemDashboardController extends Controller
             'kpis' => $this->getKpis(),
             'stockItems' => $this->getStockItems(),
             'transactions' => $this->getTransactions($request),
+            'movement' => $this->getMovement($request),
         ]);
     }
 
@@ -76,13 +93,13 @@ class StockItemDashboardController extends Controller
      * Paginated + filterable transaction log, scoped to a single quarter.
      * Query params: page, per_page, office_code, fund_cluster, type, year, quarter
      */
-    private function getTransactions(Request $request)
+    /**
+     * Applies office/fund_cluster/type filters and the quarter (or full-year)
+     * date range to a query. Shared by getTransactions() and getMovement()
+     * so both are always scoped to the *same* range.
+     */
+    private function applyScope(Request $request, $query): array
     {
-        $query = Transaction::query()
-            ->join('units', 'transactions.unitID', '=', 'units.unitID')
-            ->select('transactions.*', 'units.unit_short_name')
-            ->orderByDesc('transaction_date');
-
         if ($office = $request->query('office_code')) {
             $query->where('office_code', $office);
         }
@@ -95,26 +112,39 @@ class StockItemDashboardController extends Controller
             $query->where('transaction_type', $type);
         }
 
-        // Restrict to a quarter. Accepts either ?quarter=Q2 2026 (from the
-        // dashboard's quarter filter) or the older ?year=2026&quarter=3 form.
         $quarterParam = $request->query('quarter');
 
         if ($quarterParam && preg_match('/Q([1-4])\s+(\d{4})/', $quarterParam, $matches)) {
             $q = (int) $matches[1];
             $year = (int) $matches[2];
+
+            $rangeStart = \Carbon\Carbon::create($year, ($q - 1) * 3 + 1, 1)->startOfDay();
+            $rangeEnd = $rangeStart->copy()->addMonths(2)->endOfMonth()->endOfDay();
+
+            $query->whereBetween('transaction_date', [$rangeStart, $rangeEnd]);
+            $quarterLabel = "Q{$q} {$year}";
         } else {
-            $year = (int) $request->query('year', now()->year);
-            $q = (int) $request->query('quarter', now()->quarter);
+            $year = 2026;
+            $rangeStart = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
+            $rangeEnd = \Carbon\Carbon::create($year, 12, 31)->endOfDay();
+
+            $query->whereBetween('transaction_date', [$rangeStart, $rangeEnd]);
+            $quarterLabel = "All Quarters {$year}";
         }
 
-        $startMonth = ($q - 1) * 3 + 1;
-        $rangeStart = \Carbon\Carbon::create($year, $startMonth, 1)->startOfDay();
-        $rangeEnd = $rangeStart->copy()->addMonths(2)->endOfMonth()->endOfDay();
+        return [$query, $quarterLabel];
+    }
 
-        $query->whereBetween('transaction_date', [$rangeStart, $rangeEnd]);
+    private function getTransactions(Request $request)
+    {
+        $query = Transaction::query()
+            ->join('units', 'transactions.unitID', '=', 'units.unitID')
+            ->select('transactions.*', 'units.unit_short_name')
+            ->orderByDesc('transaction_date');
+
+        [$query, $quarterLabel] = $this->applyScope($request, $query);
 
         $perPage = (int) $request->query('per_page', 20);
-
         $paginated = $query->paginate($perPage)->withQueryString();
 
         return [
@@ -134,10 +164,37 @@ class StockItemDashboardController extends Controller
             'last_page' => $paginated->lastPage(),
             'total' => $paginated->total(),
             'per_page' => $paginated->perPage(),
-            'quarter' => "Q{$q} {$year}",
+            'quarter' => $quarterLabel,
         ];
     }
 
+    /**
+     * Daily received/issued totals for the chart, scoped by the SAME
+     * office/fund_cluster/quarter filters as getTransactions() — but NOT
+     * paginated, so it reflects the whole filtered range, not just the
+     * most recent `per_page` rows.
+     */
+    private function getMovement(Request $request)
+    {
+        $query = Transaction::query();
+        [$query, ] = $this->applyScope($request, $query);
+
+        return $query
+            ->selectRaw("
+                DATE(transaction_date) AS date,
+                SUM(CASE WHEN transaction_type = 'RECEIVE' THEN quantity ELSE 0 END) AS received,
+                SUM(CASE WHEN transaction_type = 'ISSUE' THEN quantity ELSE 0 END) AS issued
+            ")
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(fn ($row) => [
+                'date' => $row->date,
+                'received' => (int) $row->received,
+                'issued' => (int) $row->issued,
+            ])
+            ->values();
+    }
     private function getKpis()
     {
         $balances = $this->balancesByStockNo();

@@ -5,7 +5,6 @@ import {
     PackageX,
     Boxes,
     Activity,
-    X,
     ChevronLeft,
     ChevronRight,
     ArrowDownToLine,
@@ -87,10 +86,17 @@ type FilterOptions = {
     quarters: string[];
 };
 
+// Aggregated daily received/issued totals for the WHOLE filtered range
+// (not just the current page of transactions). Comes from the backend's
+// getMovement(), which applies the same office/fund_cluster/quarter scope
+// as getTransactions() but is never paginated.
+type MovementPoint = { date: string; received: number; issued: number };
+
 type Props = {
     kpis: Kpis;
     stockItems: StockItem[];
     transactions: TransactionPage;
+    movement: MovementPoint[];
     filters: FilterOptions;
 };
 
@@ -153,7 +159,7 @@ function getCurrentQuarter(): string {
     return `Q${q} ${now.getFullYear()}`;
 }
 
-export default function Index({ kpis, stockItems, transactions, filters }: Props) {
+export default function Index({ kpis, stockItems, transactions, movement, filters }: Props) {
     const [quarterFilter, setQuarterFilter] = useState(getCurrentQuarter());
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | StockItem['status']>('all');
@@ -200,19 +206,14 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
         });
     }, [search, statusFilter, stockItems]);
 
-    const movementData = useMemo(() => {
-        const byDay = new Map<string, { date: string; received: number; issued: number }>();
-        for (const t of transactions.data) {
-            const day = t.transaction_date.slice(0, 10);
-            const entry = byDay.get(day) ?? { date: day, received: 0, issued: 0 };
-            if (t.transaction_type === 'RECEIVE') entry.received += t.quantity;
-            if (t.transaction_type === 'ISSUE') entry.issued += t.quantity;
-            byDay.set(day, entry);
-        }
-        return Array.from(byDay.values())
-            .sort((a, b) => a.date.localeCompare(b.date))
-            .slice(-14);
-    }, [transactions.data]);
+    // Chart data now comes from the server-aggregated `movement` prop, which
+    // is scoped to the full filtered date range (quarter/office/fund cluster)
+    // — NOT from `transactions.data`, which is only the current page of rows
+    // and was why "All Quarters" used to look identical to the current quarter.
+    const movementData = useMemo(
+        () => [...movement].sort((a, b) => a.date.localeCompare(b.date)),
+        [movement]
+    );
 
     const netMovementData = useMemo(
         () => movementData.map((d) => ({ date: d.date, net: d.received - d.issued })),
@@ -246,7 +247,7 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                 quarter: overrides.quarter ?? quarterFilter,
                 page: 1,
             },
-            { preserveState: true, preserveScroll: true, only: ['transactions'] }
+            { preserveState: true, preserveScroll: true, only: ['transactions', 'movement'] }
         );
     }
 
@@ -254,7 +255,7 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
         router.get(
             window.location.pathname,
             { office_code: officeFilter, fund_cluster: fundClusterFilter, quarter: quarterFilter, page },
-            { preserveState: true, preserveScroll: true, only: ['transactions'] }
+            { preserveState: true, preserveScroll: true, only: ['transactions', 'movement'] }
         );
     }
 
