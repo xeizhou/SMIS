@@ -10,6 +10,7 @@ import type {POLetterStatusRow} from '@/components/po-letter-status-chart';
 // import type {RecentActivityRow} from '@/components/recent-activity';
 import { StatCard } from '@/components/stat-card';
 import { ReportsMonitoringWidget } from '@/components/reports-monitoring-widget';
+import { PoPieChart } from '@/components/po-pie-chart';
 import { dashboard } from '@/routes';
 import {
     DropdownMenu,
@@ -79,6 +80,12 @@ type DashboardPageProps = {
     };
     reportsYear?: number;
     reportsQuarter?: number;
+    poStats?: {
+        COMPLETE: number;
+        PARTIAL: number;
+        PENDING: number;
+        CANCELLED: number;
+    };
     userNotifications?: any[];
     // recentActivity?: RecentActivityRow[];
 };
@@ -101,6 +108,7 @@ export default function Dashboard() {
         reportsStats,
         reportsYear,
         reportsQuarter,
+        poStats,
         userNotifications,
     } = usePage<DashboardPageProps>().props;
 
@@ -180,7 +188,7 @@ export default function Dashboard() {
 
             // 1. Process backend userNotifications
             if (userNotifications) {
-                userNotifications.forEach((dbNotif) => {
+                userNotifications.forEach((dbNotif: any) => {
                     const idStr = `db_${dbNotif.id}`;
                     const prevItem = prevMap.get(idStr);
                     
@@ -435,52 +443,58 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-4">
-                    <div className="flex flex-col gap-4 md:col-span-3">
-                        <div className="grid gap-4 sm:grid-cols-3">
-                            <StatCard
-                                label="Pending Deliveries"
-                                value={pendingDeliveries ?? 0}
-                                change={deliveriesLastWeek !== undefined ? `+ ${deliveriesLastWeek} this week` : ""}
-                                icon={Truck}
-                                iconClassName="bg-blue-100 text-blue-500"
-                                onClick={() => setIsPendingModalOpen(true)}
-                            />
-                            <StatCard
-                                label="Pending Inspection"
-                                value={pendingInspections ?? 0}
-                                change={inspectionsLastWeek !== undefined ? `+ ${inspectionsLastWeek} this week` : ""}
-                                icon={ClipboardCheck}
-                                iconClassName="bg-amber-100 text-amber-600"
-                                onClick={() => setIsPendingInspectionsModalOpen(true)}
-                            />
-                            <StatCard
-                                label="Pending Issuance"
-                                value={pendingClearances ?? 0}
-                                change={clearancesLastWeek !== undefined ? `+ ${clearancesLastWeek} this week` : ""}
-                                icon={FileText}
-                                iconClassName="bg-rose-100 text-rose-500"
-                                onClick={() => setIsPendingClearancesModalOpen(true)}
-                            />
-                        </div>
-                        
-                        <div className="flex-1">
-                            <PoLettersStatusChart data={poLettersStatus} />
-                        </div>
-                        
-                        {reportsStats && reportsYear && reportsQuarter && (
-                            <div className="w-full sm:w-2/3">
-                                <ReportsMonitoringWidget 
-                                    stats={reportsStats}
-                                    year={reportsYear}
-                                    quarter={reportsQuarter}
-                                />
-                            </div>
-                        )}
+                <div className="flex-1 grid gap-6 md:grid-cols-4 md:grid-rows-[auto_1fr_1fr] min-h-0">
+                    <div className="md:col-span-3 grid gap-4 sm:grid-cols-3 md:row-start-1">
+                        <StatCard
+                            label="Pending Deliveries"
+                            value={pendingDeliveries ?? 0}
+                            change={deliveriesLastWeek !== undefined ? `+ ${deliveriesLastWeek} this week` : ""}
+                            icon={Truck}
+                            iconClassName="bg-blue-100 text-blue-500"
+                            onClick={() => setIsPendingModalOpen(true)}
+                        />
+                        <StatCard
+                            label="Pending Inspection"
+                            value={pendingInspections ?? 0}
+                            change={inspectionsLastWeek !== undefined ? `+ ${inspectionsLastWeek} this week` : ""}
+                            icon={ClipboardCheck}
+                            iconClassName="bg-amber-100 text-amber-600"
+                            onClick={() => setIsPendingInspectionsModalOpen(true)}
+                        />
+                        <StatCard
+                            label="Pending Issuance"
+                            value={pendingClearances ?? 0}
+                            change={clearancesLastWeek !== undefined ? `+ ${clearancesLastWeek} this week` : ""}
+                            icon={FileText}
+                            iconClassName="bg-rose-100 text-rose-500"
+                            onClick={() => setIsPendingClearancesModalOpen(true)}
+                        />
                     </div>
 
-                    <div className="md:col-span-1 h-full max-h-[416px]">
+                    <div className="md:col-span-3 md:row-start-2 min-h-0 flex flex-col">
+                        <PoLettersStatusChart data={poLettersStatus} />
+                    </div>
+
+                    <div className="md:col-span-1 md:row-span-2 md:row-start-1 h-full min-h-0 flex flex-col">
                         <DueDeliveries deliveries={deliveries} />
+                    </div>
+
+                    <div className="md:col-span-3 md:row-start-3 h-full flex flex-col">
+                        {reportsStats && reportsYear && reportsQuarter && (
+                            <ReportsMonitoringWidget 
+                                stats={reportsStats}
+                                year={reportsYear}
+                                quarter={reportsQuarter}
+                            />
+                        )}
+                    </div>
+                    
+                    <div className="md:col-span-1 md:row-start-3 h-full flex flex-col">
+                        {poStats && (
+                            <div className="w-full h-full flex flex-col">
+                                <PoPieChart stats={poStats} />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

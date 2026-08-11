@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useRef, useState } from 'react';
-import { RefreshCw, Paperclip, X, Check, ChevronsUpDown } from 'lucide-react';
+import { RefreshCw, Paperclip, X, Check, ChevronsUpDown, Eye, Trash2, File, FileImage, FileText, FileSpreadsheet, FileArchive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -10,6 +10,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
     Select,
     SelectContent,
@@ -45,6 +46,7 @@ interface Attachment {
     id: number;
     original_name: string;
     url: string;
+    file_size?: number;
 }
 
 interface PoLetterRecord {
@@ -89,6 +91,37 @@ interface FieldProps {
 
 const labelClass = 'mb-1 block text-sm text-foreground';
 const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
+
+function getExtension(filename: string) {
+    return filename.split('.').pop()?.toLowerCase() ?? '';
+}
+
+function getFileType(filename: string) {
+    const ext = getExtension(filename);
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
+    if (ext === 'pdf') return 'pdf';
+    if (['doc', 'docx'].includes(ext)) return 'word';
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return 'excel';
+    if (['zip', 'rar', '7z'].includes(ext)) return 'archive';
+    return 'file';
+}
+
+function FileIcon({ type }: { type: string }) {
+    switch (type) {
+        case 'image':
+            return <FileImage className="h-5 w-5 text-blue-500" />;
+        case 'pdf':
+            return <FileText className="h-5 w-5 text-red-500" />;
+        case 'word':
+            return <FileText className="h-5 w-5 text-blue-600" />;
+        case 'excel':
+            return <FileSpreadsheet className="h-5 w-5 text-green-600" />;
+        case 'archive':
+            return <FileArchive className="h-5 w-5 text-yellow-600" />;
+        default:
+            return <File className="h-5 w-5 text-muted-foreground" />;
+    }
+}
 
 function Field({
     label,
@@ -548,7 +581,7 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-h-[90vh] overflow-hidden p-0" style={{ maxWidth: '900px' }}>
+            <DialogContent className="w-[95vw] max-h-[95vh] overflow-hidden p-0" style={{ maxWidth: '900px' }}>
                 <ScrollArea className="max-h-[95vh] w-full">
                     <div className="p-6">
                 <DialogHeader>
@@ -734,53 +767,86 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                                 onChange={handleFileSelect}
                             />
 
-                            {(existingAttachments.length > 0 || newFiles.length > 0) && (
-                                <ul className="mt-2 divide-y divide-border rounded-md border border-border">
-                                    {existingAttachments.map((att) => (
-                                        <li
-                                            key={`existing-${att.id}`}
-                                            className="flex items-center justify-between gap-3 px-3 py-2"
-                                        >
-                                            <a   
-                                                href={att.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="min-w-0 truncate text-sm text-foreground hover:underline"
+                            {/* Existing Attachments */}
+                            {existingAttachments.length > 0 && (
+                                <div className="mt-3">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">Existing Files</p>
+                                    <ScrollArea className="max-h-[180px]">
+                                        <div className="space-y-1.5">
+                                            {existingAttachments.map((att) => {
+                                                const type = getFileType(att.original_name);
+                                                return (
+                                                    <div
+                                                        key={att.id}
+                                                        className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
+                                                    >
+                                                        <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                            <FileIcon type={type} />
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="truncate text-sm">{att.original_name}</p>
+                                                            {att.file_size !== undefined && (
+                                                                <p className="text-[11px] text-muted-foreground">{formatBytes(att.file_size)}</p>
+                                                            )}
+                                                        </div>
+                                                        <Badge variant="outline" className="text-[10px] h-5">
+                                                            {getExtension(att.original_name).toUpperCase()}
+                                                        </Badge>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                                                            <a
+                                                                href={att.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                title="View"
+                                                            >
+                                                                <Eye className="h-3.5 w-3.5" />
+                                                            </a>
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-7 w-7 text-red-500 hover:text-red-600"
+                                                            onClick={() => removeExistingAttachment(att.id)}
+                                                            title="Remove"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </ScrollArea>
+                                </div>
+                            )}
+
+                            {/* New Files */}
+                            {newFiles.length > 0 && (
+                                <div className="mt-3">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">New Files</p>
+                                    <ul className="divide-y divide-border rounded-md border border-border">
+                                        {newFiles.map(({ id, file }) => (
+                                            <li
+                                                key={id}
+                                                className="flex items-center justify-between gap-3 px-3 py-2"
                                             >
-                                                {att.original_name}
-                                            </a>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeExistingAttachment(att.id)}
-                                                className="shrink-0 text-red-600 hover:text-red-800"
-                                                title="Remove"
-                                            >
-                                                <X className="size-4" />
-                                            </button>
-                                        </li>
-                                    ))}
-                                    {newFiles.map(({ id, file }) => (
-                                        <li
-                                            key={`new-${id}`}
-                                            className="flex items-center justify-between gap-3 px-3 py-2"
-                                        >
-                                            <span className="min-w-0 truncate text-sm">
-                                                {file.name}
-                                            </span>
-                                            <span className="shrink-0 text-xs text-muted-foreground">
-                                                {formatBytes(file.size)}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeNewFile(id)}
-                                                className="shrink-0 text-red-600 hover:text-red-800"
-                                                title="Remove"
-                                            >
-                                                <X className="size-4" />
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
+                                                <span className="min-w-0 truncate text-sm">
+                                                    {file.name}
+                                                </span>
+                                                <span className="shrink-0 text-xs text-muted-foreground">
+                                                    {formatBytes(file.size)}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeNewFile(id)}
+                                                    className="shrink-0 text-red-600 hover:text-red-800"
+                                                    title="Remove"
+                                                >
+                                                    <X className="size-4" />
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
                             )}
                         </div>
                     </div>

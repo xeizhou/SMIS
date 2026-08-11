@@ -8,6 +8,13 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
 import { Printer, FileText, FileSpreadsheet } from 'lucide-react';
 import { useState } from 'react';
 
@@ -45,9 +52,12 @@ interface Props {
     filters: Filters;
 }
 
+type ConfirmAction = 'print' | 'pdf' | 'excel' | null;
+
 export default function Index({ items, fundClusters, filters }: Props) {
     const [cutoffDate, setCutoffDate] = useState(filters.cutoff_date ?? '');
     const [fundClusterId, setFundClusterId] = useState(filters.fund_cluster_id ?? 'all');
+    const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
     const applyFilters = (
         overrides: Partial<{ cutoff_date: string; fund_cluster_id: string }> = {}
@@ -95,16 +105,37 @@ export default function Index({ items, fundClusters, filters }: Props) {
         return `${path}?${params.toString()}`;
     };
 
-    const handlePrint = () => {
-        window.open(buildExportUrl('/stock-reports/print'), '_blank');
+    const requestConfirm = (action: Exclude<ConfirmAction, null>) => {
+        setConfirmAction(action);
     };
 
-    const handleExportPdf = () => {
-        window.location.href = buildExportUrl('/stock-reports/print', { download: '1' });
+    const executeConfirmedAction = () => {
+        if (confirmAction === 'print') {
+            window.open(buildExportUrl('/stock-reports/print'), '_blank');
+        } else if (confirmAction === 'pdf') {
+            window.location.href = buildExportUrl('/stock-reports/print', { download: '1' });
+        } else if (confirmAction === 'excel') {
+            window.location.href = buildExportUrl('/stock-reports/export-excel');
+        }
+        setConfirmAction(null);
     };
 
-    const handleExportExcel = () => {
-        window.location.href = buildExportUrl('/stock-reports/export-excel');
+    const confirmLabels: Record<Exclude<ConfirmAction, null>, { title: string; description: string; icon: React.ReactNode }> = {
+        print: {
+            title: 'Print Report',
+            description: 'Open the Report of Physical Count Inventories for printing?',
+            icon: <Printer className="size-5 text-[#612A35]" />,
+        },
+        pdf: {
+            title: 'Export as PDF',
+            description: 'Download the Report of Physical Count Inventories as a PDF file?',
+            icon: <FileText className="size-5 text-[#612A35]" />,
+        },
+        excel: {
+            title: 'Export as Excel',
+            description: 'Download the Report of Physical Count Inventories as an Excel file?',
+            icon: <FileSpreadsheet className="size-5 text-[#612A35]" />,
+        },
     };
 
     const fundClusterLabel =
@@ -125,26 +156,26 @@ export default function Index({ items, fundClusters, filters }: Props) {
                         <p className="mt-1 text-sm text-muted-foreground">
                             View and export physical count inventory.
                         </p>
-                    </div>  
+                    </div>
 
                     <div className="flex gap-2">
-                        <Button 
-                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90" 
-                            onClick={handlePrint}
+                        <Button
+                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
+                            onClick={() => requestConfirm('print')}
                         >
                             <Printer className="size-4" />
                             Print
                         </Button>
-                        <Button 
-                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90" 
-                            onClick={handleExportPdf}
+                        <Button
+                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
+                            onClick={() => requestConfirm('pdf')}
                         >
                             <FileText className="size-4" />
                             Export PDF
                         </Button>
-                        <Button 
-                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90" 
-                            onClick={handleExportExcel}
+                        <Button
+                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
+                            onClick={() => requestConfirm('excel')}
                         >
                             <FileSpreadsheet className="size-4" />
                             Export Excel
@@ -280,6 +311,36 @@ export default function Index({ items, fundClusters, filters }: Props) {
                     )}
                 </div>
             </div>
+
+            {/* Print / Export confirmation dialog */}
+            <Dialog open={confirmAction !== null} onOpenChange={(open) => !open && setConfirmAction(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            {confirmAction && confirmLabels[confirmAction].icon}
+                            {confirmAction && confirmLabels[confirmAction].title}
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="py-2">
+                        <p className="text-sm text-muted-foreground">
+                            {confirmAction && confirmLabels[confirmAction].description}
+                        </p>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setConfirmAction(null)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={executeConfirmedAction}
+                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
+                        >
+                            Continue
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

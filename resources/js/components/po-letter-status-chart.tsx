@@ -31,7 +31,7 @@ export function PoLettersStatusChart({ data }: Props) {
     const calculatedTickCount = (domainMax / 5) + 1;
 
     return (
-        <div className="rounded-xl border border-sidebar-border/70 bg-white p-4 dark:border-sidebar-border dark:bg-neutral-900">
+        <div className="flex h-full flex-col rounded-xl border border-sidebar-border/70 bg-white p-4 dark:border-sidebar-border dark:bg-neutral-900">
             <div className="mb-2 flex items-center justify-between">
                 <div>
                     <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
@@ -69,7 +69,7 @@ export function PoLettersStatusChart({ data }: Props) {
                 </div>
             </div>
 
-            <div className="mt-4 h-44 w-full">
+            <div className="mt-4 flex-1 min-h-0 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={rows} barGap={4} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
