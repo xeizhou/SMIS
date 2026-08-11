@@ -305,6 +305,43 @@ Route::middleware(['auth', 'verified'])->group(function () {
             })->count(),
         ];
 
+        $allPos = \App\Models\ServePo::with('deliveries:delivery_id,po_number,status')->get();
+        $poStats = ['COMPLETE' => 0, 'PARTIAL' => 0, 'PENDING' => 0, 'CANCELLED' => 0];
+        
+        foreach ($allPos as $po) {
+            $deliveries = $po->deliveries;
+            if ($deliveries->isEmpty()) {
+                $poStats['PENDING']++;
+                continue;
+            }
+            
+            $totalCount = $deliveries->count();
+            $completedCount = 0;
+            $cancelledCount = 0;
+            $pendingCount = 0;
+            
+            foreach ($deliveries as $d) {
+                $status = strtoupper($d->status ?? '');
+                if ($status === 'COMPLETED') {
+                    $completedCount++;
+                } elseif ($status === 'CANCELLED') {
+                    $cancelledCount++;
+                } else {
+                    $pendingCount++;
+                }
+            }
+            
+            if ($completedCount === $totalCount) {
+                $poStats['COMPLETE']++;
+            } elseif ($cancelledCount === $totalCount) {
+                $poStats['CANCELLED']++;
+            } elseif ($pendingCount === $totalCount) {
+                $poStats['PENDING']++;
+            } else {
+                $poStats['PARTIAL']++;
+            }
+        }
+
         return Inertia::render('dashboard', [
             'recentActivity' => $recentActivity,
             'recentDeliveries' => $recentDeliveries,
@@ -322,6 +359,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'reportsStats' => $reportsStats,
             'reportsYear' => (int) $reportsYear,
             'reportsQuarter' => (int) $reportsQuarter,
+            'poStats' => $poStats,
             'userNotifications' => clone $request->user()->notifications,
         ]);
     })->name('dashboard');
