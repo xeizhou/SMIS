@@ -135,7 +135,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         $pendingDeliveriesCount = \App\Models\Delivery::where('status', 'PENDING')->count();
         $deliveriesLastWeek = \App\Models\Delivery::where('status', 'PENDING')
-            ->where('data_entry_timestamp', '>=', now()->subWeek())
+            ->where('data_entry_timestamp', '>=', now()->startOfWeek())
             ->count();
 
         $allPendingDeliveries = \App\Models\Delivery::with(['supplier', 'servePo'])
@@ -214,7 +214,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 $query->whereNull('status')
                       ->orWhere('status', '!=', 'CANCELLED');
             })
-            ->where('created_at', '>=', now()->subWeek())
+            ->where('created_at', '>=', now()->startOfWeek())
             ->count();
 
         $allPendingInspections = \App\Models\PirMonitoring::with('supplier')
@@ -259,7 +259,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 $query->whereNull('status')
                       ->orWhere('status', '!=', 'CANCELLED');
             })
-            ->where('created_at', '>=', now()->subWeek())
+            ->where('created_at', '>=', now()->startOfWeek())
             ->count();
 
         $allPendingClearances = \App\Models\PirMonitoring::with('supplier')
