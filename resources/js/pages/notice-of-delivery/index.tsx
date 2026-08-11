@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { usePoll } from '@inertiajs/react';
 import {
     ArrowLeft,
     ArrowRight,
@@ -72,11 +73,55 @@ export default function NoticeOfDeliveryReport({
 }: Props) {
     const [selectedTodayDate, setSelectedTodayDate] = useState(todayDate);
     const [selectedYesterdayDate, setSelectedYesterdayDate] = useState(yesterdayDate);
-    const [autoRefreshSecs, setAutoRefreshSecs] = useState<number>(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [currentTime, setCurrentTime] = useState<string>('');
+    const [lastUpdated, setLastUpdated] = useState(new Date());
+    const [secondsAgo, setSecondsAgo] = useState(0);
+    const [flashedIds, setFlashedIds] = useState<Set<string>>(new Set());
     const containerRef = useRef<HTMLDivElement>(null);
+    const prevStatuses = useRef<Map<string, string>>(
+        new Map([...todayDeliveries, ...yesterdayDeliveries].map((d) => [d.delivery_id, d.status]))
+    );
+
+    // Live poll — re-fetches props every 5s without a full page reload
+    usePoll(
+        5000,
+        {
+            onStart: () => setIsRefreshing(true),
+            onSuccess: () => {
+                setIsRefreshing(false);
+                setLastUpdated(new Date());
+            },
+        },
+        { only: ['todayDeliveries', 'yesterdayDeliveries', 'todayStats', 'yesterdayStats'] }
+    );
+
+    // "Updated Xs ago" ticker
+    useEffect(() => {
+        const id = setInterval(() => {
+            setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
+        }, 1000);
+        return () => clearInterval(id);
+    }, [lastUpdated]);
+
+    // Flash rows whose status changed since last poll
+    useEffect(() => {
+        const all = [...todayDeliveries, ...yesterdayDeliveries];
+        const changed = new Set<string>();
+        for (const item of all) {
+            const prev = prevStatuses.current.get(item.delivery_id);
+            if (prev !== undefined && prev !== item.status) {
+                changed.add(item.delivery_id);
+            }
+            prevStatuses.current.set(item.delivery_id, item.status);
+        }
+        if (changed.size > 0) {
+            setFlashedIds(changed);
+            const t = setTimeout(() => setFlashedIds(new Set()), 1500);
+            return () => clearTimeout(t);
+        }
+    }, [todayDeliveries, yesterdayDeliveries]);
 
     // Update real-time clock
     useEffect(() => {
@@ -108,24 +153,13 @@ export default function NoticeOfDeliveryReport({
         );
     };
 
-    // Auto-refresh interval for TV screencast mode
-    useEffect(() => {
-        if (autoRefreshSecs <= 0) return;
-
-        const interval = setInterval(() => {
-            setIsRefreshing(true);
-            router.reload({
-                onFinish: () => setIsRefreshing(false),
-            });
-        }, autoRefreshSecs * 1000);
-
-        return () => clearInterval(interval);
-    }, [autoRefreshSecs]);
-
     const handleManualRefresh = () => {
         setIsRefreshing(true);
         router.reload({
-            onFinish: () => setIsRefreshing(false),
+            onFinish: () => {
+                setIsRefreshing(false);
+                setLastUpdated(new Date());
+            },
         });
     };
 
@@ -198,7 +232,9 @@ export default function NoticeOfDeliveryReport({
                             deliveries.map((item, idx) => (
                                 <tr
                                     key={item.delivery_id || idx}
-                                    className="transition-colors hover:bg-red-50/40 dark:hover:bg-red-950/20 group"
+                                    className={`transition-colors hover:bg-red-50/40 dark:hover:bg-red-950/20 group ${
+                                        flashedIds.has(item.delivery_id) ? 'bg-amber-100/70 dark:bg-amber-900/30' : ''
+                                    }`}
                                 >
                                     <td className={`pl-8 pr-4 font-medium tracking-tight text-neutral-900 truncate dark:text-neutral-100 align-middle ${isFullscreen ? 'py-4' : 'py-3'}`}>
                                         <HoverCard openDelay={200} closeDelay={100}>
@@ -322,6 +358,20 @@ export default function NoticeOfDeliveryReport({
                             </Button>
                         </div>
                     )}
+
+                    {/* Live indicator, top right */}
+                    <div className="absolute right-5 top-5 flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground hidden sm:inline">
+                            Updated {secondsAgo <= 1 ? 'just now' : `${secondsAgo}s ago`}
+                        </span>
+                        <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                            <span className="relative flex h-2 w-2">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                            </span>
+                            Live
+                        </div>
+                    </div>
 
                     {/* Centered Title */}
                     <div className="text-center px-12 pt-1">
