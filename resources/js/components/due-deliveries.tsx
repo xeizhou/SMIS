@@ -239,12 +239,14 @@ export function DueDeliveries({ deliveries }: Props) {
                 </div>
             </div>
 
-            <DialogContent className="sm:max-w-[450px] max-h-[85vh] flex flex-col">
+            <DialogContent className="sm:max-w-[450px]">
                 <DialogHeader>
                     <DialogTitle>All Due Deliveries</DialogTitle>
                 </DialogHeader>
-                <ScrollArea className="flex-1 -mx-6 px-6 mt-2">
-                    {renderList()}
+                <ScrollArea className="max-h-[70vh] -mx-6 px-6 mt-2">
+                    <div className="pb-4">
+                        {renderList()}
+                    </div>
                 </ScrollArea>
             </DialogContent>
         </Dialog>
