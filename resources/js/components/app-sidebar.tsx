@@ -163,7 +163,7 @@ export function AppSidebar() {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search module..."
-                                className="h-9 w-full rounded-lg border border-white/15 bg-white/5 pl-9 pr-3 text-sm text-white placeholder:text-white/50 outline-none focus:border-white/30"
+                                className="h-9 w-full rounded-lg border border-white/15 bg-white/5 pl-9 pr-3 text-base text-white placeholder:text-white/50 outline-none focus:border-white/30"
                             />
                         </div>
                     )}

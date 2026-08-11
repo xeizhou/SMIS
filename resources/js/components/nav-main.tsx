@@ -111,7 +111,7 @@ export function NavMain({
 
             <SidebarMenu>
                 {filteredSections.length === 0 && (
-                    <p className="px-2 py-3 text-sm text-white/50">
+                    <p className="px-2 py-3 text-base text-white/50">
                         No modules found.
                     </p>
                 )}
