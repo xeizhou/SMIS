@@ -194,6 +194,7 @@ export default function Dashboard() {
                     
                     const notifData = dbNotif.data || {};
                     const msg = notifData.message || 'Notification';
+                    const targetUrl = notifData.target_url || '#';
                     
                     const dateObj = new Date(dbNotif.created_at);
                     const isToday = dateObj.toDateString() === new Date().toDateString();
@@ -202,7 +203,7 @@ export default function Dashboard() {
                     const item = {
                         id: idStr,
                         text: msg,
-                        target_url: '#',
+                        target_url: targetUrl,
                         time: timeStr,
                         isOverdue: false,
                         daysOverdue: 0,
@@ -323,15 +324,8 @@ export default function Dashboard() {
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold">Welcome to Dashboard, {auth?.user?.name || 'User'}!</h1>
-                    <div className="flex items-center gap-2">
-                        <Button asChild variant="outline" className="gap-2 bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-950 dark:hover:bg-red-900 dark:text-red-300 dark:border-red-800">
-                            <Link href="/notice-of-delivery">
-                                <Truck className="size-4" />
-                                <span className="hidden sm:inline">Notice of Delivery</span>
-                            </Link>
-                        </Button>
-                        <CalendarButton deliveries={deliveries} />
+                    <h1 className="text-3xl font-bold tracking-tight">Welcome to Dashboard, {auth?.user?.name || 'User'}!</h1>
+                    <div className="flex items-center gap-3">
                         <Button
                             variant="outline"
                             onClick={handleRefresh}
@@ -339,6 +333,16 @@ export default function Dashboard() {
                         >
                             <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                             <span className="hidden sm:inline">Refresh</span>
+                        </Button>
+                        <CalendarButton deliveries={deliveries} />
+                        
+                        <div className="h-6 w-px bg-border mx-1 hidden sm:block"></div>
+                        
+                        <Button asChild variant="default" className="gap-2 bg-red-700 text-white hover:bg-red-800 shadow-sm dark:bg-red-800 dark:hover:bg-red-900">
+                            <Link href="/notice-of-delivery">
+                                <Truck className="size-4" />
+                                <span className="hidden sm:inline">Notice of Delivery</span>
+                            </Link>
                         </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -396,8 +400,11 @@ export default function Dashboard() {
                                                         try {
                                                             const url = new URL(notif.target_url, window.location.origin);
                                                             const highlightId = url.searchParams.get('highlight_id');
+                                                            const highlightSearch = url.searchParams.get('highlight_search');
                                                             if (highlightId) {
                                                                 notificationsHighlight(highlightId, url.pathname);
+                                                            } else if (highlightSearch) {
+                                                                notificationsHighlight(highlightSearch, url.pathname);
                                                             }
                                                         } catch (e) {
                                                             console.error("Failed to parse notification URL for highlight", e);
