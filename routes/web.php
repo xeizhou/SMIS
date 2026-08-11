@@ -24,6 +24,7 @@ use App\Http\Controllers\TransactionLogsController;
 use App\Http\Controllers\UnitsController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\StockItemDashboardController;
+use App\Http\Controllers\StockReportsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -460,6 +461,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/stock-items-list', [StockItemsListController::class, 'index'])->name('stock-items-list.index');
     Route::get('/stock-items/print-cards', [StockItemsListController::class, 'printCards'])->name('stock-items.print-cards');
+
+    Route::get('/stock-reports', [StockReportsController::class, 'index'])->name('stock-reports.index');
+    Route::get('/stock-reports/print', [StockReportsController::class, 'printPdf'])->name('stock-reports.print');
+    Route::get('/stock-reports/export-excel', [StockReportsController::class, 'exportExcel'])->name('stock-reports.export-excel');
 
     // ==========================================================
     // System/Administration (sidebar: "System/Administration")
