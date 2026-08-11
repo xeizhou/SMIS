@@ -87,7 +87,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             });
 
         $dueDeliveries = \App\Models\Delivery::with('supplier')
-            ->where('status', 'PENDING')
+            ->where(function($query) {
+                $query->whereNull('status')
+                      ->orWhere('status', '!=', 'CANCELLED');
+            })
             ->get()
             ->filter(function ($delivery) {
                 return $delivery->due_date !== null;
