@@ -475,6 +475,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/users', [UsersController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [UsersController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UsersController::class, 'destroy'])->name('users.destroy');
+        Route::get('/register', function () {
+            return redirect()->route('login');
+        });
 
         Route::get('/audit-logs', [AuditLogsController::class, 'index'])->name('audit-logs.index');
     });

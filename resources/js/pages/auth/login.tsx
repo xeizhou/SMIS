@@ -86,13 +86,6 @@ export default function Login({ status, canResetPassword }: Props) {
                                 Log in
                             </Button>
                         </div>
-
-                        <div className="text-center text-sm text-white/80">
-                            Don't have an account?{' '}
-                            <TextLink href={register()} tabIndex={5} className="text-[#0075FF] hover:text-[#3D94FF]">
-                                Sign up
-                            </TextLink>
-                        </div>
                     </>
                 )}
             </Form>
