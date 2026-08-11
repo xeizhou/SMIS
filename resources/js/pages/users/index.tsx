@@ -1,6 +1,6 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { Pencil, Search, Trash2, Mail, ShieldCheck } from 'lucide-react';
+import { Pencil, Search, Trash2, Mail, ShieldCheck, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -26,6 +26,7 @@ interface User {
     email: string;
     role: 'admin' | 'staff';
     created_at: string;
+    is_locked?: boolean;
 }
 
 interface Props {
@@ -175,22 +176,30 @@ export default function Index({ users }: Props) {
                                     </div>
 
                                     <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                                        <button
-                                            type="button"
-                                            onClick={() => openEdit(user)}
-                                            className="text-blue-600 hover:text-blue-800"
-                                            title="Edit"
-                                        >
-                                            <Pencil className="size-4" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => destroy(user)}
-                                            className="text-red-600 hover:text-red-800"
-                                            title="Delete"
-                                        >
-                                            <Trash2 className="size-4" />
-                                        </button>
+                                        {user.is_locked ? (
+                                            <span title="Locked account">
+                                                <Lock className="size-4 text-muted-foreground" />
+                                            </span>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openEdit(user)}
+                                                    className="text-blue-600 hover:text-blue-800"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil className="size-4" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => destroy(user)}
+                                                    className="text-red-600 hover:text-red-800"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 
