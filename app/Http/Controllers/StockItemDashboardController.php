@@ -28,6 +28,8 @@ class StockItemDashboardController extends Controller
             'filters' => [
                 'offices' => Office::orderBy('office_name')->get(['office_code', 'office_name']),
                 'fundClusters' => FundCluster::orderBy('fund_cluster_id')->get(['fund_cluster_id', 'fund_description']),
+                'quarters' => ['Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026'], 
+
             ],
         ]);
     }
@@ -93,10 +95,17 @@ class StockItemDashboardController extends Controller
             $query->where('transaction_type', $type);
         }
 
-        // Restrict to the current calendar quarter by default.
-        // Pass ?year=2026&quarter=3 to view a different quarter if ever needed.
-        $year = (int) $request->query('year', now()->year);
-        $q = (int) $request->query('quarter', now()->quarter);
+        // Restrict to a quarter. Accepts either ?quarter=Q2 2026 (from the
+        // dashboard's quarter filter) or the older ?year=2026&quarter=3 form.
+        $quarterParam = $request->query('quarter');
+
+        if ($quarterParam && preg_match('/Q([1-4])\s+(\d{4})/', $quarterParam, $matches)) {
+            $q = (int) $matches[1];
+            $year = (int) $matches[2];
+        } else {
+            $year = (int) $request->query('year', now()->year);
+            $q = (int) $request->query('quarter', now()->quarter);
+        }
 
         $startMonth = ($q - 1) * 3 + 1;
         $rangeStart = \Carbon\Carbon::create($year, $startMonth, 1)->startOfDay();

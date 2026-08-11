@@ -12,12 +12,16 @@ import {
     ArrowUpFromLine,
     ReceiptText,
     Search,
+    BarChart3,
+    TrendingUp,
+    AreaChart as AreaChartIcon,
+    GitCompareArrows,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Area, AreaChart, Line, LineChart, ReferenceLine, Cell } from 'recharts';
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
 // ---------------------------------------------------------------------------
@@ -26,6 +30,8 @@ import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } f
 // ---------------------------------------------------------------------------
 const BRAND = '#612A35';
 const BRAND_DARK = '#370001';
+const GREEN = '#10b981';
+const RED = '#dc2626';
 
 type Unit = {
     unit_name: string;
@@ -78,6 +84,7 @@ type Kpis = {
 type FilterOptions = {
     offices: { office_code: string; office_name: string }[];
     fundClusters: { fund_cluster_id: string; fund_description: string }[];
+    quarters: string[];
 };
 
 type Props = {
@@ -101,7 +108,7 @@ const STATUS_LABEL: Record<StockItem['status'], string> = {
 
 const STATUS_FILTERS: { key: 'all' | StockItem['status']; label: string }[] = [
     { key: 'all', label: 'All' },
-    { key: 'ok', label: 'OK' },
+    { key: 'ok', label: 'In Stock' },
     { key: 'low', label: 'Low' },
     { key: 'out', label: 'Out' },
 ];
@@ -109,7 +116,7 @@ const STATUS_FILTERS: { key: 'all' | StockItem['status']; label: string }[] = [
 const movementChartConfig = {
     received: {
         label: 'Received',
-        color: '#10b981',
+        color: GREEN,
     },
     issued: {
         label: 'Issued',
@@ -117,13 +124,42 @@ const movementChartConfig = {
     },
 } satisfies ChartConfig;
 
+const netChartConfig = {
+    net: {
+        label: 'Net Movement',
+        color: BRAND,
+    },
+} satisfies ChartConfig;
+
+const cumulativeChartConfig = {
+    cumulative: {
+        label: 'Cumulative Net',
+        color: BRAND,
+    },
+} satisfies ChartConfig;
+
+type ChartType = 'grouped' | 'net' | 'area' | 'cumulative';
+
+const CHART_TYPES: { key: ChartType; label: string; icon: React.ReactNode }[] = [
+    { key: 'grouped', label: 'Grouped', icon: <BarChart3 className="size-3.5" /> },
+    { key: 'net', label: 'Net Movement', icon: <GitCompareArrows className="size-3.5" /> },
+    { key: 'area', label: 'Stacked Area', icon: <AreaChartIcon className="size-3.5" /> },
+    { key: 'cumulative', label: 'Running Total', icon: <TrendingUp className="size-3.5" /> },
+];
+
+function getCurrentQuarter(): string {
+    const now = new Date();
+    const q = Math.floor(now.getMonth() / 3) + 1;
+    return `Q${q} ${now.getFullYear()}`;
+}
 
 export default function Index({ kpis, stockItems, transactions, filters }: Props) {
+    const [quarterFilter, setQuarterFilter] = useState(getCurrentQuarter());
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | StockItem['status']>('all');
     const [officeFilter, setOfficeFilter] = useState('');
     const [fundClusterFilter, setFundClusterFilter] = useState('');
-    const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
+    const [chartType, setChartType] = useState<ChartType>('grouped');
     const [lastUpdated, setLastUpdated] = useState(new Date());
     const [secondsAgo, setSecondsAgo] = useState(0);
     const [flashedRows, setFlashedRows] = useState<Set<string>>(new Set());
@@ -164,19 +200,6 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
         });
     }, [search, statusFilter, stockItems]);
 
-    const stockCardEntries = useMemo(() => {
-        if (!selectedItem) return [];
-        let running = 0;
-        return transactions.data
-            .filter((t) => t.item_name === selectedItem.item_name)
-            .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date))
-            .map((t) => {
-                running += t.transaction_type === 'RECEIVE' ? t.quantity : -t.quantity;
-                return { ...t, running };
-            })
-            .reverse();
-    }, [selectedItem, transactions.data]);
-
     const movementData = useMemo(() => {
         const byDay = new Map<string, { date: string; received: number; issued: number }>();
         for (const t of transactions.data) {
@@ -190,6 +213,19 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
             .sort((a, b) => a.date.localeCompare(b.date))
             .slice(-14);
     }, [transactions.data]);
+
+    const netMovementData = useMemo(
+        () => movementData.map((d) => ({ date: d.date, net: d.received - d.issued })),
+        [movementData]
+    );
+
+    const cumulativeData = useMemo(() => {
+        let running = 0;
+        return movementData.map((d) => {
+            running += d.received - d.issued;
+            return { date: d.date, cumulative: running };
+        });
+    }, [movementData]);
 
     const TYPE_STYLES: Record<Transaction['transaction_type'], string> = {
         RECEIVE: 'bg-emerald-100 text-emerald-700',
@@ -207,6 +243,7 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
             {
                 office_code: overrides.office_code ?? officeFilter,
                 fund_cluster: overrides.fund_cluster ?? fundClusterFilter,
+                quarter: overrides.quarter ?? quarterFilter,
                 page: 1,
             },
             { preserveState: true, preserveScroll: true, only: ['transactions'] }
@@ -216,7 +253,7 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
     function goToPage(page: number) {
         router.get(
             window.location.pathname,
-            { office_code: officeFilter, fund_cluster: fundClusterFilter, page },
+            { office_code: officeFilter, fund_cluster: fundClusterFilter, quarter: quarterFilter, page },
             { preserveState: true, preserveScroll: true, only: ['transactions'] }
         );
     }
@@ -226,33 +263,40 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
         listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
+    function formatDayTick(value: string) {
+        return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function formatDayLabel(value: string) {
+        return new Date(value).toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    }
+
     return (
         <>
             <Head title="Stock Item Dashboard" />
 
             <div className="space-y-6 p-4 sm:p-6">
                 {/* Header */}
-                
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold text-foreground">Stock Card Dashboard</h1>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                Live view of stock items, balances, and recent movements.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">
-                                Updated {secondsAgo <= 1 ? 'just now' : `${secondsAgo}s ago`}
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-foreground">Stock Card Dashboard</h1>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Live view of stock items, balances, and recent movements.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                            Updated {secondsAgo <= 1 ? 'just now' : `${secondsAgo}s ago`}
+                        </span>
+                        <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                            <span className="relative flex h-2 w-2">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                             </span>
-                            <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                                </span>
-                                Live
-                            </div>
+                            Live
                         </div>
                     </div>
+                </div>
 
                 {/* KPI strip */}
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -284,46 +328,169 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                     />
                 </div>
 
-                {/* Stock movement chart — Received vs Issued per day (shadcn chart + recharts) */}
-                <div className="rounded-xl border bg-card p-4">
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                {/* Stock movement chart — switchable view */}
+                <div className="rounded-xl border bg-card p-5">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                         <div>
                             <h2 className="font-semibold">Stock Movement</h2>
-                            <p className="text-xs text-muted-foreground">Received vs. issued quantity, {transactions.quarter}</p>
+                            <p className="text-xs text-muted-foreground">
+                                {chartType === 'grouped' && `Received vs. issued quantity, ${transactions.quarter}`}
+                                {chartType === 'net' && `Daily net movement (received − issued), ${transactions.quarter}`}
+                                {chartType === 'area' && `Received vs. issued volume, ${transactions.quarter}`}
+                                {chartType === 'cumulative' && `Running net change over time, ${transactions.quarter}`}
+                            </p>
+                        </div>
+                        <div className="flex gap-1 rounded-lg bg-muted p-1">
+                            {CHART_TYPES.map((ct) => (
+                                <button
+                                    key={ct.key}
+                                    onClick={() => setChartType(ct.key)}
+                                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                                        chartType === ct.key
+                                            ? 'bg-card text-foreground shadow-sm'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    {ct.icon}
+                                    <span className="hidden sm:inline">{ct.label}</span>
+                                </button>
+                            ))}
                         </div>
                     </div>
+
                     {movementData.length === 0 ? (
-                        <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
+                        <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+                            <Activity className="size-6 text-muted-foreground/40" />
                             No transactions to chart for this period.
                         </div>
-                    ) : (
-                        <ChartContainer config={movementChartConfig} className="h-[220px] w-full">
-                            <BarChart data={movementData}>
-                                <CartesianGrid vertical={false} />
+                    ) : chartType === 'grouped' ? (
+                        <ChartContainer config={movementChartConfig} className="h-[240px] w-full">
+                            <BarChart data={movementData} barGap={4} barCategoryGap="20%">
+                                <defs>
+                                    <linearGradient id="fillReceived" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor={GREEN} stopOpacity={1} />
+                                        <stop offset="100%" stopColor={GREEN} stopOpacity={0.6} />
+                                    </linearGradient>
+                                    <linearGradient id="fillIssued" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor={BRAND} stopOpacity={1} />
+                                        <stop offset="100%" stopColor={BRAND} stopOpacity={0.6} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
                                 <XAxis
                                     dataKey="date"
                                     tickLine={false}
                                     axisLine={false}
-                                    tickMargin={8}
-                                    tickFormatter={(value) =>
-                                        new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                                    }
+                                    tickMargin={10}
+                                    fontSize={11}
+                                    tickFormatter={formatDayTick}
                                 />
+                                <YAxis tickLine={false} axisLine={false} tickMargin={8} fontSize={11} width={32} allowDecimals={false} />
                                 <ChartTooltip
-                                    content={
-                                        <ChartTooltipContent
-                                            labelFormatter={(value) =>
-                                                new Date(value as string).toLocaleDateString('en-US', {
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                })
-                                            }
-                                        />
-                                    }
+                                    cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
+                                    content={<ChartTooltipContent labelFormatter={(v) => formatDayLabel(v as string)} />}
                                 />
-                                <Bar dataKey="received" fill="var(--color-received)" radius={4} />
-                                <Bar dataKey="issued" fill="var(--color-issued)" radius={4} />
+                                <Bar dataKey="received" fill="url(#fillReceived)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                                <Bar dataKey="issued" fill="url(#fillIssued)" radius={[4, 4, 0, 0]} maxBarSize={28} />
                             </BarChart>
+                        </ChartContainer>
+                    ) : chartType === 'net' ? (
+                        <ChartContainer config={netChartConfig} className="h-[240px] w-full">
+                            <BarChart data={netMovementData} barCategoryGap="25%">
+                                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
+                                <XAxis
+                                    dataKey="date"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={10}
+                                    fontSize={11}
+                                    tickFormatter={formatDayTick}
+                                />
+                                <YAxis tickLine={false} axisLine={false} tickMargin={8} fontSize={11} width={32} allowDecimals={false} />
+                                <ReferenceLine y={0} stroke="var(--border)" strokeWidth={1.5} />
+                                <ChartTooltip
+                                    cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
+                                    content={<ChartTooltipContent labelFormatter={(v) => formatDayLabel(v as string)} />}
+                                />
+                                <Bar dataKey="net" radius={[4, 4, 4, 4]} maxBarSize={32}>
+                                    {netMovementData.map((d, i) => (
+                                        <Cell key={i} fill={d.net >= 0 ? GREEN : RED} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ChartContainer>
+                    ) : chartType === 'area' ? (
+                        <ChartContainer config={movementChartConfig} className="h-[240px] w-full">
+                            <AreaChart data={movementData}>
+                                <defs>
+                                    <linearGradient id="areaReceived" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor={GREEN} stopOpacity={0.5} />
+                                        <stop offset="100%" stopColor={GREEN} stopOpacity={0.05} />
+                                    </linearGradient>
+                                    <linearGradient id="areaIssued" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor={BRAND} stopOpacity={0.5} />
+                                        <stop offset="100%" stopColor={BRAND} stopOpacity={0.05} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
+                                <XAxis
+                                    dataKey="date"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={10}
+                                    fontSize={11}
+                                    tickFormatter={formatDayTick}
+                                />
+                                <YAxis tickLine={false} axisLine={false} tickMargin={8} fontSize={11} width={32} allowDecimals={false} />
+                                <ChartTooltip
+                                    cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
+                                    content={<ChartTooltipContent labelFormatter={(v) => formatDayLabel(v as string)} />}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="received"
+                                    stackId="1"
+                                    stroke={GREEN}
+                                    strokeWidth={2}
+                                    fill="url(#areaReceived)"
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="issued"
+                                    stackId="1"
+                                    stroke={BRAND}
+                                    strokeWidth={2}
+                                    fill="url(#areaIssued)"
+                                />
+                            </AreaChart>
+                        </ChartContainer>
+                    ) : (
+                        <ChartContainer config={cumulativeChartConfig} className="h-[240px] w-full">
+                            <LineChart data={cumulativeData}>
+                                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
+                                <XAxis
+                                    dataKey="date"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={10}
+                                    fontSize={11}
+                                    tickFormatter={formatDayTick}
+                                />
+                                <YAxis tickLine={false} axisLine={false} tickMargin={8} fontSize={11} width={32} allowDecimals={false} />
+                                <ReferenceLine y={0} stroke="var(--border)" strokeWidth={1.5} />
+                                <ChartTooltip
+                                    cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
+                                    content={<ChartTooltipContent labelFormatter={(v) => formatDayLabel(v as string)} />}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="cumulative"
+                                    stroke={BRAND}
+                                    strokeWidth={2.5}
+                                    dot={{ r: 3, fill: BRAND }}
+                                    activeDot={{ r: 5 }}
+                                />
+                            </LineChart>
                         </ChartContainer>
                     )}
                 </div>
@@ -379,10 +546,7 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                                         return (
                                             <tr
                                                 key={item.stock_no}
-                                                onClick={() => setSelectedItem(item)}
-                                                className={`cursor-pointer border-t transition-colors hover:bg-muted/40 ${
-                                                    isFlashed ? 'bg-amber-100/70' : ''
-                                                }`}
+                                                className={`border-t transition-colors ${isFlashed ? 'bg-amber-100/70' : ''}`}
                                             >
                                                 <td className="p-3 font-mono text-xs">{item.stock_no}</td>
                                                 <td className="p-3">{item.item_name}</td>
@@ -421,6 +585,26 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                                 </span>
                             </div>
                             <div className="flex gap-2">
+                                <Select
+                                    value={quarterFilter || 'all'}
+                                    onValueChange={(v) => {
+                                        const value = v === 'all' ? '' : v;
+                                        setQuarterFilter(value);
+                                        applyTransactionFilters({ quarter: value });
+                                    }}
+                                >
+                                    <SelectTrigger className="h-8 flex-1 text-xs">
+                                        <SelectValue placeholder="All Quarters" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Quarters</SelectItem>
+                                        {filters.quarters.map((q) => (
+                                            <SelectItem key={q} value={q}>
+                                                {q}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 <Select
                                     value={officeFilter || 'all'}
                                     onValueChange={(v) => {
@@ -539,111 +723,7 @@ export default function Index({ kpis, stockItems, transactions, filters }: Props
                     </div>
                 </div>
             </div>
-
-            {/* Stock Card drill-down — view only, no print action */}
-            {selectedItem && (
-                <StockCardPanel item={selectedItem} entries={stockCardEntries} onClose={() => setSelectedItem(null)} />
-            )}
         </>
-    );
-}
-
-function StockCardPanel({
-    item,
-    entries,
-    onClose,
-}: {
-    item: StockItem;
-    entries: (Transaction & { running: number })[];
-    onClose: () => void;
-}) {
-    const [jumpDate, setJumpDate] = useState('');
-    const rowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map());
-
-    function handleJump(date: string) {
-        setJumpDate(date);
-        if (!date) return;
-        const target = entries.find((e) => e.transaction_date.slice(0, 10) <= date);
-        if (target) {
-            rowRefs.current.get(target.transactionID)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-        }
-    }
-
-    return (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
-            <div className="flex h-full w-full max-w-xl flex-col bg-background shadow-2xl">
-                <div className="space-y-4 border-b p-6">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-xs text-muted-foreground">{item.stock_no}</p>
-                            <h2 className="text-lg font-bold">{item.item_name}</h2>
-                            <p className="text-sm text-muted-foreground">
-                                Current balance: <span className="font-semibold">{item.balance}</span>
-                            </p>
-                        </div>
-                        <button onClick={onClose} className="rounded-md p-1 hover:bg-muted">
-                            <X className="size-5" />
-                        </button>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5">
-                            <label className="text-xs text-muted-foreground">Jump to date:</label>
-                            <input
-                                type="date"
-                                value={jumpDate}
-                                onChange={(e) => handleJump(e.target.value)}
-                                className="h-7 rounded-md border px-2 text-xs outline-none focus:border-primary"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <ScrollArea className="flex-1 p-6 pt-0">
-                    <table className="w-full text-sm">
-                        <thead className="sticky top-0 border-b bg-background text-left text-xs text-muted-foreground">
-                            <tr>
-                                <th className="py-2">Date</th>
-                                <th className="py-2">Reference</th>
-                                <th className="py-2">Office</th>
-                                <th className="py-2 text-right">Received</th>
-                                <th className="py-2 text-right">Issued</th>
-                                <th className="py-2 text-right">Balance</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {entries.map((e) => (
-                                <tr
-                                    key={e.transactionID}
-                                    ref={(el) => {
-                                        if (el) rowRefs.current.set(e.transactionID, el);
-                                    }}
-                                    className="border-b"
-                                >
-                                    <td className="py-2 whitespace-nowrap">{formatDate(e.transaction_date)}</td>
-                                    <td className="py-2 font-mono text-xs">{e.reference}</td>
-                                    <td className="py-2">{e.office_code}</td>
-                                    <td className="py-2 text-right text-emerald-600">
-                                        {e.transaction_type === 'RECEIVE' ? e.quantity : ''}
-                                    </td>
-                                    <td className="py-2 text-right text-red-600">
-                                        {e.transaction_type === 'ISSUE' ? e.quantity : ''}
-                                    </td>
-                                    <td className="py-2 text-right font-medium">{e.running}</td>
-                                </tr>
-                            ))}
-                            {entries.length === 0 && (
-                                <tr>
-                                    <td colSpan={6} className="py-6 text-center text-muted-foreground">
-                                        No transactions recorded for this item yet.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </ScrollArea>
-            </div>
-        </div>
     );
 }
 
