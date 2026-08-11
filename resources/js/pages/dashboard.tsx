@@ -114,6 +114,7 @@ export default function Dashboard() {
 
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [readIds, setReadIds] = useState<string[]>([]);
+    const [clearedIds, setClearedIds] = useState<string[]>([]);
     const [notifications, setNotifications] = useState<any[]>([]);
     const [notifFilter, setNotifFilter] = useState<'all' | 'unread'>('all');
     const [isLoaded, setIsLoaded] = useState(false);
@@ -127,6 +128,10 @@ export default function Dashboard() {
             const saved = localStorage.getItem('read_notifs');
             if (saved) {
                 setReadIds(JSON.parse(saved));
+            }
+            const savedCleared = localStorage.getItem('cleared_notifs');
+            if (savedCleared) {
+                setClearedIds(JSON.parse(savedCleared));
             }
         } catch {}
         setIsLoaded(true);
@@ -244,7 +249,9 @@ export default function Dashboard() {
                 });
             }
 
-            return Array.from(notifMap.values()).sort((a, b) => {
+            return Array.from(notifMap.values())
+                .filter((item: any) => !clearedIds.includes(String(item.id)))
+                .sort((a, b) => {
                 // simple sort to put newer notifications roughly first if needed
                 // but deliveries don't have exact timestamps, so let's keep it mostly appended,
                 // or put unread system notifications first
@@ -253,7 +260,7 @@ export default function Dashboard() {
                 return 0;
             });
         });
-    }, [recentDeliveries, deliveries, userNotifications, isLoaded, readIds]);
+    }, [recentDeliveries, deliveries, userNotifications, isLoaded, readIds, clearedIds]);
 
     // Auto-refresh data periodically and on tab focus to keep dashboard "real-time"
     useEffect(() => {
@@ -304,6 +311,21 @@ export default function Dashboard() {
             const unique = Array.from(new Set(next));
             localStorage.setItem('read_notifs', JSON.stringify(unique));
             return unique;
+        });
+    };
+
+    const clearAllNotifications = () => {
+        setClearedIds(prev => {
+            const currentIds = notifications.map(n => String(n.id));
+            const next = Array.from(new Set([...prev, ...currentIds]));
+            localStorage.setItem('cleared_notifs', JSON.stringify(next));
+            return next;
+        });
+
+        router.post('/notifications/clear', {}, {
+            preserveScroll: true,
+            preserveState: true,
+            only: ['userNotifications']
         });
     };
 
@@ -366,14 +388,24 @@ export default function Dashboard() {
                             <DropdownMenuContent align="end" className="w-[320px]">
                                 <div className="flex items-center justify-between p-3 pb-2">
                                     <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
-                                    {unreadCount > 0 && (
-                                        <button 
-                                            onClick={markAllAsRead}
-                                            className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                                        >
-                                            Mark all as read
-                                        </button>
-                                    )}
+                                    <div className="flex gap-3">
+                                        {unreadCount > 0 && (
+                                            <button 
+                                                onClick={markAllAsRead}
+                                                className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                                            >
+                                                Mark all as read
+                                            </button>
+                                        )}
+                                        {notifications.length > 0 && (
+                                            <button 
+                                                onClick={clearAllNotifications}
+                                                className="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                            >
+                                                Clear all
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-4 px-3 pb-2 border-b">
                                     <button
