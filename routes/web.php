@@ -322,7 +322,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             
             foreach ($deliveries as $d) {
                 $status = strtoupper($d->status ?? '');
-                if ($status === 'COMPLETED') {
+                if ($status === 'COMPLETE' || $status === 'COMPLETED') {
                     $completedCount++;
                 } elseif ($status === 'CANCELLED') {
                     $cancelledCount++;
