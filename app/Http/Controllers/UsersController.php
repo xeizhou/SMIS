@@ -9,12 +9,18 @@ use Inertia\Inertia;
 
 class UsersController extends Controller
 {
+    protected const PROTECTED_EMAIL = 'admin@gmail.com';
+
     public function index()
     {
         return Inertia::render('users/index', [
             'users' => User::select('id', 'name', 'email', 'role', 'created_at')
                 ->orderBy('name')
-                ->get(),
+                ->get()
+                ->map(fn (User $user) => [
+                    ...$user->toArray(),
+                    'is_locked' => $user->email === self::PROTECTED_EMAIL,
+                ]),
         ]);
     }
 
@@ -36,6 +42,10 @@ class UsersController extends Controller
 
     public function update(Request $request, User $user)
     {
+        if ($user->email === self::PROTECTED_EMAIL) {
+            return back()->with('error', 'This account is locked and cannot be edited.');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
@@ -56,6 +66,10 @@ class UsersController extends Controller
 
     public function destroy(User $user)
     {
+        if ($user->email === self::PROTECTED_EMAIL) {
+            return back()->with('error', 'This account is locked and cannot be deleted.');
+        }
+
         if ($user->id === auth()->id()) {
             return back()->with('error', "You can't delete your own account.");
         }
