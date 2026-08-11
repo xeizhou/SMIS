@@ -87,17 +87,17 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
             </div>
 
             <div className="mt-6 grid grid-cols-3 gap-6 flex-1 min-h-0">
-                <div className="flex flex-col items-center justify-center rounded-xl border border-sidebar-border/40 bg-neutral-50/50 py-6 px-4 transition-colors dark:border-sidebar-border/40 dark:bg-neutral-800/20 flex-1 min-h-0">
+                <div className="flex flex-col items-center justify-center rounded-xl border border-sidebar-border/40 bg-neutral-100 py-6 px-4 transition-colors dark:border-sidebar-border/40 dark:bg-neutral-800/60 flex-1 min-h-0">
                     <CheckCircle2 className="mb-3 size-8 text-[#34d399]" />
                     <span className="text-4xl font-bold text-neutral-900 dark:text-neutral-50">{stats.COMPLETED}</span>
                     <span className="mt-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">Completed</span>
                 </div>
-                <div className="flex flex-col items-center justify-center rounded-xl border border-sidebar-border/40 bg-neutral-50/50 py-6 px-4 transition-colors dark:border-sidebar-border/40 dark:bg-neutral-800/20 flex-1 min-h-0">
+                <div className="flex flex-col items-center justify-center rounded-xl border border-sidebar-border/40 bg-neutral-100 py-6 px-4 transition-colors dark:border-sidebar-border/40 dark:bg-neutral-800/60 flex-1 min-h-0">
                     <Clock className="mb-3 size-8 text-[#3b82f6]" />
                     <span className="text-4xl font-bold text-neutral-900 dark:text-neutral-50">{stats.ONGOING}</span>
                     <span className="mt-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">Ongoing</span>
                 </div>
-                <div className="flex flex-col items-center justify-center rounded-xl border border-sidebar-border/40 bg-neutral-50/50 py-6 px-4 transition-colors dark:border-sidebar-border/40 dark:bg-neutral-800/20 flex-1 min-h-0">
+                <div className="flex flex-col items-center justify-center rounded-xl border border-sidebar-border/40 bg-neutral-100 py-6 px-4 transition-colors dark:border-sidebar-border/40 dark:bg-neutral-800/60 flex-1 min-h-0">
                     <XCircle className="mb-3 size-8 text-[#f87171]" />
                     <span className="text-4xl font-bold text-neutral-900 dark:text-neutral-50">{stats.CANCELLED}</span>
                     <span className="mt-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">Cancelled</span>
