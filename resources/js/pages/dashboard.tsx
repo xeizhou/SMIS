@@ -515,7 +515,7 @@ export default function Dashboard() {
                         </DialogTitle>
                     </DialogHeader>
                     
-                    <ScrollArea className="flex-1 p-6 pt-2">
+                    <div className="flex-1 overflow-y-auto p-6 pt-2">
                         {allPendingDeliveries && allPendingDeliveries.length > 0 ? (
                             <div className="grid gap-3 mt-4">
                                 {allPendingDeliveries.map((delivery) => (
@@ -556,7 +556,7 @@ export default function Dashboard() {
                                 No pending deliveries found.
                             </div>
                         )}
-                    </ScrollArea>
+                    </div>
                 </DialogContent>
             </Dialog>
 
@@ -569,7 +569,7 @@ export default function Dashboard() {
                         </DialogTitle>
                     </DialogHeader>
                     
-                    <ScrollArea className="flex-1 p-6 pt-2">
+                    <div className="flex-1 overflow-y-auto p-6 pt-2">
                         {allPendingInspections && allPendingInspections.length > 0 ? (
                             <div className="grid gap-3 mt-4">
                                 {allPendingInspections.map((inspection) => (
@@ -611,7 +611,7 @@ export default function Dashboard() {
                                 No pending inspections found.
                             </div>
                         )}
-                    </ScrollArea>
+                    </div>
                 </DialogContent>
             </Dialog>
 
@@ -624,7 +624,7 @@ export default function Dashboard() {
                         </DialogTitle>
                     </DialogHeader>
                     
-                    <ScrollArea className="flex-1 p-6 pt-2">
+                    <div className="flex-1 overflow-y-auto p-6 pt-2">
                         {allPendingClearances && allPendingClearances.length > 0 ? (
                             <div className="grid gap-3 mt-4">
                                 {allPendingClearances.map((issuance) => (
@@ -666,7 +666,7 @@ export default function Dashboard() {
                                 No pending issuances found.
                             </div>
                         )}
-                    </ScrollArea>
+                    </div>
                 </DialogContent>
             </Dialog>
         </>
