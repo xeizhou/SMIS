@@ -77,7 +77,10 @@ export default function Index({ users }: Props) {
             });
         } else {
             post('/users', {
-                onSuccess: () => setOpen(false),
+                onSuccess: () => {
+                    reset();
+                    setOpen(false);
+                },
             });
         }
     }
