@@ -764,17 +764,17 @@ export default function PirAddForm({
         return office ? `${office.office_code} - ${office.office_name}` : data.unit_office;
     })();
 
-    const [sendingOfficeEmail, setSendingOfficeEmail] = useState(false);
+    const [sendingOfficeEmail, setSendingOfficeEmail] = useState<string | null>(null);
 
     const sendOfficeEmail = (type: string) => {
         if (!data.unit_office) return;
-        setSendingOfficeEmail(true);
+        setSendingOfficeEmail(type);
         router.post(
             `/offices/${encodeURIComponent(data.unit_office)}/send-test-email`,
             { type, po_number: data.po_number, supplier_name: supplierName },
             {
                 preserveScroll: true,
-                onFinish: () => setSendingOfficeEmail(false),
+                onFinish: () => setSendingOfficeEmail(null),
             }
         );
     };
@@ -918,15 +918,16 @@ export default function PirAddForm({
                             />
                             <div>
                                 <label className={labelClass}>Email OVPAD</label>
+                                {/* Email OVPAD */}
                                 <Button
                                     type="button"
                                     variant="outline"
-                                     className="w-full"
-                                    disabled={!data.unit_office || sendingOfficeEmail}
+                                    className="w-full"
+                                    disabled={!data.unit_office || sendingOfficeEmail !== null}
                                     onClick={() => sendOfficeEmail('pir_created')}
                                 >
                                     <Mail className="mr-2 h-4 w-4" />
-                                    {sendingOfficeEmail ? 'Sending...' : 'Notify Office'}
+                                    {sendingOfficeEmail === 'pir_created' ? 'Sending...' : 'Notify Office'}
                                 </Button>
                             </div>
                         </div>
@@ -1044,15 +1045,16 @@ export default function PirAddForm({
                             />
                             <div>
                                 <label className={labelClass}>COA Received</label>
+                                {/* COA Received */}
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    disabled={!data.unit_office || sendingOfficeEmail}
-                                     className="w-full"
+                                    disabled={!data.unit_office || sendingOfficeEmail !== null}
+                                    className="w-full"
                                     onClick={() => sendOfficeEmail('pir_coa_received')}
                                 >
                                     <Mail className="mr-2 h-4 w-4" />
-                                    {sendingOfficeEmail ? 'Sending...' : 'Notify Office'}
+                                    {sendingOfficeEmail === 'pir_coa_received' ? 'Sending...' : 'Notify Office'}
                                 </Button>
                             </div>
                         </div>
@@ -1350,12 +1352,12 @@ export default function PirAddForm({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                     disabled={!forReleaseComplete || !data.unit_office || sendingOfficeEmail}
+                                    disabled={!forReleaseComplete || !data.unit_office || sendingOfficeEmail !== null}
                                     className="w-full"
                                     onClick={() => sendOfficeEmail('pir_completed')}
                                 >
                                     <Mail className="mr-2 h-4 w-4" />
-                                    {sendingOfficeEmail ? 'Sending...' : 'Notify Office'}
+                                    {sendingOfficeEmail === 'pir_completed' ? 'Sending...' : 'Notify Office'}
                                 </Button>
                             </div>
                         </div>
