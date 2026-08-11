@@ -158,8 +158,12 @@ class PurchaseOrdersController extends Controller
         // Handle deleted attachments before updating PO
         $deletedAttachmentIds = $validated['deleted_attachment_ids'] ?? [];
         if ($deletedAttachmentIds) {
+            // Scoped to this PO's own attachments — prevents a caller from passing
+            // an arbitrary attachment ID (belonging to another PO, or another model
+            // entirely, since attachments are polymorphic) and deleting records or
+            // files they shouldn't have access to.
             foreach ($deletedAttachmentIds as $attachmentId) {
-                $attachment = Attachment::find($attachmentId);
+                $attachment = $servePo->attachments()->find($attachmentId);
                 if ($attachment) {
                     Storage::disk('public')->delete($attachment->file_path);
                     $attachment->delete();
@@ -253,8 +257,12 @@ class PurchaseOrdersController extends Controller
         return back();
     }
 
-    public function deleteAttachment(Attachment $attachment)
+    public function deleteAttachment(Request $request, Attachment $attachment)
     {
+        // If this route can be hit for any attachable type, verify the caller
+        // actually owns/has access to the parent record before deleting.
+        // (Left as-is structurally since I don't have the route/middleware
+        // context — flagging in case this endpoint has no other auth check.)
         Storage::disk('public')->delete($attachment->file_path);
         $attachment->delete();
 

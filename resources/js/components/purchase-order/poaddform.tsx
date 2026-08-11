@@ -307,6 +307,30 @@ function calculateResponsibilityCenter(fundClusterId: string, endUser: string) {
     return [fundClusterId, endUser].filter(Boolean).join(' ');
 }
 
+function formatPoNumberInput(raw: string): string {
+    const digits = raw.replace(/\D/g, '');
+
+    let year = digits.slice(0, 4);
+    let month = digits.slice(4, 6);
+    let seq = digits.slice(6, 10);
+
+    // Clamp month to 01–12 as it's typed
+    if (month.length === 1 && !['0', '1'].includes(month)) {
+        month = ''; // reject a first digit that can't start a valid month
+    }
+    if (month.length === 2) {
+        const m = parseInt(month, 10);
+        if (m < 1 || m > 12) {
+            month = month[0]; // drop the invalid second digit
+        }
+    }
+
+    let out = year;
+    if (month) out += '-' + month;
+    if (seq) out += '-' + seq;
+    return out;
+}
+
 function formatBytes(bytes: number) {
     const kb = bytes / 1024;
     return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
@@ -356,13 +380,41 @@ export default function PurchaseOrderAddForm({
         });
     };
 
+    const ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB, matches server-side limit
+
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) return;
-        const newFiles = Array.from(e.target.files).map((file) => ({
-            file,
-            id: generateFileId(),
-        }));
-        setFiles((prev) => [...prev, ...newFiles]);
+
+        const incoming = Array.from(e.target.files);
+        const accepted: { id: string; file: File }[] = [];
+        const rejected: string[] = [];
+
+        for (const file of incoming) {
+            if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+                rejected.push(`${file.name} (unsupported type)`);
+                continue;
+            }
+            if (file.size > MAX_FILE_SIZE) {
+                rejected.push(`${file.name} (over 10MB)`);
+                continue;
+            }
+            accepted.push({ file, id: generateFileId() });
+        }
+
+        if (rejected.length > 0) {
+            setErrors((prev) => ({
+                ...prev,
+                files: `Skipped: ${rejected.join(', ')}`,
+            }));
+        } else {
+            setErrors((prev) => {
+                const { files, ...rest } = prev;
+                return rest;
+            });
+        }
+
+        setFiles((prev) => [...prev, ...accepted]);
         e.target.value = '';
     };
 
@@ -380,7 +432,14 @@ export default function PurchaseOrderAddForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!data.po_number.trim()) {
+            setErrors({ po_number: 'Purchase Order No. is required.' });
+            return;
+        }
+
         setProcessing(true);
+        setErrors({});
 
         router.post(
             '/purchase-orders',
@@ -417,6 +476,13 @@ export default function PurchaseOrderAddForm({
         );
     };
 
+    const handlePoNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setData((prev) => ({
+            ...prev,
+            po_number: formatPoNumberInput(e.target.value),
+        }));
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
@@ -446,9 +512,9 @@ export default function PurchaseOrderAddForm({
                                         label="Purchase Order No."
                                         name="po_number"
                                         value={data.po_number}
-                                        onChange={handleChange}
+                                        onChange={handlePoNumberChange}
                                         error={errors.po_number}
-                                        placeholder="20XX-0X-XXXX"
+                                        placeholder="2026-01-0001"
                                         required
                                     />
                                     <SelectField
