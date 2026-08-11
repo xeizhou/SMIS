@@ -122,19 +122,31 @@ export default function Index({ items, fundClusters, filters }: Props) {
                         <h1 className="text-2xl font-bold text-foreground">
                             Inventory Report
                         </h1>
-                    </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            View and export physical count inventory.
+                        </p>
+                    </div>  
 
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={handlePrint}>
-                            <Printer className="size-4 mr-2" />
+                        <Button 
+                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90" 
+                            onClick={handlePrint}
+                        >
+                            <Printer className="size-4" />
                             Print
                         </Button>
-                        <Button variant="outline" onClick={handleExportPdf}>
-                            <FileText className="size-4 mr-2" />
+                        <Button 
+                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90" 
+                            onClick={handleExportPdf}
+                        >
+                            <FileText className="size-4" />
                             Export PDF
                         </Button>
-                        <Button variant="outline" onClick={handleExportExcel}>
-                            <FileSpreadsheet className="size-4 mr-2" />
+                        <Button 
+                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90" 
+                            onClick={handleExportExcel}
+                        >
+                            <FileSpreadsheet className="size-4" />
                             Export Excel
                         </Button>
                     </div>

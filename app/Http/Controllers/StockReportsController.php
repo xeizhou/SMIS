@@ -190,7 +190,7 @@ class StockReportsController extends Controller
             "Page {PAGE_NUM} of {PAGE_COUNT}",
             $font,
             $fontSize,
-            [0.6, 0.2, 0.1]
+            [0, 0, 0]
         );
 
         $dompdf->render();
