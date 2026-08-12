@@ -42,7 +42,8 @@ class PurchaseOrdersController extends Controller
                         ->orWhere('philgeps_reference_no', 'like', "%{$search}%")
                         ->orWhere('end_user', 'like', "%{$search}%")
                         ->orWhere('item_description', 'like', "%{$search}%")
-                        ->orWhereHas('supplier', fn ($q2) => $q2->where('supplier_name', 'like', "%{$search}%"));
+                        ->orWhereHas('supplier', fn ($q2) => $q2->where('supplier_name', 'like', "%{$search}%"))
+                        ->orWhereHas('office', fn ($q2) => $q2->where('office_name', 'like', "%{$search}%"));
                 });
             })
             ->when($fundCluster, fn ($query, $fundCluster) => $query->where('fund_cluster_id', $fundCluster))
