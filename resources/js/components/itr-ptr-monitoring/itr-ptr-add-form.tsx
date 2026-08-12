@@ -262,11 +262,11 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                                 
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="Serviceable">
-                                                    Serviceable
+                                                <SelectItem value="SERVICEABLE">
+                                                    SERVICEABLE
                                                 </SelectItem>
-                                                <SelectItem value="Unserviceable">
-                                                    Unserviceable
+                                                <SelectItem value="UNSERVICEABLE">
+                                                    UNSERVICEABLE
                                                 </SelectItem>
                                             </SelectContent>
                                         </Select>
@@ -277,7 +277,7 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                         )}
                                     </div>
                                     
-                                    {data.condition_of_ppe === 'Unserviceable' && (
+                                    {data.condition_of_ppe === 'UNSERVICEABLE' && (
                                         <div className="md:col-span-3">
                                             <TextareaField
                                                 label="Remarks / Findings"

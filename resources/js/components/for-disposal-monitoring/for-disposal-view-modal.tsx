@@ -80,7 +80,7 @@ export default function ForDisposalViewModal({
                             <Detail label="Amount" value={formatCurrency(item.amount)} />
                             <Detail label="Condition of PPE" value={item.condition_of_ppe} />
                             
-                            {item.condition_of_ppe === 'Unserviceable' && (
+                            {item.condition_of_ppe === 'UNSERVICEABLE' && (
                                 <div className="sm:col-span-3">
                                     <Detail label="Remarks / Findings" value={item.remarks || '-'} />
                                 </div>

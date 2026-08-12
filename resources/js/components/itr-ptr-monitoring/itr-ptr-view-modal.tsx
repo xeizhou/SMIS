@@ -77,7 +77,7 @@ export default function ItrPtrViewModal({ open, onOpenChange, item }: Props) {
                             <Detail label="Location" value={item.location} />
                             <Detail label="Amount" value={formatCurrency(item.amount)} />
                             <Detail label="Condition of PPE" value={<StatusBadge status={item.condition_of_ppe} />} />
-                            {item.condition_of_ppe === 'Unserviceable' && (
+                            {item.condition_of_ppe === 'UNSERVICEABLE' && (
                                 <div className="sm:col-span-3 mt-2">
                                     <Detail label="Remarks / Findings" value={item.remarks || '-'} />
                                 </div>

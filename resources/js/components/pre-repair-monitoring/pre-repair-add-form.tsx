@@ -218,14 +218,14 @@ export default function PreRepairAddForm({ open, onOpenChange, itrPtrs }: Props)
                                     <SelectValue placeholder="Select Condition" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Serviceable">Serviceable</SelectItem>
-                                    <SelectItem value="Unserviceable">Unserviceable</SelectItem>
+                                    <SelectItem value="SERVICEABLE">SERVICEABLE</SelectItem>
+                                    <SelectItem value="UNSERVICEABLE">UNSERVICEABLE</SelectItem>
                                 </SelectContent>
                             </Select>
                                 {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
                             </div>
                             
-                            {data.condition_of_ppe === 'Unserviceable' && (
+                            {data.condition_of_ppe === 'UNSERVICEABLE' && (
                                 <div className="md:col-span-3">
                                     <TextareaField
                                         label="Remarks / Findings"
