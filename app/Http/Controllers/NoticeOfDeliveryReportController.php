@@ -25,7 +25,7 @@ class NoticeOfDeliveryReportController extends Controller
             return Delivery::query()
                 ->with(['supplier:supplier_id,supplier_name', 'servePo:po_number,end_user,total_amount_po,item_description,due_date'])
                 ->whereDate('delivery_date', $date->format('Y-m-d'))    
-                ->where('status', 'COMPLETE', 'PARTIAL')
+                ->whereIn('status', ['COMPLETE', 'PARTIAL'])
                 ->orderBy('po_number', 'asc')
                 ->get()
                 ->map(function ($delivery) {

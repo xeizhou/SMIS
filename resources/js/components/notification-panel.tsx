@@ -51,7 +51,7 @@ export function NotificationPanel({ userNotifications, deliveries, recentDeliver
             const prevMap = new Map(prev.map(n => [String(n.id), n]));
 
             const formatItem = (d: any) => {
-                const idStr = String(d.delivery_id);
+                const idStr = `del-${d.delivery_id}-${d.due_date || 'none'}-${d.status || 'none'}`;
                 const prevItem = prevMap.get(idStr);
 
                 let text = `Incoming Delivery ${d.po_number}`;
@@ -73,13 +73,17 @@ export function NotificationPanel({ userNotifications, deliveries, recentDeliver
                         text = `Delivery ${d.po_number} is DUE TOMORROW`;
                         time = d.time_ago ? `${d.time_ago} • Due tomorrow` : 'Due tomorrow';
                         isDueSoon = true;
-                    } else if (d.diff_days !== undefined && d.diff_days !== null && d.diff_days > 1) {
+                    } else {
                         text = `Delivery ${d.po_number} is due on ${d.due_date_formatted || d.due_date}`;
                         time = d.time_ago ? `${d.time_ago} • Due in ${d.diff_days}d` : `Due in ${d.diff_days} days`;
-                        if (d.diff_days <= 7) {
+                        if (d.diff_days !== undefined && d.diff_days !== null && d.diff_days <= 7 && d.diff_days > 1) {
                             isDueSoon = true;
                         }
                     }
+                }
+
+                if (d.status) {
+                    text += ` (${d.status})`;
                 }
 
                 return {
@@ -129,6 +133,9 @@ export function NotificationPanel({ userNotifications, deliveries, recentDeliver
             // 2. Process recent deliveries
             if (recentDeliveries) {
                 recentDeliveries.forEach(d => {
+                    // Only show deliveries due within 14 days (or overdue ones)
+                    if (d.diff_days !== undefined && d.diff_days !== null && d.diff_days > 14 && !d.is_overdue) return;
+                    
                     const item = formatItem(d);
                     notifMap.set(item.id, item);
                 });
@@ -137,6 +144,9 @@ export function NotificationPanel({ userNotifications, deliveries, recentDeliver
             // 2. Process due deliveries (add any missing or enrich)
             if (deliveries) {
                 deliveries.forEach(d => {
+                    // Only show deliveries due within 14 days (or overdue ones)
+                    if (d.diff_days !== undefined && d.diff_days !== null && d.diff_days > 14 && !d.is_overdue) return;
+                    
                     const item = formatItem(d);
                     if (notifMap.has(item.id)) {
                         const existing = notifMap.get(item.id);
