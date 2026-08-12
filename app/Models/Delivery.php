@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Traits\LogsActivity;
+use App\Traits\SerializesDatesWithoutTimezoneShift;
 
-class Delivery extends Model
+class Delivery extends Model    
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift;
 
     const LOG_NAME = 'Delivery Monitoring';
 

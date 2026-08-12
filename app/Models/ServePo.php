@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use App\Traits\LogsActivity;
+use App\Traits\SerializesDatesWithoutTimezoneShift;
 
 class ServePo extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift;
 
     protected $table = 'serve_po';
 

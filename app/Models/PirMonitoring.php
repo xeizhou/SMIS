@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Traits\LogsActivity;
+use App\Traits\SerializesDatesWithoutTimezoneShift;
 
 class PirMonitoring extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, SerializesDatesWithoutTimezoneShift; 
 
     const LOG_NAME = 'Reports Monitoring';
 

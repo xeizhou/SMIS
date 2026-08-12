@@ -5,12 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\SerializesDatesWithoutTimezoneShift;
 
 use App\Traits\LogsActivity;
 
 class BonaVidaMonitoring extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift;
 
     const LOG_NAME = 'Bona Vida Monitoring';
 
