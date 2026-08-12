@@ -278,7 +278,9 @@ export default function Dashboard() {
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-2">
-                                            <StatusBadge status={delivery.status} />
+                                            <div className="rounded-md bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+                                                {delivery.status}
+                                            </div>
                                             {delivery.due_date && (
                                                 <div className="text-xs text-muted-foreground">
                                                     Due: {format(new Date(delivery.due_date), 'MMM d, yyyy')}
@@ -336,7 +338,9 @@ export default function Dashboard() {
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-2">
-                                            <StatusBadge status="PENDING" />
+                                            <div className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                                                PENDING
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
