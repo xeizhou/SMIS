@@ -72,6 +72,7 @@ class DeliveriesController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
+            'delivery_id' => ['nullable', 'string', 'max:50', 'unique:delivery,delivery_id'],
             'po_number' => ['required', 'string', 'max:50', 'exists:serve_po,po_number'],
             'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
             'delivery_date' => ['nullable', 'date'],
@@ -90,7 +91,9 @@ class DeliveriesController extends Controller
             'folder_link' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $validated['delivery_id'] = now()->format('YmdHis').'-'.substr(md5(uniqid()), 0, 6);
+        // Client sends its own generated id so it can upload attachments to the
+        // same record right after create, without waiting on a redirect round-trip.
+        $validated['delivery_id'] ??= now()->format('YmdHis').'-'.substr(md5(uniqid()), 0, 6);
         $validated['total_amount_delivered'] ??= 0;
         $validated['po_total_amount'] ??= 0;
 

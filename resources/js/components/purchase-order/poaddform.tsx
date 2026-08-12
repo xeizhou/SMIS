@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X, Check, RefreshCw, ChevronsUpDown, Info } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { Paperclip, X, Check, RefreshCw, ChevronsUpDown, Info, Eye, File, FileImage, FileText, FileSpreadsheet, FileArchive, ExternalLink } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -336,10 +336,49 @@ function formatBytes(bytes: number) {
     return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
 }
 
+function getExtension(filename: string) {
+    return filename.split('.').pop()?.toLowerCase() ?? '';
+}
+
+function getFileType(filename: string) {
+    const ext = getExtension(filename);
+
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
+    if (ext === 'pdf') return 'pdf';
+    if (['doc', 'docx'].includes(ext)) return 'word';
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return 'excel';
+    if (['zip', 'rar', '7z'].includes(ext)) return 'archive';
+
+    return 'file';
+}
+
+function FileTypeIcon({ type }: { type: string }) {
+    switch (type) {
+        case 'image':
+            return <FileImage className="h-5 w-5 text-blue-500" />;
+        case 'pdf':
+            return <FileText className="h-5 w-5 text-red-500" />;
+        case 'word':
+            return <FileText className="h-5 w-5 text-blue-600" />;
+        case 'excel':
+            return <FileSpreadsheet className="h-5 w-5 text-green-600" />;
+        case 'archive':
+            return <FileArchive className="h-5 w-5 text-yellow-600" />;
+        default:
+            return <File className="h-5 w-5 text-muted-foreground" />;
+    }
+}
+
 let fileIdCounter = 0;
 function generateFileId() {
     fileIdCounter += 1;
     return `file-${Date.now()}-${fileIdCounter}`;
+}
+
+interface StagedFile {
+    id: string;
+    file: File;
+    previewUrl: string | null; // objectURL for images, null otherwise
 }
 
 export default function PurchaseOrderAddForm({
@@ -352,8 +391,20 @@ export default function PurchaseOrderAddForm({
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
-    const [files, setFiles] = useState<{ id: string; file: File }[]>([]);
+    const [files, setFiles] = useState<StagedFile[]>([]);
     const [refreshingField, setRefreshingField] = useState<string | null>(null);
+    const [previewFile, setPreviewFile] = useState<StagedFile | null>(null);
+
+    // Revoke every staged object URL when the component unmounts, so we
+    // don't leak blob URLs across dialog open/close cycles.
+    useEffect(() => {
+        return () => {
+            files.forEach((f) => {
+                if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+            });
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleRefreshData = (field: string) => {
         setRefreshingField(field);
@@ -387,7 +438,7 @@ export default function PurchaseOrderAddForm({
         if (!e.target.files) return;
 
         const incoming = Array.from(e.target.files);
-        const accepted: { id: string; file: File }[] = [];
+        const accepted: StagedFile[] = [];
         const rejected: string[] = [];
 
         for (const file of incoming) {
@@ -399,7 +450,11 @@ export default function PurchaseOrderAddForm({
                 rejected.push(`${file.name} (over 10MB)`);
                 continue;
             }
-            accepted.push({ file, id: generateFileId() });
+            accepted.push({
+                file,
+                id: generateFileId(),
+                previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+            });
         }
 
         if (rejected.length > 0) {
@@ -419,13 +474,38 @@ export default function PurchaseOrderAddForm({
     };
 
     const removeFile = (id: string) => {
-        setFiles((prev) => prev.filter((f) => f.id !== id));
+        setFiles((prev) => {
+            const target = prev.find((f) => f.id === id);
+            if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+            return prev.filter((f) => f.id !== id);
+        });
+        setPreviewFile((prev) => (prev?.id === id ? null : prev));
     };
 
     const resetForm = () => {
+        files.forEach((f) => {
+            if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+        });
         setData(emptyForm);
         setErrors({});
         setFiles([]);
+        setPreviewFile(null);
+    };
+
+    const openFilePreview = (staged: StagedFile) => {
+        const type = getFileType(staged.file.name);
+        if (type === 'image') {
+            setPreviewFile(staged);
+        } else if (staged.previewUrl) {
+            window.open(staged.previewUrl, '_blank', 'noopener,noreferrer');
+        } else {
+            // Non-image files don't have a persistent preview URL yet
+            // (created on demand) so build one for the new tab open.
+            const url = URL.createObjectURL(staged.file);
+            window.open(url, '_blank', 'noopener,noreferrer');
+            // Revoke shortly after — the browser has already opened it.
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        }
     };
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -484,325 +564,390 @@ export default function PurchaseOrderAddForm({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent
-                    className="w-[95vw] max-h-[95vh] p-0 overflow-hidden"
-                    style={{ maxWidth: '1200px' }}
-                >
-                <ScrollArea className="max-h-[95vh] w-full">
-                    <div className="p-6">
-                        <DialogHeader>
-                            <DialogTitle>Add Purchase Order Record</DialogTitle>
-                        </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent
+                        className="w-[95vw] max-h-[95vh] p-0 overflow-hidden"
+                        style={{ maxWidth: '1200px' }}
+                    >
+                    <ScrollArea className="max-h-[95vh] w-full">
+                        <div className="p-6">
+                            <DialogHeader>
+                                <DialogTitle>Add Purchase Order Record</DialogTitle>
+                            </DialogHeader>
 
-                        <Alert className="border-red-200 bg-red-50 text-red-800 mt-4 flex items-center gap-2 py-3 px-4 [&>svg]:text-red-800">
-                            <Info className="size-4 shrink-0" />
-                            <div className="text-sm flex flex-wrap items-center gap-1">
-                                <span className="font-semibold">REMINDER:</span>
-                                <span>needs an existing fund cluster, end user, and supplier data.</span>
-                            </div>
-                        </Alert>
-
-                        <form onSubmit={handleSubmit} className="mt-6 space-y-8">
-                            {/* Section: Purchase Order Details */}
-                            <div>
-                                <h3 className={sectionTitleClass}>Purchase Order Details</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <Field
-                                        label="Purchase Order No."
-                                        name="po_number"
-                                        value={data.po_number}
-                                        onChange={handlePoNumberChange}
-                                        error={errors.po_number}
-                                        placeholder="2026-01-0001"
-                                        required
-                                    />
-                                    <SelectField
-                                        label="Mode of Procurement"
-                                        value={data.mode_of_procurement}
-                                        onChange={handleSelectChange('mode_of_procurement')}
-                                        error={errors.mode_of_procurement}
-                                        placeholder="--Select Mode of Procurement--"
-                                        options={MODE_OF_PROCUREMENT_OPTIONS}
-                                    />
-                                    <Field
-                                        label="PO Date"
-                                        name="po_date"
-                                        type="date"
-                                        value={data.po_date}
-                                        onChange={handleChange}
-                                        error={errors.po_date}
-                                    />
-                                    <Field
-                                        label="PO Received Date"
-                                        name="po_received_date"
-                                        type="date"
-                                        value={data.po_received_date}
-                                        onChange={handleChange}
-                                        error={errors.po_received_date}
-                                    />
-                                    <Field
-                                        label="Due Date"
-                                        name="due_date"
-                                        type="date"
-                                        value={data.due_date}
-                                        onChange={handleChange}
-                                        error={errors.due_date}
-                                    />
-                                    <Field
-                                        label="Inclusive Date"
-                                        name="inclusive_date"
-                                        value={data.inclusive_date}
-                                        onChange={handleChange}
-                                        error={errors.inclusive_date}
-                                        placeholder="e.g. Jan 1 - Jan 15, 2026"
-                                    />
-                                    <Field
-                                        label="PR No."
-                                        name="pr_number"
-                                        value={data.pr_number}
-                                        onChange={handleChange}
-                                        error={errors.pr_number}
-                                        placeholder="20XX-0X-XXXX"
-                                    />
-                                    <Field
-                                        label="PR Date"
-                                        name="pr_date"
-                                        type="date"
-                                        value={data.pr_date}
-                                        onChange={handleChange}
-                                        error={errors.pr_date}
-                                    />
-                                    <Field
-                                        label="Philgeps Reference No."
-                                        name="philgeps_reference_no"
-                                        value={data.philgeps_reference_no}
-                                        onChange={handleChange}
-                                        error={errors.philgeps_reference_no}
-                                        placeholder="00000000"
-                                    />
-                                    
-                                    <div className="md:col-span-2">
-                                        <label className={labelClass}>Item Description</label>
-                                        <textarea
-                                            name="item_description"
-                                            value={data.item_description}
-                                            onChange={(e) =>
-                                                setData({ ...data, item_description: e.target.value })
-                                            }
-                                            rows={4}
-                                            className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                                            placeholder='KEYBOARD 5pcs'
-                                        />
-                                        {errors.item_description && (
-                                            <p className="mt-1 text-xs text-red-500">{errors.item_description}</p>
-                                        )}
-                                    </div>
+                            <Alert className="border-red-200 bg-red-50 text-red-800 mt-4 flex items-center gap-2 py-3 px-4 [&>svg]:text-red-800">
+                                <Info className="size-4 shrink-0" />
+                                <div className="text-sm flex flex-wrap items-center gap-1">
+                                    <span className="font-semibold">REMINDER:</span>
+                                    <span>needs an existing fund cluster, end user, and supplier data.</span>
                                 </div>
-                            </div>
-                            {/* Section: Financial Details */}
-                            <div>
-                                <h3 className={sectionTitleClass}>Financial Details</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <Field
-                                        label="Total Amount ABC"
-                                        name="total_amount_abc"
-                                        type="number"
-                                        value={data.total_amount_abc}
-                                        onChange={handleChange}
-                                        error={errors.total_amount_abc}
-                                        placeholder="Amount of the Budget"
-                                    />
-                                    <Field
-                                        label="Total Amount PO"
-                                        name="total_amount_po"
-                                        type="number"
-                                        value={data.total_amount_po}
-                                        onChange={handleChange}
-                                        error={errors.total_amount_po}
-                                        placeholder="Amount of the Budget"
-                                    />
-                                    <div>
-                                        <label className={labelClass}>Total Amount Difference</label>
-                                        <Input
-                                            value={diff.toFixed(2)}
-                                            disabled
-                                            className="bg-muted text-muted-foreground"
-                                        />
-                                    </div>
-                                    <SelectField
-                                        label="Fund Cluster"
-                                        value={data.fund_cluster_id}
-                                        onChange={handleSelectChange('fund_cluster_id')}
-                                        error={errors.fund_cluster_id}
-                                        placeholder="-- Select Fund Cluster --"
-                                        options={fundClusters.map((fc) => ({
-                                            value: fc.fund_cluster_id,
-                                            label: fc.fund_cluster_id,
-                                        }))}
-                                        onRefresh={() => handleRefreshData('fund_cluster')}
-                                        isRefreshing={refreshingField === 'fund_cluster'}
-                                    />
-                                    <Field
-                                        label="ORS/BUR No."
-                                        name="ors_burs_no"
-                                        value={data.ors_burs_no}
-                                        onChange={handleChange}
-                                        error={errors.ors_burs_no}
-                                        placeholder="00-000000-2025-00-0000"
-                                    />
-                                    <Field
-                                        label="ORS/BURS Date"
-                                        name="ors_burs_date"
-                                        type="date"
-                                        value={data.ors_burs_date}
-                                        onChange={handleChange}
-                                        error={errors.ors_burs_date}
-                                    />
-                                    <div>
-                                        <label className={labelClass}>Responsibility Center</label>
-                                        <Input
-                                            value={responsibilityCenter}
-                                            readOnly
-                                            className="bg-muted text-muted-foreground"
-                                            placeholder="Fund Cluster + End User"
-                                        />
-                                        {errors.responsibility_center && (
-                                            <p className="mt-1 text-xs text-red-500">{errors.responsibility_center}</p>
-                                        )}
-                                    </div>
-                                    <Field
-                                        label="UACS Object Code"
-                                        name="uacs_object_code"
-                                        value={data.uacs_object_code}
-                                        onChange={handleChange}
-                                        error={errors.uacs_object_code}
-                                        placeholder="00000000"
-                                    />
-                                </div>
-                            </div>
+                            </Alert>
 
-                            {/* Section: Routing & Processing */}
-                            <div>
-                                <h3 className={sectionTitleClass}>Routing & Processing</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <SearchableSelect
-                                        label="Supplier"
-                                        value={data.supplier_id}
-                                        onChange={handleSelectChange('supplier_id')}
-                                        error={errors.supplier_id}
-                                        placeholder="Search Supplier..."
-                                        options={suppliers.map((s) => ({
-                                            value: String(s.supplier_id),
-                                            label: s.supplier_name,
-                                        }))}
-                                        onRefresh={() => handleRefreshData('supplier')}
-                                        isRefreshing={refreshingField === 'supplier'}
-                                    />
-                                    <SearchableSelect
-                                        label="End User"
-                                        value={data.end_user}
-                                        onChange={handleSelectChange('end_user')}
-                                        error={errors.end_user}
-                                        placeholder="Search End User..."
-                                        options={offices.map((o) => ({
-                                            value: o.office_code,
-                                            label: o.office_code,
-                                        }))}
-                                        onRefresh={() => handleRefreshData('end_user')}
-                                        isRefreshing={refreshingField === 'end_user'}
-                                    />
-                                    <Field
-                                        label="Date forwarded to SMU"
-                                        name="date_forwarded_to_smu"
-                                        type="date"
-                                        value={data.date_forwarded_to_smu}
-                                        onChange={handleChange}
-                                        error={errors.date_forwarded_to_smu}
-                                    />
-                                    <Field
-                                        label="COA Processed Date"
-                                        name="coa_processed_date"
-                                        type="date"
-                                        value={data.coa_processed_date}
-                                        onChange={handleChange}
-                                        error={errors.coa_processed_date}
-                                    />
-                                    <Field
-                                        label="Date Forwarded to Frontdesk"
-                                        name="date_forwarded_frontdesk"
-                                        type="date"
-                                        value={data.date_forwarded_frontdesk}
-                                        onChange={handleChange}
-                                        error={errors.date_forwarded_frontdesk}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Section: Attachments */}
-                            <div>
-                                <h3 className={sectionTitleClass}>Attachments</h3>
+                            <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                                {/* Section: Purchase Order Details */}
                                 <div>
-                                    <button
-                                        type="button"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
-                                    >
-                                        <Paperclip className="size-4" />
-                                        Click to select files (PDF, JPG, PNG)
-                                    </button>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        multiple
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        className="hidden"
-                                        onChange={handleFileSelect}
-                                    />
-                                    {files.length > 0 && (
-                                        <ul className="mt-2 divide-y divide-border rounded-md border border-border">
-                                            {files.map(({ id, file }) => (
-                                                <li key={id} className="flex items-center justify-between gap-3 px-3 py-2">
-                                                    <span className="min-w-0 truncate text-sm">{file.name}</span>
-                                                    <span className="shrink-0 text-xs text-muted-foreground">{formatBytes(file.size)}</span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeFile(id)}
-                                                        className="shrink-0 text-red-600 hover:text-red-800"
-                                                        title="Remove"
-                                                    >
-                                                        <X className="size-4" />
-                                                    </button>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
+                                    <h3 className={sectionTitleClass}>Purchase Order Details</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Field
+                                            label="Purchase Order No."
+                                            name="po_number"
+                                            value={data.po_number}
+                                            onChange={handlePoNumberChange}
+                                            error={errors.po_number}
+                                            placeholder="2026-01-0001"
+                                            required
+                                        />
+                                        <SelectField
+                                            label="Mode of Procurement"
+                                            value={data.mode_of_procurement}
+                                            onChange={handleSelectChange('mode_of_procurement')}
+                                            error={errors.mode_of_procurement}
+                                            placeholder="--Select Mode of Procurement--"
+                                            options={MODE_OF_PROCUREMENT_OPTIONS}
+                                        />
+                                        <Field
+                                            label="PO Date"
+                                            name="po_date"
+                                            type="date"
+                                            value={data.po_date}
+                                            onChange={handleChange}
+                                            error={errors.po_date}
+                                        />
+                                        <Field
+                                            label="PO Received Date"
+                                            name="po_received_date"
+                                            type="date"
+                                            value={data.po_received_date}
+                                            onChange={handleChange}
+                                            error={errors.po_received_date}
+                                        />
+                                        <Field
+                                            label="Due Date"
+                                            name="due_date"
+                                            type="date"
+                                            value={data.due_date}
+                                            onChange={handleChange}
+                                            error={errors.due_date}
+                                        />
+                                        <Field
+                                            label="Inclusive Date"
+                                            name="inclusive_date"
+                                            value={data.inclusive_date}
+                                            onChange={handleChange}
+                                            error={errors.inclusive_date}
+                                            placeholder="e.g. Jan 1 - Jan 15, 2026"
+                                        />
+                                        <Field
+                                            label="PR No."
+                                            name="pr_number"
+                                            value={data.pr_number}
+                                            onChange={handleChange}
+                                            error={errors.pr_number}
+                                            placeholder="20XX-0X-XXXX"
+                                        />
+                                        <Field
+                                            label="PR Date"
+                                            name="pr_date"
+                                            type="date"
+                                            value={data.pr_date}
+                                            onChange={handleChange}
+                                            error={errors.pr_date}
+                                        />
+                                        <Field
+                                            label="Philgeps Reference No."
+                                            name="philgeps_reference_no"
+                                            value={data.philgeps_reference_no}
+                                            onChange={handleChange}
+                                            error={errors.philgeps_reference_no}
+                                            placeholder="00000000"
+                                        />
+                                        
+                                        <div className="md:col-span-2">
+                                            <label className={labelClass}>Item Description</label>
+                                            <textarea
+                                                name="item_description"
+                                                value={data.item_description}
+                                                onChange={(e) =>
+                                                    setData({ ...data, item_description: e.target.value })
+                                                }
+                                                rows={4}
+                                                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                                placeholder='KEYBOARD 5pcs'
+                                            />
+                                            {errors.item_description && (
+                                                <p className="mt-1 text-xs text-red-500">{errors.item_description}</p>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                                {/* Section: Financial Details */}
+                                <div>
+                                    <h3 className={sectionTitleClass}>Financial Details</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <Field
+                                            label="Total Amount ABC"
+                                            name="total_amount_abc"
+                                            type="number"
+                                            value={data.total_amount_abc}
+                                            onChange={handleChange}
+                                            error={errors.total_amount_abc}
+                                            placeholder="Amount of the Budget"
+                                        />
+                                        <Field
+                                            label="Total Amount PO"
+                                            name="total_amount_po"
+                                            type="number"
+                                            value={data.total_amount_po}
+                                            onChange={handleChange}
+                                            error={errors.total_amount_po}
+                                            placeholder="Amount of the Budget"
+                                        />
+                                        <div>
+                                            <label className={labelClass}>Total Amount Difference</label>
+                                            <Input
+                                                value={diff.toFixed(2)}
+                                                disabled
+                                                className="bg-muted text-muted-foreground"
+                                            />
+                                        </div>
+                                        <SelectField
+                                            label="Fund Cluster"
+                                            value={data.fund_cluster_id}
+                                            onChange={handleSelectChange('fund_cluster_id')}
+                                            error={errors.fund_cluster_id}
+                                            placeholder="-- Select Fund Cluster --"
+                                            options={fundClusters.map((fc) => ({
+                                                value: fc.fund_cluster_id,
+                                                label: fc.fund_cluster_id,
+                                            }))}
+                                            onRefresh={() => handleRefreshData('fund_cluster')}
+                                            isRefreshing={refreshingField === 'fund_cluster'}
+                                        />
+                                        <Field
+                                            label="ORS/BUR No."
+                                            name="ors_burs_no"
+                                            value={data.ors_burs_no}
+                                            onChange={handleChange}
+                                            error={errors.ors_burs_no}
+                                            placeholder="00-000000-2025-00-0000"
+                                        />
+                                        <Field
+                                            label="ORS/BURS Date"
+                                            name="ors_burs_date"
+                                            type="date"
+                                            value={data.ors_burs_date}
+                                            onChange={handleChange}
+                                            error={errors.ors_burs_date}
+                                        />
+                                        <div>
+                                            <label className={labelClass}>Responsibility Center</label>
+                                            <Input
+                                                value={responsibilityCenter}
+                                                readOnly
+                                                className="bg-muted text-muted-foreground"
+                                                placeholder="Fund Cluster + End User"
+                                            />
+                                            {errors.responsibility_center && (
+                                                <p className="mt-1 text-xs text-red-500">{errors.responsibility_center}</p>
+                                            )}
+                                        </div>
+                                        <Field
+                                            label="UACS Object Code"
+                                            name="uacs_object_code"
+                                            value={data.uacs_object_code}
+                                            onChange={handleChange}
+                                            error={errors.uacs_object_code}
+                                            placeholder="00000000"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Section: Routing & Processing */}
+                                <div>
+                                    <h3 className={sectionTitleClass}>Routing & Processing</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <SearchableSelect
+                                            label="Supplier"
+                                            value={data.supplier_id}
+                                            onChange={handleSelectChange('supplier_id')}
+                                            error={errors.supplier_id}
+                                            placeholder="Search Supplier..."
+                                            options={suppliers.map((s) => ({
+                                                value: String(s.supplier_id),
+                                                label: s.supplier_name,
+                                            }))}
+                                            onRefresh={() => handleRefreshData('supplier')}
+                                            isRefreshing={refreshingField === 'supplier'}
+                                        />
+                                        <SearchableSelect
+                                            label="End User"
+                                            value={data.end_user}
+                                            onChange={handleSelectChange('end_user')}
+                                            error={errors.end_user}
+                                            placeholder="Search End User..."
+                                            options={offices.map((o) => ({
+                                                value: o.office_code,
+                                                label: o.office_code,
+                                            }))}
+                                            onRefresh={() => handleRefreshData('end_user')}
+                                            isRefreshing={refreshingField === 'end_user'}
+                                        />
+                                        <Field
+                                            label="Date forwarded to SMU"
+                                            name="date_forwarded_to_smu"
+                                            type="date"
+                                            value={data.date_forwarded_to_smu}
+                                            onChange={handleChange}
+                                            error={errors.date_forwarded_to_smu}
+                                        />
+                                        <Field
+                                            label="COA Processed Date"
+                                            name="coa_processed_date"
+                                            type="date"
+                                            value={data.coa_processed_date}
+                                            onChange={handleChange}
+                                            error={errors.coa_processed_date}
+                                        />
+                                        <Field
+                                            label="Date Forwarded to Frontdesk"
+                                            name="date_forwarded_frontdesk"
+                                            type="date"
+                                            value={data.date_forwarded_frontdesk}
+                                            onChange={handleChange}
+                                            error={errors.date_forwarded_frontdesk}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Section: Attachments */}
+                                <div>
+                                    <h3 className={sectionTitleClass}>Attachments</h3>
+                                    <div>
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
+                                        >
+                                            <Paperclip className="size-4" />
+                                            Click to select files (PDF, JPG, PNG)
+                                        </button>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            multiple
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            className="hidden"
+                                            onChange={handleFileSelect}
+                                        />
+                                        {files.length > 0 && (
+                                            <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+                                                {files.map((staged) => {
+                                                    const { id, file } = staged;
+                                                    const type = getFileType(file.name);
+                                                    return (
+                                                        <li key={id}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openFilePreview(staged)}
+                                                                className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/50 transition-colors cursor-pointer"
+                                                            >
+                                                                <div className="h-9 w-9 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                                    {staged.previewUrl ? (
+                                                                        <img
+                                                                            src={staged.previewUrl}
+                                                                            alt={file.name}
+                                                                            className="h-full w-full object-cover"
+                                                                        />
+                                                                    ) : (
+                                                                        <FileTypeIcon type={type} />
+                                                                    )}
+                                                                </div>
+                                                                <span className="min-w-0 flex-1 truncate text-sm">{file.name}</span>
+                                                                <span className="shrink-0 text-xs text-muted-foreground">{formatBytes(file.size)}</span>
+                                                                <span
+                                                                    role="button"
+                                                                    tabIndex={0}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        removeFile(id);
+                                                                    }}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                                            e.stopPropagation();
+                                                                            removeFile(id);
+                                                                        }
+                                                                    }}
+                                                                    className="shrink-0 text-red-600 hover:text-red-800"
+                                                                    title="Remove"
+                                                                >
+                                                                    <X className="size-4" />
+                                                                </span>
+                                                            </button>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        )}
+                                    </div>
+                                </div>
 
 
 
-                    <div className="mt-8 flex justify-end gap-3">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => onOpenChange(false)}
-                        >
-                            Cancel
-                        </Button>
+                        <div className="mt-8 flex justify-end gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => onOpenChange(false)}
+                            >
+                                Cancel
+                            </Button>
 
-                        <Button
-                            type="submit"
-                            disabled={processing}
-                            style={{ backgroundColor: '#370001' }}
-                        >
-                            {processing ? 'Saving...' : 'Save New Data'}
-                        </Button>
+                            <Button
+                                type="submit"
+                                disabled={processing}
+                                style={{ backgroundColor: '#370001' }}
+                            >
+                                {processing ? 'Saving...' : 'Save New Data'}
+                            </Button>
+                        </div>
+                    </form>
+                </div>
+            </ScrollArea>
+        </DialogContent>
+    </Dialog>
+
+            {/* Image Lightbox */}
+            <Dialog open={!!previewFile} onOpenChange={(o) => !o && setPreviewFile(null)}>
+                <DialogContent className="w-[95vw] p-0 overflow-hidden" style={{ maxWidth: '900px' }}>
+                    <div className="flex items-center justify-between px-4 py-3 border-b">
+                        <p className="text-sm font-medium truncate pr-4">
+                            {previewFile?.file.name}
+                        </p>
+                        {previewFile?.previewUrl && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 mr-6" asChild>
+                                <a
+                                    href={previewFile.previewUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Open in new tab"
+                                >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                            </Button>
+                        )}
                     </div>
-                </form>
-            </div>
-        </ScrollArea>
-    </DialogContent>
-</Dialog>
+                    <div className="flex items-center justify-center bg-muted/30 p-4 max-h-[80vh] overflow-auto">
+                        {previewFile?.previewUrl && (
+                            <img
+                                src={previewFile.previewUrl}
+                                alt={previewFile.file.name}
+                                className="max-w-full max-h-[75vh] object-contain rounded"
+                            />
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
