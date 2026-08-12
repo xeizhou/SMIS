@@ -107,6 +107,9 @@ class IARController extends Controller
                     ->orWhere('ris_number', 'like', "%{$search}%")
                     ->orWhereHas('servePo', function ($poQuery) use ($search) {
                         $poQuery->where('item_description', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('inspectionEntries', function ($entryQuery) use ($search) {
+                        $entryQuery->where('iar_number', 'like', "%{$search}%");
                     });
             });
         });
