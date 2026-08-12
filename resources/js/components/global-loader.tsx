@@ -9,8 +9,9 @@ export function GlobalLoader() {
         let timeout: NodeJS.Timeout;
         
         const start = (event: any) => {
-            const url = event.detail?.visit?.url;
-            if (url && url.href.includes('/send-test-email')) {
+            const urlObj = event.detail?.visit?.url;
+            const urlStr = urlObj?.href || (typeof urlObj === 'string' ? urlObj : '');
+            if (urlStr.includes('/send-test-email')) {
                 // Add a small delay so very fast requests don't cause a brief flash
                 timeout = setTimeout(() => setIsLoading(true), 250);
             }
