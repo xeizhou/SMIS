@@ -327,14 +327,23 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
                                             return (
                                                 <div
                                                     key={att.id}
-                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() =>
+                                                        isImage
+                                                            ? setPreviewAttachment(att)
+                                                            : window.open(att.url, '_blank', 'noopener,noreferrer')
+                                                    }
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                            isImage
+                                                                ? setPreviewAttachment(att)
+                                                                : window.open(att.url, '_blank', 'noopener,noreferrer');
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer"
                                                 >
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => isImage && setPreviewAttachment(att)}
-                                                        className={`h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden ${isImage ? 'cursor-pointer' : 'cursor-default'}`}
-                                                        disabled={!isImage}
-                                                    >
+                                                    <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
                                                         {isImage ? (
                                                             <img
                                                                 src={att.url}
@@ -344,41 +353,18 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
                                                         ) : (
                                                             <FileIcon type={type} />
                                                         )}
-                                                    </button>
+                                                    </div>
 
                                                     <p className="flex-1 truncate text-sm">
                                                         {att.original_name}
                                                     </p>
 
-                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 shrink-0">
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="text-[10px] px-1.5 py-0 h-5 shrink-0"
+                                                    >
                                                         {getExtension(att.original_name).toUpperCase()}
                                                     </Badge>
-
-                                                    {isImage ? (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-7 w-7 shrink-0"
-                                                            onClick={() => setPreviewAttachment(att)}
-                                                        >
-                                                            <Eye className="h-3.5 w-3.5" />
-                                                        </Button>
-                                                    ) : (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-7 w-7 shrink-0"
-                                                            asChild
-                                                        >
-                                                            <a
-                                                                href={att.url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                            >
-                                                                <Eye className="h-3.5 w-3.5" />
-                                                            </a>
-                                                        </Button>
-                                                    )}
                                                 </div>
                                             );
                                         })}
@@ -393,13 +379,25 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
             </Dialog>
 
             {/* Image Lightbox */}
-            <Dialog open={!!previewAttachment} onOpenChange={(o) => !o && setPreviewAttachment(null)}>
-                <DialogContent className="w-[95vw] p-0 overflow-hidden" style={{ maxWidth: '900px' }}>
+            <Dialog
+                open={!!previewAttachment}
+                onOpenChange={(o) => !o && setPreviewAttachment(null)}
+            >
+                <DialogContent
+                    className="w-[95vw] p-0 overflow-hidden"
+                    style={{ maxWidth: '900px' }}
+                >
                     <div className="flex items-center justify-between px-4 py-3 border-b">
                         <p className="text-sm font-medium truncate pr-4">
                             {previewAttachment?.original_name}
                         </p>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 mr-6" asChild>
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 mr-6"
+                            asChild
+                        >
                             <a
                                 href={previewAttachment?.url}
                                 target="_blank"
@@ -410,6 +408,7 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
                             </a>
                         </Button>
                     </div>
+
                     <div className="flex items-center justify-center bg-muted/30 p-4 max-h-[80vh] overflow-auto">
                         {previewAttachment && (
                             <img

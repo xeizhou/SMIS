@@ -1,4 +1,4 @@
-import { Eye, Paperclip, RefreshCw, Trash2, X, File, FileImage, FileText, FileSpreadsheet, FileArchive, Check, ChevronsUpDown, Plus, Mail } from 'lucide-react';
+import { Eye, Paperclip, RefreshCw, Trash2, X, File, FileImage, FileText, FileSpreadsheet, FileArchive, Check, ChevronsUpDown, Plus, Mail, ExternalLink } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
@@ -322,6 +322,17 @@ interface Attachment {
     url: string;
 }
 
+interface StagedFile {
+    id: string;
+    file: File;
+    previewUrl: string | null;
+}
+
+interface PreviewTarget {
+    name: string;
+    url: string;
+}
+
 function getExtension(filename: string) {
     return filename.split('.').pop()?.toLowerCase() ?? '';
 }
@@ -489,24 +500,61 @@ export default function PirEditForm({
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
-    const [files, setFiles] = useState<{ id: string; file: File }[]>([]);
+    const [files, setFiles] = useState<StagedFile[]>([]);
+    const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null);
     const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
     const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        return () => {
+            files.forEach((f) => {
+                if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+            });
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) return;
         const newFiles = Array.from(e.target.files).map((file) => ({
             file,
             id: generateFileId(),
+            previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
         }));
         setFiles((prev) => [...prev, ...newFiles]);
         e.target.value = '';
     };
 
     const removeFile = (id: string) => {
-        setFiles((prev) => prev.filter((f) => f.id !== id));
+        setFiles((prev) => {
+            const target = prev.find((f) => f.id === id);
+            if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+            return prev.filter((f) => f.id !== id);
+        });
+    };
+
+    const openFilePreview = (staged: StagedFile) => {
+        const type = getFileType(staged.file.name);
+        if (type === 'image' && staged.previewUrl) {
+            setPreviewTarget({ name: staged.file.name, url: staged.previewUrl });
+        } else if (staged.previewUrl) {
+            window.open(staged.previewUrl, '_blank', 'noopener,noreferrer');
+        } else {
+            const url = URL.createObjectURL(staged.file);
+            window.open(url, '_blank', 'noopener,noreferrer');
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        }
+    };
+
+    const openExistingPreview = (att: Attachment) => {
+        const type = getFileType(att.original_name);
+        if (type === 'image') {
+            setPreviewTarget({ name: att.original_name, url: att.url });
+        } else {
+            window.open(att.url, '_blank', 'noopener,noreferrer');
+        }
     };
 
     const removeExistingAttachment = (attachmentId: number) => {
@@ -594,6 +642,9 @@ export default function PirEditForm({
                 })(),
             });
             setErrors({});
+            files.forEach((f) => {
+                if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+            });
             setFiles([]);
             setExistingAttachments(pir.attachments ?? []);
             setDeletedAttachmentIds([]);
@@ -718,14 +769,8 @@ export default function PirEditForm({
         (s) => String(s.supplier_id) === data.supplier_id
     )?.supplier_name ?? '';
 
-    // Keyed by email `type` (not a single boolean) so clicking one
-    // "Notify Office" button doesn't flip every other button's label
-    // to "Sending..." too — each button only reacts to its own type.
     const [sendingOfficeEmail, setSendingOfficeEmail] = useState<string | null>(null);
 
-    // Matches PirAddForm: sends type + po_number + supplier_name so every
-    // template (pir_created, pir_coa_received, pir_completed, etc.) has
-    // what it needs regardless of which section the button lives in.
     const sendOfficeEmail = (type: string) => {
         if (!data.unit_office) return;
         setSendingOfficeEmail(type);
@@ -791,6 +836,9 @@ export default function PirEditForm({
                         only: ['pirs'],
                         onFinish: () => {
                             onOpenChange(false);
+                            files.forEach((f) => {
+                                if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+                            });
                             setFiles([]);
                             setDeletedAttachmentIds([]);
                         },
@@ -819,9 +867,6 @@ export default function PirEditForm({
         });
     };
 
-    // "For Release" must be fully filled out before anything after it
-    // (Receipt/Item's Claimed, For Payment, Status & Remarks) can be
-    // touched — mirrors PirAddForm's lock.
     const FOR_RELEASE_FIELDS = [
         'invoice_number',
         'invoice_date',
@@ -843,9 +888,6 @@ export default function PirEditForm({
 
     const forReleaseComplete = forReleaseFieldsComplete && forReleaseInspectionComplete;
 
-    // Status is auto-derived: CANCELLED if the PO has an approved CANCELLATION
-    // letter, COMPLETED once every "For Release" field and at least one full
-    // inspection entry exists, otherwise blank.
     useEffect(() => {
         const poCancelled = poLetters.some(
             (letter) =>
@@ -882,6 +924,7 @@ export default function PirEditForm({
     })();
 
     return (
+        <>
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
                 className="w-[95vw] max-h-[95vh] overflow-hidden p-0"
@@ -1482,44 +1525,59 @@ export default function PirEditForm({
                             <div className="mt-3">
                                 <p className="text-xs font-medium text-muted-foreground mb-2">Existing Files</p>
                                 <ScrollArea className="max-h-[180px]">
-                                    <div className="space-y-1.5">
+                                    <ul className="mt-2 divide-y divide-border rounded-md border border-border">
                                         {existingAttachments.map((att) => {
                                             const type = getFileType(att.original_name);
                                             return (
-                                                <div
-                                                    key={att.id}
-                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
-                                                >
-                                                    <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
-                                                        <FileIconDisplay type={type} />
-                                                    </div>
-
-                                                    <p className="min-w-0 flex-1 truncate text-sm">
-                                                        {att.original_name}
-                                                    </p>
-
-                                                    <Badge variant="outline" className="text-[10px] h-5 shrink-0">
-                                                        {getExtension(att.original_name).toUpperCase()}
-                                                    </Badge>
-
-                                                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
-                                                        <a href={att.url} target="_blank" rel="noopener noreferrer">
-                                                            <Eye className="h-3.5 w-3.5" />
-                                                        </a>
-                                                    </Button>
-
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-7 w-7 shrink-0 text-red-500 hover:text-red-600"
-                                                        onClick={() => removeExistingAttachment(att.id)}
+                                                <li key={att.id}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openExistingPreview(att)}
+                                                        className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/50 transition-colors cursor-pointer"
                                                     >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </div>
+                                                        <div className="h-9 w-9 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                            {type === 'image' ? (
+                                                                <img
+                                                                    src={att.url}
+                                                                    alt={att.original_name}
+                                                                    className="h-full w-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <FileIconDisplay type={type} />
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="truncate text-sm">{att.original_name}</p>
+                                                            <p className="text-[11px] text-muted-foreground">
+                                                                {att.file_size ? formatBytes(att.file_size) : ''}
+                                                            </p>
+                                                        </div>
+                                                        <Badge variant="outline" className="text-[10px] h-5">
+                                                            {getExtension(att.original_name).toUpperCase()}
+                                                        </Badge>
+                                                        <span
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                removeExistingAttachment(att.id);
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                                    e.stopPropagation();
+                                                                    removeExistingAttachment(att.id);
+                                                                }
+                                                            }}
+                                                            className="shrink-0 text-red-600 hover:text-red-800"
+                                                            title="Remove"
+                                                        >
+                                                            <X className="size-4" />
+                                                        </span>
+                                                    </button>
+                                                </li>
                                             );
                                         })}
-                                    </div>
+                                    </ul>
                                 </ScrollArea>
                             </div>
                         )}
@@ -1529,47 +1587,60 @@ export default function PirEditForm({
                             <div className="mt-3">
                                 <p className="text-xs font-medium text-muted-foreground mb-2">New Files</p>
                                 <ScrollArea className="max-h-[180px]">
-                                    <div className="space-y-1.5">
-                                        {files.map(({ id, file }) => {
+                                    <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+                                        {files.map((staged) => {
+                                            const { id, file } = staged;
                                             const type = getFileType(file.name);
                                             return (
-                                                <div
-                                                    key={id}
-                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
-                                                >
-                                                    <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
-                                                        {type === 'image' ? (
-                                                            <img
-                                                                src={URL.createObjectURL(file)}
-                                                                alt={file.name}
-                                                                className="h-full w-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <FileIconDisplay type={type} />
-                                                        )}
-                                                    </div>
-
-                                                    <div className="min-w-0 flex-1">
-                                                        <p className="truncate text-sm">{file.name}</p>
-                                                        <p className="text-[11px] text-muted-foreground">{formatBytes(file.size)}</p>
-                                                    </div>
-
-                                                    <Badge variant="outline" className="text-[10px] h-5 shrink-0">
-                                                        {getExtension(file.name).toUpperCase()}
-                                                    </Badge>
-
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-7 w-7 shrink-0 text-red-500 hover:text-red-600"
-                                                        onClick={() => removeFile(id)}
+                                                <li key={id}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openFilePreview(staged)}
+                                                        className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/50 transition-colors cursor-pointer"
                                                     >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </div>
+                                                        <div className="h-9 w-9 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                            {staged.previewUrl ? (
+                                                                <img
+                                                                    src={staged.previewUrl}
+                                                                    alt={file.name}
+                                                                    className="h-full w-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <FileIconDisplay type={type} />
+                                                            )}
+                                                        </div>
+                                                        <span className="min-w-0 flex-1 truncate text-sm">
+                                                            {file.name}
+                                                        </span>
+                                                        <span className="shrink-0 text-xs text-muted-foreground">
+                                                            {formatBytes(file.size)}
+                                                        </span>
+                                                        <Badge variant="outline" className="text-[10px] h-5">
+                                                            {getExtension(file.name).toUpperCase()}
+                                                        </Badge>
+                                                        <span
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                removeFile(id);
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                                    e.stopPropagation();
+                                                                    removeFile(id);
+                                                                }
+                                                            }}
+                                                            className="shrink-0 text-red-600 hover:text-red-800"
+                                                            title="Remove"
+                                                        >
+                                                            <X className="size-4" />
+                                                        </span>
+                                                    </button>
+                                                </li>
                                             );
                                         })}
-                                    </div>
+                                    </ul>
                                 </ScrollArea>
                             </div>
                         )}
@@ -1596,5 +1667,36 @@ export default function PirEditForm({
                 </ScrollArea>
             </DialogContent>
         </Dialog>
+
+        {/* Image Lightbox */}
+        <Dialog open={!!previewTarget} onOpenChange={(o) => !o && setPreviewTarget(null)}>
+            <DialogContent className="w-[95vw] p-0 overflow-hidden" style={{ maxWidth: '900px' }}>
+                <div className="flex items-center justify-between px-4 py-3 border-b">
+                    <p className="text-sm font-medium truncate pr-4">
+                        {previewTarget?.name}
+                    </p>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 mr-6" asChild>
+                        <a
+                            href={previewTarget?.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Open in new tab"
+                        >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                    </Button>
+                </div>
+                <div className="flex items-center justify-center bg-muted/30 p-4 max-h-[80vh] overflow-auto">
+                    {previewTarget && (
+                        <img
+                            src={previewTarget.url}
+                            alt={previewTarget.name}
+                            className="max-w-full max-h-[75vh] object-contain rounded"
+                        />
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }

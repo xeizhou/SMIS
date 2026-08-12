@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState, useRef } from 'react';
-import { RefreshCw, Paperclip, X, Check, ChevronsUpDown } from 'lucide-react';
+import { RefreshCw, Paperclip, X, Check, ChevronsUpDown, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -65,6 +65,37 @@ interface FieldProps {
 
 const labelClass = 'mb-1 block text-sm text-foreground';
 const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
+
+function getExtension(filename: string) {
+    return filename.split('.').pop()?.toLowerCase() ?? '';
+}
+
+function getFileType(filename: string) {
+    const ext = getExtension(filename);
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
+    if (ext === 'pdf') return 'pdf';
+    if (['doc', 'docx'].includes(ext)) return 'word';
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return 'excel';
+    if (['zip', 'rar', '7z'].includes(ext)) return 'archive';
+    return 'file';
+}
+
+function FileIcon({ type }: { type: string }) {
+    switch (type) {
+        case 'image':
+            return <FileImage className="h-5 w-5 text-blue-500" />;
+        case 'pdf':
+            return <FileText className="h-5 w-5 text-red-500" />;
+        case 'word':
+            return <FileText className="h-5 w-5 text-blue-600" />;
+        case 'excel':
+            return <FileSpreadsheet className="h-5 w-5 text-green-600" />;
+        case 'archive':
+            return <FileArchive className="h-5 w-5 text-yellow-600" />;
+        default:
+            return <File className="h-5 w-5 text-muted-foreground" />;
+    }
+}
 
 function Field({
     label,
@@ -286,6 +317,10 @@ function daysBetween(startDate: string, endDate: string) {
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
+function generateDeliveryId() {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function formatBytes(bytes: number) {
     const kb = bytes / 1024;
     return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
@@ -297,12 +332,19 @@ function generateFileId() {
     return `file-${Date.now()}-${fileIdCounter}`;
 }
 
+interface StagedFile {
+    id: string;
+    file: File;
+    previewUrl: string | null;
+}
+
 export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, statuses }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
-    const [files, setFiles] = useState<{ id: string; file: File }[]>([]);
+    const [files, setFiles] = useState<StagedFile[]>([]);
     const [newDeliveryId, setNewDeliveryId] = useState<string | null>(null);
+    const [previewFile, setPreviewFile] = useState<StagedFile | null>(null);
 
     const [refreshingField, setRefreshingField] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -311,10 +353,24 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
         if (open) {
             setData(emptyForm);
             setErrors({});
+            files.forEach((f) => {
+                if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+            });
             setFiles([]);
-            setNewDeliveryId(null);
+            setNewDeliveryId(generateDeliveryId());
+            setPreviewFile(null);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
+
+    useEffect(() => {
+        return () => {
+            files.forEach((f) => {
+                if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+            });
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleRefreshData = (field: string) => {
         setRefreshingField(field);
@@ -405,13 +461,32 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
         const newFiles = Array.from(e.target.files).map((file) => ({
             file,
             id: generateFileId(),
+            previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
         }));
         setFiles((prev) => [...prev, ...newFiles]);
         e.target.value = '';
     };
 
     const removeFile = (id: string) => {
-        setFiles((prev) => prev.filter((f) => f.id !== id));
+        setFiles((prev) => {
+            const target = prev.find((f) => f.id === id);
+            if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+            return prev.filter((f) => f.id !== id);
+        });
+        setPreviewFile((prev) => (prev?.id === id ? null : prev));
+    };
+
+    const openFilePreview = (staged: StagedFile) => {
+        const type = getFileType(staged.file.name);
+        if (type === 'image' && staged.previewUrl) {
+            setPreviewFile(staged);
+        } else if (staged.previewUrl) {
+            window.open(staged.previewUrl, '_blank', 'noopener,noreferrer');
+        } else {
+            const url = URL.createObjectURL(staged.file);
+            window.open(url, '_blank', 'noopener,noreferrer');
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -425,6 +500,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
 
         const payload = {
             ...rest,
+            delivery_id: newDeliveryId,
             delivery_term: Number(rest.delivery_term) || 0,
             no_of_days_ld: rest.no_of_days_ld || 0,
             po_total_amount: rest.po_total_amount || (selectedPo?.total_amount_po != null ? String(selectedPo.total_amount_po) : ''),
@@ -436,18 +512,27 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
             '/deliveries',
             payload,
             {
-                onSuccess: (page) => {
-                    // Extract the newly created delivery_id from the response
-                    // The server should return it in the props or we can infer it
-                    // For now, we'll upload files if any exist
-                    if (files.length > 0) {
-                        // We need to get the delivery_id from somewhere
-                        // Option: have backend return it, or use the created timestamp
-                        // For simplicity, we'll trigger a small delay and assume success
-                        onOpenChange(false);
-                        setData(emptyForm);
-                        setErrors({});
-                        setFiles([]);
+                onSuccess: () => {
+                    if (files.length > 0 && newDeliveryId) {
+                        const formData = new FormData();
+                        files.forEach(({ file }) => formData.append('files[]', file));
+
+                        router.post(
+                            `/deliveries/${encodeURIComponent(newDeliveryId)}/attachments`,
+                            formData,
+                            {
+                                forceFormData: true,
+                                onFinish: () => {
+                                    onOpenChange(false);
+                                    setData(emptyForm);
+                                    setErrors({});
+                                    files.forEach((f) => {
+                                        if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+                                    });
+                                    setFiles([]);
+                                },
+                            }
+                        );
                     } else {
                         onOpenChange(false);
                         setData(emptyForm);
@@ -461,6 +546,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
     };
 
     return (
+        <>
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="w-[95vw] max-h-[95vh] overflow-hidden p-0" style={{ maxWidth: '1000px' }}>
                 <ScrollArea className="max-h-[95vh] w-full">
@@ -696,22 +782,53 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
 
                             {files.length > 0 && (
                                 <ul className="mt-2 divide-y divide-border rounded-md border border-border">
-                                    {files.map(({ id, file }) => (
-                                        <li key={id} className="flex items-center justify-between gap-3 px-3 py-2">
-                                            <span className="min-w-0 truncate text-sm">{file.name}</span>
-                                            <span className="shrink-0 text-xs text-muted-foreground">
-                                                {formatBytes(file.size)}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeFile(id)}
-                                                className="shrink-0 text-red-600 hover:text-red-800"
-                                                title="Remove"
-                                            >
-                                                <X className="size-4" />
-                                            </button>
-                                        </li>
-                                    ))}
+                                    {files.map((staged) => {
+                                        const { id, file } = staged;
+                                        const type = getFileType(file.name);
+                                        return (
+                                            <li key={id}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openFilePreview(staged)}
+                                                    className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/50 transition-colors cursor-pointer"
+                                                >
+                                                    <div className="h-9 w-9 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                        {staged.previewUrl ? (
+                                                            <img
+                                                                src={staged.previewUrl}
+                                                                alt={file.name}
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <FileIcon type={type} />
+                                                        )}
+                                                    </div>
+                                                    <span className="min-w-0 flex-1 truncate text-sm">{file.name}</span>
+                                                    <span className="shrink-0 text-xs text-muted-foreground">
+                                                        {formatBytes(file.size)}
+                                                    </span>
+                                                    <span
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            removeFile(id);
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                                e.stopPropagation();
+                                                                removeFile(id);
+                                                            }
+                                                        }}
+                                                        className="shrink-0 text-red-600 hover:text-red-800"
+                                                        title="Remove"
+                                                    >
+                                                        <X className="size-4" />
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             )}
                         </div>
@@ -730,5 +847,38 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                 </ScrollArea>
             </DialogContent>
         </Dialog>
+
+        {/* Image Lightbox */}
+        <Dialog open={!!previewFile} onOpenChange={(o) => !o && setPreviewFile(null)}>
+            <DialogContent className="w-[95vw] p-0 overflow-hidden" style={{ maxWidth: '900px' }}>
+                <div className="flex items-center justify-between px-4 py-3 border-b">
+                    <p className="text-sm font-medium truncate pr-4">
+                        {previewFile?.file.name}
+                    </p>
+                    {previewFile?.previewUrl && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 mr-6" asChild>
+                            <a
+                                href={previewFile.previewUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Open in new tab"
+                            >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                        </Button>
+                    )}
+                </div>
+                <div className="flex items-center justify-center bg-muted/30 p-4 max-h-[80vh] overflow-auto">
+                    {previewFile?.previewUrl && (
+                        <img
+                            src={previewFile.previewUrl}
+                            alt={previewFile.file.name}
+                            className="max-w-full max-h-[75vh] object-contain rounded"
+                        />
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }

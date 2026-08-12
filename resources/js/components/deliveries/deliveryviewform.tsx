@@ -204,58 +204,31 @@ export default function DeliveryViewForm({ open, onOpenChange, delivery }: Props
                                         {attachments.map((att) => {
                                             const type = getFileType(att.original_name);
                                             const isImage = type === "image";
+
                                             return (
                                                 <div
                                                     key={att.id}
-                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => (isImage ? setPreviewAttachment(att) : window.open(att.url, '_blank', 'noopener,noreferrer'))}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                            isImage ? setPreviewAttachment(att) : window.open(att.url, '_blank', 'noopener,noreferrer');
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer"
                                                 >
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => isImage && setPreviewAttachment(att)}
-                                                        className={`h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden ${isImage ? 'cursor-pointer' : 'cursor-default'}`}
-                                                        disabled={!isImage}
-                                                    >
+                                                    <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
                                                         {isImage ? (
-                                                            <img
-                                                                src={att.url}
-                                                                alt={att.original_name}
-                                                                className="h-full w-full object-cover"
-                                                            />
+                                                            <img src={att.url} alt={att.original_name} className="h-full w-full object-cover" />
                                                         ) : (
                                                             <FileIcon type={type} />
                                                         )}
-                                                    </button>
-                                                    <p className="flex-1 truncate text-sm">
-                                                        {att.original_name}
-                                                    </p>
+                                                    </div>
+                                                    <p className="flex-1 truncate text-sm">{att.original_name}</p>
                                                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 shrink-0">
                                                         {getExtension(att.original_name).toUpperCase()}
                                                     </Badge>
-                                                    {isImage ? (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-7 w-7 shrink-0"
-                                                            onClick={() => setPreviewAttachment(att)}
-                                                        >
-                                                            <Eye className="h-3.5 w-3.5" />
-                                                        </Button>
-                                                    ) : (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-7 w-7 shrink-0"
-                                                            asChild
-                                                        >
-                                                            <a
-                                                                href={att.url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                            >
-                                                                <Eye className="h-3.5 w-3.5" />
-                                                            </a>
-                                                        </Button>
-                                                    )}
                                                 </div>
                                             );
                                         })}
