@@ -28,7 +28,7 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
-
+import { toDateInputValue, daysBetween } from '@/lib/date';
 interface Attachment {
     id: number;
     original_name: string;
@@ -358,24 +358,6 @@ const emptyForm = {
     po_total_amount: '',
     folder_link: '',
 };
-
-function toDateInputValue(value: string | null) {
-    if (!value) return '';
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (match) return match[1];
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return '';
-    return parsed.toISOString().slice(0, 10);
-}
-
-function daysBetween(startDate: string, endDate: string) {
-    if (!startDate || !endDate) return 0;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diff = end.getTime() - start.getTime();
-    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-}
 
 function formatBytes(bytes: number) {
     const kb = bytes / 1024;

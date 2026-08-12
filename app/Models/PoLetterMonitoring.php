@@ -9,10 +9,11 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\ServePo;
 use App\Traits\LogsActivity;
+use App\Traits\SerializesDatesWithoutTimezoneShift;
 
 class PoLetterMonitoring extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift;
 
     const LOG_NAME = 'PO Letter Monitoring';
 

@@ -27,14 +27,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::firstOrCreate([
-            'email' => 'admin@gmail.com',
-        ], [
-            'name' => 'Admin',
-            'password' => Hash::make('12345678'),
-            'role' => 'admin',
-        ]);
-
         // Order matters — parents before children. Create only when empty to be idempotent.
         if (FundCluster::count() === 0) {
             $fundClusters = FundCluster::factory(5)->create();
