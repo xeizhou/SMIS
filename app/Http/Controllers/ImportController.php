@@ -6,6 +6,7 @@ use App\Models\StockItem;
 use App\Models\Transaction;
 use App\Models\Unit;
 use App\Models\Office;
+use App\Models\FundCluster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -53,6 +54,13 @@ class ImportController extends Controller
             'office_code' => true,
             'fund_cluster' => true,
         ],
+        'offices' => [
+            'office_code' => true,
+            'office_name' => true,
+            'entity_name' => false,
+            'office_head' => false,
+            'email' => false,
+        ],
     ];
 
     /**
@@ -65,7 +73,7 @@ class ImportController extends Controller
      */
     private const ALIASES = [
         'unit_name' => ['name', 'unit'],
-        'unit_short_name' => ['short', 'short_name', 'abbreviation', 'abbr', 'symbol'],
+        'unit_short_name' => ['short', 'short_name', 'abbreviation', 'abbr', 'symbol', 'unit'],
         'item_name' => ['name', 'item'],
         'stock_no' => ['stock', 'stock_number', 'stockno', 'code', 'item_code'],
         'description' => ['desc'],
@@ -73,7 +81,10 @@ class ImportController extends Controller
         'transaction_type' => ['type'],
         'transaction_date' => ['date'],
         'reference' => ['ref', 'ref_no', 'reference_no'],
-        'office_code' => ['office'],
+        'office_code' => ['office', 'code', 'short'],
+        'office_name' => ['name'],
+        'office_head' => ['head', 'chief', 'director'],
+        'entity_name' => ['entity'],
         'fund_cluster' => ['fund', 'fund_cluster_id'],
     ];
 
@@ -184,6 +195,57 @@ class ImportController extends Controller
     }
 
     /**
+     * POST /import/offices
+     */
+    public function offices(Request $request)
+    {
+        return $this->handleImport($request, 'offices', function (array $rows, bool $merge) {
+            $created = 0;
+            $updated = 0;
+            $skipped = [];
+
+            foreach ($rows as $i => $row) {
+                $validator = Validator::make($row, [
+                    'office_code' => 'required|string|max:20',
+                    'office_name' => 'required|string|max:255',
+                    'entity_name' => 'nullable|string|max:255',
+                    'office_head' => 'nullable|string|max:150',
+                    'email' => 'nullable|email|max:255',
+                ]);
+
+                if ($validator->fails()) {
+                    $skipped[] = "Row {$this->rowLabel($i)}: " . $validator->errors()->first();
+                    continue;
+                }
+
+                $existing = Office::where('office_code', $row['office_code'])->first();
+
+                if ($existing && ! $merge) {
+                    $skipped[] = "Row {$this->rowLabel($i)}: office '{$row['office_code']}' already exists (merge is off).";
+                    continue;
+                }
+
+                $attrs = [
+                    'office_name' => $row['office_name'],
+                    'entity_name' => $row['entity_name'] ?? null,
+                    'office_head' => $row['office_head'] ?? null,
+                    'email' => $row['email'] ?? null,
+                ];
+
+                if ($existing) {
+                    $existing->update($attrs);
+                    $updated++;
+                } else {
+                    Office::create(['office_code' => $row['office_code'], ...$attrs]);
+                    $created++;
+                }
+            }
+
+            return [$created, $updated, $skipped];
+        });
+    }
+
+    /**
      * POST /import/transactions
      *
      * Transactions are always additive (there's no natural unique key to
@@ -234,9 +296,28 @@ class ImportController extends Controller
                 $office = Office::where('office_code', $row['office_code'])
                     ->orWhere('office_name', $row['office_code'])
                     ->first();
+
                 if (! $office) {
-                    $skipped[] = "Row {$this->rowLabel($i)}: office '{$row['office_code']}' not found.";
-                    continue;
+                    if (! $merge) {
+                        $skipped[] = "Row {$this->rowLabel($i)}: office '{$row['office_code']}' not found.";
+                        continue;
+                    }
+                    $office = $this->findOrCreateOffice($row['office_code']);
+                }
+
+                // fund_cluster: value may already be a fund_cluster_id
+                // ("01-RAF"), or could reference one that doesn't exist
+                // in this database yet.
+                $fundCluster = FundCluster::where('fund_cluster_id', $row['fund_cluster'])->first();
+                if (! $fundCluster) {
+                    if (! $merge) {
+                        $skipped[] = "Row {$this->rowLabel($i)}: fund cluster '{$row['fund_cluster']}' not found.";
+                        continue;
+                    }
+                    $fundCluster = FundCluster::create([
+                        'fund_cluster_id' => $row['fund_cluster'],
+                        'fund_description' => $row['fund_cluster'],
+                    ]);
                 }
 
                 if (! empty($row['stock_no']) && ! StockItem::where('stock_no', $row['stock_no'])->exists()) {
@@ -259,7 +340,7 @@ class ImportController extends Controller
                     'reference' => $row['reference'],
                     'quantity' => $row['quantity'],
                     'office_code' => $office->office_code,
-                    'fund_cluster' => $row['fund_cluster'],
+                    'fund_cluster' => $fundCluster->fund_cluster_id,
                 ]);
                 $created++;
             }
@@ -303,6 +384,7 @@ class ImportController extends Controller
             'items' => ['STK-0001', 'Bond Paper A4', 'Substance 20', 10, 'REAM'],
             'units' => ['Ream', 'REAM'],
             'transactions' => ['RECEIVE', now()->format('Y-m-d'), 'STK-0001', 'Bond Paper A4', 'Substance 20', 'REAM', 'DR-0001', 50, 'OFC-01', '101'],
+            'offices' => ['OFC-01', 'Supply Management Unit', 'University of Southeastern Philippines', 'Juan Dela Cruz', 'smu@usep.edu.ph'],
         };
     }
 
@@ -347,9 +429,16 @@ class ImportController extends Controller
         $message = "Import complete: {$created} created, {$updated} updated";
         if (! empty($skipped)) {
             $message .= ', ' . count($skipped) . ' row(s) skipped.';
+            // Fold the first few reasons into the same message string using
+            // a delimiter the frontend splits on. A separate flash key
+            // (e.g. 'import_skipped') isn't reliable here because this
+            // app's Inertia middleware only shares specific known flash
+            // keys ('success'/'error'), not arbitrary ones.
+            $preview = array_slice($skipped, 0, 10);
+            $message .= '|||' . implode('|||', $preview);
         }
 
-        return back()->with('success', $message)->with('import_skipped', array_slice($skipped, 0, 20));
+        return back()->with('success', $message);
     }
 
     /**
@@ -509,6 +598,57 @@ class ImportController extends Controller
         }
 
         return (string) $value;
+    }
+
+    /**
+     * Resolves an office value that could be a code or a full name into
+     * an Office record, creating one if it doesn't exist yet (only
+     * called when merge is on). If the value looks like a name rather
+     * than a short code, a code is derived from its initials.
+     */
+    private function findOrCreateOffice(string $value): Office
+    {
+        $looksLikeCode = (bool) preg_match('/^[A-Z0-9][A-Z0-9\-]{1,14}$/', $value);
+
+        if ($looksLikeCode) {
+            return Office::firstOrCreate(
+                ['office_code' => $value],
+                ['office_name' => $value]
+            );
+        }
+
+        $code = $this->deriveOfficeCode($value);
+
+        return Office::firstOrCreate(
+            ['office_name' => $value],
+            ['office_code' => $code]
+        );
+    }
+
+    private function deriveOfficeCode(string $name): string
+    {
+        $stopwords = ['and', 'of', 'the', 'for', 'a', 'an'];
+        $words = preg_split('/\s+/', trim($name));
+        $initials = '';
+
+        foreach ($words as $word) {
+            $clean = preg_replace('/[^A-Za-z]/', '', $word);
+            if ($clean === '' || in_array(strtolower($clean), $stopwords, true)) {
+                continue;
+            }
+            $initials .= strtoupper($clean[0]);
+        }
+
+        $base = 'OFC-' . ($initials !== '' ? $initials : 'GEN');
+        $code = $base;
+        $suffix = 1;
+
+        while (Office::where('office_code', $code)->exists()) {
+            $suffix++;
+            $code = "{$base}{$suffix}";
+        }
+
+        return $code;
     }
 
     private function rowLabel(int $zeroBasedIndex): int
