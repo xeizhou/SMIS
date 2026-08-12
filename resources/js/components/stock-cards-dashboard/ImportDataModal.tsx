@@ -1,6 +1,6 @@
 import { useState, useRef, FormEvent } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { UploadCloud, Download, Loader2, Package, Ruler, Receipt, FileSpreadsheet, FileJson } from 'lucide-react';
+import { UploadCloud, Download, Loader2, Package, Ruler, Receipt, Building2, FileSpreadsheet, FileJson } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 const BRAND = '#612A35';
 
-type DataType = 'items' | 'units' | 'transactions';
+type DataType = 'items' | 'units' | 'transactions' | 'offices';
 type FileFormat = 'xlsx' | 'json';
 
 const DATA_TYPE_OPTIONS: { value: DataType; label: string; description: string; icon: React.ReactNode }[] = [
@@ -37,20 +37,28 @@ const DATA_TYPE_OPTIONS: { value: DataType; label: string; description: string; 
         description: 'Import transaction history (receipts and issues)',
         icon: <Receipt className="size-4" />,
     },
+    {
+        value: 'offices',
+        label: 'Offices',
+        description: 'Import office directory: code, name, entity, head, and email',
+        icon: <Building2 className="size-4" />,
+    },
 ];
 
 // Matches routes/web.php: import.template/{type}, import.items,
-// import.units, import.transactions (see ImportController).
+// import.units, import.transactions, import.offices (see ImportController).
 const TEMPLATE_ROUTES: Record<DataType, string> = {
     items: '/import/template/items',
     units: '/import/template/units',
     transactions: '/import/template/transactions',
+    offices: '/import/template/offices',
 };
 
 const IMPORT_ROUTES: Record<DataType, string> = {
     items: '/import/items',
     units: '/import/units',
     transactions: '/import/transactions',
+    offices: '/import/offices',
 };
 
 export default function ImportDataModal({
@@ -113,8 +121,8 @@ export default function ImportDataModal({
             onSuccess: (page) => {
                 setSubmitting(false);
                 const flash = (page.props as any)?.flash ?? page.props;
-                const message = flash?.success ?? 'Import complete.';
-                const skipped = flash?.import_skipped ?? [];
+                const raw = flash?.success ?? 'Import complete.';
+                const [message, ...skipped] = raw.split('|||');
                 setSummary({ message, skipped });
                 setFile(null);
                 if (fileInputRef.current) fileInputRef.current.value = '';

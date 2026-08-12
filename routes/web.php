@@ -526,6 +526,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/import/items', [ImportController::class, 'items'])->name('import.items');
     Route::post('/import/units', [ImportController::class, 'units'])->name('import.units');
     Route::post('/import/transactions', [ImportController::class, 'transactions'])->name('import.transactions');
+    Route::post('/import/offices', [ImportController::class, 'offices'])->name('import.offices');
 
     // ==========================================================
     // System/Administration (sidebar: "System/Administration")
