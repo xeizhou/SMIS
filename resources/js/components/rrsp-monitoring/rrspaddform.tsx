@@ -246,12 +246,12 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                                                     <SelectValue placeholder="Select status" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="Serviceable">Serviceable</SelectItem>
-                                                    <SelectItem value="Unserviceable">Unserviceable</SelectItem>
+                                                    <SelectItem value="SERVICEABLE">SERVICEABLE</SelectItem>
+                                                    <SelectItem value="UNSERVICEABLE">UNSERVICEABLE</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                        {item.status === 'Unserviceable' && (
+                                        {item.status === 'UNSERVICEABLE' && (
                                             <div className="space-y-1.5 md:col-span-4">
                                                 <Label htmlFor={`item-${index}-remarks`}>Remarks / Findings</Label>
                                                 <Textarea

@@ -320,8 +320,8 @@ export default function ForDisposalEditForm({
         const selectedPre = preRepairs.find((pre) => pre.pre_repair_no === value);
         if (selectedPre) {
             let condition = selectedPre.condition_of_ppe || '';
-            if (condition.toLowerCase() === 'serviceable') condition = 'Serviceable';
-            if (condition.toLowerCase() === 'unserviceable') condition = 'Unserviceable';
+            if (condition.toLowerCase() === 'serviceable') condition = 'SERVICEABLE';
+            if (condition.toLowerCase() === 'unserviceable') condition = 'UNSERVICEABLE';
 
             setData({
                 ...data,
@@ -458,14 +458,14 @@ export default function ForDisposalEditForm({
                                                 <SelectValue placeholder="Select Condition" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="Serviceable">Serviceable</SelectItem>
-                                                <SelectItem value="Unserviceable">Unserviceable</SelectItem>
+                                                <SelectItem value="SERVICEABLE">SERVICEABLE</SelectItem>
+                                                <SelectItem value="UNSERVICEABLE">UNSERVICEABLE</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
                                     </div>
                                     
-                                    {data.condition_of_ppe === 'Unserviceable' && (
+                                    {data.condition_of_ppe === 'UNSERVICEABLE' && (
                                         <div className="md:col-span-2 lg:col-span-4">
                                             <TextareaField
                                                 label="Remarks / Findings"

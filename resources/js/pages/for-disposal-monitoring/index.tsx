@@ -145,8 +145,8 @@ export default function Index({ data = { data: [], links: [] }, filters = {}, pr
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Filter by Condition</SelectItem>
-                                <SelectItem value="Serviceable">Serviceable</SelectItem>
-                                <SelectItem value="Unserviceable">Unserviceable</SelectItem>
+                                <SelectItem value="SERVICEABLE">SERVICEABLE</SelectItem>
+                                <SelectItem value="UNSERVICEABLE">UNSERVICEABLE</SelectItem>
                             </SelectContent>
                         </Select>
                         <Button type="submit" variant="secondary">

@@ -129,7 +129,7 @@ return (
                                     <Detail label="Kind of Semi-Expendable" value={item.kindOfSemiExpendable ?? '—'} />
                                     <Detail label="Area" value={item.area ?? '—'} />
                                     <Detail label="Status" value={<StatusBadge status={item.status} />} />
-                                    {item.status === 'Unserviceable' && (
+                                    {item.status === 'UNSERVICEABLE' && (
                                         <div className="sm:col-span-4 mt-2">
                                             <Detail label="Remarks / Findings" value={item.remarks ?? '—'} />
                                         </div>

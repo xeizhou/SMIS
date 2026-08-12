@@ -64,7 +64,7 @@ interface Props {
     filters: Filters;
 }
 
-const STATUS_OPTIONS = ['Serviceable', 'Unserviceable'];
+const STATUS_OPTIONS = ['SERVICEABLE', 'UNSERVICEABLE'];
 
 function formatCurrency(value: number | null) {
     if (value === null) {
