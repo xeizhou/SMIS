@@ -37,7 +37,7 @@ export function DayCell({ cell, events, eventPositions }: IProps) {
           {day}
         </span>
 
-        <div className={cn("flex h-6 gap-1 px-2 lg:h-[94px] lg:flex-col lg:gap-2 lg:px-0", !currentMonth && "opacity-50")}>
+        <div className={cn("flex h-6 gap-1 px-2 lg:h-24 lg:flex-col lg:gap-2 lg:px-0", !currentMonth && "opacity-50")}>
           {[0, 1, 2].map(position => {
             const event = cellEvents.find(e => e.position === position);
             const eventKey = event ? `event-${event.id}-${position}` : `empty-${position}`;

@@ -174,7 +174,7 @@ export function ClientContainer({ deliveries = [] }: { deliveries?: DueDelivery[
   }, [filteredEvents]);
 
   return (
-    <div className="overflow-x-auto overflow-y-hidden rounded-xl border">
+    <div className="overflow-x-auto rounded-xl border">
       <CalendarHeader events={events} />
 
       <Suspense fallback={<ViewLoadingFallback />}>

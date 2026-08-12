@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useMemo } from "react";
+import { Users } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AvatarGroup } from "@/components/ui/avatar-group";
@@ -34,15 +35,10 @@ export function UserSelect({ events }: IProps) {
 
       <SelectContent align="end">
         <SelectItem value="all">
-          <div className="flex items-center gap-1">
-            <AvatarGroup max={2}>
-              {users.map(user => (
-                <Avatar key={user.id} className="size-6 text-xxs">
-                  <AvatarImage src={user.picturePath ?? undefined} alt={user.name} />
-                  <AvatarFallback className="text-xxs">{user.name[0]}</AvatarFallback>
-                </Avatar>
-              ))}
-            </AvatarGroup>
+          <div className="flex items-center gap-2">
+            <div className="flex size-6 items-center justify-center rounded-full bg-muted">
+               <Users className="size-3.5 text-muted-foreground" />
+            </div>
             {t("userSelect.all")}
           </div>
         </SelectItem>
