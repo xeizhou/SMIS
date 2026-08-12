@@ -104,8 +104,8 @@ type Props = {
 };
 
 const STATUS_STYLES: Record<StockItem['status'], string> = {
-    ok: 'bg-emerald-100 text-emerald-700',
-    low: 'bg-amber-100 text-amber-700',
+    ok: 'bg-green-100 text-green-700',
+    low: 'bg-yellow-100 text-yellow-700',
     out: 'bg-red-100 text-red-700',
 };
 
@@ -233,8 +233,8 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
     }, [movementData]);
 
     const TYPE_STYLES: Record<Transaction['transaction_type'], string> = {
-        RECEIVE: 'bg-emerald-100 text-emerald-700',
-        ISSUE: 'bg-amber-100 text-amber-700',
+        RECEIVE: 'bg-green-100 text-green-700',
+        ISSUE: 'bg-yellow-100 text-yellow-700',
     };
 
     const TYPE_ICON: Record<Transaction['transaction_type'], React.ReactNode> = {

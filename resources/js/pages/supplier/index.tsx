@@ -282,7 +282,7 @@ export default function Index({
                                                 className={
                                                     supplier.status === 'active'
                                                         ? 'inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                        : 'inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                                        : 'inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                                                 }
                                             >
                                                 {supplier.status.charAt(0).toUpperCase() + supplier.status.slice(1)}

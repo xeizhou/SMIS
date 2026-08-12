@@ -12,22 +12,16 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
 
     const normalized = status.trim().toUpperCase();
 
-    let colorStyles = 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+    let colorStyles = 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
 
-    if (normalized === 'UNSERVICEABLE' || normalized === 'CANCELLED' || normalized === 'STOLEN' || normalized === 'LOST') {
+    if (normalized === 'UNSERVICEABLE' || normalized === 'CANCELLED' || normalized === 'STOLEN' || normalized === 'LOST' || normalized === 'DISPOSED' || normalized === 'DISAPPROVED') {
         colorStyles = 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800/60';
-    } else if (normalized === 'SERVICEABLE' || normalized === 'COMPLETE' || normalized === 'APPROVED') {
-        colorStyles = 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800/60';
-    } else if (normalized === 'IN USE' || normalized === 'IN-USE' || normalized === 'PENDING') {
-        colorStyles = 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800/60';
-    } else if (normalized === 'FOR REPAIR' || normalized === 'FOR-REPAIR' || normalized === 'PRE-REPAIR' || normalized === 'PARTIAL') {
-        colorStyles = 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800/60';
-    } else if (normalized === 'DISPOSED') {
-        colorStyles = 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-400 dark:border-purple-800/60';
-    } else if (normalized === 'IDLE') {
-        colorStyles = 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
-    } else if (normalized === 'TRANSFERRED' || normalized === 'RETURNED') {
-        colorStyles = 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-800/60';
+    } else if (normalized === 'SERVICEABLE' || normalized === 'ACTIVE' || normalized === 'COMPLETE' || normalized === 'COMPLETED' || normalized === 'APPROVED' || normalized === 'IN USE' || normalized === 'IN-USE' || normalized === 'RECEIVE' || normalized === 'OK') {
+        colorStyles = 'bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800/60';
+    } else if (normalized === 'INACTIVE' || normalized === 'FOR REPAIR' || normalized === 'FOR-REPAIR' || normalized === 'PRE-REPAIR' || normalized === 'PARTIAL' || normalized === 'ISSUE' || normalized === 'LOW') {
+        colorStyles = 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/50 dark:text-yellow-400 dark:border-yellow-800/60';
+    } else if (normalized === 'PENDING' || normalized === 'IDLE' || normalized === 'TRANSFERRED' || normalized === 'RETURNED') {
+        colorStyles = 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
     }
 
     return (

@@ -185,9 +185,9 @@ export default function NoticeOfDeliveryReport({
         switch (normalized) {
             case 'COMPLETE':
             case 'COMPLETED':
-                return `inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 dark:bg-emerald-500/20 border border-emerald-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
+                return `inline-flex items-center gap-1 bg-green-500/15 text-green-700 dark:text-green-300 dark:bg-green-500/20 border border-green-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
             default:
-                return `inline-flex items-center gap-1 bg-neutral-500/15 text-neutral-700 dark:text-neutral-300 dark:bg-neutral-500/20 border border-neutral-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
+                return `inline-flex items-center gap-1 bg-gray-500/15 text-gray-700 dark:text-gray-300 dark:bg-gray-500/20 border border-gray-500/30 font-bold ${badgeSize} rounded-full tracking-wide shadow-sm`;
         }
     };
 
