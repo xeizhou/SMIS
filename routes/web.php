@@ -25,6 +25,7 @@ use App\Http\Controllers\UnitsController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\StockItemDashboardController;
 use App\Http\Controllers\StockReportsController;
+use App\Http\Controllers\ImportController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -520,6 +521,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/stock-reports', [StockReportsController::class, 'index'])->name('stock-reports.index');
     Route::get('/stock-reports/print', [StockReportsController::class, 'printPdf'])->name('stock-reports.print');
     Route::get('/stock-reports/export-excel', [StockReportsController::class, 'exportExcel'])->name('stock-reports.export-excel');
+
+    Route::get('/import/template/{type}', [ImportController::class, 'template'])->name('import.template');
+    Route::post('/import/items', [ImportController::class, 'items'])->name('import.items');
+    Route::post('/import/units', [ImportController::class, 'units'])->name('import.units');
+    Route::post('/import/transactions', [ImportController::class, 'transactions'])->name('import.transactions');
 
     // ==========================================================
     // System/Administration (sidebar: "System/Administration")
