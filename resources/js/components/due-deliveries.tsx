@@ -88,13 +88,26 @@ function daysUntil(dateStr: string) {
             cardStyle: 'border-l-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/30',
             textStyle: 'text-indigo-600 dark:text-indigo-400 font-medium'
         };
+    }    // Due within 7 days
+    if (diff <= 7) {
+        return {
+            text: `Due in ${diff} days`,
+            cardStyle:'border-l-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/30',
+            textStyle:'text-indigo-600 dark:text-indigo-400 font-medium'
+        };
     }
 
-    return { 
-        text: `Due in ${diff} days`, 
-        cardStyle: 'border-l-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/30',
-        textStyle: 'text-emerald-600 dark:text-emerald-400 font-medium'
-    };
+    // Due within 14 days
+    if (diff <= 14) {
+        return {
+            text: `Due in ${diff} days`,
+            cardStyle:'border-l-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/30',
+            textStyle:'text-emerald-600 dark:text-emerald-400 font-medium'
+        };
+    }
+
+    // More than 14 days away
+    return null;
 }
 
 export function DueDeliveries({ deliveries }: Props) {
@@ -119,8 +132,11 @@ export function DueDeliveries({ deliveries }: Props) {
 
             <TooltipProvider delayDuration={200}>
                 {data.map((item) => {
+                    const status = daysUntil(item.due_date);
+                    if (!status) return null;
+
+                    const { text, cardStyle, textStyle } = status;
                     const { day, month } = formatDayMonth(item.due_date);
-                    const { text, cardStyle, textStyle } = daysUntil(item.due_date);
 
                     return (
                         <Tooltip key={item.delivery_id}>

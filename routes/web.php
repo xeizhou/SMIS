@@ -84,6 +84,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     'diff_days' => $diffDays,
                     'due_date' => $due ? $due->format('Y-m-d') : null,
                     'due_date_formatted' => $due ? $due->format('M d, Y') : null,
+                    'status' => $delivery->status,
                 ];
             });
 

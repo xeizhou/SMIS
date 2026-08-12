@@ -7,6 +7,7 @@ import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { GlobalLoader } from '@/components/global-loader';
 import "@/lib/i18n";
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
@@ -39,13 +40,12 @@ createInertiaApp({
                 <TooltipProvider delayDuration={0}>
                     {app}
                     <Toaster />
+                    <GlobalLoader />
                 </TooltipProvider>
             </QueryClientProvider>
         );
     },
-    progress: {
-        color: '#4B5563',
-    },
+    progress: false,
 });
 
 // This will set light / dark mode on load...
