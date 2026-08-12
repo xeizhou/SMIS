@@ -8,9 +8,12 @@ export function GlobalLoader() {
     useEffect(() => {
         let timeout: NodeJS.Timeout;
         
-        const start = () => {
-            // Add a small delay so very fast requests don't cause a brief flash
-            timeout = setTimeout(() => setIsLoading(true), 250);
+        const start = (event: any) => {
+            const url = event.detail?.visit?.url;
+            if (url && url.href.includes('/send-test-email')) {
+                // Add a small delay so very fast requests don't cause a brief flash
+                timeout = setTimeout(() => setIsLoading(true), 250);
+            }
         };
         
         const stop = () => {
