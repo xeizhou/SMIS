@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -17,6 +18,7 @@ import {
     FileText,
     FileSpreadsheet,
     FileArchive,
+    ExternalLink,
 } from "lucide-react";
 
 interface Supplier {
@@ -149,151 +151,202 @@ function formatDate(value: string | null) {
 }
 
 export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrder }: Props) {
+    const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
+
     if (!purchaseOrder) return null;
 
     const po = purchaseOrder;
     const attachments = po.attachments ?? [];
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-h-[90vh] overflow-hidden p-0" style={{ maxWidth: '800px' }}>
-                <ScrollArea className="max-h-[95vh] w-full">
-                    <div className="p-6">
-                <DialogHeader>
-                    <DialogTitle>Purchase Order Details — {po.po_number}</DialogTitle>
-                </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent className="w-[95vw] max-h-[95vh] overflow-hidden p-0" style={{ maxWidth: '800px' }}>
+                    <ScrollArea className="max-h-[95vh] w-full">
+                        <div className="p-6">
+                    <DialogHeader>
+                        <DialogTitle>Purchase Order Details — {po.po_number}</DialogTitle>
+                    </DialogHeader>
 
-                <div className="mt-2 space-y-6">
-                    <section>
-                        <p className={sectionTitleClass}>Order Information</p>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                            <Detail label="PO Number" value={po.po_number} />
-                            <Detail label="PO Date" value={formatDate(po.po_date)} />
-                            <Detail label="PO Received Date" value={formatDate(po.po_received_date)} />
-                            <Detail label="Due Date" value={formatDate(po.due_date)} />
-                            <Detail label="Inclusive Date" value={po.inclusive_date ?? '—'} />
-                            <Detail label="Mode of Procurement" value={po.mode_of_procurement ?? '—'} />
-                        </div>
-                        <div className="mt-4">
-                            <p className={labelClass}>Item Description</p>
-                            <p className={valueClass + ' whitespace-pre-wrap'}>{po.item_description ?? '—'}</p>
-                        </div>
-                    </section>
-
-                    <section>
-                        <p className={sectionTitleClass}>Requisition & Reference</p>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                            <Detail label="PR No." value={po.pr_number ?? '—'} />
-                            <Detail label="PR Date" value={formatDate(po.pr_date)} />
-                            <Detail label="Philgeps Reference No." value={po.philgeps_reference_no ?? '—'} />
-                        </div>
-                    </section>
-
-                    <section>
-                        <p className={sectionTitleClass}>Financial Details</p>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                            <Detail label="Total Amount ABC" value={formatCurrency(po.total_amount_abc)} />
-                            <Detail label="Total Amount PO" value={formatCurrency(po.total_amount_po)} />
-                            <Detail label="Total Amount Difference" value={formatCurrency(po.total_amount_diff)} />
-                            <Detail label="Fund Cluster" value={po.fundCluster?.fund_cluster_id ?? po.fund_cluster_id ?? '—'} />
-                            <Detail label="ORS/BURS No." value={po.ors_burs_no ?? '—'} />
-                            <Detail label="ORS/BURS Date" value={formatDate(po.ors_burs_date)} />
-                            <Detail label="Responsibility Center" value={po.responsibility_center ?? '—'} />
-                            <Detail label="UACS Object Code" value={po.uacs_object_code ?? '—'} />
-                        </div>
-                    </section>
-
-                    <section>
-                        <p className={sectionTitleClass}>Supplier & End User</p>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                            <Detail label="Supplier" value={po.supplier?.supplier_name ?? '—'} />
-                            <Detail label="End User" value={po.office?.office_name ?? po.end_user ?? '—'} />
-                        </div>
-                    </section>
-
-                    <section>
-                        <p className={sectionTitleClass}>Processing Trail</p>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                            <Detail label="Date Forwarded to SMU" value={formatDate(po.date_forwarded_to_smu)} />
-                            <Detail label="COA Processed Date" value={formatDate(po.coa_processed_date)} />
-                            <Detail label="Date Forwarded to Frontdesk" value={formatDate(po.date_forwarded_frontdesk)} />
-                        </div>
-                    </section>
-
-                    <section className="border-t pt-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
-                                Attachments
-                            </h3>
-
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
-                                {attachments.length}
-                            </Badge>
-                        </div>
-
-                        {attachments.length === 0 ? (
-                            <div className="flex items-center gap-2 rounded-md border border-dashed py-4 px-3 text-sm text-muted-foreground">
-                                <File className="h-4 w-4" />
-                                No attachments uploaded.
+                    <div className="mt-2 space-y-6">
+                        <section>
+                            <p className={sectionTitleClass}>Order Information</p>
+                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                <Detail label="PO Number" value={po.po_number} />
+                                <Detail label="PO Date" value={formatDate(po.po_date)} />
+                                <Detail label="PO Received Date" value={formatDate(po.po_received_date)} />
+                                <Detail label="Due Date" value={formatDate(po.due_date)} />
+                                <Detail label="Inclusive Date" value={po.inclusive_date ?? '—'} />
+                                <Detail label="Mode of Procurement" value={po.mode_of_procurement ?? '—'} />
                             </div>
-                        ) : (
-                            <ScrollArea className="max-h-[220px]">
-                                <div className="space-y-1.5 pr-2">
-                                    {attachments.map((att) => {
-                                        const type = getFileType(att.original_name);
+                            <div className="mt-4">
+                                <p className={labelClass}>Item Description</p>
+                                <p className={valueClass + ' whitespace-pre-wrap'}>{po.item_description ?? '—'}</p>
+                            </div>
+                        </section>
 
-                                        return (
-                                            <div
-                                                key={att.id}
-                                                className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
-                                            >
-                                                <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
-                                                    {type === "image" ? (
-                                                        <img
-                                                            src={att.url}
-                                                            alt={att.original_name}
-                                                            className="h-full w-full object-cover"
-                                                        />
+                        <section>
+                            <p className={sectionTitleClass}>Requisition & Reference</p>
+                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                <Detail label="PR No." value={po.pr_number ?? '—'} />
+                                <Detail label="PR Date" value={formatDate(po.pr_date)} />
+                                <Detail label="Philgeps Reference No." value={po.philgeps_reference_no ?? '—'} />
+                            </div>
+                        </section>
+
+                        <section>
+                            <p className={sectionTitleClass}>Financial Details</p>
+                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                <Detail label="Total Amount ABC" value={formatCurrency(po.total_amount_abc)} />
+                                <Detail label="Total Amount PO" value={formatCurrency(po.total_amount_po)} />
+                                <Detail label="Total Amount Difference" value={formatCurrency(po.total_amount_diff)} />
+                                <Detail label="Fund Cluster" value={po.fundCluster?.fund_cluster_id ?? po.fund_cluster_id ?? '—'} />
+                                <Detail label="ORS/BURS No." value={po.ors_burs_no ?? '—'} />
+                                <Detail label="ORS/BURS Date" value={formatDate(po.ors_burs_date)} />
+                                <Detail label="Responsibility Center" value={po.responsibility_center ?? '—'} />
+                                <Detail label="UACS Object Code" value={po.uacs_object_code ?? '—'} />
+                            </div>
+                        </section>
+
+                        <section>
+                            <p className={sectionTitleClass}>Supplier & End User</p>
+                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                <Detail label="Supplier" value={po.supplier?.supplier_name ?? '—'} />
+                                <Detail label="End User" value={po.office?.office_name ?? po.end_user ?? '—'} />
+                            </div>
+                        </section>
+
+                        <section>
+                            <p className={sectionTitleClass}>Processing Trail</p>
+                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                <Detail label="Date Forwarded to SMU" value={formatDate(po.date_forwarded_to_smu)} />
+                                <Detail label="COA Processed Date" value={formatDate(po.coa_processed_date)} />
+                                <Detail label="Date Forwarded to Frontdesk" value={formatDate(po.date_forwarded_frontdesk)} />
+                            </div>
+                        </section>
+
+                        <section className="border-t pt-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
+                                    Attachments
+                                </h3>
+
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                                    {attachments.length}
+                                </Badge>
+                            </div>
+
+                            {attachments.length === 0 ? (
+                                <div className="flex items-center gap-2 rounded-md border border-dashed py-4 px-3 text-sm text-muted-foreground">
+                                    <File className="h-4 w-4" />
+                                    No attachments uploaded.
+                                </div>
+                            ) : (
+                                <ScrollArea className="max-h-[220px]">
+                                    <div className="space-y-1.5 pr-2">
+                                        {attachments.map((att) => {
+                                            const type = getFileType(att.original_name);
+                                            const isImage = type === "image";
+
+                                            return (
+                                                <div
+                                                    key={att.id}
+                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors"
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => isImage && setPreviewAttachment(att)}
+                                                        className={`h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden ${isImage ? 'cursor-pointer' : 'cursor-default'}`}
+                                                        disabled={!isImage}
+                                                    >
+                                                        {isImage ? (
+                                                            <img
+                                                                src={att.url}
+                                                                alt={att.original_name}
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <FileIcon type={type} />
+                                                        )}
+                                                    </button>
+
+                                                    <p className="flex-1 truncate text-sm">
+                                                        {att.original_name}
+                                                    </p>
+
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 shrink-0">
+                                                        {getExtension(att.original_name).toUpperCase()}
+                                                    </Badge>
+
+                                                    {isImage ? (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-7 w-7 shrink-0"
+                                                            onClick={() => setPreviewAttachment(att)}
+                                                        >
+                                                            <Eye className="h-3.5 w-3.5" />
+                                                        </Button>
                                                     ) : (
-                                                        <FileIcon type={type} />
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-7 w-7 shrink-0"
+                                                            asChild
+                                                        >
+                                                            <a
+                                                                href={att.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                            >
+                                                                <Eye className="h-3.5 w-3.5" />
+                                                            </a>
+                                                        </Button>
                                                     )}
                                                 </div>
+                                            );
+                                        })}
+                                    </div>
+                                </ScrollArea>
+                            )}
 
-                                                <p className="flex-1 truncate text-sm">
-                                                    {att.original_name}
-                                                </p>
-
-                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 shrink-0">
-                                                    {getExtension(att.original_name).toUpperCase()}
-                                                </Badge>
-
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 shrink-0"
-                                                    asChild
-                                                >
-                                                    <a
-                                                        href={att.url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                    >
-                                                        <Eye className="h-3.5 w-3.5" />
-                                                    </a>
-                                                </Button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </ScrollArea>
-                        )}
-
-                        <Separator className="mt-4" />
-                    </section>
+                            <Separator className="mt-4" />
+                        </section>
+                    </div>
                 </div>
-            </div>
-                </ScrollArea>
-            </DialogContent>
-        </Dialog>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
+
+            {/* Image Lightbox */}
+            <Dialog open={!!previewAttachment} onOpenChange={(o) => !o && setPreviewAttachment(null)}>
+                <DialogContent className="w-[95vw] p-0 overflow-hidden" style={{ maxWidth: '900px' }}>
+                    <div className="flex items-center justify-between px-4 py-3 border-b">
+                        <p className="text-sm font-medium truncate pr-4">
+                            {previewAttachment?.original_name}
+                        </p>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 mr-6" asChild>
+                            <a
+                                href={previewAttachment?.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Open in new tab"
+                            >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                        </Button>
+                    </div>
+                    <div className="flex items-center justify-center bg-muted/30 p-4 max-h-[80vh] overflow-auto">
+                        {previewAttachment && (
+                            <img
+                                src={previewAttachment.url}
+                                alt={previewAttachment.original_name}
+                                className="max-w-full max-h-[75vh] object-contain rounded"
+                            />
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

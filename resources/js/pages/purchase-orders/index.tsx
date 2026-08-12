@@ -73,6 +73,7 @@ interface PaginatedPurchaseOrders {
 interface Filters {
     search: string | null;
     fund_cluster: string | null;
+    office: string | null;
 }
 
 interface Props {
@@ -121,6 +122,7 @@ export default function Index({
 }: Props) {
         const [search, setSearch] = useState(filters.search ?? '');
     const [fundCluster, setFundCluster] = useState(filters.fund_cluster ?? 'all');
+    const [officeFilter, setOfficeFilter] = useState(filters.office ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -128,27 +130,26 @@ export default function Index({
     const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
     const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
 
-    const runSearch = (nextFundCluster?: string) => {
+    const runSearch = (nextFundCluster?: string, nextOffice?: string) => {
         router.get(
             '/purchase-orders',
             {
                 search,
-                fund_cluster:
-                    (nextFundCluster ?? fundCluster) === 'all'
-                        ? undefined
-                        : nextFundCluster ?? fundCluster,
+                fund_cluster: (nextFundCluster ?? fundCluster) === 'all' ? undefined : nextFundCluster ?? fundCluster,
+                office: (nextOffice ?? officeFilter) === 'all' ? undefined : nextOffice ?? officeFilter,
             },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         runSearch();
+    };
+
+    const handleOfficeChange = (value: string) => {
+        setOfficeFilter(value);
+        runSearch(undefined, value);
     };
 
     const handleFundClusterChange = (value: string) => {
@@ -159,7 +160,8 @@ export default function Index({
     const handleClear = () => {
         setSearch('');
         setFundCluster('all');
-
+        setOfficeFilter('all');
+            
         router.get(
             '/purchase-orders',
             {},
@@ -235,6 +237,20 @@ export default function Index({
                                         value={fc.fund_cluster_id}
                                     >
                                         {fc.fund_cluster_id}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={officeFilter} onValueChange={handleOfficeChange}>
+                            <SelectTrigger className={`w-[200px] ${officeFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by End User" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Filter by End User</SelectItem>
+                                {offices.map((o) => (
+                                    <SelectItem key={o.office_code} value={o.office_code}>
+                                        {o.office_name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
