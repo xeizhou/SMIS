@@ -32,7 +32,7 @@ class AuditLogsController extends Controller
             ->orderBy('log_timestamp', 'desc');
 
         $logs = $query->paginateWithHighlight(10)->withQueryString();
-        
+
 
         // Map the items to a more frontend-friendly format
         $logs->getCollection()->transform(function ($log) {
@@ -40,6 +40,7 @@ class AuditLogsController extends Controller
                 'log_id' => $log->auditLogID,
                 'timestamp' => $log->log_timestamp->format('Y-m-d H:i:s'),
                 'user' => $log->user ? $log->user->name : 'Unknown',
+                'avatar_url' => $log->user ? $log->user->avatar_url : null,
                 'role' => $log->role,
                 'action' => $log->action,
                 'target_url' => $log->target_url ? str_replace('search=', 'highlight_search=', $log->target_url) : null,

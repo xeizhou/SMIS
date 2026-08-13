@@ -1,28 +1,58 @@
-import { Form, Head, usePage } from '@inertiajs/react';
-import { Link } from '@inertiajs/react';
-import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
-import DeleteUser from '@/components/delete-user';
+import { Head, router, usePage } from '@inertiajs/react';
+import { Camera, Loader2, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
-import { send } from '@/routes/verification';
 import type { Auth } from '@/types';
 
 type PageProps = {
     auth: Auth;
 };
 
-export default function Profile({
-    mustVerifyEmail,
-    status,
-}: {
-    mustVerifyEmail: boolean;
-    status?: string;
-}) {
+export default function Profile() {
     const { auth } = usePage<PageProps>().props;
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [avatarProcessing, setAvatarProcessing] = useState<'upload' | 'remove' | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const uploadAvatar = (file: File) => {
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        setAvatarProcessing('upload');
+        router.post('/settings/profile/avatar', formData, {
+            preserveScroll: true,
+            onFinish: () => {
+                setAvatarProcessing(null);
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            },
+        });
+    };
+
+    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) uploadAvatar(file);
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file && file.type.startsWith('image/')) uploadAvatar(file);
+    };
+
+    const handleAvatarRemove = () => {
+        setAvatarProcessing('remove');
+        router.delete('/settings/profile/avatar', {
+            preserveScroll: true,
+            onFinish: () => setAvatarProcessing(null),
+        });
+    };
+
+    const isBusy = avatarProcessing !== null;
 
     return (
         <>
@@ -34,96 +64,104 @@ export default function Profile({
                 <Heading
                     variant="small"
                     title="Profile"
-                    description="Update your name and email address"
+                    description="Update your profile picture"
                 />
 
-                <Form
-                    action={ProfileController.update.url()} method="put"
-                    options={{
-                        preserveScroll: true,
-                    }}
-                    className="space-y-6"
-                >
-                    {({ processing, errors }) => (
-                        <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
-
-                                <Input
-                                    id="name"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.name}
-                                    name="name"
-                                    required
-                                    autoComplete="name"
-                                    placeholder="Full name"
+                <div className="rounded-xl border border-border bg-card p-6">
+                    <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
+                        <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => !isBusy && fileInputRef.current?.click()}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click();
+                            }}
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                setIsDragging(true);
+                            }}
+                            onDragLeave={() => setIsDragging(false)}
+                            onDrop={handleDrop}
+                            className={`group relative size-24 shrink-0 cursor-pointer rounded-full outline-none ring-offset-2 transition focus-visible:ring-2 focus-visible:ring-ring ${
+                                isDragging ? 'ring-2 ring-primary' : ''
+                            }`}
+                        >
+                            {auth.user.avatar_url ? (
+                                <img
+                                    src={auth.user.avatar_url}
+                                    alt={auth.user.name}
+                                    className="size-24 rounded-full object-cover"
                                 />
+                            ) : (
+                                <div className="flex size-24 items-center justify-center rounded-full bg-gray-200 text-2xl font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                    {auth.user.name.charAt(0).toUpperCase()}
+                                </div>
+                            )}
 
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.name}
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.email}
-                                    name="email"
-                                    required
-                                    autoComplete="username"
-                                    placeholder="Email address"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.email}
-                                />
-                            </div>
-
-                            {mustVerifyEmail &&
-                                auth.user.email_verified_at === null && (
-                                    <div>
-                                        <p className="-mt-4 text-sm text-muted-foreground">
-                                            Your email address is unverified.{' '}
-                                            <Link
-                                                href={send()}
-                                                as="button"
-                                                className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                                            >
-                                                Click here to re-send the
-                                                verification email.
-                                            </Link>
-                                        </p>
-
-                                        {status ===
-                                            'verification-link-sent' && (
-                                            <div className="mt-2 text-sm font-medium text-green-600">
-                                                A new verification link has been
-                                                sent to your email address.
-                                            </div>
-                                        )}
-                                    </div>
+                            <div
+                                className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white transition-opacity ${
+                                    isBusy || isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                }`}
+                            >
+                                {avatarProcessing === 'upload' ? (
+                                    <Loader2 className="size-6 animate-spin" />
+                                ) : (
+                                    <Camera className="size-6" />
                                 )}
-
-                            <div className="flex items-center gap-4">
-                                <Button
-                                    disabled={processing}
-                                    data-test="update-profile-button"
-                                >
-                                    Save
-                                </Button>
                             </div>
-                        </>
-                    )}
-                </Form>
-            </div>
 
-            <DeleteUser />
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/png,image/jpeg,image/jpg,image/webp"
+                                className="hidden"
+                                onChange={handleAvatarChange}
+                                disabled={isBusy}
+                            />
+                        </div>
+
+                        <div className="flex flex-1 flex-col items-center gap-2 sm:items-start">
+                            <p className="text-sm font-medium text-foreground">{auth.user.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                                Click or drag a photo onto your picture to update it — JPG, PNG or WEBP, max 2MB.
+                            </p>
+                            <div className="mt-1 flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="sm"
+                                    disabled={isBusy}
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    {avatarProcessing === 'upload' ? (
+                                        <Loader2 className="size-4 animate-spin" />
+                                    ) : (
+                                        <Camera className="size-4" />
+                                    )}
+                                    Change picture
+                                </Button>
+                                {auth.user.avatar_url && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={isBusy}
+                                        onClick={handleAvatarRemove}
+                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                        {avatarProcessing === 'remove' ? (
+                                            <Loader2 className="size-4 animate-spin" />
+                                        ) : (
+                                            <Trash2 className="size-4" />
+                                        )}
+                                        Remove
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </>
     );
 }
