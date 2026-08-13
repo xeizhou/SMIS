@@ -9,6 +9,13 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export type POLetterStatusRow = {
     type: string;
@@ -20,8 +27,11 @@ type Props = {
     data?: Record<string, POLetterStatusRow[]>;
 };
 
+const PERIOD_OPTIONS = ['This Week', 'This Month', 'This Year'] as const;
+type Period = (typeof PERIOD_OPTIONS)[number];
+
 export function PoLettersStatusChart({ data }: Props) {
-    const [period, setPeriod] = useState<'This Week' | 'This Month' | 'This Year'>('This Year');
+    const [period, setPeriod] = useState<Period>('This Year');
     const rows = data?.[period] ?? [];
 
     const maxDataVal = rows.length > 0 
@@ -54,18 +64,28 @@ export function PoLettersStatusChart({ data }: Props) {
                         </div>
                     </div>
 
-                    <div className="relative">
-                        <select
-                            value={period}
-                            onChange={(e) => setPeriod(e.target.value as typeof period)}
-                            className="appearance-none rounded-md border border-sidebar-border/70 bg-white py-1 pl-2.5 pr-7 text-xs text-neutral-600 outline-none dark:border-sidebar-border dark:bg-neutral-900 dark:text-neutral-300"
-                        >
-                            <option value="This Week">This Week</option>
-                            <option value="This Month">This Month</option>
-                            <option value="This Year">This Year</option>
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-neutral-400" />
-                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-auto gap-1 rounded-md py-1 pl-2.5 pr-2 text-xs font-normal text-neutral-600 dark:text-neutral-300"
+                            >
+                                {period}
+                                <ChevronDown className="size-3 text-neutral-400" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            {PERIOD_OPTIONS.map((opt) => (
+                                <DropdownMenuItem
+                                    key={opt}
+                                    onClick={() => setPeriod(opt)}
+                                >
+                                    {opt}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
 

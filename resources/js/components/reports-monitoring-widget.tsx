@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { FileText, CheckCircle2, XCircle, Clock, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface ReportsStats {
     COMPLETED: number;
@@ -14,13 +21,20 @@ interface Props {
     quarter: number;
 }
 
+const QUARTERS = [
+    { value: 1, label: 'Q1 (Jan-Mar)' },
+    { value: 2, label: 'Q2 (Apr-Jun)' },
+    { value: 3, label: 'Q3 (Jul-Sep)' },
+    { value: 4, label: 'Q4 (Oct-Dec)' },
+];
+
 export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleFilterChange = (type: 'year' | 'quarter', value: string) => {
+    const handleFilterChange = (type: 'year' | 'quarter', value: number) => {
         setIsLoading(true);
-        const newYear = type === 'year' ? parseInt(value) : year;
-        const newQuarter = type === 'quarter' ? parseInt(value) : quarter;
+        const newYear = type === 'year' ? value : year;
+        const newQuarter = type === 'quarter' ? value : quarter;
 
         router.get(
             '/dashboard',
@@ -36,6 +50,8 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
 
     const currentYear = new Date().getFullYear();
     const years = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3];
+
+    const activeQuarterLabel = QUARTERS.find((q) => q.value === quarter)?.label ?? `Q${quarter}`;
 
     return (
         <div className="relative flex flex-col rounded-xl border border-sidebar-border/70 bg-white p-6 dark:border-sidebar-border dark:bg-neutral-900 h-full">
@@ -57,32 +73,51 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <div className="relative">
-                        <select
-                            value={quarter}
-                            onChange={(e) => handleFilterChange('quarter', e.target.value)}
-                            className="appearance-none rounded-md border border-sidebar-border/70 bg-white py-1 pl-2.5 pr-7 text-xs text-neutral-600 outline-none dark:border-sidebar-border dark:bg-neutral-900 dark:text-neutral-300"
-                        >
-                            <option value="1">Q1 (Jan-Mar)</option>
-                            <option value="2">Q2 (Apr-Jun)</option>
-                            <option value="3">Q3 (Jul-Sep)</option>
-                            <option value="4">Q4 (Oct-Dec)</option>
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-neutral-400" />
-                    </div>
-                    
-                    <div className="relative">
-                        <select
-                            value={year}
-                            onChange={(e) => handleFilterChange('year', e.target.value)}
-                            className="appearance-none rounded-md border border-sidebar-border/70 bg-white py-1 pl-2.5 pr-7 text-xs text-neutral-600 outline-none dark:border-sidebar-border dark:bg-neutral-900 dark:text-neutral-300"
-                        >
-                            {years.map((y) => (
-                                <option key={y} value={y}>{y}</option>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-auto gap-1 rounded-md py-1 pl-2.5 pr-2 text-xs font-normal text-neutral-600 dark:text-neutral-300"
+                            >
+                                {activeQuarterLabel}
+                                <ChevronDown className="size-3 text-neutral-400" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            {QUARTERS.map((q) => (
+                                <DropdownMenuItem
+                                    key={q.value}
+                                    onClick={() => handleFilterChange('quarter', q.value)}
+                                >
+                                    {q.label}
+                                </DropdownMenuItem>
                             ))}
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-neutral-400" />
-                    </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-auto gap-1 rounded-md py-1 pl-2.5 pr-2 text-xs font-normal text-neutral-600 dark:text-neutral-300"
+                            >
+                                {year}
+                                <ChevronDown className="size-3 text-neutral-400" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            {years.map((y) => (
+                                <DropdownMenuItem
+                                    key={y}
+                                    onClick={() => handleFilterChange('year', y)}
+                                >
+                                    {y}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
 
