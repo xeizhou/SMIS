@@ -1,6 +1,6 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { useState } from 'react';
-import { Pencil, Search, Trash2, Mail, ShieldCheck, Lock } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Pencil, Search, Trash2, Mail, ShieldCheck, Lock, Camera, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -19,12 +19,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface User {
     id: number;
     name: string;
     email: string;
     role: 'admin' | 'staff';
+    avatar_url: string | null;
     created_at: string;
     is_locked?: boolean;
 }
@@ -37,6 +39,9 @@ export default function Index({ users }: Props) {
     const [search, setSearch] = useState('');
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<User | null>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const [avatarUploading, setAvatarUploading] = useState(false);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
 
     const { data, setData, post, put, reset, processing, errors } = useForm({
         name: '',
@@ -55,12 +60,14 @@ export default function Index({ users }: Props) {
 
     function openCreate() {
         setEditing(null);
+        setAvatarPreview(null);
         reset();
         setOpen(true);
     }
 
     function openEdit(user: User) {
         setEditing(user);
+        setAvatarPreview(null);
         setData({
             name: user.name,
             email: user.email,
@@ -89,6 +96,40 @@ export default function Index({ users }: Props) {
         if (confirm(`Delete ${user.name}?`)) {
             router.delete(`/users/${user.id}`);
         }
+    }
+
+    function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file || !editing) return;
+
+        setAvatarPreview(URL.createObjectURL(file));
+
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        setAvatarUploading(true);
+        router.post(`/users/${editing.id}/avatar`, formData, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => setAvatarUploading(false),
+            onError: () => {
+                setAvatarUploading(false);
+                setAvatarPreview(null);
+            },
+        });
+    }
+
+    function removeAvatar() {
+        if (!editing) return;
+        setAvatarUploading(true);
+        router.delete(`/users/${editing.id}/avatar`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setAvatarUploading(false);
+                setAvatarPreview(null);
+            },
+            onError: () => setAvatarUploading(false),
+        });
     }
 
     function initials(name: string) {
@@ -139,7 +180,7 @@ export default function Index({ users }: Props) {
                     </Button>
                 </div>
 
-                {/* KPI Cards */}
+                {/* User Cards */}
                 {filteredUsers.length === 0 ? (
                     <div className="rounded-md border border-border bg-card px-6 py-16 text-center">
                         <p className="text-base font-medium text-muted-foreground">
@@ -158,12 +199,15 @@ export default function Index({ users }: Props) {
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div
-                                            className="flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
-                                            style={{ backgroundColor: '#370001' }}
-                                        >
-                                            {initials(user.name)}
-                                        </div>
+                                        <Avatar className="size-11 shrink-0">
+                                            <AvatarImage src={user.avatar_url ?? undefined} alt={user.name} />
+                                            <AvatarFallback
+                                                className="text-sm font-semibold text-white"
+                                                style={{ backgroundColor: '#370001' }}
+                                            >
+                                                {initials(user.name)}
+                                            </AvatarFallback>
+                                        </Avatar>
                                         <div className="min-w-0">
                                             <p className="truncate font-semibold text-foreground">
                                                 {user.name}
@@ -223,6 +267,55 @@ export default function Index({ users }: Props) {
                     </DialogHeader>
 
                     <div className="space-y-4">
+                        {/* Avatar upload — only available once the user exists */}
+                        {editing && (
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="relative">
+                                    <Avatar className="size-20">
+                                        <AvatarImage
+                                            src={avatarPreview ?? editing.avatar_url ?? undefined}
+                                            alt={editing.name}
+                                        />
+                                        <AvatarFallback
+                                            className="text-lg font-semibold text-white"
+                                            style={{ backgroundColor: '#370001' }}
+                                        >
+                                            {initials(editing.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <button
+                                        type="button"
+                                        onClick={() => avatarInputRef.current?.click()}
+                                        className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-muted"
+                                        title="Change photo"
+                                    >
+                                        <Camera className="size-3.5" />
+                                    </button>
+                                </div>
+                                <input
+                                    ref={avatarInputRef}
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    className="hidden"
+                                    onChange={handleAvatarSelect}
+                                />
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground">
+                                        {avatarUploading ? 'Uploading...' : 'JPG, PNG, or WEBP. Max 2MB.'}
+                                    </span>
+                                    {editing.avatar_url && !avatarUploading && (
+                                        <button
+                                            type="button"
+                                            onClick={removeAvatar}
+                                            className="flex items-center gap-0.5 text-xs text-red-600 hover:text-red-800"
+                                        >
+                                            <X className="size-3" /> Remove
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         <div>
                             <Label htmlFor="name">Name</Label>
                             <Input

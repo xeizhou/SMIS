@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Storage;
 
 class UsersController extends Controller
 {
@@ -14,7 +15,7 @@ class UsersController extends Controller
     public function index()
     {
         return Inertia::render('users/index', [
-            'users' => User::select('id', 'name', 'email', 'role', 'created_at')
+            'users' => User::select('id', 'name', 'email', 'role', 'avatar_path', 'created_at')
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $user) => [
@@ -62,6 +63,34 @@ class UsersController extends Controller
         $user->update($validated);
 
         return back()->with('success', 'User updated.');
+    }
+
+    public function updateAvatar(Request $request, User $user)
+    {
+        $request->validate([
+            'avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        // delete old avatar if exists
+        if ($user->avatar_path) {
+            Storage::disk('public')->delete($user->avatar_path);
+        }
+
+        $path = $request->file('avatar')->store('avatars', 'public');
+
+        $user->update(['avatar_path' => $path]);
+
+        return back()->with('success', 'Profile picture updated.');
+    }
+
+    public function removeAvatar(User $user)
+    {
+        if ($user->avatar_path) {
+            Storage::disk('public')->delete($user->avatar_path);
+            $user->update(['avatar_path' => null]);
+        }
+
+        return back()->with('success', 'Profile picture removed.');
     }
 
     public function destroy(User $user)
