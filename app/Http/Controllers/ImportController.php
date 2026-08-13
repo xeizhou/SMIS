@@ -16,8 +16,8 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Handles "Import Data" (Items / Units / Transactions, from Excel or JSON)
- * and the matching "download template" links.
+ * Handles "Import Data" (Items / Units / Transactions / Offices, from
+ * Excel or JSON) and the matching "download template" links.
  *
  * Requires PhpSpreadsheet, which ships as a dependency of maatwebsite/excel.
  * If it's not already in composer.json:
@@ -251,9 +251,25 @@ class ImportController extends Controller
      * Transactions are always additive (there's no natural unique key to
      * "merge" against — two receipts can legitimately have the same item,
      * date, and quantity). The merge checkbox here only controls whether
-     * unmatched stock_no/office_code/fund_cluster values are created on
-     * the fly (merge = create missing refs) or skipped (merge off = strict,
-     * row must already resolve against existing data).
+     * unmatched office_code/fund_cluster values are created on the fly
+     * (merge = create missing refs) or skipped (merge off = strict, row
+     * must already resolve against existing data).
+     *
+     * Since source files (e.g. exports from the old system) have no
+     * transactionID to key off of, duplicate detection instead uses a
+     * fingerprint of transaction_type + transaction_date + item_name +
+     * reference + quantity + office_code + fund_cluster. Re-running the
+     * same file, or a file that overlaps a previous import, will skip
+     * rows that already match — this check always applies, independent
+     * of the merge checkbox.
+     *
+     * stock_no is a real foreign key on the transactions table, so unlike
+     * office/fund_cluster it can never be passed through as an unresolved
+     * value even when merge is on — SQLite will reject the insert outright.
+     * If it doesn't resolve, it's set to null instead (the transaction is
+     * still recorded, just without a stock-card link) rather than skipped,
+     * since Items import — not Transactions import — is what should be
+     * creating new stock items.
      */
     public function transactions(Request $request)
     {
@@ -262,87 +278,112 @@ class ImportController extends Controller
             $skipped = [];
 
             foreach ($rows as $i => $row) {
-                $validator = Validator::make($row, [
-                    'transaction_type' => 'required|in:RECEIVE,ISSUE',
-                    'transaction_date' => 'required|date',
-                    'stock_no' => 'nullable|string|max:255',
-                    'item_name' => 'required|string|max:255',
-                    'description' => 'nullable|string|max:255',
-                    'unit_short_name' => 'required|string|max:255',
-                    'reference' => 'required|string|max:255',
-                    'quantity' => 'required|integer|min:0',
-                    'office_code' => 'required|string|max:255',
-                    'fund_cluster' => 'required|string|max:255',
-                ]);
-
-                if ($validator->fails()) {
-                    $skipped[] = "Row {$this->rowLabel($i)}: " . $validator->errors()->first();
-                    continue;
-                }
-
-                // The label might be a short code ("pcs") or a full unit
-                // name ("bottle") depending on the source file — match either.
-                $unit = Unit::where('unit_short_name', $row['unit_short_name'])
-                    ->orWhere('unit_name', $row['unit_short_name'])
-                    ->first();
-                if (! $unit) {
-                    $skipped[] = "Row {$this->rowLabel($i)}: unit '{$row['unit_short_name']}' not found.";
-                    continue;
-                }
-
-                // office_code might already be a code, or a full office
-                // name ("Gender and Development") depending on the source
-                // file — match either and resolve to the actual code.
-                $office = Office::where('office_code', $row['office_code'])
-                    ->orWhere('office_name', $row['office_code'])
-                    ->first();
-
-                if (! $office) {
-                    if (! $merge) {
-                        $skipped[] = "Row {$this->rowLabel($i)}: office '{$row['office_code']}' not found.";
-                        continue;
-                    }
-                    $office = $this->findOrCreateOffice($row['office_code']);
-                }
-
-                // fund_cluster: value may already be a fund_cluster_id
-                // ("01-RAF"), or could reference one that doesn't exist
-                // in this database yet.
-                $fundCluster = FundCluster::where('fund_cluster_id', $row['fund_cluster'])->first();
-                if (! $fundCluster) {
-                    if (! $merge) {
-                        $skipped[] = "Row {$this->rowLabel($i)}: fund cluster '{$row['fund_cluster']}' not found.";
-                        continue;
-                    }
-                    $fundCluster = FundCluster::create([
-                        'fund_cluster_id' => $row['fund_cluster'],
-                        'fund_description' => $row['fund_cluster'],
+                try {
+                    $validator = Validator::make($row, [
+                        'transaction_type' => 'required|in:RECEIVE,ISSUE',
+                        'transaction_date' => 'required|date',
+                        'stock_no' => 'nullable|string|max:255',
+                        'item_name' => 'required|string|max:255',
+                        'description' => 'nullable|string|max:255',
+                        'unit_short_name' => 'required|string|max:255',
+                        'reference' => 'required|string|max:255',
+                        'quantity' => 'required|integer|min:0',
+                        'office_code' => 'required|string|max:255',
+                        'fund_cluster' => 'required|string|max:255',
                     ]);
-                }
 
-                if (! empty($row['stock_no']) && ! StockItem::where('stock_no', $row['stock_no'])->exists()) {
-                    if (! $merge) {
-                        $skipped[] = "Row {$this->rowLabel($i)}: stock_no '{$row['stock_no']}' not found.";
+                    if ($validator->fails()) {
+                        $skipped[] = "Row {$this->rowLabel($i)}: " . $validator->errors()->first();
                         continue;
                     }
-                    // merge on: allow it through with stock_no as a plain
-                    // text reference even though it doesn't resolve to an
-                    // existing stock item yet.
-                }
 
-                Transaction::create([
-                    'transaction_type' => $row['transaction_type'],
-                    'transaction_date' => $row['transaction_date'],
-                    'stock_no' => $row['stock_no'] ?? null,
-                    'item_name' => $row['item_name'],
-                    'description' => $row['description'] ?? null,
-                    'unitID' => $unit->unitID,
-                    'reference' => $row['reference'],
-                    'quantity' => $row['quantity'],
-                    'office_code' => $office->office_code,
-                    'fund_cluster' => $fundCluster->fund_cluster_id,
-                ]);
-                $created++;
+                    $unit = Unit::where('unit_short_name', $row['unit_short_name'])
+                        ->orWhere('unit_name', $row['unit_short_name'])
+                        ->first();
+                    if (! $unit || empty($unit->unitID)) {
+                        $skipped[] = "Row {$this->rowLabel($i)}: unit '{$row['unit_short_name']}' not found or invalid.";
+                        continue;
+                    }
+
+                    $office = Office::where('office_code', $row['office_code'])
+                        ->orWhere('office_name', $row['office_code'])
+                        ->first();
+
+                    if (! $office) {
+                        if (! $merge) {
+                            $skipped[] = "Row {$this->rowLabel($i)}: office '{$row['office_code']}' not found.";
+                            continue;
+                        }
+                        $office = $this->findOrCreateOffice($row['office_code']);
+                    }
+
+                    $fundCluster = FundCluster::where('fund_cluster_id', $row['fund_cluster'])->first();
+                    if (! $fundCluster) {
+                        if (! $merge) {
+                            $skipped[] = "Row {$this->rowLabel($i)}: fund cluster '{$row['fund_cluster']}' not found.";
+                            continue;
+                        }
+                        $fundCluster = FundCluster::create([
+                            'fund_cluster_id' => $row['fund_cluster'],
+                            'fund_description' => $row['fund_cluster'],
+                        ]);
+                    }
+
+                    // stock_no is a real FK to stock_items — a value that
+                    // doesn't exist there cannot be inserted at all, merge
+                    // or not. If unresolved, null it rather than skip the
+                    // whole row: the transaction still gets recorded (item
+                    // name, quantity, etc. all intact), just without a
+                    // stock-card link. Run an Items import first if you
+                    // want these to link up automatically.
+                    $resolvedStockNo = $row['stock_no'] ?? null;
+                    if (! empty($resolvedStockNo) && ! StockItem::where('stock_no', $resolvedStockNo)->exists()) {
+                        if (! $merge) {
+                            $skipped[] = "Row {$this->rowLabel($i)}: stock_no '{$resolvedStockNo}' not found.";
+                            continue;
+                        }
+                        $resolvedStockNo = null;
+                    }
+
+                    // No transactionID exists in the source data to dedupe
+                    // against, so treat a transaction as "already imported"
+                    // if one with the same type/date/item/reference/qty/
+                    // office/fund already exists. Applies regardless of the
+                    // merge checkbox — re-running the same file (or a file
+                    // that overlaps a previous one) should never double the
+                    // stock counts.
+                    $isDuplicate = Transaction::where('transaction_type', $row['transaction_type'])
+                        ->where('transaction_date', $row['transaction_date'])
+                        ->where('item_name', $row['item_name'])
+                        ->where('reference', $row['reference'])
+                        ->where('quantity', $row['quantity'])
+                        ->where('office_code', $office->office_code)
+                        ->where('fund_cluster', $fundCluster->fund_cluster_id)
+                        ->exists();
+
+                    if ($isDuplicate) {
+                        $skipped[] = "Row {$this->rowLabel($i)}: duplicate of an existing transaction (same type/date/item/reference/qty/office/fund), skipped.";
+                        continue;
+                    }
+
+                    Transaction::create([
+                        'transaction_type' => $row['transaction_type'],
+                        'transaction_date' => $row['transaction_date'],
+                        'stock_no' => $resolvedStockNo,
+                        'item_name' => $row['item_name'],
+                        'description' => $row['description'] ?? null,
+                        'unitID' => $unit->unitID,
+                        'reference' => $row['reference'],
+                        'quantity' => $row['quantity'],
+                        'office_code' => $office->office_code,
+                        'fund_cluster' => $fundCluster->fund_cluster_id,
+                    ]);
+                    $created++;
+                } catch (\Throwable $e) {
+                    $skipped[] = "Row {$this->rowLabel($i)}: import failed — " . $e->getMessage();
+                    \Log::warning('Transaction import row failed', ['row' => $row, 'error' => $e->getMessage()]);
+                    continue;
+                }
             }
 
             return [$created, 0, $skipped];
@@ -597,7 +638,17 @@ class ImportController extends Controller
             return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d H:i:s');
         }
 
-        return (string) $value;
+        // Always resolve to the exact "Y-m-d H:i:s" format Eloquent's
+        // datetime cast normalizes to on save. Without this, a plain
+        // date string like "2026-03-10" gets stored as "2026-03-10
+        // 00:00:00" but the duplicate-detection check further down
+        // compares against the raw, un-normalized string — so it never
+        // matches on re-import and rows silently double up.
+        try {
+            return \Illuminate\Support\Carbon::parse($value)->format('Y-m-d H:i:s');
+        } catch (\Throwable $e) {
+            return (string) $value;
+        }
     }
 
     /**
