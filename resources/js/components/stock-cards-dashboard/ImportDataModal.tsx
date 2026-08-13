@@ -32,16 +32,16 @@ const DATA_TYPE_OPTIONS: { value: DataType; label: string; description: string; 
         icon: <Ruler className="size-4" />,
     },
     {
-        value: 'transactions',
-        label: 'Transactions',
-        description: 'Import transaction history (receipts and issues)',
-        icon: <Receipt className="size-4" />,
-    },
-    {
         value: 'offices',
         label: 'Offices',
         description: 'Import office directory: code, name, entity, head, and email',
         icon: <Building2 className="size-4" />,
+    },
+    {
+        value: 'transactions',
+        label: 'Transactions',
+        description: 'Import transaction history (receipts and issues)',
+        icon: <Receipt className="size-4" />,
     },
 ];
 
@@ -137,7 +137,7 @@ export default function ImportDataModal({
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Import Data</DialogTitle>
                     <DialogDescription>Import data from an Excel or JSON file.</DialogDescription>
@@ -145,7 +145,7 @@ export default function ImportDataModal({
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Data type selection */}
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
                         {DATA_TYPE_OPTIONS.map((opt) => (
                             <button
                                 key={opt.value}
@@ -171,56 +171,57 @@ export default function ImportDataModal({
                         ))}
                     </div>
 
-                    {/* File format */}
-                    <div className="space-y-2">
-                        <Label className="text-sm">File format</Label>
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setFileFormat('xlsx')}
-                                className="flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-muted/40"
-                                style={fileFormat === 'xlsx' ? { borderColor: BRAND, color: BRAND } : undefined}
-                            >
-                                <FileSpreadsheet className="size-3.5" />
-                                Excel (.xlsx, .xls)
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setFileFormat('json')}
-                                className="flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-muted/40"
-                                style={fileFormat === 'json' ? { borderColor: BRAND, color: BRAND } : undefined}
-                            >
-                                <FileJson className="size-3.5" />
-                                JSON (.json)
-                            </button>
+                    {/* File format + file picker side by side */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label className="text-sm">File format</Label>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setFileFormat('xlsx')}
+                                    className="flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-muted/40"
+                                    style={fileFormat === 'xlsx' ? { borderColor: BRAND, color: BRAND } : undefined}
+                                >
+                                    <FileSpreadsheet className="size-3.5" />
+                                    Excel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFileFormat('json')}
+                                    className="flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-muted/40"
+                                    style={fileFormat === 'json' ? { borderColor: BRAND, color: BRAND } : undefined}
+                                >
+                                    <FileJson className="size-3.5" />
+                                    JSON
+                                </button>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* File picker */}
-                    <div className="space-y-2">
-                        <Label className="text-sm">File</Label>
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="flex h-9 flex-1 items-center gap-2 rounded-md border bg-background px-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/40"
-                            >
-                                <UploadCloud className="size-4 shrink-0" />
-                                <span className="truncate">{file ? file.name : 'No file selected'}</span>
-                            </button>
-                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                                Browse
-                            </Button>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept={acceptAttr}
-                                onChange={handleFileChange}
-                                className="hidden"
-                            />
+                        <div className="space-y-2">
+                            <Label className="text-sm">File</Label>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border bg-background px-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/40"
+                                >
+                                    <UploadCloud className="size-4 shrink-0" />
+                                    <span className="min-w-0 flex-1 truncate">{file ? file.name : 'No file selected'}</span>
+                                </button>
+                                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                                    Browse
+                                </Button>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept={acceptAttr}
+                                    onChange={handleFileChange}
+                                    className="hidden"
+                                />
+                            </div>
                         </div>
-                        {error && <p className="text-xs text-red-600">{error}</p>}
                     </div>
+                    {error && <p className="text-xs text-red-600">{error}</p>}
 
                     {/* Merge checkbox */}
                     <label htmlFor="merge-existing" className="flex cursor-pointer items-start gap-2">

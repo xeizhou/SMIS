@@ -35,7 +35,6 @@ class ImportController extends Controller
             'stock_no' => true,
             'item_name' => true,
             'description' => false,
-            'reorder_point' => false,
             'unit_short_name' => false, // default unit, matched against units table
         ],
         'units' => [
@@ -77,7 +76,6 @@ class ImportController extends Controller
         'item_name' => ['name', 'item'],
         'stock_no' => ['stock', 'stock_number', 'stockno', 'code', 'item_code'],
         'description' => ['desc'],
-        'reorder_point' => ['reorder', 'reorder_qty', 'min_stock'],
         'transaction_type' => ['type'],
         'transaction_date' => ['date'],
         'reference' => ['ref', 'ref_no', 'reference_no'],
@@ -103,7 +101,6 @@ class ImportController extends Controller
                     'stock_no' => 'required|string|max:255',
                     'item_name' => 'required|string|max:255',
                     'description' => 'nullable|string|max:255',
-                    'reorder_point' => 'nullable|integer|min:0',
                     'unit_short_name' => 'nullable|string|max:255',
                 ]);
 
@@ -122,7 +119,6 @@ class ImportController extends Controller
                 $attrs = [
                     'item_name' => $row['item_name'],
                     'description' => $row['description'] ?? null,
-                    'reorder_point' => $row['reorder_point'] ?? 10,
                 ];
 
                 if ($existing) {
@@ -422,7 +418,7 @@ class ImportController extends Controller
     private function exampleRow(string $type): array
     {
         return match ($type) {
-            'items' => ['STK-0001', 'Bond Paper A4', 'Substance 20', 10, 'REAM'],
+            'items' => ['STK-0001', 'Bond Paper A4', 'Substance 20', 'REAM'],
             'units' => ['Ream', 'REAM'],
             'transactions' => ['RECEIVE', now()->format('Y-m-d'), 'STK-0001', 'Bond Paper A4', 'Substance 20', 'REAM', 'DR-0001', 50, 'OFC-01', '101'],
             'offices' => ['OFC-01', 'Supply Management Unit', 'University of Southeastern Philippines', 'Juan Dela Cruz', 'smu@usep.edu.ph'],
@@ -622,10 +618,6 @@ class ImportController extends Controller
 
         if (isset($out['quantity'])) {
             $out['quantity'] = is_numeric($out['quantity']) ? (int) $out['quantity'] : $out['quantity'];
-        }
-
-        if (isset($out['reorder_point']) && is_numeric($out['reorder_point'])) {
-            $out['reorder_point'] = (int) $out['reorder_point'];
         }
 
         return $out;
