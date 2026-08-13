@@ -35,6 +35,11 @@ interface Props {
     users: User[];
 }
 
+const ROLE_ORDER: Record<User['role'], number> = {
+    admin: 0,
+    staff: 1,
+};
+
 export default function Index({ users }: Props) {
     const [search, setSearch] = useState('');
     const [open, setOpen] = useState(false);
@@ -50,13 +55,19 @@ export default function Index({ users }: Props) {
         role: 'staff' as 'admin' | 'staff',
     });
 
-    const filteredUsers = users.filter((user) => {
-        const term = search.toLowerCase();
-        return (
-            user.name.toLowerCase().includes(term) ||
-            user.email.toLowerCase().includes(term)
-        );
-    });
+    const filteredUsers = users
+        .filter((user) => {
+            const term = search.toLowerCase();
+            return (
+                user.name.toLowerCase().includes(term) ||
+                user.email.toLowerCase().includes(term)
+            );
+        })
+        .sort((a, b) => {
+            const roleDiff = ROLE_ORDER[a.role] - ROLE_ORDER[b.role];
+            if (roleDiff !== 0) return roleDiff;
+            return a.name.localeCompare(b.name);
+        });
 
     function openCreate() {
         setEditing(null);
