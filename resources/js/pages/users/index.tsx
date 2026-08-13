@@ -1,5 +1,5 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Pencil, Search, Trash2, Mail, ShieldCheck, Lock, Camera, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +21,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
+// --- Types & Interfaces ---
+
 interface User {
     id: number;
     name: string;
@@ -31,22 +33,134 @@ interface User {
     is_locked?: boolean;
 }
 
-interface Props {
+interface IndexProps {
     users: User[];
 }
+
+interface UserDeleteModalProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    userId: number | null;
+    userName: string | null;
+}
+
+interface FlashProps {
+    success?: string;
+    error?: string;
+}
+
+// --- Constants ---
 
 const ROLE_ORDER: Record<User['role'], number> = {
     admin: 0,
     staff: 1,
 };
 
-export default function Index({ users }: Props) {
+// --- Sub-Components ---
+
+export function UserDeleteModal({
+    open,
+    onOpenChange,
+    userId,
+    userName,
+}: UserDeleteModalProps) {
+    const [processing, setProcessing] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (open) {
+            setErrorMessage(null);
+        }
+    }, [open]);
+
+    const confirmDelete = () => {
+        if (!userId) return;
+
+        setProcessing(true);
+        setErrorMessage(null);
+
+        router.delete(`/users/${userId}`, {
+            preserveScroll: true,
+            onSuccess: (page) => {
+                const flash = page.props.flash as FlashProps;
+
+                if (flash?.error) {
+                    setErrorMessage(flash.error);
+                } else {
+                    onOpenChange(false);
+                }
+            },
+            onFinish: () => {
+                setProcessing(false);
+            },
+        });
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="text-black">
+                        Confirm Delete
+                    </DialogTitle>
+                </DialogHeader>
+
+                <div className="py-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Are you sure you want to delete user{' '}
+                        {userName ? (
+                            <span className="font-medium text-foreground">
+                                {userName}
+                            </span>
+                        ) : (
+                            'this user'
+                        )}
+                        ? This action cannot be undone.
+                    </p>
+
+                    {errorMessage && (
+                        <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+                            {errorMessage}
+                        </p>
+                    )}
+                </div>
+
+                <DialogFooter className="gap-2 sm:gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                    >
+                        Cancel
+                    </Button>
+
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={confirmDelete}
+                        disabled={processing}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                        {processing ? 'Deleting...' : 'Delete'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+// --- Main Page Component ---
+
+export default function Index({ users }: IndexProps) {
     const [search, setSearch] = useState('');
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<User | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [avatarUploading, setAvatarUploading] = useState(false);
     const avatarInputRef = useRef<HTMLInputElement>(null);
+
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
     const { data, setData, post, put, reset, processing, errors } = useForm({
         name: '',
@@ -103,10 +217,9 @@ export default function Index({ users }: Props) {
         }
     }
 
-    function destroy(user: User) {
-        if (confirm(`Delete ${user.name}?`)) {
-            router.delete(`/users/${user.id}`);
-        }
+    function openDelete(user: User) {
+        setDeleteTarget(user);
+        setDeleteOpen(true);
     }
 
     function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -250,7 +363,7 @@ export default function Index({ users }: Props) {
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => destroy(user)}
+                                                    onClick={() => openDelete(user)}
                                                     className="text-red-600 hover:text-red-800"
                                                     title="Delete"
                                                 >
@@ -391,6 +504,13 @@ export default function Index({ users }: Props) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <UserDeleteModal
+                open={deleteOpen}
+                onOpenChange={setDeleteOpen}
+                userId={deleteTarget?.id ?? null}
+                userName={deleteTarget?.name ?? null}
+            />
         </>
     );
 }
