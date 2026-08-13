@@ -116,7 +116,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" style="font-weight: bold;">NO TRANSACTIONS FOUND</td>
+                        <td colspan="7">NO TRANSACTIONS FOUND</td>
                     </tr>
                     @endforelse
                 </tbody>
