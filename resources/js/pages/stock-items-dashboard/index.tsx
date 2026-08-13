@@ -15,16 +15,13 @@ import {
     TrendingUp,
     AreaChart as AreaChartIcon,
     GitCompareArrows,
-    Upload,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Area, AreaChart, Line, LineChart, ReferenceLine, Cell } from 'recharts';
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import ImportDataModal from '@/components/stock-cards-dashboard/ImportDataModal';
 
 // ---------------------------------------------------------------------------
 // Brand tokens (matches the maroon theme already used across Stock Items List
@@ -172,7 +169,6 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
     const [lastUpdated, setLastUpdated] = useState(new Date());
     const [secondsAgo, setSecondsAgo] = useState(0);
     const [flashedRows, setFlashedRows] = useState<Set<string>>(new Set());
-    const [importOpen, setImportOpen] = useState(false);
     const prevBalances = useRef<Map<string, number>>(new Map(stockItems.map((i) => [i.stock_no, i.balance])));
     const listRef = useRef<HTMLDivElement>(null);
 
@@ -300,16 +296,6 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
                             </span>
                             Live
                         </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5"
-                            onClick={() => setImportOpen(true)}
-                        >
-                            <Upload className="size-3.5" />
-                            Import Data
-                        </Button>
-                        {/* Backup Data button will go here once we build it */}
                     </div>
                     {/* Horizontal fading border */}
                     <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
@@ -741,7 +727,6 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
                 </div>
             </div>
 
-            <ImportDataModal open={importOpen} onOpenChange={setImportOpen} />
         </>
     );
 }

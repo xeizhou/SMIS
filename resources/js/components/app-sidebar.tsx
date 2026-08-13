@@ -59,9 +59,9 @@ const StockNavItems: NavItem[] = [
     { title: 'Dashboard', href: '/stock-items-dashboard' },
     { title: 'Stock Items', href: '/stock-items' },
     { title: 'Units', href: '/units' },
-    { title: 'Transaction Logs', href: '/transaction-logs' },
+    { title: 'Transactions', href: '/transaction-logs' },
     { title: 'Stock Items List', href: '/stock-items-list' },
-    { title: 'Reports', href: '/stock-reports' },
+    { title: 'Data & Reports', href: '/stock-reports' }, 
 ];
 const SystemAdmin: NavItem[] = [
     { title: 'Users', href: '/users' },

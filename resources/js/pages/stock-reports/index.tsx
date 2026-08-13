@@ -15,8 +15,9 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Printer, FileText, FileSpreadsheet } from 'lucide-react';
+import { Printer, FileText, FileSpreadsheet, Upload } from 'lucide-react';
 import { useState } from 'react';
+import ImportDataModal from '@/components/stock-reports/ImportDataModal';
 
 interface FundCluster {
     fund_cluster_id: string;
@@ -58,6 +59,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
     const [cutoffDate, setCutoffDate] = useState(filters.cutoff_date ?? '');
     const [fundClusterId, setFundClusterId] = useState(filters.fund_cluster_id ?? 'all');
     const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+    const [importOpen, setImportOpen] = useState(false);
 
     const applyFilters = (
         overrides: Partial<{ cutoff_date: string; fund_cluster_id: string }> = {}
@@ -145,20 +147,27 @@ export default function Index({ items, fundClusters, filters }: Props) {
 
     return (
         <>
-            <Head title="Inventory Report" />
+            <Head title="Data & Reports" />
             <div className="p-4 space-y-6 sm:p-6">
                 {/* Header */}
                 <div className="relative sticky top-16 group-has-data-[collapsible=icon]/sidebar-wrapper:top-12 transition-[all] ease-linear z-30 -mx-4 -mt-4 mb-6 bg-background/95 backdrop-blur px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">
-                            Inventory Report
+                            Data & Reports
                         </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            View and export physical count inventory.
+                            View and export physical count inventory, or import data.
                         </p>
                     </div>
 
                     <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setImportOpen(true)}
+                        >
+                            <Upload className="size-4" />
+                            Import Data
+                        </Button>
                         <Button
                             className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
                             onClick={() => requestConfirm('print')}
@@ -341,6 +350,8 @@ export default function Index({ items, fundClusters, filters }: Props) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ImportDataModal open={importOpen} onOpenChange={setImportOpen} />
         </>
     );
 }
@@ -352,7 +363,7 @@ Index.layout = {
             href: '#',
         },
         {
-            title: 'Inventory Report',
+            title: 'Data & Reports',
             href: '/stock-reports',
         },
     ],
