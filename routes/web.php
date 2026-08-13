@@ -538,6 +538,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/users', [UsersController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [UsersController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UsersController::class, 'destroy'])->name('users.destroy');
+        Route::post('/users/{user}/avatar', [UsersController::class, 'updateAvatar'])->name('users.avatar.update');
+        Route::delete('/users/{user}/avatar', [UsersController::class, 'removeAvatar'])->name('users.avatar.remove');   
         Route::get('/register', function () {
             return redirect()->route('login');
         });
