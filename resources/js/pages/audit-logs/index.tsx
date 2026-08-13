@@ -16,6 +16,7 @@ interface AuditLog {
     log_id: number;
     timestamp: string;
     user: string;
+    avatar_url: string | null;
     role: string;
     action: string;
     target_url: string | null;
@@ -48,8 +49,6 @@ interface Props {
 export default function Index({ logs, filters }: Props) {
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [roleFilter, setRoleFilter] = useState(filters.role || 'All');
-
-    
 
     // Handle search debounce
     useEffect(() => {
@@ -134,8 +133,8 @@ export default function Index({ logs, filters }: Props) {
                         <tbody>
                             {logs.data.length > 0 ? (
                                 logs.data.map((row) => (
-                                    <tr 
-                                        key={row.log_id} 
+                                    <tr
+                                        key={row.log_id}
                                         data-record-id={row.log_id}
                                         className="transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
                                     >
@@ -143,11 +142,26 @@ export default function Index({ logs, filters }: Props) {
                                             {row.log_id}
                                         </td>
                                         <td className="px-4 py-3">{row.timestamp}</td>
-                                        <td className="px-4 py-3">{row.user}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                                {row.avatar_url ? (
+                                                    <img
+                                                        src={row.avatar_url}
+                                                        alt={row.user}
+                                                        className="size-7 rounded-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                                        {row.user.charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <span>{row.user}</span>
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3">{row.role}</td>
                                         <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                                             {row.target_url ? (
-                                                <Link 
+                                                <Link
                                                     href={row.target_url}
                                                     onClick={() => {
                                                         const url = new URL(row.target_url!, 'http://localhost');
