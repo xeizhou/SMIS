@@ -61,39 +61,33 @@ function daysUntil(dateStr: string) {
     if (diff < 0) {
         return { 
             text: `${Math.abs(diff)}d overdue`, 
-            cardStyle: 'border-l-rose-500 bg-rose-50/70 dark:bg-rose-950/30',
-            textStyle: 'text-rose-600 dark:text-rose-400 font-medium'
+            cardStyle: 'border-l-red-500 bg-red-50/70 dark:bg-red-950/30',
+            textStyle: 'text-red-600 dark:text-red-400 font-medium'
         };
     }
 
     if (diff === 0) {
         return { 
             text: 'Due today', 
-            cardStyle: 'border-l-amber-500 bg-amber-50/70 dark:bg-amber-950/30',
-            textStyle: 'text-amber-600 dark:text-amber-400 font-medium'
+            cardStyle: 'border-l-orange-500 bg-orange-50/70 dark:bg-orange-950/30',
+            textStyle: 'text-orange-600 dark:text-orange-400 font-medium'
         };
     }
 
     if (diff === 1) {
         return { 
             text: 'Due tomorrow', 
-            cardStyle: 'border-l-sky-500 bg-sky-50/70 dark:bg-sky-950/30',
-            textStyle: 'text-sky-600 dark:text-sky-400 font-medium'
+            cardStyle: 'border-l-amber-500 bg-amber-50/70 dark:bg-amber-950/30',
+            textStyle: 'text-amber-600 dark:text-amber-400 font-medium'
         };
     }
 
+    // Due within 7 days
     if (diff <= 7) {
         return { 
             text: `Due in ${diff} days`, 
-            cardStyle: 'border-l-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/30',
-            textStyle: 'text-indigo-600 dark:text-indigo-400 font-medium'
-        };
-    }    // Due within 7 days
-    if (diff <= 7) {
-        return {
-            text: `Due in ${diff} days`,
-            cardStyle:'border-l-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/30',
-            textStyle:'text-indigo-600 dark:text-indigo-400 font-medium'
+            cardStyle: 'border-l-yellow-500 bg-yellow-50/70 dark:bg-yellow-950/30',
+            textStyle: 'text-yellow-600 dark:text-yellow-400 font-medium'
         };
     }
 
@@ -101,8 +95,8 @@ function daysUntil(dateStr: string) {
     if (diff <= 14) {
         return {
             text: `Due in ${diff} days`,
-            cardStyle:'border-l-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/30',
-            textStyle:'text-emerald-600 dark:text-emerald-400 font-medium'
+            cardStyle: 'border-l-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/30',
+            textStyle: 'text-emerald-600 dark:text-emerald-400 font-medium'
         };
     }
 
