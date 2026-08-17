@@ -67,9 +67,16 @@ class FundClustersController extends Controller
      * Remove the specified fund cluster.
      */
     public function destroy(FundCluster $fundCluster)
-    {
-        $fundCluster->delete();
+        {
+            try {
+                $fundCluster->delete();
+            } catch (\Illuminate\Database\QueryException $e) {
+                if ($e->getCode() === '23000') {
+                    return back()->withErrors(['delete' => 'Cannot delete this fund cluster — it is still referenced by related records.']);
+                }
+                throw $e;
+            }
 
-        return redirect()->back();
-    }
+            return redirect()->route('fund-clusters.index')->with('success', 'Fund cluster deleted.');
+        }
 }

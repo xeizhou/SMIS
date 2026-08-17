@@ -21,17 +21,24 @@ export default function SupplierDeleteModal({
     supplierId,
 }: Props) {
     const [processing, setProcessing] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const confirmDelete = () => {
         if (!supplierId) {
-return;
-}
+            return;
+        }
 
         setProcessing(true);
+        setErrorMessage(null);
 
         router.delete(`/suppliers/${supplierId}`, {
             onSuccess: () => {
                 onOpenChange(false);
+            },
+            onError: (errors) => {
+                if (errors.delete) {
+                    setErrorMessage(errors.delete);
+                }
             },
             onFinish: () => {
                 setProcessing(false);
@@ -40,7 +47,16 @@ return;
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog
+            open={open}
+            onOpenChange={(next) => {
+                onOpenChange(next);
+
+                if (!next) {
+                    setErrorMessage(null);
+                }
+            }}
+        >
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="text-black">
@@ -53,6 +69,11 @@ return;
                         Are you sure you want to delete this supplier? This action
                         cannot be undone.
                     </p>
+                    {errorMessage && (
+                        <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+                            {errorMessage}
+                        </p>
+                    )}
                 </div>
 
                 <DialogFooter className="gap-2 sm:gap-2">

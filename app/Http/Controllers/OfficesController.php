@@ -149,9 +149,16 @@ class OfficesController extends Controller
     }
 
     public function destroy(Office $office)
-    {
-        $office->delete();
+        {
+            try {
+                $office->delete();
+            } catch (\Illuminate\Database\QueryException $e) {
+                if ($e->getCode() === '23000') {
+                    return back()->with('error', 'Cannot delete this office — it is still referenced by related records.');
+                }
+                throw $e;
+            }
 
-        return back()->with('success', 'Office deleted successfully.');
-    }
+            return redirect()->route('offices.index')->with('success', 'Office deleted.');
+        }
 }
