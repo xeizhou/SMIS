@@ -17,16 +17,27 @@ interface Props {
 
 export default function StockItemDeleteModal({ open, onOpenChange, stockNo }: Props) {
     const [processing, setProcessing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const confirmDelete = () => {
         if (!stockNo) {
-return;
-}
+            return;
+        }
 
         setProcessing(true);
+        setError(null);
         router.delete(`/stock-items/${stockNo}`, {
-            onSuccess: () => {
+            preserveScroll: true,
+            onSuccess: (page) => {
+                const flash = (page.props as any)?.flash;
+                if (flash?.error) {
+                    setError(flash.error);
+                    return;
+                }
                 onOpenChange(false);
+            },
+            onError: () => {
+                setError('Something went wrong while deleting this item.');
             },
             onFinish: () => setProcessing(false),
         });
@@ -39,10 +50,15 @@ return;
                     <DialogTitle className="text-red-600">Delete Stock Item</DialogTitle>
                 </DialogHeader>
 
-                <div className="py-4">
+                <div className="py-4 space-y-2">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                         Are you sure you want to delete this stock item? This action cannot be undone.
                     </p>
+                    {error && (
+                        <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950 rounded-md px-3 py-2">
+                            {error}
+                        </p>
+                    )}
                 </div>
 
                 <DialogFooter className="gap-2 sm:gap-2">

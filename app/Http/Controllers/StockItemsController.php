@@ -87,8 +87,13 @@ class StockItemsController extends Controller
     }
 
     public function destroy(StockItem $stockItem)
-    {
-        $stockItem->delete();
-        return redirect()->back();
-    }
+        {
+            try {
+                $stockItem->delete();
+            } catch (\Illuminate\Database\QueryException $e) {
+                return back()->with('error', 'Cannot delete this stock item — it is referenced by transaction records.');
+            }
+
+            return redirect()->route('stock-items.index')->with('success', 'Stock item deleted.');
+        }
 }
