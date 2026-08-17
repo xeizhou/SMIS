@@ -68,9 +68,16 @@ class UnitsController extends Controller
      * Remove the specified unit.
      */
     public function destroy(Unit $unit)
-    {
-        $unit->delete();
+        {
+            try {
+                $unit->delete();
+            } catch (\Illuminate\Database\QueryException $e) {
+                if ($e->getCode() === '23000') {
+                    return back()->with('error', 'Cannot delete this unit — it is still used by existing stock items.');
+                }
+                throw $e;
+            }
 
-        return redirect()->back();
-    }
+            return redirect()->route('units.index')->with('success', 'Unit deleted.');
+        }
 }
