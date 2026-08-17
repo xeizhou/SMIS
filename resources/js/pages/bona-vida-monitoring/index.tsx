@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Trash, Eye } from 'lucide-react';
+import { Search, Pencil, Trash2, Eye } from 'lucide-react';
 import { useState } from 'react';
 import BonaVidaAddForm from '@/components/bona-vida-monitoring/bonavidaaddform';
 import BonaVidaDeleteModal from '@/components/bona-vida-monitoring/bonavidadeletemodal';
@@ -234,7 +234,7 @@ export default function Index({ records, filters, offices }: Props) {
                                                     className="text-red-600 hover:text-red-800"
                                                     title="Delete"
                                                 >
-                                                    <Trash className="size-4" />
+                                                    <Trash2 className="size-4" />
                                                 </button>
                                                 <button
                                                     type="button"
