@@ -186,7 +186,12 @@ export default function Index({ users }: IndexProps) {
     function openCreate() {
         setEditing(null);
         setAvatarPreview(null);
-        reset();
+        setData({
+            name: '',
+            email: '',
+            password: '',
+            role: 'staff',
+        });
         setOpen(true);
     }
 
@@ -210,7 +215,12 @@ export default function Index({ users }: IndexProps) {
         } else {
             post('/users', {
                 onSuccess: () => {
-                    reset();
+                    setData({
+                        name: '',
+                        email: '',
+                        password: '',
+                        role: 'staff',
+                    });
                     setOpen(false);
                 },
             });
@@ -384,7 +394,16 @@ export default function Index({ users }: IndexProps) {
                 )}
             </div>
 
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog
+                open={open}
+                onOpenChange={(next) => {
+                    setOpen(next);
+                    if (!next) {
+                        setEditing(null);
+                        setAvatarPreview(null);
+                    }
+                }}
+            >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{editing ? 'Edit User' : 'Add User'}</DialogTitle>
