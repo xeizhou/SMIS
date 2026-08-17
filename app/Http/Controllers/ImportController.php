@@ -138,6 +138,19 @@ class ImportController extends Controller
                         ->orWhere('unit_name', $row['unit_short_name'])
                         ->first();
                     if ($unit) {
+                        // IMPORTANT: syncWithoutDetaching only adds/updates
+                        // the given pivot row — it does NOT clear is_default
+                        // on any other unit already attached to this item.
+                        // Re-importing the same stock_no under a different
+                        // unit label (e.g. "bottle" in one file, "gallon" in
+                        // another) would otherwise leave TWO units marked
+                        // default, which silently double-counts the balance
+                        // in every report that joins on is_default = true.
+                        // Unset every other default first, then set this one.
+                        $item->units()->updateExistingPivot(
+                            $item->units->pluck('unitID')->all(),
+                            ['is_default' => false]
+                        );
                         $item->units()->syncWithoutDetaching([$unit->unitID => ['is_default' => true]]);
                     } else {
                         $skipped[] = "Row {$this->rowLabel($i)}: unit '{$row['unit_short_name']}' not found, item saved without it.";
@@ -254,10 +267,13 @@ class ImportController extends Controller
      * Since source files (e.g. exports from the old system) have no
      * transactionID to key off of, duplicate detection instead uses a
      * fingerprint of transaction_type + transaction_date + item_name +
-     * reference + quantity + office_code + fund_cluster. Re-running the
-     * same file, or a file that overlaps a previous import, will skip
-     * rows that already match — this check always applies, independent
-     * of the merge checkbox.
+     * reference + quantity + office_code + fund_cluster — but compares
+     * by COUNT, not existence. If the database already has N matching
+     * transactions for a given fingerprint, only the first N occurrences
+     * of that fingerprint in this import are skipped as duplicates; any
+     * beyond that are created, since they represent genuinely separate
+     * transactions the old system happened to record identically. This
+     * always applies, independent of the merge checkbox.
      *
      * stock_no is a real foreign key on the transactions table, so unlike
      * office/fund_cluster it can never be passed through as an unresolved
@@ -272,6 +288,18 @@ class ImportController extends Controller
         return $this->handleImport($request, 'transactions', function (array $rows, bool $merge) {
             $created = 0;
             $skipped = [];
+
+            // Duplicate detection uses a fingerprint (no transactionID
+            // exists in source data to key off of). A plain "does a match
+            // already exist" check would wrongly treat legitimately
+            // repeated transactions (same type/date/item/reference/qty/
+            // office/fund, but genuinely two separate entries) as one
+            // single duplicate forever. Instead, count how many matching
+            // rows already exist in the DB per fingerprint, and only skip
+            // up to that many — any rows beyond that count as new. Cached
+            // per fingerprint since many rows can share one.
+            $existingCounts = [];
+            $consumed = [];
 
             foreach ($rows as $i => $row) {
                 try {
@@ -342,22 +370,40 @@ class ImportController extends Controller
                     }
 
                     // No transactionID exists in the source data to dedupe
-                    // against, so treat a transaction as "already imported"
-                    // if one with the same type/date/item/reference/qty/
-                    // office/fund already exists. Applies regardless of the
-                    // merge checkbox — re-running the same file (or a file
-                    // that overlaps a previous one) should never double the
-                    // stock counts.
-                    $isDuplicate = Transaction::where('transaction_type', $row['transaction_type'])
-                        ->where('transaction_date', $row['transaction_date'])
-                        ->where('item_name', $row['item_name'])
-                        ->where('reference', $row['reference'])
-                        ->where('quantity', $row['quantity'])
-                        ->where('office_code', $office->office_code)
-                        ->where('fund_cluster', $fundCluster->fund_cluster_id)
-                        ->exists();
+                    // against. A row is only treated as a duplicate if the
+                    // database already has at least as many matching
+                    // transactions (same type/date/item/reference/qty/
+                    // office/fund) as we've encountered so far in this
+                    // import — this lets genuinely repeated real-world
+                    // transactions come through, while still blocking a
+                    // straight re-import of the same file. Note: this
+                    // can't catch a source file that itself contains
+                    // accidental duplicate rows, since those look
+                    // identical to legitimate repeats.
+                    $fingerprint = implode('|', [
+                        $row['transaction_type'],
+                        $row['transaction_date'],
+                        $row['item_name'],
+                        $row['reference'],
+                        $row['quantity'],
+                        $office->office_code,
+                        $fundCluster->fund_cluster_id,
+                    ]);
 
-                    if ($isDuplicate) {
+                    if (! array_key_exists($fingerprint, $existingCounts)) {
+                        $existingCounts[$fingerprint] = Transaction::where('transaction_type', $row['transaction_type'])
+                            ->where('transaction_date', $row['transaction_date'])
+                            ->where('item_name', $row['item_name'])
+                            ->where('reference', $row['reference'])
+                            ->where('quantity', $row['quantity'])
+                            ->where('office_code', $office->office_code)
+                            ->where('fund_cluster', $fundCluster->fund_cluster_id)
+                            ->count();
+                        $consumed[$fingerprint] = 0;
+                    }
+
+                    if ($consumed[$fingerprint] < $existingCounts[$fingerprint]) {
+                        $consumed[$fingerprint]++;
                         $skipped[] = "Row {$this->rowLabel($i)}: duplicate of an existing transaction (same type/date/item/reference/qty/office/fund), skipped.";
                         continue;
                     }

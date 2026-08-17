@@ -127,6 +127,15 @@ class StockItemsListController extends Controller
 
     public function printCards(Request $request)
     {
+        // Printing many stock cards means rendering (and, for the page
+        // footer, RE-rendering) a potentially very large PDF. Herd's
+        // default PHP limits (commonly 30-60s / 128-256M) are tuned for
+        // ordinary requests and get hit well before DomPDF finishes on
+        // a few hundred pages. Raise them just for this request rather
+        // than globally in php.ini.
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
+
         $search = $request->input('search');
         $isUnissued = $request->boolean('unissued'); // Passed as true/false from our new React button
         $fundClusterId = $request->input('fund_cluster');
@@ -187,6 +196,15 @@ class StockItemsListController extends Controller
             ->orderBy('transactionID', 'asc')
             ->get();
 
+        // Group transactions by stock_no ONCE, up front. The previous
+        // version called $transactions->filter() inside the items loop —
+        // an O(n_items × n_transactions) scan. With hundreds of items and
+        // thousands of transactions across the whole system, that alone
+        // could take longer than DomPDF's actual rendering. groupBy() is
+        // a single O(n_transactions) pass; the per-item lookup below is
+        // then a fast O(1) collection fetch.
+        $transactionsByStock = $transactions->groupBy('stock_no');
+
         // 3. Process the ledger for each item
         foreach ($items as $item) {
             // Determine the Fund Cluster label for the card header
@@ -197,9 +215,7 @@ class StockItemsListController extends Controller
             }
 
             // Get transactions specific to this item, matched by stock_no
-            $itemTransactions = $transactions->filter(function ($t) use ($item) {
-                return $t->stock_no === $item->stock_no;
-            });
+            $itemTransactions = $transactionsByStock->get($item->stock_no, collect());
 
             // Calculate running balance
             $balance = 0;
