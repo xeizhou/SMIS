@@ -94,17 +94,24 @@ class UsersController extends Controller
     }
 
     public function destroy(User $user)
-    {
-        if ($user->email === self::PROTECTED_EMAIL) {
-            return back()->with('error', 'This account is locked and cannot be deleted.');
+        {
+            if ($user->email === self::PROTECTED_EMAIL) {
+                return back()->with('error', 'This account is locked and cannot be deleted.');
+            }
+
+            if ($user->id === auth()->id()) {
+                return back()->with('error', "You can't delete your own account.");
+            }
+
+            try {
+                $user->delete();
+            } catch (\Illuminate\Database\QueryException $e) {
+                if ($e->getCode() === '23000') {
+                    return back()->with('error', 'Cannot delete this user — they are still referenced by existing records.');
+                }
+                throw $e;
+            }
+
+            return back()->with('success', 'User deleted.');
         }
-
-        if ($user->id === auth()->id()) {
-            return back()->with('error', "You can't delete your own account.");
-        }
-
-        $user->delete();
-
-        return back()->with('success', 'User deleted.');
-    }
 }

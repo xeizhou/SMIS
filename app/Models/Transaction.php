@@ -6,9 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Traits\LogsActivity;
+use App\Traits\SerializesDatesWithoutTimezoneShift;
+
 
 class Transaction extends Model
 {
+    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift;
+    
     use HasFactory, LogsActivity;
 
     const LOG_NAME = 'Transaction Logs';

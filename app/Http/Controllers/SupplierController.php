@@ -114,9 +114,16 @@ class SupplierController extends Controller
     }
 
     public function destroy(Supplier $supplier)
-    {
-        $supplier->delete();
+        {
+            try {
+                $supplier->delete();
+            } catch (\Illuminate\Database\QueryException $e) {
+                if ($e->getCode() === '23000') {
+                    return back()->withErrors(['delete' => 'Cannot delete this supplier — it is still referenced by related records.']);
+                }
+                throw $e;
+            }
 
-        return back()->with('success', 'Supplier deleted successfully.');
-    }
+            return redirect()->route('suppliers.index')->with('success', 'Supplier deleted.');
+        }
 }
