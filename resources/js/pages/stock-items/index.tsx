@@ -1,7 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search } from 'lucide-react';
-import { Pencil, Trash2, Eye } from 'lucide-react';
+import { Search, Pencil, Trash2, Eye, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useState } from 'react';
 import StockItemAddForm from '@/components/stock-items/stockitemaddform';
 import StockItemDeleteModal from '@/components/stock-items/stockitemdeletemodal';
@@ -38,6 +37,8 @@ interface PaginatedStockItems {
 
 interface Filters {
     search: string | null;
+    sort_field?: string;
+    sort_direction?: 'asc' | 'desc';
 }
 
 interface Props {
@@ -51,7 +52,7 @@ export default function Index({
     units,
     filters,
 }: Props) {
-        const [search, setSearch] = useState(filters.search ?? '');
+    const [search, setSearch] = useState(filters.search ?? '');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [viewOpen, setViewOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -59,11 +60,26 @@ export default function Index({
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [stockToDelete, setStockToDelete] = useState<string | null>(null);
 
+    const handleSort = (field: string) => {
+        // Toggle direction if clicking the same field, otherwise default to ascending
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        
+        router.get(
+            '/stock-items',
+            { search, sort_field: field, sort_direction: direction },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            }
+        );
+    };
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         router.get(
             '/stock-items',
-            { search },
+            { search, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -161,9 +177,24 @@ export default function Index({
                             style={{ backgroundColor: '#370001' }}
                         >
                             <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Stock No.</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Item Name</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Description</th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('stock_no')}
+                                >
+                                    <div className="flex items-center gap-2">Stock Number</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('item_name')}
+                                >
+                                    <div className="flex items-center gap-2">Item Name</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('description')}
+                                >
+                                    <div className="flex items-center gap-2">Description</div>
+                                </th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Unit(s)</th>
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
@@ -185,7 +216,9 @@ export default function Index({
                                     return (
                                         <tr
                                             key={stock.stock_no}
-                                            className={'border-b transition-colors hover:bg-muted/40'} data-search-0={stock.item_name} data-record-id={stock.stock_no}
+                                            className={'border-b transition-colors hover:bg-muted/40'} 
+                                            data-search-0={stock.item_name} 
+                                            data-record-id={stock.stock_no}
                                         >
                                             <td className="px-4 py-3 font-medium">{stock.stock_no}</td>
                                             <td className="px-4 py-3">{stock.item_name}</td>

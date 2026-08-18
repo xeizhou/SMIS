@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Trash2 } from 'lucide-react';
+import { Search, Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,8 @@ interface PaginatedUnits {
 
 interface Filters {
     search: string | null;
+    sort_field?: string;
+    sort_direction?: 'asc' | 'desc';
 }
 
 interface Props {
@@ -33,7 +35,7 @@ interface Props {
 }
 
 export default function Index({ units, filters }: Props) {
-        const [search, setSearch] = useState(filters.search ?? '');
+    const [search, setSearch] = useState(filters.search ?? '');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
@@ -41,11 +43,26 @@ export default function Index({ units, filters }: Props) {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [unitToDelete, setUnitToDelete] = useState<number | null>(null);
 
+    const handleSort = (field: string) => {
+        // Toggle direction if clicking the same field, otherwise default to ascending
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        
+        router.get(
+            '/units',
+            { search, sort_field: field, sort_direction: direction },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            }
+        );
+    };
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         router.get(
             '/units',
-            { search },
+            { search, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -130,14 +147,25 @@ export default function Index({ units, filters }: Props) {
                 </form>
 
                 {/* Table */}
-                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
+                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden">
+                    <table className="w-full text-sm">
                         <thead
                             className="border-b"
                             style={{ backgroundColor: '#370001' }}
                         >
                             <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Unit Name</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Short Name</th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('unit_name')}
+                                >
+                                    <div className="flex items-center gap-2">Unit Name</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('unit_short_name')}
+                                >
+                                    <div className="flex items-center gap-2">Short Name</div>
+                                </th>
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
@@ -157,7 +185,9 @@ export default function Index({ units, filters }: Props) {
                                 units.data.map((unit) => (
                                     <tr
                                         key={unit.unitID}
-                                        className={'border-b transition-colors hover:bg-muted/40'} data-search-0={unit.unit_name} data-record-id={unit.unitID}
+                                        className={'border-b transition-colors hover:bg-muted/40'} 
+                                        data-search-0={unit.unit_name} 
+                                        data-record-id={unit.unitID}
                                     >
                                         <td className="px-4 py-3">{unit.unit_name}</td>
                                         <td className="px-4 py-3">{unit.unit_short_name}</td>
@@ -185,7 +215,9 @@ export default function Index({ units, filters }: Props) {
                                 ))
                             )}
                         </tbody>
-                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
+                    </table>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
 
                 {units.data.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-1 p-4">
