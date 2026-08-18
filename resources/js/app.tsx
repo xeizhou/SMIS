@@ -23,7 +23,11 @@ const queryClient = new QueryClient();
 router.on('invalid', (event) => {
     const status = (event.detail as { response?: { status?: number } })?.response?.status;
     if (status === 401 || status === 419) {
-        window.location.href = '/login';
+        // Without this, Inertia's default behavior renders the raw
+        // Laravel error page (the "Page Expired" whoops screen) in a
+        // modal overlay before our redirect below has a chance to run.
+        event.preventDefault();
+        window.location.href = status === 419 ? '/login?expired=1' : '/login';
     }
 });
 
