@@ -2,10 +2,9 @@
 
 namespace App\Providers;
 
-use App\Actions\Fortify\CreateNewUser;
-use App\Actions\Fortify\ResetUserPassword;
-use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -34,68 +33,38 @@ class FortifyServiceProvider extends ServiceProvider
     {
         $this->configureActions();
         $this->configureViews();
-        $this->configureRateLimiting();
+        $this->configureSingleSession();
     }
 
     /**
      * Configure Fortify actions.
      */
-private function configureActions(): void
-{
-    Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
-    Fortify::createUsersUsing(CreateNewUser::class);
+    private function configureActions(): void
+    {
+        Fortify::authenticateUsing(function (Request $request) {
+            $email = Str::lower($request->input(Fortify::username()));
+            $password = $request->input('password');
 
-    Fortify::authenticateUsing(function (Request $request) {
-        $email = Str::lower($request->input(Fortify::username()));
-        $password = $request->input('password');
+            $user = User::where('email', $email)->first();
 
-        $user = User::where('email', $email)->first();
+            if (!$user || !Hash::check($password, $user->password)) {
+                return null;
+            }
 
-        /*
-         * Invalid credentials.
-         */
-        if (!$user || !Hash::check($password, $user->password)) {
-            return null;
-        }
-
-        /*
-         * Global IP-based cooldown.
-         */
-        $rateLimitKey = 'single-session-ip:' . $request->ip();
-
-        /*
-         * IP is currently locked.
-         */
-        if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
-            $seconds = RateLimiter::availableIn($rateLimitKey);
-
-            throw ValidationException::withMessages([
-                'email' => "Too many attempts. Please try again in {$seconds} seconds.",
-            ]);
-        }
-
-        /*
-         * Account already belongs to another session.
-         */
-        if ($user->current_session_id) {
-            RateLimiter::hit($rateLimitKey, 30);
-
-            $attempts = RateLimiter::attempts($rateLimitKey);
-
-            if ($attempts >= 3) {
+            // Single-session enforcement: reject the login here, before
+            // Auth::login() is ever called, if this account already has a
+            // live session elsewhere. Throwing here surfaces the message
+            // through Fortify's normal errors.email mechanism — no changes
+            // needed to the React login form.
+            if ($user->hasActiveSessionOwnedByAnother()) {
                 throw ValidationException::withMessages([
-                    'email' => 'Too many attempts. Please wait 30 seconds before trying again.',
+                    Fortify::username() => 'This account is already logged in on another device.',
                 ]);
             }
 
-            throw ValidationException::withMessages([
-                'email' => 'This account is already logged in on another device.',
-            ]);
-        }
-
-        return $user;
-    });
-}
+            return $user;
+        });
+    }
 
     /**
      * Configure Fortify views.
@@ -131,24 +100,25 @@ private function configureActions(): void
     }
 
     /**
-     * Configure rate limiting.
+     * Flag the session as needing to claim single-session ownership once
+     * the FINAL (post-regeneration) session ID is available.
+     *
+     * This deliberately does NOT claim the session here. The Login event
+     * fires inside Auth::login(), which happens before Fortify's session
+     * regeneration step (PrepareAuthenticatedSession / 2FA challenge). If
+     * we claimed the session ID at this point, we'd record the
+     * about-to-be-discarded pre-regeneration ID, and every subsequent
+     * request would fail the EnsureSingleSession ownership check.
+     *
+     * Session DATA (this flag) survives session()->regenerate() — only the
+     * ID changes — so EnsureSingleSession can safely read this flag on the
+     * next request, once request()->session()->getId() is final, and
+     * perform the actual atomic claim there.
      */
-    private function configureRateLimiting(): void
+    private function configureSingleSession(): void
     {
-        RateLimiter::for('two-factor', function (Request $request) {
-            return Limit::perMinute(5)->by($request->session()->get('login.id'));
-        });
-
-        RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
-
-            return Limit::perMinute(5)->by($throttleKey);
-        });
-
-        RateLimiter::for('passkeys', function (Request $request) {
-            return Limit::perMinute(10)->by(
-                ($request->input('credential.id') ?: $request->session()->getId()).'|'.$request->ip(),
-            );
+        Event::listen(Login::class, function (Login $event) {
+            request()->session()->put('auth.pending_claim', true);
         });
     }
 }

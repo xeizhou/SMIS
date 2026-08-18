@@ -10,12 +10,14 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('current_session_id')->nullable()->after('remember_token');
+            $table->index('current_session_id');
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
+            $table->dropIndex(['current_session_id']);
             $table->dropColumn('current_session_id');
         });
     }
