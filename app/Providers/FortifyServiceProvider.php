@@ -13,6 +13,9 @@ use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Illuminate\Validation\ValidationException;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -37,11 +40,62 @@ class FortifyServiceProvider extends ServiceProvider
     /**
      * Configure Fortify actions.
      */
-    private function configureActions(): void
-    {
-        Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
-        Fortify::createUsersUsing(CreateNewUser::class);
-    }
+private function configureActions(): void
+{
+    Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
+    Fortify::createUsersUsing(CreateNewUser::class);
+
+    Fortify::authenticateUsing(function (Request $request) {
+        $email = Str::lower($request->input(Fortify::username()));
+        $password = $request->input('password');
+
+        $user = User::where('email', $email)->first();
+
+        /*
+         * Invalid credentials.
+         */
+        if (!$user || !Hash::check($password, $user->password)) {
+            return null;
+        }
+
+        /*
+         * Global IP-based cooldown.
+         */
+        $rateLimitKey = 'single-session-ip:' . $request->ip();
+
+        /*
+         * IP is currently locked.
+         */
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
+            $seconds = RateLimiter::availableIn($rateLimitKey);
+
+            throw ValidationException::withMessages([
+                'email' => "Too many attempts. Please try again in {$seconds} seconds.",
+            ]);
+        }
+
+        /*
+         * Account already belongs to another session.
+         */
+        if ($user->current_session_id) {
+            RateLimiter::hit($rateLimitKey, 30);
+
+            $attempts = RateLimiter::attempts($rateLimitKey);
+
+            if ($attempts >= 3) {
+                throw ValidationException::withMessages([
+                    'email' => 'Too many attempts. Please wait 30 seconds before trying again.',
+                ]);
+            }
+
+            throw ValidationException::withMessages([
+                'email' => 'This account is already logged in on another device.',
+            ]);
+        }
+
+        return $user;
+    });
+}
 
     /**
      * Configure Fortify views.

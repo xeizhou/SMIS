@@ -16,11 +16,17 @@ type Props = {
     user: User;
 };
 
+const LOGOUT_BROADCAST_KEY = 'auth:logout-broadcast';
+
 export function UserMenuContent({ user }: Props) {
     const cleanup = useMobileNavigation();
 
     const handleLogout = () => {
         cleanup();
+        // Tell every other open tab (same browser, same origin) to log out too.
+        // The 'storage' event only fires in OTHER tabs, never the one that
+        // wrote it, so this doesn't cause a redirect loop in this tab.
+        localStorage.setItem(LOGOUT_BROADCAST_KEY, Date.now().toString());
         router.flushAll();
     };
 
