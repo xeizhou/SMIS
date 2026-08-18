@@ -149,24 +149,29 @@ export default function Index({ units, filters }: Props) {
                 {/* Table */}
                 <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden">
                     <table className="w-full text-sm">
-                        <thead
-                            className="border-b"
-                            style={{ backgroundColor: '#370001' }}
-                        >
+                        <thead className="border-b">
                             <tr>
-                                <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
-                                    onClick={() => handleSort('unit_name')}
-                                >
-                                    <div className="flex items-center gap-2">Unit Name</div>
+                                <th className="p-0 font-semibold text-white bg-[#370001]">
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center gap-2 px-4 py-3 text-left outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
+                                        onClick={() => handleSort('unit_name')}
+                                    >
+                                        Unit Name
+                                    </button>
                                 </th>
-                                <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
-                                    onClick={() => handleSort('unit_short_name')}
-                                >
-                                    <div className="flex items-center gap-2">Short Name</div>
+                                <th className="p-0 font-semibold text-white bg-[#370001]">
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center gap-2 px-4 py-3 text-left outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
+                                        onClick={() => handleSort('unit_short_name')}
+                                    >
+                                        Short Name
+                                    </button>
                                 </th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
+                                <th className="px-4 py-3 text-center font-semibold text-white bg-[#370001]">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody>

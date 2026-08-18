@@ -172,31 +172,42 @@ export default function Index({
                 {/* Table */}
                 <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden">
                     <table className="w-full text-sm">
-                        <thead
-                            className="border-b"
-                            style={{ backgroundColor: '#370001' }}
-                        >
+                        <thead className="border-b">
                             <tr>
-                                <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
-                                    onClick={() => handleSort('stock_no')}
-                                >
-                                    <div className="flex items-center gap-2">Stock Number</div>
+                                <th className="p-0 font-semibold text-white bg-[#370001]">
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center gap-2 px-4 py-3 text-left outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
+                                        onClick={() => handleSort('stock_no')}
+                                    >
+                                        Stock Number
+                                    </button>
                                 </th>
-                                <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
-                                    onClick={() => handleSort('item_name')}
-                                >
-                                    <div className="flex items-center gap-2">Item Name</div>
+                                <th className="p-0 font-semibold text-white bg-[#370001]">
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center gap-2 px-4 py-3 text-left outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
+                                        onClick={() => handleSort('item_name')}
+                                    >
+                                        Item Name
+                                    </button>
                                 </th>
-                                <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
-                                    onClick={() => handleSort('description')}
-                                >
-                                    <div className="flex items-center gap-2">Description</div>
+                                <th className="p-0 font-semibold text-white bg-[#370001]">
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center gap-2 px-4 py-3 text-left outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
+                                        onClick={() => handleSort('description')}
+                                    >
+                                        Description
+                                    </button>
                                 </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Unit(s)</th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
+                                {/* Non-clickable headers still get the explicit bg-[#370001] class */}
+                                <th className="px-4 py-3 text-left font-semibold text-white bg-[#370001]">
+                                    Unit(s)
+                                </th>
+                                <th className="px-4 py-3 text-center font-semibold text-white bg-[#370001]">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody>

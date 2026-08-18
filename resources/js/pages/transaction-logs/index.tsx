@@ -253,60 +253,58 @@ export default function Index({
                 {/* Table */}
                 <div className="overflow-hidden rounded-xl border border-border bg-card overflow-x-auto">
                     <table className="w-full text-sm whitespace-nowrap">
-                        <thead
-                            className="border-b"
-                            style={{ backgroundColor: '#370001' }}
-                        >
+                        <thead className="border-b">
                             <tr>
                                 <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('transaction_type')}
                                 >
                                     <div className="flex items-center gap-2">Type</div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('transaction_date')}
                                 >
                                     <div className="flex items-center gap-2">Date</div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('item_name')}
                                 >
                                     <div className="flex items-center gap-2">Item Name</div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('unit_name')}
                                 >
                                     <div className="flex items-center gap-2">Unit</div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-center font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    className="px-4 py-3 text-center font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('quantity')}
                                 >
                                     <div className="flex items-center justify-center gap-2">Qty</div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('reference')}
                                 >
                                     <div className="flex items-center gap-2">Reference</div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('fund_cluster')}
                                 >
                                     <div className="flex items-center gap-2">Fund Cluster</div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('office_code')}
                                 >
                                     <div className="flex items-center gap-2">Office</div>
                                 </th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
+                                {/* Make sure non-clickable headers get the background color too! */}
+                                <th className="px-4 py-3 text-center font-semibold text-white bg-[#370001]">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
