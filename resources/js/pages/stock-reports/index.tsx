@@ -15,9 +15,10 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Printer, FileText, FileSpreadsheet, Upload } from 'lucide-react';
+import { Printer, FileText, FileSpreadsheet, Upload, Archive } from 'lucide-react';
 import { useState } from 'react';
 import ImportDataModal from '@/components/stock-reports/ImportDataModal';
+import BackupModal from '@/components/stock-reports/BackupModal';
 
 interface FundCluster {
     fund_cluster_id: string;
@@ -60,6 +61,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
     const [fundClusterId, setFundClusterId] = useState(filters.fund_cluster_id ?? 'all');
     const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
     const [importOpen, setImportOpen] = useState(false);
+    const [backupOpen, setBackupOpen] = useState(false);
 
     const applyFilters = (
         overrides: Partial<{ cutoff_date: string; fund_cluster_id: string }> = {}
@@ -156,7 +158,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                             Data & Reports
                         </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            View and export physical count inventory, or import data.
+                            View and export physical count inventory, or import/backup data.
                         </p>
                     </div>
 
@@ -167,6 +169,13 @@ export default function Index({ items, fundClusters, filters }: Props) {
                         >
                             <Upload className="size-4" />
                             Import Data
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => setBackupOpen(true)}
+                        >
+                            <Archive className="size-4" />
+                            Backup Data
                         </Button>
                         <Button
                             className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
@@ -352,6 +361,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
             </Dialog>
 
             <ImportDataModal open={importOpen} onOpenChange={setImportOpen} />
+            <BackupModal open={backupOpen} onOpenChange={setBackupOpen} />
         </>
     );
 }

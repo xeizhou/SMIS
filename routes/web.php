@@ -26,6 +26,7 @@ use App\Http\Controllers\UsersController;
 use App\Http\Controllers\StockItemDashboardController;
 use App\Http\Controllers\StockReportsController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\BackupController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -528,6 +529,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/import/units', [ImportController::class, 'units'])->name('import.units');
     Route::post('/import/transactions', [ImportController::class, 'transactions'])->name('import.transactions');
     Route::post('/import/offices', [ImportController::class, 'offices'])->name('import.offices');
+
+    Route::get('/backup/folders', [BackupController::class, 'folders'])->name('backup.folders');
+    Route::post('/backup/create', [BackupController::class, 'create'])->name('backup.create');
+    Route::post('/backup/restore', [BackupController::class, 'restore'])->name('backup.restore');
 
     // ==========================================================
     // System/Administration (sidebar: "System/Administration")
