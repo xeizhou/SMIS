@@ -34,7 +34,7 @@ Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
-Route::middleware(['auth', 'verified', 'single-session'])->group(function () {
+Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
     Route::get('dashboard', function (\Illuminate\Http\Request $request) {
         $recentActivity = \App\Models\AuditLog::with('user')
             ->orderBy('log_timestamp', 'desc')

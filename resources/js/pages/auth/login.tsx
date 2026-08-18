@@ -1,4 +1,5 @@
 import { Form, Head, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
@@ -16,8 +17,33 @@ type Props = {
     canResetPassword: boolean;
 };
 
+// Runs once when this module is first evaluated (module bodies execute
+// exactly once per page load) — deliberately kept OUTSIDE the component
+// and out of a useEffect. React 18 StrictMode double-invokes effects in
+// dev (mount -> cleanup -> mount again), which would otherwise strip the
+// query param on the first pass and leave the second pass reading a
+// blank URL, silently dropping the message.
+let initialExpiredMessage: string | null = null;
+if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('expired') === '1') {
+        initialExpiredMessage = 'You were logged out due to inactivity. Please log in again.';
+
+        // Clean the URL so a refresh doesn't keep showing the message.
+        params.delete('expired');
+        const newUrl =
+            window.location.pathname +
+            (params.toString() ? `?${params.toString()}` : '') +
+            window.location.hash;
+        window.history.replaceState({}, '', newUrl);
+    }
+}
+
 export default function Login({ status, canResetPassword }: Props) {
     const { flash } = usePage<{ flash: { error?: string } }>().props;
+    const [expiredMessage] = useState<string | null>(initialExpiredMessage);
+
+    const bannerMessage = flash?.error ?? expiredMessage;
 
     return (
         <>
@@ -25,9 +51,9 @@ export default function Login({ status, canResetPassword }: Props) {
 
             <PasskeyVerify />
 
-            {flash?.error && (
+            {bannerMessage && (
                 <div className="mb-4 rounded-md border border-white bg-red-500/10 px-4 py-3 text-center text-sm font-medium text-white">
-                    {flash.error}
+                    {bannerMessage}
                 </div>
             )}
 

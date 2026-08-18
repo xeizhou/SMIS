@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 import { useAuthSync } from '@/hooks/use-auth-sync';
+import { useIdleLogout } from '@/hooks/use-idle-logout';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -20,7 +21,7 @@ const queryClient = new QueryClient();
 // force-logged-out by an admin, CSRF token stale, etc). Without this,
 // the tab just sits there until the user clicks something.
 router.on('invalid', (event) => {
-    const status = event.detail.response?.status;
+    const status = (event.detail as { response?: { status?: number } })?.response?.status;
     if (status === 401 || status === 419) {
         window.location.href = '/login';
     }
@@ -28,6 +29,7 @@ router.on('invalid', (event) => {
 
 function AppRoot({ app }: { app: React.ReactNode }) {
     useAuthSync();
+    useIdleLogout();
     return (
         <QueryClientProvider client={queryClient}>
             <TooltipProvider delayDuration={0}>
