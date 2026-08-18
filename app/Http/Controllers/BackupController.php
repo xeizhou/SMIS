@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use ZipArchive;
@@ -133,51 +134,60 @@ class BackupController extends Controller
         $pivotForeignKey = $pivotRelation->getForeignPivotKeyName();
         $pivotRelatedKey = $pivotRelation->getRelatedPivotKeyName();
 
-        DB::transaction(function () use ($data, $pivotTable, $pivotForeignKey, $pivotRelatedKey) {
-            DB::statement('PRAGMA foreign_keys = OFF');
+        // 1. Disable foreign keys BEFORE the transaction
+        Schema::disableForeignKeyConstraints();
 
-            DB::table('transactions')->delete();
-            DB::table($pivotTable)->delete();
-            DB::table('stock_items')->delete();
-            DB::table('units')->delete();
-            DB::table('fund_clusters')->delete();
-            DB::table('offices')->delete();
+        try {
+            DB::transaction(function () use ($data, $pivotTable, $pivotForeignKey, $pivotRelatedKey) {
+                // Delete everything safely
+                DB::table('transactions')->delete();
+                DB::table($pivotTable)->delete();
+                DB::table('stock_items')->delete();
+                DB::table('units')->delete();
+                DB::table('fund_clusters')->delete();
+                DB::table('offices')->delete();
 
-            foreach ($data['offices'] as $row) {
-                DB::table('offices')->insert($this->stripRelations($row));
-            }
-            foreach ($data['fund_clusters'] as $row) {
-                DB::table('fund_clusters')->insert($this->stripRelations($row));
-            }
-            foreach ($data['units'] as $row) {
-                DB::table('units')->insert($this->stripRelations($row));
-            }
-
-            foreach ($data['stock_items'] as $row) {
-                $units = $row['units'] ?? [];
-                $itemRow = $this->stripRelations($row);
-                DB::table('stock_items')->insert($itemRow);
-
-                foreach ($units as $u) {
-                    if (! isset($u['unitID'])) {
-                        continue;
-                    }
-                    DB::table($pivotTable)->insert([
-                        $pivotForeignKey => $itemRow['stock_no'],
-                        $pivotRelatedKey => $u['unitID'],
-                        'is_default' => $u['pivot']['is_default'] ?? false,
-                    ]);
+                // Insert all new data
+                foreach ($data['offices'] as $row) {
+                    DB::table('offices')->insert($this->stripRelations($row));
                 }
-            }
+                foreach ($data['fund_clusters'] as $row) {
+                    DB::table('fund_clusters')->insert($this->stripRelations($row));
+                }
+                foreach ($data['units'] as $row) {
+                    DB::table('units')->insert($this->stripRelations($row));
+                }
 
-            foreach ($data['transactions'] as $row) {
-                DB::table('transactions')->insert($this->stripRelations($row));
-            }
+                foreach ($data['stock_items'] as $row) {
+                    $units = $row['units'] ?? [];
+                    $itemRow = $this->stripRelations($row);
+                    DB::table('stock_items')->insert($itemRow);
 
-            DB::statement('PRAGMA foreign_keys = ON');
-        });
+                    foreach ($units as $u) {
+                        if (! isset($u['unitID'])) {
+                            continue;
+                        }
+                        DB::table($pivotTable)->insert([
+                            $pivotForeignKey => $itemRow['stock_no'],
+                            $pivotRelatedKey => $u['unitID'],
+                            'is_default' => $u['pivot']['is_default'] ?? false,
+                        ]);
+                    }
+                }
 
-        $this->logAudit('Restored system data from an encrypted backup. ALL prior data was overwritten.');
+                foreach ($data['transactions'] as $row) {
+                    DB::table('transactions')->insert($this->stripRelations($row));
+                }
+            });
+
+            // Log success if transaction finishes without crashing
+            $this->logAudit('Restored system data from an encrypted backup. ALL prior data was overwritten.');
+            
+        } finally {
+            // 2. Turn them back on in a `finally` block so they ALWAYS get turned back 
+            // on, even if the restore fails halfway through!
+            Schema::enableForeignKeyConstraints();
+        }
 
         $this->cleanupDir($extractDir);
 

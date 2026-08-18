@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Trash2 } from 'lucide-react';
+import { Search, Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useState } from 'react';
 import TransactionAddForm from '@/components/transaction-logs/transactionaddform';
 import TransactionDeleteModal from '@/components/transaction-logs/transactiondeletemodal';
@@ -14,7 +14,6 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
-
 
 interface Unit {
     unitID: number;
@@ -74,6 +73,8 @@ interface PaginatedTransactions {
 interface Filters {
     search: string | null;
     transaction_type: string | null;
+    sort_field?: string;
+    sort_direction?: 'asc' | 'desc';
 }
 
 interface Props {
@@ -111,7 +112,7 @@ export default function Index({
     stockItems,
     filters,
 }: Props) {
-        const [search, setSearch] = useState(filters.search ?? '');
+    const [search, setSearch] = useState(filters.search ?? '');
     const [transactionType, setTransactionType] = useState(filters.transaction_type ?? 'all');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -120,11 +121,25 @@ export default function Index({
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
 
+    const handleSort = (field: string) => {
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        
+        router.get(
+            '/transaction-logs',
+            { search, transaction_type: transactionType, sort_field: field, sort_direction: direction },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            }
+        );
+    };
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         router.get(
             '/transaction-logs',
-            { search, transaction_type: transactionType },
+            { search, transaction_type: transactionType, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -195,7 +210,7 @@ export default function Index({
                                 setTransactionType(value);
                                 router.get(
                                     '/transaction-logs',
-                                    { search, transaction_type: value },
+                                    { search, transaction_type: value, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
                                     {
                                         preserveState: true,
                                         preserveScroll: true,
@@ -243,14 +258,54 @@ export default function Index({
                             style={{ backgroundColor: '#370001' }}
                         >
                             <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Type</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Date</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Item Name</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Unit</th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">Qty</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Reference</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Fund Cluster</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Office</th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('transaction_type')}
+                                >
+                                    <div className="flex items-center gap-2">Type</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('transaction_date')}
+                                >
+                                    <div className="flex items-center gap-2">Date</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('item_name')}
+                                >
+                                    <div className="flex items-center gap-2">Item Name</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('unitID')}
+                                >
+                                    <div className="flex items-center gap-2">Unit</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-center font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('quantity')}
+                                >
+                                    <div className="flex items-center justify-center gap-2">Qty</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('reference')}
+                                >
+                                    <div className="flex items-center gap-2">Reference</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('fund_cluster')}
+                                >
+                                    <div className="flex items-center gap-2">Fund Cluster</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('office_code')}
+                                >
+                                    <div className="flex items-center gap-2">Office</div>
+                                </th>
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
@@ -270,6 +325,7 @@ export default function Index({
                                 transactions.data.map((tx) => (
                                     <tr
                                         key={tx.transactionID}
+                                        className="border-b transition-colors hover:bg-muted/40"
                                     >
                                         <td className="px-4 py-3">
                                             <span

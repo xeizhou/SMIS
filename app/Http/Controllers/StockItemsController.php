@@ -12,6 +12,19 @@ class StockItemsController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        
+        // 1. Get the sorting parameters (defaulting to created_at descending if none provided)
+        $sortField = $request->input('sort_field', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'desc');
+
+        // 2. Validate the sort field to prevent SQL injection
+        $allowedSorts = ['stock_no', 'item_name', 'description', 'created_at'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'created_at';
+        }
+
+        // Validate the sort direction
+        $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
         $query = StockItem::with(['units'])
             ->when($search, function ($q) use ($search) {
@@ -22,8 +35,8 @@ class StockItemsController extends Controller
                 });
             });
 
-        // Show newest stock items first
-        $stockItems = $query->orderByDesc('created_at')
+        // 3. Apply the dynamic sorting
+        $stockItems = $query->orderBy($sortField, $sortDirection)
             ->paginateWithHighlight(10)
             ->withQueryString();
 
@@ -33,6 +46,8 @@ class StockItemsController extends Controller
             'units' => Unit::orderByDesc('unitID')->get(),
             'filters' => [
                 'search' => $search,
+                'sort_field' => $sortField,
+                'sort_direction' => $sortDirection,
             ],
         ]);
     }
@@ -87,13 +102,13 @@ class StockItemsController extends Controller
     }
 
     public function destroy(StockItem $stockItem)
-        {
-            try {
-                $stockItem->delete();
-            } catch (\Illuminate\Database\QueryException $e) {
-                return back()->with('error', 'Cannot delete this stock item — it is referenced by transaction records.');
-            }
-
-            return redirect()->route('stock-items.index')->with('success', 'Stock item deleted.');
+    {
+        try {
+            $stockItem->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            return back()->with('error', 'Cannot delete this stock item — it is referenced by transaction records.');
         }
+
+        return redirect()->route('stock-items.index')->with('success', 'Stock item deleted.');
+    }
 }

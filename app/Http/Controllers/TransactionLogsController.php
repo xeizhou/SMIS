@@ -21,6 +21,30 @@ class TransactionLogsController extends Controller
     {
         $search = $request->input('search');
 
+        // 1. Get the sorting parameters (defaulting to transactionID descending)
+        $sortField = $request->input('sort_field', 'transactionID');
+        $sortDirection = $request->input('sort_direction', 'desc');
+
+        // 2. Validate the sort field to prevent SQL injection
+        $allowedSorts = [
+            'transaction_type', 
+            'transaction_date', 
+            'item_name', 
+            'unitID', 
+            'quantity', 
+            'reference', 
+            'fund_cluster', 
+            'office_code',
+            'transactionID'
+        ];
+        
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'transactionID';
+        }
+
+        // Validate the sort direction
+        $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
+
         $query = Transaction::with(['unit', 'fundCluster', 'office'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
@@ -33,7 +57,8 @@ class TransactionLogsController extends Controller
             $query->where('transaction_type', $request->transaction_type);
         }
 
-        $transactions = $query->orderBy('transactionID', 'desc')
+        // 3. Apply the dynamic sorting
+        $transactions = $query->orderBy($sortField, $sortDirection)
             ->paginateWithHighlight(10)
             ->withQueryString();
 
@@ -55,6 +80,8 @@ class TransactionLogsController extends Controller
             'filters' => [
                 'search' => $search,
                 'transaction_type' => $request->input('transaction_type', 'all'),
+                'sort_field' => $sortField,
+                'sort_direction' => $sortDirection,
             ],
         ]);
     }
@@ -86,20 +113,6 @@ class TransactionLogsController extends Controller
 
     /**
      * Update the specified transaction.
-     *
-     * Two distinct edit paths, based on whether the user changed the
-     * transaction_type (RECEIVE<->ISSUE) from what it originally was:
-     *
-     * - Ordinary correction (typo in reference, quantity, date, item,
-     *   fund cluster, office — type unchanged): updated in place, same
-     *   as any other CRUD edit. Logged to audit_logs as a correction.
-     *
-     * - Type change (RECEIVE<->ISSUE): NOT overwritten in place. The
-     *   original row is left untouched so the audit trail/stock card
-     *   history isn't silently rewritten. A new transaction is created
-     *   instead, carrying the corrected data. Both the original and the
-     *   new transaction IDs are recorded in audit_logs so the correction
-     *   is traceable.
      */
     public function update(Request $request, Transaction $transaction)
     {
@@ -175,9 +188,7 @@ class TransactionLogsController extends Controller
     }
 
     /**
-     * Write a simple text entry to audit_logs. That table only has a
-     * plain `action` string column (no structured before/after fields),
-     * so the description itself carries the detail.
+     * Write a simple text entry to audit_logs.
      */
     private function logAudit(string $action): void
     {

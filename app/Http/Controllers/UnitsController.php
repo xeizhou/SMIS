@@ -15,14 +15,27 @@ class UnitsController extends Controller
     {
         $search = $request->input('search');
 
+        // 1. Get the sorting parameters (defaulting to unitID descending)
+        $sortField = $request->input('sort_field', 'unitID');
+        $sortDirection = $request->input('sort_direction', 'desc');
+
+        // 2. Validate the sort field to prevent SQL injection
+        $allowedSorts = ['unitID', 'unit_name', 'unit_short_name'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'unitID';
+        }
+
+        // Validate the sort direction
+        $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
+
         $units = Unit::when($search, function ($query, $search) {
             $query->where(function ($q) use ($search) {
                 $q->where('unit_name', 'like', "%{$search}%")
                     ->orWhere('unit_short_name', 'like', "%{$search}%");
             });
         })
-            // Units table has no timestamps; show newest by primary key desc
-            ->orderByDesc('unitID')
+            // 3. Apply the dynamic sorting
+            ->orderBy($sortField, $sortDirection)
             ->paginateWithHighlight(10)
             ->withQueryString();
 
@@ -30,6 +43,8 @@ class UnitsController extends Controller
             'units' => $units,
             'filters' => [
                 'search' => $search,
+                'sort_field' => $sortField,
+                'sort_direction' => $sortDirection,
             ],
         ]);
     }
@@ -68,16 +83,16 @@ class UnitsController extends Controller
      * Remove the specified unit.
      */
     public function destroy(Unit $unit)
-        {
-            try {
-                $unit->delete();
-            } catch (\Illuminate\Database\QueryException $e) {
-                if ($e->getCode() === '23000') {
-                    return back()->with('error', 'Cannot delete this unit — it is still used by existing stock items.');
-                }
-                throw $e;
+    {
+        try {
+            $unit->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() === '23000') {
+                return back()->with('error', 'Cannot delete this unit — it is still used by existing stock items.');
             }
-
-            return redirect()->route('units.index')->with('success', 'Unit deleted.');
+            throw $e;
         }
+
+        return redirect()->route('units.index')->with('success', 'Unit deleted.');
+    }
 }

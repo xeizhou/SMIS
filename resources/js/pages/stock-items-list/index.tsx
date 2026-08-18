@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Printer } from 'lucide-react';
+import { Search, Printer, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import {
     Select,
     SelectTrigger,
@@ -17,8 +17,6 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog';
 import { useState } from 'react';
-
-// Make sure the path matches where you saved the component
 import PrintStockCardsButton from '@/components/PrintStockCardsButton';
 
 interface FundClusterRef {
@@ -56,6 +54,8 @@ interface Filters {
     search: string | null;
     issued_status: string | null;
     fund_cluster_id: string | null;
+    sort_field?: string;
+    sort_direction?: 'asc' | 'desc';
 }
 
 interface Props {
@@ -73,7 +73,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
     const [itemToPrint, setItemToPrint] = useState<StockCardItem | null>(null);
 
     const applyFilters = (
-        overrides: Partial<{ search: string; issued_status: string; fund_cluster_id: string }> = {}
+        overrides: Partial<{ search: string; issued_status: string; fund_cluster_id: string; sort_field: string; sort_direction: string }> = {}
     ) => {
         router.get(
             '/stock-items-list',
@@ -81,6 +81,8 @@ export default function Index({ items, fundClusters, filters }: Props) {
                 search,
                 issued_status: issuedStatus,
                 fund_cluster_id: fundClusterId,
+                sort_field: filters.sort_field,
+                sort_direction: filters.sort_direction,
                 ...overrides,
             },
             {
@@ -89,6 +91,11 @@ export default function Index({ items, fundClusters, filters }: Props) {
                 replace: true,
             }
         );
+    };
+
+    const handleSort = (field: string) => {
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        applyFilters({ sort_field: field, sort_direction: direction });
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -141,7 +148,6 @@ export default function Index({ items, fundClusters, filters }: Props) {
                         </p>
                     </div>
 
-                    {/* Bulk Print Button (icon + confirmation rendered inside PrintStockCardsButton) */}
                     <div>
                         <PrintStockCardsButton
                             totalItems={items.total ?? items.data.length}
@@ -229,10 +235,30 @@ export default function Index({ items, fundClusters, filters }: Props) {
                             style={{ backgroundColor: '#370001' }}
                         >
                             <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Item Description</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Unit</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Fund Cluster</th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">Balance per Stock Card</th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('item_description')}
+                                >
+                                    <div className="flex items-center gap-2">Item Description</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('unit')}
+                                >
+                                    <div className="flex items-center gap-2">Unit</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('fund_cluster')}
+                                >
+                                    <div className="flex items-center gap-2">Fund Cluster</div>
+                                </th>
+                                <th 
+                                    className="px-4 py-3 text-center font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
+                                    onClick={() => handleSort('balance_per_stock_card')}
+                                >
+                                    <div className="flex items-center justify-center gap-2">Balance per Stock Card</div>
+                                </th>
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
@@ -249,7 +275,9 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                 items.data.map((item, index) => (
                                     <tr
                                         key={item.stock_no ?? `${item.item_name}-${index}`}
-                                        className={'border-b transition-colors hover:bg-muted/40'} data-search-0={item.item_name} data-record-id={item.stock_no}
+                                        className={'border-b transition-colors hover:bg-muted/40'} 
+                                        data-search-0={item.item_name} 
+                                        data-record-id={item.stock_no}
                                     >
                                         <td 
                                             className="px-4 py-3 max-w-[600px] truncate"
