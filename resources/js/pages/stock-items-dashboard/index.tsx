@@ -16,7 +16,7 @@ import {
     AreaChart as AreaChartIcon,
     GitCompareArrows,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -119,6 +119,19 @@ const STATUS_FILTERS: { key: 'all' | StockItem['status']; label: string }[] = [
     { key: 'out', label: 'Out' },
 ];
 
+// Hoisted out of the component: these never depend on props or state, so
+// defining them at module scope means they're built once instead of being
+// recreated on every render (including every 5s poll-driven re-render).
+const TYPE_STYLES: Record<Transaction['transaction_type'], string> = {
+    RECEIVE: 'bg-green-100 text-green-700',
+    ISSUE: 'bg-yellow-100 text-yellow-700',
+};
+
+const TYPE_ICON: Record<Transaction['transaction_type'], React.ReactNode> = {
+    RECEIVE: <ArrowDownToLine className="size-3" />,
+    ISSUE: <ArrowUpFromLine className="size-3" />,
+};
+
 const movementChartConfig = {
     received: {
         label: 'Received',
@@ -159,6 +172,75 @@ function getCurrentQuarter(): string {
     return `Q${q} ${now.getFullYear()}`;
 }
 
+// ---------------------------------------------------------------------------
+// Isolated "Updated Xs ago" ticker. This is the ONLY thing that re-renders
+// every second. Previously this state lived on the parent <Index> component,
+// which meant every 1s tick re-rendered the entire dashboard — both charts,
+// both tables, all ScrollAreas — forever, for as long as the tab was open.
+// That's what was driving memory usage up. Isolating it here means the tick
+// only re-renders this tiny <span>.
+// ---------------------------------------------------------------------------
+function LastUpdated({ lastUpdated }: { lastUpdated: Date }) {
+    const [secondsAgo, setSecondsAgo] = useState(0);
+
+    useEffect(() => {
+        setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
+        const id = setInterval(() => {
+            setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
+        }, 1000);
+        return () => clearInterval(id);
+    }, [lastUpdated]);
+
+    return (
+        <span className="text-xs text-muted-foreground">
+            Updated {secondsAgo <= 1 ? 'just now' : `${secondsAgo}s ago`}
+        </span>
+    );
+}
+
+// Pure presentational component — memoized so a poll-driven re-render of
+// <Index> doesn't force all 4 KPI cards to re-render when their own props
+// (icon/label/value/tone/onClick) haven't actually changed.
+const KpiCard = memo(function KpiCard({
+    icon,
+    label,
+    value,
+    tone = 'default',
+    onClick,
+}: {
+    icon: React.ReactNode;
+    label: string;
+    value: number;
+    tone?: 'default' | 'warn' | 'danger';
+    onClick?: () => void;
+}) {
+    const toneStyles = {
+        default: 'text-foreground',
+        warn: 'text-amber-600',
+        danger: 'text-red-600',
+    }[tone];
+
+    return (
+        <button
+            onClick={onClick}
+            className="group relative w-full rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/40"
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = `${BRAND}80`)}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = '')}
+        >
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {icon}
+                {label}
+            </div>
+            <p className={`mt-2 text-2xl font-bold ${toneStyles}`}>{value}</p>
+        </button>
+    );
+});
+
+function formatDate(value: string) {
+    const d = new Date(value);
+    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
 export default function Index({ kpis, stockItems, transactions, movement, filters }: Props) {
     const [quarterFilter, setQuarterFilter] = useState(getCurrentQuarter());
     const [search, setSearch] = useState('');
@@ -167,19 +249,14 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
     const [fundClusterFilter, setFundClusterFilter] = useState('');
     const [chartType, setChartType] = useState<ChartType>('grouped');
     const [lastUpdated, setLastUpdated] = useState(new Date());
-    const [secondsAgo, setSecondsAgo] = useState(0);
     const [flashedRows, setFlashedRows] = useState<Set<string>>(new Set());
     const prevBalances = useRef<Map<string, number>>(new Map(stockItems.map((i) => [i.stock_no, i.balance])));
     const listRef = useRef<HTMLDivElement>(null);
 
-    usePoll(5000, { onSuccess: () => setLastUpdated(new Date()) });
-
-    useEffect(() => {
-        const id = setInterval(() => {
-            setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
-        }, 1000);
-        return () => clearInterval(id);
-    }, [lastUpdated]);
+    usePoll(5000, {
+        only: ['kpis', 'stockItems', 'transactions', 'movement'],
+        onSuccess: () => setLastUpdated(new Date()),
+    });
 
     useEffect(() => {
         const changed = new Set<string>();
@@ -228,49 +305,45 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
         });
     }, [movementData]);
 
-    const TYPE_STYLES: Record<Transaction['transaction_type'], string> = {
-        RECEIVE: 'bg-green-100 text-green-700',
-        ISSUE: 'bg-yellow-100 text-yellow-700',
-    };
+    const applyTransactionFilters = useCallback(
+        (overrides: Record<string, string> = {}) => {
+            router.get(
+                window.location.pathname,
+                {
+                    office_code: overrides.office_code ?? officeFilter,
+                    fund_cluster: overrides.fund_cluster ?? fundClusterFilter,
+                    quarter: overrides.quarter ?? quarterFilter,
+                    page: 1,
+                },
+                { preserveState: true, preserveScroll: true, only: ['transactions', 'movement'] }
+            );
+        },
+        [officeFilter, fundClusterFilter, quarterFilter]
+    );
 
-    const TYPE_ICON: Record<Transaction['transaction_type'], React.ReactNode> = {
-        RECEIVE: <ArrowDownToLine className="size-3" />,
-        ISSUE: <ArrowUpFromLine className="size-3" />,
-    };
+    const goToPage = useCallback(
+        (page: number) => {
+            router.get(
+                window.location.pathname,
+                { office_code: officeFilter, fund_cluster: fundClusterFilter, quarter: quarterFilter, page },
+                { preserveState: true, preserveScroll: true, only: ['transactions', 'movement'] }
+            );
+        },
+        [officeFilter, fundClusterFilter, quarterFilter]
+    );
 
-    function applyTransactionFilters(overrides: Record<string, string> = {}) {
-        router.get(
-            window.location.pathname,
-            {
-                office_code: overrides.office_code ?? officeFilter,
-                fund_cluster: overrides.fund_cluster ?? fundClusterFilter,
-                quarter: overrides.quarter ?? quarterFilter,
-                page: 1,
-            },
-            { preserveState: true, preserveScroll: true, only: ['transactions', 'movement'] }
-        );
-    }
-
-    function goToPage(page: number) {
-        router.get(
-            window.location.pathname,
-            { office_code: officeFilter, fund_cluster: fundClusterFilter, quarter: quarterFilter, page },
-            { preserveState: true, preserveScroll: true, only: ['transactions', 'movement'] }
-        );
-    }
-
-    function handleKpiClick(status: 'all' | StockItem['status']) {
+    const handleKpiClick = useCallback((status: 'all' | StockItem['status']) => {
         setStatusFilter(status);
         listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    }, []);
 
-    function formatDayTick(value: string) {
+    const formatDayTick = useCallback((value: string) => {
         return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    }
+    }, []);
 
-    function formatDayLabel(value: string) {
+    const formatDayLabel = useCallback((value: string) => {
         return new Date(value).toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-    }
+    }, []);
 
     return (
         <>
@@ -286,9 +359,7 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
-                            Updated {secondsAgo <= 1 ? 'just now' : `${secondsAgo}s ago`}
-                        </span>
+                        <LastUpdated lastUpdated={lastUpdated} />
                         <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
                             <span className="relative flex h-2 w-2">
                                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -729,46 +800,6 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
 
         </>
     );
-}
-
-function KpiCard({
-    icon,
-    label,
-    value,
-    tone = 'default',
-    onClick,
-}: {
-    icon: React.ReactNode;
-    label: string;
-    value: number;
-    tone?: 'default' | 'warn' | 'danger';
-    onClick?: () => void;
-}) {
-    const toneStyles = {
-        default: 'text-foreground',
-        warn: 'text-amber-600',
-        danger: 'text-red-600',
-    }[tone];
-
-    return (
-        <button
-            onClick={onClick}
-            className="group relative w-full rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/40"
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = `${BRAND}80`)}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = '')}
-        >
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {icon}
-                {label}
-            </div>
-            <p className={`mt-2 text-2xl font-bold ${toneStyles}`}>{value}</p>
-        </button>
-    );
-}
-
-function formatDate(value: string) {
-    const d = new Date(value);
-    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
 Index.layout = {

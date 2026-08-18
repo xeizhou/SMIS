@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -24,7 +26,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
-
         \Illuminate\Database\Eloquent\Builder::macro('paginateWithHighlight', function ($perPage = null, $columns = ['*'], $pageName = 'page', $page = null) {
             /** @var \Illuminate\Database\Eloquent\Builder $this */
             $request = request();
@@ -57,7 +58,6 @@ class AppServiceProvider extends ServiceProvider
                             $found = true;
                         }
                     } else {
-                        // Fallback to iterating for highlightSearch if column isn't provided
                         $queryClone->chunk(500, function ($models) use (&$position, &$found, $highlightSearch) {
                             foreach ($models as $m) {
                                 foreach ($m->getAttributes() as $val) {
@@ -79,7 +79,6 @@ class AppServiceProvider extends ServiceProvider
                     $currentPage = (int) $request->query($pageName, 1);
                     
                     if ($targetPage !== $currentPage) {
-                        // Mutate the Request URI so Inertia seamlessly updates the frontend URL
                         $request->query->set($pageName, $targetPage);
                         $newQueryString = http_build_query($request->query());
                         
@@ -87,9 +86,8 @@ class AppServiceProvider extends ServiceProvider
                         $baseUri = strtok($request->server->get('REQUEST_URI'), '?');
                         $request->server->set('REQUEST_URI', $baseUri . '?' . $newQueryString);
                         
-                        // Flush the cached Symfony requestUri so getRequestUri() re-reads the mutated server variables
                         $reflection = new \ReflectionClass($request);
-                        $parent = $reflection->getParentClass(); // Illuminate\Http\Request -> Symfony\Component\HttpFoundation\Request
+                        $parent = $reflection->getParentClass();
                         if ($parent && $parent->hasProperty('requestUri')) {
                             $property = $parent->getProperty('requestUri');
                             $property->setAccessible(true);
@@ -104,6 +102,37 @@ class AppServiceProvider extends ServiceProvider
             }
             
             return $this->paginate($perPage, $columns, $pageName, $page);
+        });
+
+        // Clear the "owned session" pointer on logout so the slot frees up
+        // for the next login. The claim itself happens exclusively in
+        // EnsureSingleSession (post-session-regeneration, via an atomic
+        // UPDATE...WHERE) — deliberately NOT here in a Login event listener,
+        // because Login fires before Fortify regenerates the session id,
+        // so anything written here would immediately mismatch on the very
+        // next request and log the user straight back out.
+        Event::listen(Logout::class, function (Logout $event) {
+            if (!$event->user) {
+                return;
+            }
+
+            /*
+            * If this logout was caused by the single-session
+            * protection, DO NOT release the account.
+            *
+            * The original user's session still owns it.
+            */
+            if (request()->session()->get('single_session_forced_logout')) {
+                return;
+            }
+
+            /*
+            * This was a normal voluntary logout.
+            * Release the account so another login can claim it.
+            */
+            $event->user->forceFill([
+                'current_session_id' => null,
+            ])->save();
         });
     }
 

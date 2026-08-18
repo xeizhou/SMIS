@@ -55,6 +55,62 @@ interface Props {
     yesterdayStats: Stats;
 }
 
+// ---------------------------------------------------------------------------
+// Isolated "Updated Xs ago" ticker. Previously this state lived on the parent
+// component, so every 1s tick re-rendered the entire page — both delivery
+// tables, every row, every HoverCard — forever, for as long as the tab was
+// open. Isolating it here means the tick only re-renders this tiny <span>.
+// ---------------------------------------------------------------------------
+function LastUpdated({ lastUpdated }: { lastUpdated: Date }) {
+    const [secondsAgo, setSecondsAgo] = useState(0);
+
+    useEffect(() => {
+        setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
+        const id = setInterval(() => {
+            setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
+        }, 1000);
+        return () => clearInterval(id);
+    }, [lastUpdated]);
+
+    return (
+        <span className="text-xs text-muted-foreground hidden sm:inline">
+            Updated {secondsAgo <= 1 ? 'just now' : `${secondsAgo}s ago`}
+        </span>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Isolated live clock. Same reasoning as LastUpdated above — this was the
+// second of two separate per-second intervals hitting the parent component.
+// Isolating it here means its tick only re-renders this small block.
+// ---------------------------------------------------------------------------
+function LiveClock({ isFullscreen }: { isFullscreen: boolean }) {
+    const [currentTime, setCurrentTime] = useState('');
+
+    useEffect(() => {
+        const updateClock = () => {
+            setCurrentTime(
+                new Date().toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true,
+                })
+            );
+        };
+        updateClock();
+        const timer = setInterval(updateClock, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    return (
+        <div className={`flex items-center gap-2 rounded-xl bg-red-50 dark:bg-red-950/50 px-3.5 py-1.5 font-bold text-red-700 dark:text-red-300 border border-red-200/80 dark:border-red-900/60 shadow-2xs ${isFullscreen ? 'text-base md:text-lg' : 'text-xs'}`}>
+            <Clock className={isFullscreen ? 'size-5' : 'size-4'} />
+            <span className="font-mono tracking-wide">{currentTime || '00:00:00 AM'}</span>
+        </div>
+    );
+}
+
 export default function NoticeOfDeliveryReport({
     todayDate,
     todayDateFormatted,
@@ -75,9 +131,7 @@ export default function NoticeOfDeliveryReport({
     const [selectedYesterdayDate, setSelectedYesterdayDate] = useState(yesterdayDate);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [currentTime, setCurrentTime] = useState<string>('');
     const [lastUpdated, setLastUpdated] = useState(new Date());
-    const [secondsAgo, setSecondsAgo] = useState(0);
     const [flashedIds, setFlashedIds] = useState<Set<string>>(new Set());
     const containerRef = useRef<HTMLDivElement>(null);
     const prevStatuses = useRef<Map<string, string>>(
@@ -97,14 +151,6 @@ export default function NoticeOfDeliveryReport({
         }
     );
 
-    // "Updated Xs ago" ticker
-    useEffect(() => {
-        const id = setInterval(() => {
-            setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
-        }, 1000);
-        return () => clearInterval(id);
-    }, [lastUpdated]);
-
     // Flash rows whose status changed since last poll
     useEffect(() => {
         const all = [...todayDeliveries, ...yesterdayDeliveries];
@@ -122,24 +168,6 @@ export default function NoticeOfDeliveryReport({
             return () => clearTimeout(t);
         }
     }, [todayDeliveries, yesterdayDeliveries]);
-
-    // Update real-time clock
-    useEffect(() => {
-        const updateClock = () => {
-            const now = new Date();
-            setCurrentTime(
-                now.toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true,
-                })
-            );
-        };
-        updateClock();
-        const timer = setInterval(updateClock, 1000);
-        return () => clearInterval(timer);
-    }, []);
 
     // Handle date changes
     const handleFilterChange = (newToday?: string, newYesterday?: string) => {
@@ -365,9 +393,7 @@ export default function NoticeOfDeliveryReport({
 
                     {/* Live indicator, top right */}
                     <div className="absolute right-5 top-5 flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground hidden sm:inline">
-                            Updated {secondsAgo <= 1 ? 'just now' : `${secondsAgo}s ago`}
-                        </span>
+                        <LastUpdated lastUpdated={lastUpdated} />
                         <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                             <span className="relative flex h-2 w-2">
                                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -387,10 +413,7 @@ export default function NoticeOfDeliveryReport({
                     {/* Filter Controls & Screencast Tools */}
                     <div className="flex w-full flex-wrap items-center justify-center gap-3 pt-3 border-t border-neutral-100 dark:border-neutral-800/80">
                         {/* Live Clock */}
-                        <div className={`flex items-center gap-2 rounded-xl bg-red-50 dark:bg-red-950/50 px-3.5 py-1.5 font-bold text-red-700 dark:text-red-300 border border-red-200/80 dark:border-red-900/60 shadow-2xs ${isFullscreen ? 'text-base md:text-lg' : 'text-xs'}`}>
-                            <Clock className={isFullscreen ? 'size-5' : 'size-4'} />
-                            <span className="font-mono tracking-wide">{currentTime || '00:00:00 AM'}</span>
-                        </div>
+                        <LiveClock isFullscreen={isFullscreen} />
 
                         <div className="hidden h-5 w-px bg-neutral-200 sm:block dark:bg-neutral-800" />
 

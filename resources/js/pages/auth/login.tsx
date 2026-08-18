@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
@@ -17,11 +17,19 @@ type Props = {
 };
 
 export default function Login({ status, canResetPassword }: Props) {
+    const { flash } = usePage<{ flash: { error?: string } }>().props;
+
     return (
         <>
             <Head title="Log in" />
 
             <PasskeyVerify />
+
+            {flash?.error && (
+                <div className="mb-4 rounded-md border border-white bg-red-500/10 px-4 py-3 text-center text-sm font-medium text-white">
+                    {flash.error}
+                </div>
+            )}
 
             <Form
                 action={store.url()}
