@@ -30,7 +30,7 @@ class TransactionLogsController extends Controller
             'transaction_type', 
             'transaction_date', 
             'item_name', 
-            'unitID', 
+            'unit_name', // <-- Updated from unitID
             'quantity', 
             'reference', 
             'fund_cluster', 
@@ -58,9 +58,19 @@ class TransactionLogsController extends Controller
         }
 
         // 3. Apply the dynamic sorting
-        $transactions = $query->orderBy($sortField, $sortDirection)
-            ->paginateWithHighlight(10)
-            ->withQueryString();
+        if ($sortField === 'unit_name') {
+            // Use a subquery to sort by the related unit name without doing a full JOIN
+            $query->orderBy(
+                Unit::select('unit_short_name')
+                    ->whereColumn('units.unitID', 'transactions.unitID')
+                    ->limit(1),
+                $sortDirection
+            );
+        } else {
+            $query->orderBy($sortField, $sortDirection);
+        }
+
+        $transactions = $query->paginateWithHighlight(10)->withQueryString();
 
         // Avoid key collision: relation "fundCluster" snake-cases to "fund_cluster",
         // which clobbers the raw FK column of the same name in JSON output.
