@@ -230,36 +230,47 @@ export default function Index({ items, fundClusters, filters }: Props) {
                 {/* Table */}
                 <div className="overflow-hidden rounded-xl border border-border bg-card overflow-x-auto">
                     <table className="w-full text-sm whitespace-nowrap">
-                        <thead
-                            className="border-b"
-                            style={{ backgroundColor: '#370001' }}
-                        >
+                        <thead className="border-b">
                             <tr>
-                                <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
-                                    onClick={() => handleSort('item_description')}
-                                >
-                                    <div className="flex items-center gap-2">Item Description</div>
+                                <th className="p-0 font-semibold text-white bg-[#370001]">
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center gap-2 px-4 py-3 text-left outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
+                                        onClick={() => handleSort('item_description')}
+                                    >
+                                        Item Description
+                                    </button>
                                 </th>
-                                <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
-                                    onClick={() => handleSort('unit')}
-                                >
-                                    <div className="flex items-center gap-2">Unit</div>
+                                <th className="p-0 font-semibold text-white bg-[#370001]">
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center gap-2 px-4 py-3 text-left outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
+                                        onClick={() => handleSort('unit')}
+                                    >
+                                        Unit
+                                    </button>
                                 </th>
-                                <th 
-                                    className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
-                                    onClick={() => handleSort('fund_cluster')}
-                                >
-                                    <div className="flex items-center gap-2">Fund Cluster</div>
+                                <th className="p-0 font-semibold text-white bg-[#370001]">
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center gap-2 px-4 py-3 text-left outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
+                                        onClick={() => handleSort('fund_cluster')}
+                                    >
+                                        Fund Cluster
+                                    </button>
                                 </th>
-                                <th 
-                                    className="px-4 py-3 text-center font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
-                                    onClick={() => handleSort('balance_per_stock_card')}
-                                >
-                                    <div className="flex items-center justify-center gap-2">Balance per Stock Card</div>
+                                <th className="p-0 font-semibold text-white bg-[#370001]">
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center justify-center gap-2 px-4 py-3 outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
+                                        onClick={() => handleSort('balance_per_stock_card')}
+                                    >
+                                        Balance per Stock Card
+                                    </button>
                                 </th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
+                                <th className="px-4 py-3 text-center font-semibold text-white bg-[#370001]">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
