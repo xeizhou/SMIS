@@ -278,7 +278,7 @@ export default function Index({
                                 </th>
                                 <th 
                                     className="px-4 py-3 text-left font-semibold text-white cursor-pointer select-none hover:bg-white/10 transition-colors"
-                                    onClick={() => handleSort('unitID')}
+                                    onClick={() => handleSort('unit_name')}
                                 >
                                     <div className="flex items-center gap-2">Unit</div>
                                 </th>
