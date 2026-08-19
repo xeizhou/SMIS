@@ -79,6 +79,7 @@ class RegSPIController extends Controller
             'balance_qty' => ['nullable', 'integer', 'min:0'],
             'amount' => ['required', 'numeric', 'min:0'],
             'remarks' => ['nullable', 'string', 'max:255'],
+            
         ]);
 
 
@@ -91,7 +92,7 @@ class RegSPIController extends Controller
 
         RegspiMonitoring::create($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'RegSPI record added successfully.');
     }
 
     /**
@@ -129,7 +130,7 @@ class RegSPIController extends Controller
 
         $regspi->update($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'RegSPI record updated successfully.');
     }
 
     /**
@@ -139,6 +140,6 @@ class RegSPIController extends Controller
     {
         $regspi->delete();
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'RegSPI record archived successfully.');
     }
 }

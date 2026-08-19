@@ -16,6 +16,6 @@ class AttachmentController extends Controller
         Storage::disk('public')->delete($attachment->file_path);
         $attachment->delete();
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Attachment deleted successfully.');
     }
 }

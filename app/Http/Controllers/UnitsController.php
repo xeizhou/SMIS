@@ -61,7 +61,7 @@ class UnitsController extends Controller
 
         Unit::create($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Unit added successfully.');
     }
 
     /**
@@ -76,7 +76,7 @@ class UnitsController extends Controller
 
         $unit->update($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Unit updated successfully.');
     }
 
     /**
@@ -93,6 +93,6 @@ class UnitsController extends Controller
             throw $e;
         }
 
-        return redirect()->route('units.index')->with('success', 'Unit deleted.');
+        return back()->with('success', 'Unit archived successfully.');
     }
 }

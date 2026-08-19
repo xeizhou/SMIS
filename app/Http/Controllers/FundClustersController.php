@@ -46,7 +46,7 @@ class FundClustersController extends Controller
 
         FundCluster::create($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Fund cluster added successfully.');
     }
 
     /**
@@ -60,7 +60,7 @@ class FundClustersController extends Controller
 
         $fundCluster->update($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Fund cluster updated successfully.');
     }
 
     /**
@@ -77,6 +77,6 @@ class FundClustersController extends Controller
                 throw $e;
             }
 
-            return redirect()->route('fund-clusters.index')->with('success', 'Fund cluster deleted.');
+            return redirect()->back()->with('success', 'Fund cluster archived successfully.');
         }
 }

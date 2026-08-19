@@ -159,6 +159,6 @@ class OfficesController extends Controller
                 throw $e;
             }
 
-            return redirect()->route('offices.index')->with('success', 'Office deleted.');
+            return redirect()->back()->with('success', 'Office archived successfully.');
         }
 }

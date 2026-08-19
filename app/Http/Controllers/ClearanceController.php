@@ -85,7 +85,7 @@ class ClearanceController extends Controller
 
         Clearance::create($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Clearance record added successfully.');
     }
 
     /**
@@ -112,7 +112,7 @@ class ClearanceController extends Controller
 
         $clearance->update($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Clearance record updated successfully.');
     }
 
     /**
@@ -122,6 +122,6 @@ class ClearanceController extends Controller
     {
         $clearance->delete();
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Clearance record archived successfully.');
     }
 }

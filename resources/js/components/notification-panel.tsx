@@ -64,21 +64,20 @@ export function NotificationPanel({ userNotifications, deliveries, recentDeliver
                 if (d.due_date) {
                     if (d.is_overdue) {
                         text = `Delivery ${d.po_number} is OVERDUE (${daysOverdue}d)`;
-                        time = d.time_ago ? `${d.time_ago} • ${daysOverdue}d overdue` : `${daysOverdue} day(s) overdue`;
                     } else if (d.diff_days === 0) {
                         text = `Delivery ${d.po_number} is DUE TODAY`;
-                        time = d.time_ago ? `${d.time_ago} • Due today` : 'Due today';
                         isDueToday = true;
                     } else if (d.diff_days === 1) {
                         text = `Delivery ${d.po_number} is DUE TOMORROW`;
-                        time = d.time_ago ? `${d.time_ago} • Due tomorrow` : 'Due tomorrow';
                         isDueSoon = true;
                     } else {
                         text = `Delivery ${d.po_number} is due on ${d.due_date_formatted || d.due_date}`;
-                        time = d.time_ago ? `${d.time_ago} • Due in ${d.diff_days}d` : `Due in ${d.diff_days} days`;
                         if (d.diff_days !== undefined && d.diff_days !== null && d.diff_days <= 7 && d.diff_days > 1) {
                             isDueSoon = true;
                         }
+                    }
+                    if (d.time_ago) {
+                        time = d.time_ago;
                     }
                 }
 

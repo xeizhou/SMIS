@@ -74,7 +74,7 @@ class StockItemsController extends Controller
         }
         $stockItem->units()->sync($syncData);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Stock item aaded successfully.');
     }
 
     public function update(Request $request, StockItem $stockItem)
@@ -98,7 +98,7 @@ class StockItemsController extends Controller
         }
         $stockItem->units()->sync($syncData);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Stock item updated successfully.');
     }
 
     public function destroy(StockItem $stockItem)
@@ -109,6 +109,6 @@ class StockItemsController extends Controller
             return back()->with('error', 'Cannot delete this stock item — it is referenced by transaction records.');
         }
 
-        return redirect()->route('stock-items.index')->with('success', 'Stock item deleted.');
+        return redirect()->back()->with('success', 'Stock item archived successfully.');
     }
 }

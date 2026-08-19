@@ -242,7 +242,7 @@ class IARController extends Controller
             }
         }
 
-        return redirect()->back()->with('createdPirId', $pir->pir_id);
+        return redirect()->back()->with('success', 'PIR record added successfully.');
     }
 
     public function storeAttachments(Request $request, $pirIdentifier)
@@ -271,7 +271,7 @@ class IARController extends Controller
             ]);
         }
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Attachment(s) uploaded successfully.');
     }
 
     /**
@@ -368,7 +368,7 @@ class IARController extends Controller
                 }
             }
 
-            return redirect()->back();
+            return redirect()->back()->with('success', 'PIR record updated successfully.');
     }
 
     /**
@@ -384,6 +384,6 @@ class IARController extends Controller
             ]);
         }
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'PIR record archived successfully.');
     }
 }

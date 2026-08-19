@@ -60,7 +60,7 @@ class ForDisposalController extends Controller
 
         ForDisposalMonitoring::create($validated);
 
-        return redirect()->back()->with('success', 'For Disposal record created successfully.');
+        return redirect()->back()->with('success', 'For Disposal record added successfully.');
     }
 
     public function update(Request $request, $id)
@@ -100,6 +100,6 @@ class ForDisposalController extends Controller
         $forDisposal = ForDisposalMonitoring::findOrFail($id);
         $forDisposal->delete();
 
-        return redirect()->back()->with('success', 'For Disposal record deleted successfully.');
+        return redirect()->back()->with('success', 'For Disposal record archived successfully.');
     }
 }

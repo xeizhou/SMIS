@@ -63,7 +63,7 @@ class PreRepairController extends Controller
 
         PreRepairMonitoring::create($validated);
 
-        return redirect()->back()->with('success', 'Pre-Repair record created successfully.');
+        return redirect()->back()->with('success', 'Pre-Repair record added successfully.');
     }
 
     public function update(Request $request, $id)
@@ -131,6 +131,6 @@ class PreRepairController extends Controller
             $preRepair->delete();
         });
 
-        return redirect()->back()->with('success', 'Pre-Repair record deleted successfully.');
+        return redirect()->back()->with('success', 'Pre-Repair record archived successfully.');
     }
 }

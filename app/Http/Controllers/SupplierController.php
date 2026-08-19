@@ -124,6 +124,6 @@ class SupplierController extends Controller
                 throw $e;
             }
 
-            return redirect()->route('suppliers.index')->with('success', 'Supplier deleted.');
+            return back()->with('success', 'Supplier archived successfully.');
         }
 }

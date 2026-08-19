@@ -99,7 +99,7 @@ class DeliveriesController extends Controller
 
         Delivery::create($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Delivery record added successfully.');    
     }
 
     /**
@@ -148,7 +148,7 @@ class DeliveriesController extends Controller
 
         $delivery->update($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Delivery record updated successfully.');
     }
 
     /**
@@ -166,7 +166,7 @@ class DeliveriesController extends Controller
 
         $delivery->delete();
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Delivery record archived successfully.');
     }
 
     /**
@@ -190,7 +190,7 @@ class DeliveriesController extends Controller
             ]);
         }
 
-        return back();
+        return back()->with('success', 'Attachment(s) uploaded successfully.');
     }
 
     /**
@@ -201,6 +201,6 @@ class DeliveriesController extends Controller
         Storage::disk('public')->delete($attachment->file_path);
         $attachment->delete();
 
-        return back();
+        return back()->with('success', 'Attachment deleted successfully.');
     }
 }

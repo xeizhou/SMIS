@@ -105,7 +105,7 @@ class PurchaseOrdersController extends Controller
 
         ServePo::create($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Purchase Order record added successfully.');
     }
 
     /**
@@ -195,7 +195,7 @@ class PurchaseOrdersController extends Controller
             $servePo->update($validated);
         });
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Purchase Order record updated successfully.');
     }
 
     /**
@@ -234,7 +234,7 @@ class PurchaseOrdersController extends Controller
 
         $purchaseOrder->delete();
 
-        return redirect()->back()->with('success', 'Purchase order deleted.');
+        return redirect()->back()->with('success', 'Purchase order archived successfully.');
     }
 
     public function uploadAttachments(Request $request, ServePo $purchaseOrder)
@@ -255,7 +255,7 @@ class PurchaseOrdersController extends Controller
             ]);
         }
 
-        return back();
+        return back()->with('success', 'Attachment(s) uploaded successfully.');
     }
 
     public function deleteAttachment(Request $request, Attachment $attachment)
@@ -267,6 +267,6 @@ class PurchaseOrdersController extends Controller
         Storage::disk('public')->delete($attachment->file_path);
         $attachment->delete();
 
-        return back();
+        return back()->with('success', 'Attachment deleted successfully.');
     }
 }
