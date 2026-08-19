@@ -64,7 +64,6 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
             <div className="mb-2 flex items-center justify-between">
                 <div>
                     <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
-                        <FileText className="size-5 text-primary" />
                         Reports Monitoring
                     </h3>
                     <p className="text-xs text-neutral-400">
