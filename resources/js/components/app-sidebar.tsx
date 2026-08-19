@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
+import { OnlineUsersBar } from '@/components/online-users-bar';
 import { NavUser } from '@/components/nav-user';
 import {
     Sidebar,
@@ -209,6 +210,7 @@ export function AppSidebar() {
                     />
                 </SidebarContent>
                 <SidebarFooter>
+                    <OnlineUsersBar />
                     <NavFooter items={footerNavItems} className="mt-auto" />
                     <NavUser />
                 </SidebarFooter>
