@@ -8,6 +8,15 @@ import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export default function AppSidebarLayout({
     children,
@@ -41,6 +50,16 @@ export default function AppSidebarLayout({
         }
     }, [alertMessage, flash?.uuid]);
 
+    const [errorModalVisible, setErrorModalVisible] = useState(false);
+
+    useEffect(() => {
+        if (flash?.error_modal) {
+            setErrorModalVisible(true);
+        } else {
+            setErrorModalVisible(false);
+        }
+    }, [flash?.error_modal, flash?.uuid]);
+
     return (
         <AppShell variant="sidebar">
             <AppSidebar />
@@ -72,6 +91,25 @@ export default function AppSidebarLayout({
                 )}
                 
                 {children}
+
+                <Dialog open={errorModalVisible} onOpenChange={setErrorModalVisible}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
+                                <AlertCircle className="size-5" />
+                                Record Not Found
+                            </DialogTitle>
+                            <DialogDescription className="pt-2 text-base">
+                                {flash?.error_modal}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="sm:justify-end">
+                            <Button variant="secondary" onClick={() => setErrorModalVisible(false)}>
+                                Close
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </AppContent>
         </AppShell>
     );
