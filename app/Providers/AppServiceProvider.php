@@ -142,6 +142,8 @@ class AppServiceProvider extends ServiceProvider
                                 return $targetPage;
                             }
                         );
+                    } else {
+                        $request->session()->now('error_modal', 'Record not found, it may have been archived or deleted.');
                     }
                 }
 
