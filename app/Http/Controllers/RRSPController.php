@@ -111,7 +111,7 @@ class RRSPController extends Controller
             ]);
         }
 
-        return back()->with('success', 'RRSP record created successfully.');
+        return back()->with('success', 'RRSP record added successfully.');
     }
 
     public function update(Request $request, RrspMonitoring $rrsp)
@@ -170,6 +170,6 @@ class RRSPController extends Controller
         $record = RrspMonitoring::where('id', $rrsp)->orWhere('rrsp_no', $rrsp)->firstOrFail();
         $record->delete();
 
-        return back()->with('success', 'RRSP record deleted successfully.');
+        return back()->with('success', 'RRSP record archived successfully.');
     }
 }

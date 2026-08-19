@@ -81,6 +81,6 @@ class RRPPEController extends Controller
         $record = RRPPEMonitoring::findOrFail($id);
         $record->delete();
 
-        return redirect()->back()->with('success', 'RRPPE record deleted successfully.');
+        return redirect()->back()->with('success', 'RRPPE record archived successfully.');
     }
 }

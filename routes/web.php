@@ -127,6 +127,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                     'po_number' => $delivery->po_number,
                     'due_date' => $due ? $due->format('Y-m-d') : null,
                     'due_date_formatted' => $due ? $due->format('M d, Y') : null,
+                    'time_ago' => ($delivery->data_entry_timestamp ?? $delivery->created_at ?? now())->diffForHumans(),
                     'is_overdue' => $isOverdue,
                     'days_overdue' => $daysOverdue,
                     'diff_days' => $diffDays,

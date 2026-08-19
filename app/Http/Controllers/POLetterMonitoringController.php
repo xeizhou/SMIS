@@ -97,7 +97,7 @@ class POLetterMonitoringController extends Controller
 
         // id doesn't exist until after create — the frontend needs it back
         // to upload any attachments staged before the record existed.
-        return redirect()->back()->with('createdId', $poLetterMonitoring->id);
+        return redirect()->back()->with('success', 'PO letter record added successfully.');
     }
 
     /**
@@ -141,7 +141,7 @@ class POLetterMonitoringController extends Controller
 
         $poLetterMonitoring->update($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'PO letter record updated successfully.');
     }
 
     /**
@@ -157,7 +157,7 @@ class POLetterMonitoringController extends Controller
         $poLetterMonitoring->attachments()->delete();
         $poLetterMonitoring->delete();
 
-        return redirect()->back()->with('success', 'PO letter record deleted.');
+        return redirect()->back()->with('success', 'PO letter record archived successfully.');
     }
 
     public function uploadAttachments(Request $request, PoLetterMonitoring $poLetterMonitoring)
@@ -177,6 +177,14 @@ class POLetterMonitoringController extends Controller
             ]);
         }
 
-        return back();
+        return back()->with('success', 'Attachment(s) uploaded successfully.');
+    }
+
+        public function deleteAttachment(Request $request, Attachment $attachment)
+    {
+        $attachment->delete();
+        Storage::disk('public')->delete($attachment->file_path);
+
+        return back()->with('success', 'Attachment deleted successfully.');
     }
 }

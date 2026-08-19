@@ -62,7 +62,7 @@ class ITRPTRController extends Controller
 
         ItrPtrMonitoring::create($validated);
 
-        return redirect()->back()->with('success', 'ITR/PTR record created successfully.');
+        return redirect()->back()->with('success', 'ITR/PTR record added successfully.');
     }
 
     public function update(Request $request, $id)
@@ -141,6 +141,6 @@ class ITRPTRController extends Controller
             $itrPtr->delete();
         });
 
-        return redirect()->back()->with('success', 'ITR/PTR record deleted successfully.');
+        return redirect()->back()->with('success', 'ITR/PTR record archived successfully.');
     }
 }

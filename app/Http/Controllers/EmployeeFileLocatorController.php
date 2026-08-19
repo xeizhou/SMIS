@@ -71,7 +71,7 @@ class EmployeeFileLocatorController extends Controller
 
         EmployeeFileLocator::create($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Employee file record added successfully.');
     }
 
     /**
@@ -89,7 +89,7 @@ class EmployeeFileLocatorController extends Controller
 
         $employeefilelocator->update($validated);
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Employee file record updated successfully.');
     }
 
     /**
@@ -99,6 +99,6 @@ class EmployeeFileLocatorController extends Controller
     {
         $employeefilelocator->delete();
 
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Employee file record archived successfully.');
     }
 }

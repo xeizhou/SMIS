@@ -118,7 +118,7 @@ class TransactionLogsController extends Controller
 
         $this->logAudit("Created transaction #{$transaction->transactionID} ({$transaction->transaction_type}, {$transaction->item_name}, qty {$transaction->quantity}).");
 
-        return redirect()->back()->with('success', 'Transaction created successfully.');
+        return redirect()->back()->with('success', 'Transaction added successfully.');
     }
 
     /**
@@ -194,7 +194,7 @@ class TransactionLogsController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Transaction deleted successfully.');
+        return redirect()->back()->with('success', 'Transaction archived successfully.');
     }
 
     /**
