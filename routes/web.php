@@ -29,6 +29,7 @@ use App\Http\Controllers\ImportController;
 use App\Http\Controllers\BackupController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -367,9 +368,31 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             'reportsYear' => (int) $reportsYear,
             'reportsQuarter' => (int) $reportsQuarter,
             'poStats' => $poStats,
-            'userNotifications' => $request->user()->notifications()->latest()->take(20)->get(),
+            'userNotifications' => $request->user()->notifications()->latest()->take(20)->get(),    
         ]);
     })->name('dashboard');
+
+    Route::get('/api/online-users', function () {
+        return \App\Models\User::query()
+            ->select('id', 'name', 'role', 'avatar_path', 'current_session_id')
+            ->get()
+            ->map(function ($u) {
+                $lastActivity = $u->current_session_id
+                    ? DB::table('sessions')->where('id', $u->current_session_id)->value('last_activity')
+                    : null;
+
+                $online = $lastActivity !== null && $lastActivity >= now()->subMinutes(2)->timestamp;
+
+                return [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'role' => $u->role,
+                    'avatar' => $u->avatar_url,
+                    'online' => $online,
+                    'last_seen' => $lastActivity ? \Carbon\Carbon::createFromTimestamp($lastActivity)->diffForHumans() : null,
+                ];
+            });
+    })->name('online-users');
 
     Route::post('/notifications/clear', function (\Illuminate\Http\Request $request) {
         $request->user()->notifications()->delete();
