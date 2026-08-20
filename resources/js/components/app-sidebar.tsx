@@ -2,7 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
     FolderGit2,
-    LayoutGrid,
+    Folders,
     Archive,
     ShoppingCart,
     Files,
@@ -132,12 +132,12 @@ export function AppSidebar() {
         },
         ...(isAdmin
             ? [
-                  {
-                      title: 'System/Administration',
-                      icon: UsersRound,
-                      items: SystemAdmin,
-                  },
-              ]
+                {
+                    title: 'System/Administration',
+                    icon: UsersRound,
+                    items: SystemAdmin,
+                },
+            ]
             : []),
     ];
 
@@ -208,7 +208,19 @@ export function AppSidebar() {
                         searchQuery={searchQuery}
                         sections={sections}
                     />
+
+                    <SidebarMenu className="px-2">
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={url.startsWith('/document-center')}>
+                                <Link href="/document-center" prefetch>
+                                    <Folders className="size-4" />
+                                    <span>Document Center</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
                 </SidebarContent>
+                
                 <SidebarFooter>
                     <OnlineUsersBar />
                     <NavFooter items={footerNavItems} className="mt-auto" />

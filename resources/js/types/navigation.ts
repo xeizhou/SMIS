@@ -10,5 +10,6 @@ export interface NavItem {
     title: string;
     href?: string;
     icon?: LucideIcon;
-    items?: NavItem[]; // sub-links for dropdown groups
+    items?: NavItem[];
+    external?: boolean;
 }
