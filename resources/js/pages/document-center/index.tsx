@@ -12,6 +12,9 @@ import {
     Search,
     ChevronLeft,
     ChevronRight,
+    X,
+    Download,
+    ExternalLink,
 } from 'lucide-react';
 
 interface ItemOption {
@@ -75,9 +78,102 @@ function KpiCard({ statKey, value }: { statKey: string; value: number }) {
     );
 }
 
+function FilePreviewModal({ file, onClose }: { file: AttachmentItem; onClose: () => void }) {
+    useEffect(() => {
+        function handleKey(e: KeyboardEvent) {
+            if (e.key === 'Escape') onClose();
+        }
+        document.addEventListener('keydown', handleKey);
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.removeEventListener('keydown', handleKey);
+            document.body.style.overflow = '';
+        };
+    }, [onClose]);
+
+    return (
+        <div
+            className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 duration-150"
+            onClick={onClose}
+        >
+            <div
+                className="animate-in fade-in zoom-in-95 bg-background flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border shadow-lg duration-150"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between gap-3 border-b p-3 sm:p-4">
+                    <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{file.name}</p>
+                        <p className="text-muted-foreground text-xs">
+                            {file.source} {file.file_size ? `· ${formatBytes(file.file_size)}` : ''}
+                        </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                        <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+                            title="Open in new tab"
+                        >
+                            <ExternalLink className="h-4 w-4" />
+                        </a>
+                        <a
+                            href={file.url}
+                            download={file.name}
+                            className="hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+                            title="Download"
+                        >
+                            <Download className="h-4 w-4" />
+                        </a>
+                        <button
+                            onClick={onClose}
+                            className="hover:bg-muted flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+                            title="Close"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="bg-muted flex flex-1 items-center justify-center overflow-auto p-2 sm:p-4">
+                    {file.is_image ? (
+                        <img
+                            src={file.url}
+                            alt={file.name}
+                            className="max-h-[70vh] w-auto max-w-full rounded-md object-contain"
+                        />
+                    ) : file.is_pdf ? (
+                        <iframe
+                            src={file.url}
+                            title={file.name}
+                            className="h-[70vh] w-full rounded-md border-0 bg-white"
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center gap-3 py-12 text-center">
+                            <FileText className="text-muted-foreground h-12 w-12" />
+                            <p className="text-muted-foreground text-sm">
+                                No preview available for this file type.
+                            </p>
+                            <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-primary text-primary-foreground rounded-md px-4 py-1.5 text-sm"
+                            >
+                                Open file
+                            </a>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function ItemDetail({ endpoint, onBack }: { endpoint: string; onBack: () => void }) {
     const [data, setData] = useState<DetailData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [previewFile, setPreviewFile] = useState<AttachmentItem | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -132,12 +228,10 @@ function ItemDetail({ endpoint, onBack }: { endpoint: string; onBack: () => void
                     ) : (
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
                             {data.attachments.map((file) => (
-                                <a
+                                <button
                                     key={file.id}
-                                    href={file.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="overflow-hidden rounded-xl border transition-colors"
+                                    onClick={() => setPreviewFile(file)}
+                                    className="overflow-hidden rounded-xl border text-left transition-colors"
                                 >
                                     <div className="bg-muted flex aspect-square items-center justify-center overflow-hidden">
                                         {file.is_image ? (
@@ -153,11 +247,15 @@ function ItemDetail({ endpoint, onBack }: { endpoint: string; onBack: () => void
                                             <span className="shrink-0">{formatBytes(file.file_size)}</span>
                                         </div>
                                     </div>
-                                </a>
+                                </button>
                             ))}
                         </div>
                     )}
                 </div>
+            )}
+
+            {previewFile && (
+                <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
             )}
         </div>
     );
@@ -350,10 +448,10 @@ export default function DocumentCenterIndex({
                         </div>
 
                         <TabsList className="w-full sm:w-auto">
-                            <TabsTrigger value="archive" className="flex-1 sm:flex-none">
+                            <TabsTrigger value="archive" className="flex-1 px-16 sm:flex-none">
                                 Archive
                             </TabsTrigger>
-                            <TabsTrigger value="gallery" className="flex-1 sm:flex-none">
+                            <TabsTrigger value="gallery" className="flex-1 px-16 sm:flex-none">
                                 Gallery
                             </TabsTrigger>
                         </TabsList>
