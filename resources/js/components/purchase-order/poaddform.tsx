@@ -305,7 +305,7 @@ const emptyForm = {
     po_date: '',
     po_received_date: '',
     inclusive_date: '',
-    due_date: '',
+    delivery_term: '',
     pr_number: '',
     pr_date: '',
     philgeps_reference_no: '',
@@ -667,12 +667,13 @@ export default function PurchaseOrderAddForm({
                                             error={errors.po_received_date}
                                         />
                                         <Field
-                                            label="Due Date"
-                                            name="due_date"
-                                            type="date"
-                                            value={data.due_date}
+                                            label="Delivery Term (Days)"
+                                            name="delivery_term"
+                                            type="number"
+                                            value={data.delivery_term}
                                             onChange={handleChange}
-                                            error={errors.due_date}
+                                            error={errors.delivery_term}
+                                            placeholder="e.g. 15"
                                         />
                                         <Field
                                             label="Inclusive Date"

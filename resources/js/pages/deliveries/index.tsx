@@ -27,7 +27,7 @@ interface PurchaseOrderOption {
     supplier: Supplier | null;
     total_amount_po: string | number | null;
     end_user: string | null;
-    due_date: string | null;
+    delivery_term: number | string | null;
     po_received_date: string | null;
 }
 
@@ -55,7 +55,7 @@ interface DeliveryRecord {
         po_number: string;
         total_amount_po: string | number | null;
         end_user: string | null;
-        due_date: string | null;
+        delivery_term: number | string | null;
         po_received_date: string | null;
         item_description: string | null;
     } | null;

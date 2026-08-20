@@ -28,7 +28,7 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
-import { toDateInputValue, daysBetween } from '@/lib/date';
+import { toDateInputValue, daysBetween, addDays } from '@/lib/date';
 interface Attachment {
     id: number;
     original_name: string;
@@ -48,7 +48,7 @@ interface PurchaseOrderOption {
     supplier: SupplierOption | null;
     total_amount_po: string | number | null;
     end_user: string | null;
-    due_date: string | null;
+    delivery_term: number | string | null;
     po_received_date: string | null;
 }
 
@@ -495,7 +495,8 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
         if (name === 'po_number') {
             const chosenPo = purchaseOrders.find((item) => item.po_number === value) ?? null;
             const poDateReceived = toDateInputValue(chosenPo?.po_received_date ?? null);
-            const dueDate = toDateInputValue(chosenPo?.due_date ?? null);
+            const deliveryTerm = chosenPo?.delivery_term != null ? String(chosenPo.delivery_term) : '';
+            const dueDate = addDays(poDateReceived, Number(deliveryTerm) || 0);
 
             setData({
                 ...data,
@@ -504,9 +505,9 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                 supplier_name: chosenPo?.supplier?.supplier_name ?? '',
                 po_total_amount: chosenPo?.total_amount_po != null ? String(chosenPo.total_amount_po) : '',
                 end_user: chosenPo?.end_user ?? '',
-                due_date: dueDate,
                 po_date_received: poDateReceived,
-                delivery_term: String(daysBetween(poDateReceived, dueDate)),
+                delivery_term: deliveryTerm,
+                due_date: dueDate,
             });
             return;
         }
@@ -672,22 +673,22 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                     />
 
                                     <Field
-                                        label="Due Date"
-                                        name="due_date"
-                                        value={data.due_date}
-                                        onChange={handleChange}
-                                        error={errors.due_date}
-                                        placeholder="Auto-filled from selected PO"
-                                        readOnly
-                                        disabled
-                                    />
-                                    
-                                    <Field
                                         label="Delivery Term (days)"
                                         name="delivery_term"
                                         value={data.delivery_term}
                                         onChange={handleChange}
                                         error={errors.delivery_term}
+                                        placeholder="Auto-filled from selected PO"
+                                        readOnly
+                                        disabled
+                                    />
+
+                                    <Field
+                                        label="Due Date"
+                                        name="due_date"
+                                        value={data.due_date}
+                                        onChange={handleChange}
+                                        error={errors.due_date}
                                         placeholder="Auto-calculated from PO dates"
                                         readOnly
                                         disabled

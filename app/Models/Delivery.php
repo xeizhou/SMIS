@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Traits\LogsActivity;
 use App\Traits\SerializesDatesWithoutTimezoneShift;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Delivery extends Model    
 {
@@ -22,6 +23,11 @@ class Delivery extends Model
             'highlight_search' => $this->po_number,
             'highlight_id' => $this->getKey(),
         ]);
+    }
+
+    public function deliveryDates(): HasMany
+    {
+        return $this->hasMany(DeliveryDate::class, 'delivery_id', 'delivery_id')->orderBy('delivery_date');
     }
 
     protected $table = 'delivery';
@@ -95,31 +101,32 @@ class Delivery extends Model
     }
 
     /**
-     * Always reflects the linked PO's current due_date.
-     */
-    protected function dueDate(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->servePo?->due_date,
-        );
-    }
-
-    /**
-     * Always recalculated from the linked PO's current dates. Null when
-     * either date is missing.
+     * Now a straight pass-through: delivery_term lives on the PO (it's the
+     * agreed number of days to deliver), not something calculated here.
      */
     protected function deliveryTerm(): Attribute
     {
         return Attribute::make(
+            get: fn () => $this->servePo?->delivery_term,
+        );
+    }
+
+    /**
+     * Computed from the linked PO's po_received_date + its delivery_term
+     * (days). Null when either piece is missing.
+     */
+    protected function dueDate(): Attribute
+    {
+        return Attribute::make(
             get: function () {
                 $received = $this->servePo?->po_received_date;
-                $due = $this->servePo?->due_date;
+                $term = $this->servePo?->delivery_term;
 
-                if (! $received || ! $due) {
+                if (! $received || $term === null) {
                     return null;
                 }
 
-                return max(0, $received->diffInDays($due));
+                return $received->copy()->addDays($term);
             },
         );
     }
@@ -135,7 +142,7 @@ class Delivery extends Model
         return Attribute::make(
             get: function () {
                 $delivered = $this->delivery_date;
-                $due = $this->servePo?->due_date;
+                $due = $this->due_date; // Delivery's own computed accessor now, not a PO column
 
                 if (! $delivered || ! $due) {
                     return null;
