@@ -325,13 +325,7 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                                     label: office.office_code,
                                 }))}
                             />
-                        </div>
-                    </div>
-
-                    {/* Section: Processing Details */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Processing Details</h3>
-                        <div className="grid gap-4 md:grid-cols-2">
+                            
                             <div>
                                 <label className={labelClass} htmlFor="received_by">Received By <span className="text-red-500">*</span></label>
                                 <Input id="received_by" name="received_by" value={data.received_by} onChange={handleChange} placeholder="Enter receiver name" />

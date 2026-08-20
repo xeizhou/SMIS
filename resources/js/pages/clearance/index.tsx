@@ -165,7 +165,7 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                         <tbody>
                             {records.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-16 text-center">
+                                    <td colSpan={6} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">No clearance records added yet.</p>
                                         <p className="mt-1 text-sm text-muted-foreground">Click <strong>"Add Clearance"</strong> to create your first record.</p>
                                     </td>

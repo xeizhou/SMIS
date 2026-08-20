@@ -49,9 +49,11 @@ function AppRoot({ app }: { app: React.ReactNode }) {
 // cached page from window.history.state without making a network request.
 // That means logged-out state never gets checked on Back. Force a real
 // reload on every popstate so it always hits Laravel/auth middleware.
-window.addEventListener('popstate', () => {
-    window.location.reload();
-});
+if (typeof window !== 'undefined') {
+    window.addEventListener('popstate', () => {
+        window.location.reload();
+    });
+}
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
