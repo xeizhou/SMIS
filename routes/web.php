@@ -27,6 +27,7 @@ use App\Http\Controllers\StockItemDashboardController;
 use App\Http\Controllers\StockReportsController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\DocumentCenterController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -561,6 +562,12 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/backup/folders', [BackupController::class, 'folders'])->name('backup.folders');
     Route::post('/backup/create', [BackupController::class, 'create'])->name('backup.create');
     Route::post('/backup/restore', [BackupController::class, 'restore'])->name('backup.restore');
+
+    Route::get('/document-center', [DocumentCenterController::class, 'index'])->name('document-center');
+    Route::get('/document-center/po/{po_number}/attachments', [DocumentCenterController::class, 'poAttachments'])
+    ->name('document-center.po-attachments');
+    Route::get('/document-center/clearance/{id}/attachments', [DocumentCenterController::class, 'clearanceAttachments'])
+    ->name('document-center.clearance-attachments');    
 
     // ==========================================================
     // System/Administration (sidebar: "System/Administration")

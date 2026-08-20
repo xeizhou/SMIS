@@ -31,8 +31,14 @@ export function NavFooter({
                             >
                                 <a
                                     href={toUrl(item.href)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    target={
+                                        item.external ? '_blank' : undefined
+                                    }
+                                    rel={
+                                        item.external
+                                            ? 'noopener noreferrer'
+                                            : undefined
+                                    }
                                 >
                                     {item.icon && (
                                         <item.icon className="h-5 w-5" />
