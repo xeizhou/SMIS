@@ -472,3 +472,12 @@ export default function DocumentCenterIndex({
         </>
     );
 }
+
+DocumentCenterIndex.layout = {
+    breadcrumbs: [
+        {
+            title: 'Document Tracker',
+            href: '#',
+        },
+    ],
+};
