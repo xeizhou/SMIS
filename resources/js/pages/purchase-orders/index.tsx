@@ -40,6 +40,7 @@ interface PurchaseOrder {
     pr_number: string | null;
     pr_date: string | null;
     philgeps_reference_no: string | null;
+    procurement_type: string | null;
     mode_of_procurement: string | null;
     total_amount_abc: string | number | null;
     total_amount_po: string | number;

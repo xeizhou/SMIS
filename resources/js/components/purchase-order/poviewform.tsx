@@ -52,6 +52,7 @@ interface PurchaseOrder {
     pr_number: string | null;
     pr_date: string | null;
     philgeps_reference_no: string | null;
+    procurement_type: string | null; 
     mode_of_procurement: string | null;
     total_amount_abc: string | number | null;
     total_amount_po: string | number | null;
@@ -176,7 +177,10 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                                 <Detail label="PO Date" value={formatDate(po.po_date)} />
                                 <Detail label="PO Received Date" value={formatDate(po.po_received_date)} />
                                 <Detail label="Due Date" value={formatDate(po.due_date)} />
-                                <Detail label="Inclusive Date" value={po.inclusive_date ?? '—'} />
+                                <Detail label="Type of Procurement" value={po.procurement_type === 'Items' ? 'Item/s' : po.procurement_type ?? '—'} />
+                                {po.procurement_type === 'Services' && (
+                                    <Detail label="Inclusive Date" value={po.inclusive_date ?? '—'} />
+                                )}
                                 <Detail label="Mode of Procurement" value={po.mode_of_procurement ?? '—'} />
                             </div>
                             <div className="mt-4">

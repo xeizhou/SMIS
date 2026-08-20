@@ -43,6 +43,25 @@ class SupplierController extends Controller
         ]);
     }
 
+    public function quickAdd(Request $request)
+    {
+        $validated = $request->validate([
+            'supplier_name'   => 'required|string|max:255|unique:supplier_list,supplier_name',
+            'contact_person'  => 'nullable|string|max:255',
+            'contact_number'  => 'nullable|string|max:20',
+            'email_address'   => 'nullable|email|max:255',
+        ]);
+
+        $validated['status'] = 'active';
+
+        $supplier = Supplier::create($validated);
+
+        return response()->json([
+            'supplier_id' => $supplier->supplier_id,
+            'supplier_name' => $supplier->supplier_name,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

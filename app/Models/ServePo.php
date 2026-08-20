@@ -34,6 +34,7 @@ class ServePo extends Model
         'pr_number',
         'pr_date',
         'philgeps_reference_no',
+        'procurement_type',
         'mode_of_procurement',
         'total_amount_abc',
         'total_amount_po',
