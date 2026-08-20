@@ -43,7 +43,7 @@ interface DetailData {
     attachments: AttachmentItem[];
 }
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 20;
 
 function formatBytes(bytes: number | null) {
     if (!bytes) return '';
@@ -294,7 +294,7 @@ function Pagination({
                     <button
                         onClick={() => onChange(p)}
                         className={`flex h-8 w-8 items-center justify-center rounded-md border text-sm transition-colors ${
-                            p === page ? 'bg-primary text-primary-foreground border-primary' : ''
+                            p === page ? 'bg-[#612A35] text-white border-[#612A35]' : ''
                         }`}
                     >
                         {p}
@@ -397,7 +397,7 @@ function GalleryTab({
                     <p className="text-muted-foreground text-sm">No results found.</p>
                 </div>
             ) : (
-                <div className="animate-in fade-in grid grid-cols-2 gap-2.5 duration-300 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+                <div className="animate-in fade-in grid grid-cols-2 gap-2.5 duration-300 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
                     {paged.map((item) => (
                         <button
                             key={item.id}
@@ -472,3 +472,12 @@ export default function DocumentCenterIndex({
         </>
     );
 }
+
+DocumentCenterIndex.layout = {
+    breadcrumbs: [
+        {
+            title: 'Document Tracker',
+            href: '#',
+        },
+    ],
+};

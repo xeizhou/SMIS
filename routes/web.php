@@ -535,6 +535,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/stock-items', [StockItemsController::class, 'store'])->name('stock-items.store');
     Route::put('/stock-items/{stockItem}', [StockItemsController::class, 'update'])->name('stock-items.update');
     Route::delete('/stock-items/{stockItem}', [StockItemsController::class, 'destroy'])->name('stock-items.destroy');
+    Route::post('/stock-items/quick-add', [StockItemsController::class, 'quickAdd'])->name('stock-items.quick-add');
 
     Route::get('/units', [UnitsController::class, 'index'])->name('units.index');
     Route::post('/units', [UnitsController::class, 'store'])->name('units.store');
