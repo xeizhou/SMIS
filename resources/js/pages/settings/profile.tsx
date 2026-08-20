@@ -1,13 +1,18 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Form, Head, router, usePage } from '@inertiajs/react';
 import { Camera, Loader2, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { edit } from '@/routes/profile';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { edit, update } from '@/routes/profile';
 import type { Auth } from '@/types';
 
 type PageProps = {
     auth: Auth;
+    mustVerifyEmail: boolean;
+    status?: string;
 };
 
 export default function Profile() {
@@ -64,7 +69,7 @@ export default function Profile() {
                 <Heading
                     variant="small"
                     title="Profile"
-                    description="Update your profile picture"
+                    description="Update your profile picture, username, and email"
                 />
 
                 <div className="rounded-xl border border-border bg-card p-6">
@@ -160,6 +165,63 @@ export default function Profile() {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <div className="rounded-xl border border-border bg-card p-6">
+                    <Form
+                        method="patch"
+                        action={update()}
+                        options={{ preserveScroll: true }}
+                        className="space-y-4"
+                    >
+                        {({ processing, recentlySuccessful, errors }) => (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="name">Username</Label>
+                                    <Input
+                                        id="name"
+                                        name="name"
+                                        defaultValue={auth.user.name}
+                                        required
+                                        maxLength={255}
+                                        pattern="[a-zA-Z0-9_]+"
+                                        title="Letters, numbers, and underscores only"
+                                        autoComplete="username"
+                                        placeholder="Username"
+                                    />
+                                    <InputError message={errors.name} />
+                                    <p className="text-xs text-muted-foreground">
+                                        Letters, numbers, and underscores only.
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        defaultValue={auth.user.email}
+                                        required
+                                        maxLength={255}
+                                        autoComplete="email"
+                                        placeholder="Email address"
+                                    />
+                                    <InputError message={errors.email} />
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <Button type="submit" disabled={processing}>
+                                        {processing && <Loader2 className="size-4 animate-spin" />}
+                                        Save
+                                    </Button>
+                                    {recentlySuccessful && (
+                                        <p className="text-sm text-muted-foreground">Saved.</p>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </Form>
                 </div>
             </div>
         </>

@@ -16,6 +16,7 @@ import {
     FileSpreadsheet,
     FileArchive,
     ExternalLink,
+    Download,
 } from 'lucide-react';
 
 interface Attachment {
@@ -110,6 +111,72 @@ function FileIcon({ type }: { type: string }) {
     }
 }
 
+/**
+ * Unified attachment preview modal — images render inline, PDFs render in an
+ * iframe, anything else falls back to an "Open file" action. Uses a Dialog
+ * (not a raw div) so it portals and stacks correctly above the parent modal.
+ */
+function FilePreviewModal({ file, onClose }: { file: Attachment | null; onClose: () => void }) {
+    if (!file) return null;
+
+    const type = getFileType(file.original_name);
+    const isImage = type === 'image';
+    const isPdf = type === 'pdf';
+
+    return (
+        <Dialog open={!!file} onOpenChange={(o) => !o && onClose()}>
+            <DialogContent className="w-[95vw] p-0 overflow-hidden" style={{ maxWidth: '900px' }}>
+                <div className="flex items-center justify-between gap-3 border-b p-3 sm:p-4">
+                    <p className="truncate text-sm font-medium pr-4">{file.original_name}</p>
+                    <div className="flex shrink-0 items-center gap-1 mr-6">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                            <a href={file.url} target="_blank" rel="noopener noreferrer" title="Open in new tab">
+                                <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                            <a href={file.url} download={file.original_name} title="Download">
+                                <Download className="h-3.5 w-3.5" />
+                            </a>
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="bg-muted/30 flex items-center justify-center p-4 max-h-[80vh] overflow-auto">
+                    {isImage ? (
+                        <img
+                            src={file.url}
+                            alt={file.original_name}
+                            className="max-w-full max-h-[75vh] object-contain rounded"
+                        />
+                    ) : isPdf ? (
+                        <iframe
+                            src={file.url}
+                            title={file.original_name}
+                            className="h-[75vh] w-full rounded-md border-0 bg-white"
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center gap-3 py-12 text-center">
+                            <FileText className="text-muted-foreground h-12 w-12" />
+                            <p className="text-muted-foreground text-sm">
+                                No preview available for this file type.
+                            </p>
+                            <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-primary text-primary-foreground rounded-md px-4 py-1.5 text-sm"
+                            >
+                                Open file
+                            </a>
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function PoLetterViewForm({ open, onOpenChange, poLetter }: Props) {
     const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
 
@@ -193,10 +260,10 @@ export default function PoLetterViewForm({ open, onOpenChange, poLetter }: Props
                                                     key={att.id}
                                                     role="button"
                                                     tabIndex={0}
-                                                    onClick={() => (isImage ? setPreviewAttachment(att) : window.open(att.url, '_blank', 'noopener,noreferrer'))}
+                                                    onClick={() => setPreviewAttachment(att)}
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter' || e.key === ' ') {
-                                                            isImage ? setPreviewAttachment(att) : window.open(att.url, '_blank', 'noopener,noreferrer');
+                                                            setPreviewAttachment(att);
                                                         }
                                                     }}
                                                     className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer"
@@ -226,35 +293,10 @@ export default function PoLetterViewForm({ open, onOpenChange, poLetter }: Props
                 </DialogContent>
             </Dialog>
 
-            {/* Image Lightbox */}
-            <Dialog open={!!previewAttachment} onOpenChange={(o) => !o && setPreviewAttachment(null)}>
-                <DialogContent className="w-[95vw] p-0 overflow-hidden" style={{ maxWidth: '900px' }}>
-                    <div className="flex items-center justify-between px-4 py-3 border-b">
-                        <p className="text-sm font-medium truncate pr-4">
-                            {previewAttachment?.original_name}
-                        </p>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 mr-6" asChild>
-                            <a
-                                href={previewAttachment?.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="Open in new tab"
-                            >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                            </a>
-                        </Button>
-                    </div>
-                    <div className="flex items-center justify-center bg-muted/30 p-4 max-h-[80vh] overflow-auto">
-                        {previewAttachment && (
-                            <img
-                                src={previewAttachment.url}
-                                alt={previewAttachment.original_name}
-                                className="max-w-full max-h-[75vh] object-contain rounded"
-                            />
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
+            <FilePreviewModal
+                file={previewAttachment}
+                onClose={() => setPreviewAttachment(null)}
+            />
         </>
     );
 }
