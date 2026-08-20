@@ -26,8 +26,9 @@ class DeliveriesController extends Controller
         $deliveries = Delivery::query()
             ->with([
                 'supplier:supplier_id,supplier_name',
-                'servePo:po_number,total_amount_po,end_user,due_date,po_received_date,supplier_id,item_description',
+                'servePo:po_number,total_amount_po,end_user,delivery_term,po_received_date,supplier_id,item_description',
                 'attachments',
+                'deliveryDates',
             ])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -55,7 +56,7 @@ class DeliveriesController extends Controller
                 'po_number' => $poNumber,
             ],
             'purchaseOrders' => ServePo::query()
-                ->select(['po_number', 'supplier_id', 'total_amount_po', 'end_user', 'due_date', 'po_received_date'])
+                ->select(['po_number', 'supplier_id', 'total_amount_po', 'end_user', 'delivery_term', 'po_received_date'])
                 ->with(['supplier:supplier_id,supplier_name'])
                 ->orderByDesc('created_at')
                 ->get(),
@@ -71,35 +72,42 @@ class DeliveriesController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'delivery_id' => ['nullable', 'string', 'max:50', 'unique:delivery,delivery_id'],
-            'po_number' => ['required', 'string', 'max:50', 'exists:serve_po,po_number'],
-            'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
-            'delivery_date' => ['nullable', 'date'],
-            'po_date_received' => ['nullable', 'date'],
-            'delivery_term' => ['nullable', 'integer', 'min:0'],
-            'due_date' => ['nullable', 'date'],
-            'no_of_days_ld' => ['nullable', 'integer', 'min:0'],
-            'received_by_1' => ['nullable', 'string', 'max:150'],
-            'received_by_2' => ['nullable', 'string', 'max:150'],
-            'end_user' => ['nullable', 'string', 'max:150'],
-            'place_of_delivery' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'string', 'max:50'],
-            'remarks' => ['nullable', 'string'],
-            'total_amount_delivered' => ['nullable', 'numeric', 'min:0'],
-            'po_total_amount' => ['nullable', 'numeric', 'min:0'],
-            'folder_link' => ['nullable', 'string', 'max:500'],
-        ]);
+    $validated = $request->validate([
+        'delivery_id' => ['nullable', 'string', 'max:50', 'unique:delivery,delivery_id'],
+        'po_number' => ['required', 'string', 'max:50', 'exists:serve_po,po_number'],
+        'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
+        'delivery_dates' => ['nullable', 'array'],
+        'delivery_dates.*' => ['date'],
+        'po_date_received' => ['nullable', 'date'],
+        'delivery_term' => ['nullable', 'integer', 'min:0'],
+        'due_date' => ['nullable', 'date'],
+        'no_of_days_ld' => ['nullable', 'integer', 'min:0'],
+        'received_by_1' => ['nullable', 'string', 'max:150'],
+        'received_by_2' => ['nullable', 'string', 'max:150'],
+        'end_user' => ['nullable', 'string', 'max:150'],
+        'place_of_delivery' => ['nullable', 'string', 'max:255'],
+        'status' => ['nullable', 'string', 'max:50'],
+        'remarks' => ['nullable', 'string'],
+        'total_amount_delivered' => ['nullable', 'numeric', 'min:0'],
+        'po_total_amount' => ['nullable', 'numeric', 'min:0'],
+        'folder_link' => ['nullable', 'string', 'max:500'],
+    ]);
 
-        // Client sends its own generated id so it can upload attachments to the
-        // same record right after create, without waiting on a redirect round-trip.
-        $validated['delivery_id'] ??= now()->format('YmdHis').'-'.substr(md5(uniqid()), 0, 6);
-        $validated['total_amount_delivered'] ??= 0;
-        $validated['po_total_amount'] ??= 0;
+    $dates = collect($validated['delivery_dates'] ?? [])->filter()->values();
+    unset($validated['delivery_dates']);
 
-        Delivery::create($validated);
+    $validated['delivery_id'] ??= now()->format('YmdHis').'-'.substr(md5(uniqid()), 0, 6);
+    $validated['total_amount_delivered'] ??= 0;
+    $validated['po_total_amount'] ??= 0;
+    $validated['delivery_date'] = $dates->sort()->last();
 
-        return redirect()->back()->with('success', 'Delivery record added successfully.');    
+    $delivery = Delivery::create($validated);
+
+    foreach ($dates as $date) {
+        $delivery->deliveryDates()->create(['delivery_date' => $date]);
+    }
+
+    return redirect()->back()->with('success', 'Delivery record added successfully.');
     }
 
     /**
@@ -107,48 +115,42 @@ class DeliveriesController extends Controller
      */
     public function update(Request $request, Delivery $delivery): RedirectResponse
     {
-        $validated = $request->validate([
-            'po_number' => ['required', 'string', 'max:50', 'exists:serve_po,po_number'],
-            'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
-            'delivery_date' => ['nullable', 'date'],
-            'po_date_received' => ['nullable', 'date'],
-            'delivery_term' => ['nullable', 'integer', 'min:0'],
-            'due_date' => ['nullable', 'date'],
-            'no_of_days_ld' => ['nullable', 'integer', 'min:0'],
-            'received_by_1' => ['nullable', 'string', 'max:150'],
-            'received_by_2' => ['nullable', 'string', 'max:150'],
-            'end_user' => ['nullable', 'string', 'max:150'],
-            'place_of_delivery' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'string', 'max:50'],
-            'remarks' => ['nullable', 'string'],
-            'total_amount_delivered' => ['nullable', 'numeric', 'min:0'],
-            'po_total_amount' => ['nullable', 'numeric', 'min:0'],
-            'folder_link' => ['nullable', 'string', 'max:500'],
-            'deleted_attachment_ids' => ['nullable', 'array'],
-            'deleted_attachment_ids.*' => ['integer'],
-        ]);
+    $validated = $request->validate([
+        'delivery_id' => ['nullable', 'string', 'max:50', 'unique:delivery,delivery_id'],
+        'po_number' => ['required', 'string', 'max:50', 'exists:serve_po,po_number'],
+        'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
+        'delivery_dates' => ['nullable', 'array'],
+        'delivery_dates.*' => ['date'],
+        'po_date_received' => ['nullable', 'date'],
+        'delivery_term' => ['nullable', 'integer', 'min:0'],
+        'due_date' => ['nullable', 'date'],
+        'no_of_days_ld' => ['nullable', 'integer', 'min:0'],
+        'received_by_1' => ['nullable', 'string', 'max:150'],
+        'received_by_2' => ['nullable', 'string', 'max:150'],
+        'end_user' => ['nullable', 'string', 'max:150'],
+        'place_of_delivery' => ['nullable', 'string', 'max:255'],
+        'status' => ['nullable', 'string', 'max:50'],
+        'remarks' => ['nullable', 'string'],
+        'total_amount_delivered' => ['nullable', 'numeric', 'min:0'],
+        'po_total_amount' => ['nullable', 'numeric', 'min:0'],
+        'folder_link' => ['nullable', 'string', 'max:500'],
+    ]);
 
-        $validated['total_amount_delivered'] ??= 0;
-        $validated['po_total_amount'] ??= 0;
+    $dates = collect($validated['delivery_dates'] ?? [])->filter()->values();
+    unset($validated['delivery_dates']);
 
-        // Handle deleted attachments before updating delivery
-        $deletedAttachmentIds = $validated['deleted_attachment_ids'] ?? [];
-        if ($deletedAttachmentIds) {
-            foreach ($deletedAttachmentIds as $attachmentId) {
-                $attachment = Attachment::find($attachmentId);
-                if ($attachment) {
-                    Storage::disk('public')->delete($attachment->file_path);
-                    $attachment->delete();
-                }
-            }
-        }
+    $validated['delivery_id'] ??= now()->format('YmdHis').'-'.substr(md5(uniqid()), 0, 6);
+    $validated['total_amount_delivered'] ??= 0;
+    $validated['po_total_amount'] ??= 0;
+    $validated['delivery_date'] = $dates->sort()->last();
 
-        // Remove deleted_attachment_ids from validated data before saving
-        unset($validated['deleted_attachment_ids']);
+    $delivery = Delivery::create($validated);
 
-        $delivery->update($validated);
+    foreach ($dates as $date) {
+        $delivery->deliveryDates()->create(['delivery_date' => $date]);
+    }
 
-        return redirect()->back()->with('success', 'Delivery record updated successfully.');
+    return redirect()->back()->with('success', 'Delivery record added successfully.');
     }
 
     /**
