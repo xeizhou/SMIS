@@ -34,6 +34,7 @@ class PurchaseOrdersController extends Controller
                 'fundCluster:fund_cluster_id,fund_description',
                 'office:office_code,office_name',
                 'attachments',
+                'items:stock_no,item_name,description',
             ])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -66,6 +67,9 @@ class PurchaseOrdersController extends Controller
             'offices' => Office::select('office_code', 'office_name')
                 ->orderByDesc('office_code')
                 ->get(),
+            'stockItems' => \App\Models\StockItem::select('stock_no', 'item_name', 'description')
+                ->orderBy('item_name')
+                ->get(),
         ]);
     }
 
@@ -76,7 +80,8 @@ class PurchaseOrdersController extends Controller
     {
         $validated = $request->validate([
             'po_number' => ['required', 'string', 'max:50', 'unique:serve_po,po_number'],
-            'item_description' => ['nullable', 'string'],
+            'item_stock_nos' => ['nullable', 'array'],
+            'item_stock_nos.*' => ['string', 'exists:stock_items,stock_no'],
             'po_date' => ['nullable', 'date'],
             'po_received_date' => ['nullable', 'date'],
             'inclusive_date' => ['nullable', 'string', 'max:100'],
@@ -100,11 +105,15 @@ class PurchaseOrdersController extends Controller
             'date_forwarded_frontdesk' => ['nullable', 'date'],
         ]);
 
+        $itemStockNos = $validated['item_stock_nos'] ?? [];
+        unset($validated['item_stock_nos']);
+
         $validated['total_amount_abc'] ??= 0;
         $validated['total_amount_po'] ??= 0;
         $validated['total_amount_diff'] = $validated['total_amount_abc'] - $validated['total_amount_po'];
 
-        ServePo::create($validated);
+        $po = ServePo::create($validated);
+        $po->items()->sync($itemStockNos);
 
         return redirect()->back()->with('success', 'Purchase Order record added successfully.');
     }
@@ -181,7 +190,7 @@ class PurchaseOrdersController extends Controller
         $newPoNumber = $validated['po_number'];
         $poNumberChanged = $oldPoNumber !== $newPoNumber;
 
-        DB::transaction(function () use ($servePo, $validated, $oldPoNumber, $newPoNumber, $poNumberChanged) {
+        DB::transaction(function () use ($servePo, $validated, $itemStockNos, $oldPoNumber, $newPoNumber, $poNumberChanged) {
             if ($poNumberChanged) {
                 DB::statement('PRAGMA defer_foreign_keys = ON');
 
@@ -195,6 +204,7 @@ class PurchaseOrdersController extends Controller
             }
 
             $servePo->update($validated);
+            $servePo->items()->sync($itemStockNos);
         });
 
         return redirect()->back()->with('success', 'Purchase Order record updated successfully.');

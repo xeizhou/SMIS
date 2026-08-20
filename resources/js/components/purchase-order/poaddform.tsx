@@ -29,6 +29,8 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert } from '@/components/ui/alert';
 import SupplierQuickAddModal from '@/components/suppliers/supplier-quick-add-modal';
+import ItemMultiSelect, { type StockItemOption } from '@/components/purchase-order/item-multi-select';
+import StockItemQuickAddModal from '@/components/purchase-order/stock-item-quick-add-modal';
 
 interface Supplier {
     supplier_id: number;
@@ -51,6 +53,7 @@ interface Props {
     suppliers: Supplier[];
     fundClusters: FundCluster[];
     offices: Office[];
+    stockItems: StockItemOption[];
 }
 
 interface FieldProps {
@@ -419,8 +422,10 @@ export default function PurchaseOrderAddForm({
     suppliers,
     fundClusters,
     offices,
+    stockItems,
 }: Props) {
     const [data, setData] = useState(emptyForm);
+    const [itemStockNos, setItemStockNos] = useState<string[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [files, setFiles] = useState<StagedFile[]>([]);
@@ -432,6 +437,15 @@ export default function PurchaseOrderAddForm({
     const [supplierOptions, setSupplierOptions] = useState<Supplier[]>(suppliers);
     const [quickAddOpen, setQuickAddOpen] = useState(false);
     const [quickAddQuery, setQuickAddQuery] = useState('');
+
+    // Stock item quick-add state — same pattern as supplier quick-add.
+    const [stockItemOptions, setStockItemOptions] = useState<StockItemOption[]>(stockItems);
+    const [itemQuickAddOpen, setItemQuickAddOpen] = useState(false);
+    const [itemQuickAddQuery, setItemQuickAddQuery] = useState('');
+
+    useEffect(() => {
+        setStockItemOptions(stockItems);
+    }, [stockItems]);
 
     // Keep local supplier list in sync if the parent passes a fresh
     // `suppliers` prop (e.g. after a manual refresh).
@@ -531,6 +545,7 @@ export default function PurchaseOrderAddForm({
             if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
         });
         setData(emptyForm);
+        setItemStockNos([]);
         setErrors({});
         setFiles([]);
         setPreviewFile(null);
@@ -569,6 +584,7 @@ export default function PurchaseOrderAddForm({
             '/purchase-orders',
             {
                 ...data,
+                item_stock_nos: itemStockNos,
                 total_amount_diff: diff,
                 responsibility_center: responsibilityCenter,
             },
@@ -735,20 +751,16 @@ export default function PurchaseOrderAddForm({
                                         )}
 
                                         <div className="md:col-span-2">
-                                            <label className={labelClass}>Item Description</label>
-                                            <textarea
-                                                name="item_description"
-                                                value={data.item_description}
-                                                onChange={(e) =>
-                                                    setData({ ...data, item_description: e.target.value })
-                                                }
-                                                rows={4}
-                                                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                                                placeholder='KEYBOARD 5pcs'
-                                            />
-                                            {errors.item_description && (
-                                                <p className="mt-1 text-xs text-red-500">{errors.item_description}</p>
-                                            )}
+                                            <ItemMultiSelect
+                                            value={itemStockNos}
+                                            onChange={setItemStockNos}
+                                            options={stockItemOptions}
+                                            error={errors.item_stock_nos}
+                                            onAddNew={(query) => {
+                                                setItemQuickAddQuery(query);
+                                                setItemQuickAddOpen(true);
+                                            }}
+                                        />
                                         </div>
                                     </div>
                                 </div>
@@ -1031,6 +1043,16 @@ export default function PurchaseOrderAddForm({
                 onCreated={(created) => {
                     setSupplierOptions((prev) => [...prev, created]);
                     handleSelectChange('supplier_id')(String(created.supplier_id));
+                }}
+            />
+
+            <StockItemQuickAddModal
+                open={itemQuickAddOpen}
+                onOpenChange={setItemQuickAddOpen}
+                initialName={itemQuickAddQuery}
+                onCreated={(created) => {
+                    setStockItemOptions((prev) => [...prev, created]);
+                    setItemStockNos((prev) => [...prev, created.stock_no]);
                 }}
             />
         </>

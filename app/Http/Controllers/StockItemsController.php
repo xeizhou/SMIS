@@ -111,4 +111,35 @@ class StockItemsController extends Controller
 
         return redirect()->back()->with('success', 'Stock item archived successfully.');
     }
+
+    public function quickAdd(Request $request)
+        {
+            $validated = $request->validate([
+                'item_name' => 'required|string|max:255',
+                'description' => 'nullable|string|max:255',
+            ]);
+
+            // stock_no is the primary key and can't be null in the DB, but this
+            // quick-add flow intentionally doesn't ask the user for one — generate
+            // a placeholder they (or someone editing later in Stock Items) can
+            // rename to a real stock number. Retry on the off chance of collision.
+            do {
+                $stockNo = 'TEMP-' . strtoupper(\Illuminate\Support\Str::random(6));
+            } while (StockItem::where('stock_no', $stockNo)->exists());
+
+            $stockItem = StockItem::create([
+                'stock_no' => $stockNo,
+                'item_name' => $validated['item_name'],
+                'description' => $validated['description'] ?? null,
+            ]);
+
+            // No unit assigned yet — units() pivot stays empty until edited
+            // properly in the Stock Items page.
+
+            return response()->json([
+                'stock_no' => $stockItem->stock_no,
+                'item_name' => $stockItem->item_name,
+                'description' => $stockItem->description,
+            ]);
+        }
 }
