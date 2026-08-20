@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X, RefreshCw, ExternalLink } from 'lucide-react';
+import { Paperclip, X, RefreshCw, ExternalLink, Plus } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,6 +38,8 @@ import {
     Check,
     ChevronsUpDown,
 } from "lucide-react";
+import SupplierQuickAddModal from '@/components/suppliers/supplier-quick-add-modal';
+
 interface Supplier {
     supplier_id: number;
     supplier_name: string;
@@ -71,6 +73,7 @@ interface PurchaseOrder {
     pr_number: string | null;
     pr_date: string | null;
     philgeps_reference_no: string | null;
+    procurement_type: string | null;
     mode_of_procurement: string | null;
     total_amount_abc: string | number | null;
     total_amount_po: string | number | null;
@@ -260,9 +263,10 @@ interface SearchableSelectProps {
     required?: boolean;
     placeholder?: string;
     options: { value: string; label: string }[];
-
     onRefresh?: () => void;
     isRefreshing?: boolean;
+    onAddNew?: (query: string) => void;
+    addNewLabel?: string;
 }
 
 function SearchableSelect({
@@ -275,17 +279,33 @@ function SearchableSelect({
     options,
     onRefresh,
     isRefreshing = false,
+    onAddNew,
+    addNewLabel = 'new item',
 }: SearchableSelectProps) {
     const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState('');
 
     const selectedLabel = options.find((o) => o.value === value)?.label;
 
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
 
             <Popover open={open} onOpenChange={setOpen} modal={true}>
                 <PopoverTrigger asChild>
@@ -307,9 +327,30 @@ function SearchableSelect({
 
                 <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
                     <Command>
-                        <CommandInput placeholder={placeholder} />
+                        <CommandInput
+                            placeholder={placeholder}
+                            value={query}
+                            onValueChange={setQuery}
+                        />
                         <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandEmpty>
+                                <div className="px-2 py-3 text-center text-sm text-muted-foreground">
+                                    No item found.
+                                    {onAddNew && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                onAddNew(query);
+                                                setOpen(false);
+                                            }}
+                                            className="mt-2 flex w-full items-center justify-center gap-1 rounded-md border border-dashed px-2 py-1.5 text-sm font-medium text-primary hover:bg-muted"
+                                        >
+                                            <Plus className="size-3.5" />
+                                            Add {query ? `"${query}"` : addNewLabel}
+                                        </button>
+                                    )}
+                                </div>
+                            </CommandEmpty>
                             <CommandGroup>
                                 {options.map((opt) => (
                                     <CommandItem
@@ -340,6 +381,11 @@ function SearchableSelect({
     );
 }
 
+const PROCUREMENT_TYPE_OPTIONS = [
+    { value: 'Services', label: 'Services' },
+    { value: 'Items', label: 'Item/s' },
+];
+
 const MODE_OF_PROCUREMENT_OPTIONS = [
     { value: 'SMALL VALUE PROCURMENT', label: 'SMALL VALUE PROCURMENT' },
     { value: 'SHOPPING', label: 'SHOPPING' },
@@ -356,6 +402,7 @@ const emptyForm = {
     pr_number: '',
     pr_date: '',
     philgeps_reference_no: '',
+    procurement_type: '', 
     mode_of_procurement: '',
     total_amount_abc: '',
     total_amount_po: '',
@@ -413,6 +460,7 @@ function toFormData(po: PurchaseOrder | null): typeof emptyForm {
         pr_number: po.pr_number ?? '',
         pr_date: toDateInputValue(po.pr_date),
         philgeps_reference_no: po.philgeps_reference_no ?? '',
+        procurement_type: po.procurement_type ?? '',
         mode_of_procurement: po.mode_of_procurement ?? '',
         total_amount_abc:
             po.total_amount_abc === null || po.total_amount_abc === undefined
@@ -520,6 +568,17 @@ export default function PurchaseOrderEditForm({
     const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
     const [refreshingField, setRefreshingField] = useState<string | null>(null);
     const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null);
+
+    // Supplier quick-add state — same pattern as PurchaseOrderAddForm.
+    const [supplierOptions, setSupplierOptions] = useState<Supplier[]>(suppliers);
+    const [quickAddOpen, setQuickAddOpen] = useState(false);
+    const [quickAddQuery, setQuickAddQuery] = useState('');
+
+    // Keep local supplier list in sync if the parent passes a fresh
+    // `suppliers` prop (e.g. after a manual refresh).
+    useEffect(() => {
+        setSupplierOptions(suppliers);
+    }, [suppliers]);
 
     const handleRefreshData = (field: string) => {
         setRefreshingField(field);
@@ -789,7 +848,34 @@ export default function PurchaseOrderEditForm({
                                     value={data.philgeps_reference_no}
                                     onChange={handleChange}
                                     error={errors.philgeps_reference_no}
+                                    placeholder="00000000"
                                 />
+
+                                <SelectField
+                                    label="Type of Procurement"
+                                    value={data.procurement_type}
+                                    onChange={(value) => {
+                                        handleSelectChange('procurement_type')(value);
+                                        // Clear inclusive_date if switching away from Services
+                                        if (value !== 'Services') {
+                                            setData((prev) => ({ ...prev, procurement_type: value, inclusive_date: '' }));
+                                        }
+                                    }}
+                                    error={errors.procurement_type}
+                                    placeholder="-- Select Type --"
+                                    options={PROCUREMENT_TYPE_OPTIONS}
+                                />
+
+                                {data.procurement_type === 'Services' && (
+                                    <Field
+                                        label="Inclusive Date"
+                                        name="inclusive_date"
+                                        value={data.inclusive_date}
+                                        onChange={handleChange}
+                                        error={errors.inclusive_date}
+                                        placeholder="e.g. Jan 1 - Jan 15, 2026"
+                                    />
+                                )}
                                 
                                 <div className="md:col-span-2">
                                     <label className={labelClass}>Item Description</label>
@@ -896,12 +982,17 @@ export default function PurchaseOrderEditForm({
                                     onChange={handleSelectChange('supplier_id')}
                                     error={errors.supplier_id}
                                     placeholder="Search Supplier..."
-                                    options={suppliers.map((s) => ({
+                                    options={supplierOptions.map((s) => ({
                                         value: String(s.supplier_id),
                                         label: s.supplier_name,
                                     }))}
                                     onRefresh={() => handleRefreshData('supplier')}
                                     isRefreshing={refreshingField === 'supplier'}
+                                    onAddNew={(query) => {
+                                        setQuickAddQuery(query);
+                                        setQuickAddOpen(true);
+                                    }}
+                                    addNewLabel="new supplier"
                                 />
                                 <SearchableSelect
                                     label="End User"
@@ -1171,6 +1262,17 @@ export default function PurchaseOrderEditForm({
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Supplier Quick-Add — a sibling dialog, not nested inside the lightbox */}
+            <SupplierQuickAddModal
+                open={quickAddOpen}
+                onOpenChange={setQuickAddOpen}
+                initialName={quickAddQuery}
+                onCreated={(created) => {
+                    setSupplierOptions((prev) => [...prev, created]);
+                    handleSelectChange('supplier_id')(String(created.supplier_id));
+                }}
+            />
         </>
     );
 }

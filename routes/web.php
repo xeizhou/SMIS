@@ -481,6 +481,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
 
     Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
     Route::post('/supplier', [SupplierController::class, 'store'])->name('supplier.store');
+    Route::post('/supplier/quick-add', [SupplierController::class, 'quickAdd'])->name('supplier.quick-add');
     Route::put('/supplier/{supplier}', [SupplierController::class, 'update']);
     Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
 
