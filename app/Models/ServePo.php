@@ -94,13 +94,26 @@ class ServePo extends Model
     {
         return $this->belongsTo(Office::class, 'end_user', 'office_code');
     }
+
+    public function items(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(
+            StockItem::class,
+            'serve_po_items',
+            'po_number',
+            'stock_no',
+            'po_number',
+            'stock_no'
+        )->withTimestamps();
+    }
+    
     public function attachments(): MorphMany
     {
     return $this->morphMany(Attachment::class, 'attachable');
-}
+    }
 
-public function getActivityUrl()
-{
-    return route('purchase-orders.index') . '?highlight_id=' . $this->po_number;
-}
+    public function getActivityUrl()
+    {
+        return route('purchase-orders.index') . '?highlight_id=' . $this->po_number;
+    }
 }

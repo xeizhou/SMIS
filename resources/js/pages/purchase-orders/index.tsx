@@ -3,6 +3,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import PurchaseOrderAddForm from '@/components/purchase-order/poaddform';
+import type { StockItemOption } from '@/components/purchase-order/item-multi-select';
 import PurchaseOrderDeleteModal from '@/components/purchase-order/podeletemodal';
 import PurchaseOrderEditForm from '@/components/purchase-order/poeditform';
 import PurchaseOrderViewForm from '@/components/purchase-order/poviewform';
@@ -83,6 +84,7 @@ interface Props {
     suppliers: Supplier[];
     fundClusters: FundCluster[];
     offices: Office[];
+    stockItems: StockItemOption[];
 }
 
 function formatCurrency(value: string | number | null) {
@@ -120,6 +122,7 @@ export default function Index({
     suppliers,
     fundClusters,
     offices,
+    stockItems,
 }: Props) {
         const [search, setSearch] = useState(filters.search ?? '');
     const [fundCluster, setFundCluster] = useState(filters.fund_cluster ?? 'all');
@@ -418,6 +421,7 @@ export default function Index({
                 suppliers={suppliers}
                 fundClusters={fundClusters}
                 offices={offices}
+                stockItems={stockItems}
             />
 
             <PurchaseOrderEditForm
