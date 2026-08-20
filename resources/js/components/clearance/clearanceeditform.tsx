@@ -105,9 +105,7 @@ const emptyForm: Record<string, string> = {
     office: '',
     claim_date: '',
     received_by: '',
-    status: 'Active',
-    cleared: '',
-    pending: '',
+    cleared: 'false',
     remarks: '',
 };
 
@@ -216,11 +214,7 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
             setData({
                 name: record.name,
                 office: typeof record.office === 'object' && record.office !== null ? record.office.office_code : (record.office || ''),
-                claim_date: record.claim_date,
                 received_by: record.received_by,
-                status: record.status,
-                cleared: record.cleared === true || record.cleared === 'true' || record.cleared === '1' ? 'true' : 'false',
-                pending: record.pending === true || record.pending === 'true' || record.pending === '1' ? 'true' : 'false',
                 remarks: record.remarks ?? '',
             });
 
@@ -305,24 +299,11 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
     };
 
 
-    const handleBooleanSelectChange = (value: string, name: 'cleared' | 'pending') => {
-        const nextValue = value === 'true';
-
-        setData((prev) => {
-            if (name === 'cleared') {
-                return {
-                    ...prev,
-                    cleared: nextValue ? 'true' : 'false',
-                    pending: nextValue ? 'false' : prev.pending,
-                };
-            }
-
-            return {
-                ...prev,
-                pending: nextValue ? 'true' : 'false',
-                cleared: nextValue ? 'false' : prev.cleared,
-            };
-        });
+    const handleBooleanSelectChange = (value: string, name: 'cleared') => {
+        setData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
     };
 
 
@@ -336,8 +317,6 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
 
         const payload = {
             ...data,
-            cleared: data.cleared === 'true',
-            pending: data.pending === 'true',
             deleted_attachment_ids: deletedAttachmentIds,
         };
 
@@ -413,12 +392,6 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
                                     label: office.office_code,
                                 }))}
                             />
-
-                            <div>
-                                <label className={labelClass} htmlFor="edit_claim_date">Claim Date <span className="text-red-500">*</span></label>
-                                <Input id="edit_claim_date" type="date" name="claim_date" value={data.claim_date} onChange={handleChange} />
-                                {errors.claim_date && <p className="mt-1 text-xs text-red-500">{errors.claim_date}</p>}
-                            </div>
                         </div>
                     </div>
 
@@ -431,40 +404,14 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
                                 <Input id="edit_received_by" name="received_by" value={data.received_by} onChange={handleChange} />
                                 {errors.received_by && <p className="mt-1 text-xs text-red-500">{errors.received_by}</p>}
                             </div>
+                            
+                            {record?.checker && (
+                                <div>
+                                    <label className={labelClass}>Claimed By</label>
+                                    <Input value={record.checker.name} readOnly className="bg-muted" />
+                                </div>
+                            )}
 
-                            <div>
-                                <label className={labelClass} htmlFor="edit_status">Status <span className="text-red-500">*</span></label>
-                                <Input id="edit_status" name="status" value={data.status} onChange={handleChange} placeholder="e.g. Retired" />
-                                {errors.status && <p className="mt-1 text-xs text-red-500">{errors.status}</p>}
-                            </div>
-
-                            <div>
-                                <label className={labelClass} htmlFor="edit_cleared">Cleared <span className="text-red-500">*</span></label>
-                                <Select value={data.cleared} onValueChange={(value) => handleBooleanSelectChange(value, 'cleared')}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select cleared" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="true">True</SelectItem>
-                                        <SelectItem value="false">False</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {errors.cleared && <p className="mt-1 text-xs text-red-500">{errors.cleared}</p>}
-                            </div>
-
-                            <div>
-                                <label className={labelClass} htmlFor="edit_pending">Pending <span className="text-red-500">*</span></label>
-                                <Select value={data.pending} onValueChange={(value) => handleBooleanSelectChange(value, 'pending')}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select pending" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="true">True</SelectItem>
-                                        <SelectItem value="false">False</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {errors.pending && <p className="mt-1 text-xs text-red-500">{errors.pending}</p>}
-                            </div>
                         </div>
                     </div>
 

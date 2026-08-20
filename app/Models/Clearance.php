@@ -27,10 +27,11 @@ class Clearance extends Model
         'cleared',
         'pending',
         'remarks',
+        'checked_by_id',
     ];
 
     protected $casts = [
-        'claim_date' => 'date',
+        'claim_date' => 'datetime',
         'cleared' => 'boolean',
         'pending' => 'boolean',
     ];
@@ -38,6 +39,11 @@ class Clearance extends Model
     public function office(): BelongsTo
     {
         return $this->belongsTo(Office::class, 'office', 'office_code');
+    }
+
+    public function checker(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'checked_by_id');
     }
 
     public function attachments(): MorphMany

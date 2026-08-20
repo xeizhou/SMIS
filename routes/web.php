@@ -518,6 +518,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/clearance', [ClearanceController::class, 'index'])->name('clearance.index');
     Route::post('/clearance', [ClearanceController::class, 'store'])->name('clearance.store');
     Route::put('/clearance/{clearance}', [ClearanceController::class, 'update'])->name('clearance.update');
+    Route::patch('/clearance/{clearance}/process', [ClearanceController::class, 'process'])->name('clearance.process');
     Route::delete('/clearance/{clearance}', [ClearanceController::class, 'destroy'])->name('clearance.destroy');
     Route::post('/clearance/{clearance}/attachments', [ClearanceController::class, 'uploadAttachments'])
         ->name('clearance.attachments.upload');

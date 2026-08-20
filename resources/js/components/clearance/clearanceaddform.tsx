@@ -32,11 +32,8 @@ interface Props {
 const emptyForm: Record<string, string> = {
     name: '',
     office: '',
-    claim_date: '',
     received_by: '',
-    status: '',
-    cleared: '',
-    pending: '',
+    cleared: 'false',
     remarks: '',
 };
 
@@ -254,24 +251,11 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
         }
     };
 
-    const handleBooleanSelectChange = (value: string, name: 'cleared' | 'pending') => {
-        const nextValue = value === 'true';
-
-        setData((prev) => {
-            if (name === 'cleared') {
-                return {
-                    ...prev,
-                    cleared: nextValue ? 'true' : 'false',
-                    pending: nextValue ? 'false' : prev.pending,
-                };
-            }
-
-            return {
-                ...prev,
-                pending: nextValue ? 'true' : 'false',
-                cleared: nextValue ? 'false' : prev.cleared,
-            };
-        });
+    const handleBooleanSelectChange = (value: string, name: 'cleared') => {
+        setData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
     };
 
 
@@ -282,11 +266,7 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
         const formData = new FormData();
         formData.append('name', data.name);
         formData.append('office', data.office);
-        formData.append('claim_date', data.claim_date);
         formData.append('received_by', data.received_by);
-        formData.append('status', data.status);
-        formData.append('cleared', data.cleared === 'true' ? '1' : '0');
-        formData.append('pending', data.pending === 'true' ? '1' : '0');
         if (data.remarks) formData.append('remarks', data.remarks);
 
         newFiles.forEach(({ file }) => formData.append('files[]', file));
@@ -345,12 +325,6 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                                     label: office.office_code,
                                 }))}
                             />
-
-                            <div>
-                                <label className={labelClass} htmlFor="claim_date">Claim Date <span className="text-red-500">*</span></label>
-                                <Input id="claim_date" type="date" name="claim_date" value={data.claim_date} onChange={handleChange} />
-                                {errors.claim_date && <p className="mt-1 text-xs text-red-500">{errors.claim_date}</p>}
-                            </div>
                         </div>
                     </div>
 
@@ -362,40 +336,6 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                                 <label className={labelClass} htmlFor="received_by">Received By <span className="text-red-500">*</span></label>
                                 <Input id="received_by" name="received_by" value={data.received_by} onChange={handleChange} placeholder="Enter receiver name" />
                                 {errors.received_by && <p className="mt-1 text-xs text-red-500">{errors.received_by}</p>}
-                            </div>
-
-                            <div>
-                                <label className={labelClass} htmlFor="status">Status <span className="text-red-500">*</span></label>
-                                <Input id="status" name="status" value={data.status} onChange={handleChange} placeholder="e.g. Retired" />
-                                {errors.status && <p className="mt-1 text-xs text-red-500">{errors.status}</p>}
-                            </div>
-
-                            <div>
-                                <label className={labelClass} htmlFor="cleared">Cleared <span className="text-red-500">*</span></label>
-                                <Select value={data.cleared} onValueChange={(value) => handleBooleanSelectChange(value, 'cleared')}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select cleared" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="true">True</SelectItem>
-                                        <SelectItem value="false">False</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {errors.cleared && <p className="mt-1 text-xs text-red-500">{errors.cleared}</p>}
-                            </div>
-
-                            <div>
-                                <label className={labelClass} htmlFor="pending">Pending <span className="text-red-500">*</span></label>
-                                <Select value={data.pending} onValueChange={(value) => handleBooleanSelectChange(value, 'pending')}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select pending" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="true">True</SelectItem>
-                                        <SelectItem value="false">False</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {errors.pending && <p className="mt-1 text-xs text-red-500">{errors.pending}</p>}
                             </div>
                         </div>
                     </div>

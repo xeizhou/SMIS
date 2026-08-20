@@ -23,14 +23,15 @@ class ClearanceController extends Controller
         $status = $request->string('status')->toString() ?: null;
 
         $query = Clearance::query()
-            ->with('office:office_code,office_name')
+            ->with(['office:office_code,office_name', 'checker:id,name'])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('received_by', 'like', "%{$search}%")
                         ->orWhere('office', 'like', "%{$search}%")
                         ->orWhere('remarks', 'like', "%{$search}%")
-                        ->orWhereHas('office', fn ($officeQuery) => $officeQuery->where('office_name', 'like', "%{$search}%"));
+                        ->orWhereHas('office', fn ($officeQuery) => $officeQuery->where('office_name', 'like', "%{$search}%"))
+                        ->orWhereHas('checker', fn ($userQuery) => $userQuery->where('name', 'like', "%{$search}%"));
                 });
             })
             ->when($status, fn ($query, $status) => $query->where('status', $status));
@@ -72,19 +73,13 @@ class ClearanceController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'office' => ['required', 'exists:offices,office_code'],
-            'claim_date' => ['required', 'date'],
             'received_by' => ['required', 'string', 'max:100'],
-            'status' => ['required', 'string', 'max:50'],
-            'cleared' => ['required', 'boolean'],
-            'pending' => ['required', 'boolean'],
             'remarks' => ['nullable', 'string', 'max:255'],
         ]);
 
-        if ($validated['cleared'] && $validated['pending']) {
-            throw ValidationException::withMessages([
-                'pending' => ['Cleared and pending cannot both be true.'],
-            ]);
-        }
+        $validated['status'] = 'Pending';
+        $validated['pending'] = true;
+        $validated['cleared'] = false;
 
         $clearance = Clearance::create($validated);
 
@@ -117,21 +112,11 @@ class ClearanceController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'office' => ['required', 'exists:offices,office_code'],
-            'claim_date' => ['required', 'date'],
             'received_by' => ['required', 'string', 'max:100'],
-            'status' => ['required', 'string', 'max:50'],
-            'cleared' => ['required', 'boolean'],
-            'pending' => ['required', 'boolean'],
             'remarks' => ['nullable', 'string', 'max:255'],
             'deleted_attachment_ids' => ['nullable', 'array'],
             'deleted_attachment_ids.*' => ['integer'],
         ]);
-
-        if ($validated['cleared'] && $validated['pending']) {
-            throw ValidationException::withMessages([
-                'pending' => ['Cleared and pending cannot both be true.'],
-            ]);
-        }
 
         // Handle deleted attachments before updating clearance
         $deletedAttachmentIds = $validated['deleted_attachment_ids'] ?? [];
@@ -169,6 +154,49 @@ class ClearanceController extends Controller
         $clearance->delete();
 
         return redirect()->back()->with('success', 'Clearance record archived successfully.');
+    }
+
+    /**
+     * Process the clearance (Set Cleared / Claimed status).
+     */
+    public function process(Request $request, Clearance $clearance): RedirectResponse
+    {
+        $validated = $request->validate([
+            'cleared' => 'boolean',
+            'claimed' => 'boolean',
+        ]);
+
+        // Assign the validated cleared boolean back to the model
+        $clearance->cleared = $validated['cleared'];
+
+        if ($validated['claimed'] && !$clearance->claim_date) {
+            $clearance->claim_date = now();
+            if (!$clearance->checked_by_id) {
+                $clearance->checked_by_id = auth()->id();
+            }
+        } elseif (!$validated['claimed']) {
+            $clearance->claim_date = null;
+            $clearance->checked_by_id = null;
+        }
+
+        if (!$clearance->cleared) {
+            $clearance->status = 'Pending';
+            $clearance->pending = true;
+            $clearance->claim_date = null;
+            $clearance->checked_by_id = null;
+        } else {
+            if ($clearance->claim_date) {
+                $clearance->status = 'Completed';
+                $clearance->pending = false;
+            } else {
+                $clearance->status = 'Cleared';
+                $clearance->pending = true;
+            }
+        }
+
+        $clearance->save();
+
+        return redirect()->back()->with('success', 'Clearance processed successfully.');
     }
 
     /**

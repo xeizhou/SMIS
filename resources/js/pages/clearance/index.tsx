@@ -1,18 +1,25 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Trash2 } from 'lucide-react';
+import { Search, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import ClearanceAddForm from '@/components/clearance/clearanceaddform';
 import ClearanceDeleteModal from '@/components/clearance/clearancedeletemodal';
 import ClearanceEditForm from '@/components/clearance/clearanceeditform';
+import ClearanceProcessModal from '@/components/clearance/clearanceprocessmodal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { ClipboardCheck } from 'lucide-react';
 
 interface OfficeOption {
     office_code: string;
     office_name: string;
+}
+
+interface UserOption {
+    id: number;
+    name: string;
 }
 
 interface ClearanceRecord {
@@ -26,6 +33,8 @@ interface ClearanceRecord {
     pending: boolean | string;
     remarks: string | null;
     office_data?: OfficeOption | null;
+    checker?: UserOption | null;
+    checked_by_id?: number | null;
 }
 
 interface PaginatedRecords {
@@ -53,6 +62,7 @@ export default function Index({ records, filters, statuses, offices }: Props) {
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isProcessOpen, setIsProcessOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<ClearanceRecord | null>(null);
 
     const handleSearch = (e: React.FormEvent) => {
@@ -94,6 +104,11 @@ export default function Index({ records, filters, statuses, offices }: Props) {
     const openDelete = (record: ClearanceRecord) => {
         setSelectedRecord(record);
         setIsDeleteOpen(true);
+    };
+
+    const openProcess = (record: ClearanceRecord) => {
+        setSelectedRecord(record);
+        setIsProcessOpen(true);
     };
 
     return (
@@ -141,9 +156,10 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                             <tr>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Name</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Office</th>
-                                
+                                <th className="px-4 py-3 text-left font-semibold text-white">Claimed By</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Claim Date</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Status</th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
+                                <th className="w-[180px] px-4 py-3 text-left font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -163,15 +179,26 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                                                 ? record.office
                                                 : record.office?.office_name ?? record.office_data?.office_name ?? '—'}
                                         </td>
+                                        <td className="px-4 py-3">
+                                            {record.checker?.name ?? '—'}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {record.claim_date ? new Date(record.claim_date).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
+                                        </td>
                                         <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-3">
+                                            <div className="flex items-center justify-start gap-4">
                                                 <button type="button" onClick={() => openEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
                                                     <Pencil className="size-4" />
                                                 </button>
                                                 <button type="button" onClick={() => openDelete(record)} className="text-red-600 hover:text-red-800" title="Delete">
                                                     <Trash2 className="size-4" />
                                                 </button>
+                                                {record.status !== 'Completed' && (
+                                                    <button type="button" onClick={() => openProcess(record)} className="text-green-600 hover:text-green-800" title="Process Clearance">
+                                                        <ClipboardCheck className="size-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -205,6 +232,7 @@ export default function Index({ records, filters, statuses, offices }: Props) {
             <ClearanceAddForm open={isAddOpen} onOpenChange={setIsAddOpen} offices={offices} />
             <ClearanceEditForm open={isEditOpen} onOpenChange={setIsEditOpen} record={selectedRecord} offices={offices} />
             <ClearanceDeleteModal open={isDeleteOpen} onOpenChange={setIsDeleteOpen} record={selectedRecord} />
+            <ClearanceProcessModal open={isProcessOpen} onOpenChange={setIsProcessOpen} record={selectedRecord} />
         </>
     );
 }
