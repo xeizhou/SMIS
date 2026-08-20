@@ -31,7 +31,7 @@ class StockItemsListController extends Controller
      * item_name/description text snapshot (which could collide when two
      * items shared the same name+description).
      */
-    
+
     public function index(Request $request)
     {
         $search = $request->input('search');
@@ -147,6 +147,11 @@ class StockItemsListController extends Controller
         ]);
     }
 
+    /**
+     * Generate the PDF version of the stock cards (DomPDF).
+     * Heavy on large result sets since DomPDF has to render (and
+     * re-render, for the page-number footer) the full canvas server-side.
+     */
     public function printCards(Request $request)
     {
         // Printing many stock cards means rendering (and, for the page
@@ -158,11 +163,80 @@ class StockItemsListController extends Controller
         set_time_limit(300);
         ini_set('memory_limit', '512M');
 
+        $data = $this->buildStockCardsData($request);
+
+        // 4. Generate the PDF
+        $pdf = Pdf::loadView('pdf.printstockcards', $data);
+
+        $pdf->setPaper('A4', 'portrait');
+
+        $dompdf = $pdf->getDomPDF();
+        $dompdf->render();
+
+        $canvas = $dompdf->getCanvas();
+        $fontMetrics = $dompdf->getFontMetrics();
+
+        $generatedAt = now()->format('F d, Y \a\t h:i A');
+        $font = $fontMetrics->getFont('Arial', 'normal');
+        $fontSize = 10;
+
+        $canvas->page_text(
+            40,
+            $canvas->get_height() - 40,
+            "Page {PAGE_NUM} of {PAGE_COUNT}",
+            $font,
+            $fontSize,
+            [0, 0, 0]
+        );
+
+        $generatedText = "Generated: {$generatedAt}";
+        $textWidth = $fontMetrics->getTextWidth($generatedText, $font, $fontSize);
+
+        $canvas->page_text(
+            $canvas->get_width() - 40 - $textWidth,
+            $canvas->get_height() - 40,
+            $generatedText,
+            $font,
+            $fontSize,
+            [0, 0, 0]
+        );
+
+        $dompdf->render();
+
+        $pdfFilename = $this->buildPdfFilename($data['pdfTitle']);
+
+        return $pdf->stream("{$pdfFilename}.pdf");
+    }
+
+    /**
+     * Plain-HTML version of the stock cards, meant to be printed via the
+     * browser's native print dialog (Ctrl+P) instead of DomPDF. Skips
+     * DomPDF's server-side render/re-render pass entirely, so it holds up
+     * far better on large (400+ page) result sets — pagination and layout
+     * are handled by the browser's own print engine.
+     */
+    public function printCardsView(Request $request)
+    {
+        $data = $this->buildStockCardsData($request);
+
+        return view('stock-cards.print-html', $data);
+    }
+
+    /**
+     * Shared data pipeline for both print endpoints (PDF and browser-print
+     * HTML): fetch the filtered items, build each item's running-balance
+     * ledger from its transactions, and compute the display title.
+     * Kept in one place so the PDF and HTML views never drift out of sync.
+     *
+     * @return array{stockItems: \Illuminate\Support\Collection, pdfTitle: string}
+     */
+    private function buildStockCardsData(Request $request): array
+    {
         $search = $request->input('search');
-        $isUnissued = $request->boolean('unissued'); // Passed as true/false from our new React button
+        $isUnissued = $request->boolean('unissued'); // Passed as true/false from the print buttons
         $fundClusterId = $request->input('fund_cluster');
 
-        // 1. Fetch the filtered items using the exact same logic as your index method
+        // 1. Fetch the filtered items using the exact same logic as index()
         $query = DB::table('stock_items as i')
             ->join('stock_item_unit as siu', function ($join) {
                 $join->on('siu.stock_no', '=', 'i.stock_no')
@@ -243,78 +317,55 @@ class StockItemsListController extends Controller
                     'issue_qty' => $issueQty,
                     'office' => $t->office_code ?? '',
                     'balance' => $balance,
-                    'days_to_consume' => '' 
+                    'days_to_consume' => '',
                 ];
             }
             $item->ledger = $ledger;
         }
 
-        if ($items->count() === 1) {
-            $singleItem = $items->first();
-            $pdfTitle = 'Stock Card - ' . $singleItem->item_name
-                . ($singleItem->description ? " ({$singleItem->description})" : '');
-        } else {
-            $summaryParts = [];
+        $pdfTitle = $this->buildPdfTitle($items, $fundClusterId, $isUnissued, $search);
 
-            if ($fundClusterId && $fundClusterId !== 'None') {
-                $summaryParts[] = "Fund Cluster: {$fundClusterId}";
-            }
-            if ($isUnissued) {
-                $summaryParts[] = 'Unissued Only';
-            }
-            if ($search && $search !== 'None') {
-                $summaryParts[] = "Search: {$search}";
-            }
-
-            $pdfTitle = $summaryParts
-                ? 'Stock Cards - ' . implode(', ', $summaryParts)
-                : 'Stock Cards - All Items';
-        }
-
-        $pdfFilename = preg_replace('/[^A-Za-z0-9_\- ]/', '', $pdfTitle);
-        $pdfFilename = preg_replace('/\s+/', '_', trim($pdfFilename));
-
-        // 4. Generate the PDF
-        $pdf = Pdf::loadView('pdf.printstockcards', [
+        return [
             'stockItems' => $items,
             'pdfTitle' => $pdfTitle,
-        ]);
+        ];
+    }
 
-        $pdf->setPaper('A4', 'portrait');
+    /**
+     * Builds the human-readable title used in both the PDF/HTML <title>
+     * and the header text, summarizing whatever filters were applied.
+     */
+    private function buildPdfTitle($items, ?string $fundClusterId, bool $isUnissued, ?string $search): string
+    {
+        if ($items->count() === 1) {
+            $singleItem = $items->first();
+            return 'Stock Card - ' . $singleItem->item_name
+                . ($singleItem->description ? " ({$singleItem->description})" : '');
+        }
 
-        $dompdf = $pdf->getDomPDF();
-        $dompdf->render();
+        $summaryParts = [];
 
-        $canvas = $dompdf->getCanvas();
-        $fontMetrics = $dompdf->getFontMetrics();
+        if ($fundClusterId && $fundClusterId !== 'None') {
+            $summaryParts[] = "Fund Cluster: {$fundClusterId}";
+        }
+        if ($isUnissued) {
+            $summaryParts[] = 'Unissued Only';
+        }
+        if ($search && $search !== 'None') {
+            $summaryParts[] = "Search: {$search}";
+        }
 
-        $generatedAt = now()->format('F d, Y \a\t h:i A');
-        $font = $fontMetrics->getFont('Arial', 'normal');
-        $fontSize = 10;
+        return $summaryParts
+            ? 'Stock Cards - ' . implode(', ', $summaryParts)
+            : 'Stock Cards - All Items';
+    }
 
-        $canvas->page_text(
-            40,
-            $canvas->get_height() - 40,
-            "Page {PAGE_NUM} of {PAGE_COUNT}",
-            $font,
-            $fontSize,
-            [0, 0, 0]
-        );
-
-        $generatedText = "Generated: {$generatedAt}";
-        $textWidth = $fontMetrics->getTextWidth($generatedText, $font, $fontSize);
-
-        $canvas->page_text(
-            $canvas->get_width() - 40 - $textWidth,
-            $canvas->get_height() - 40,
-            $generatedText,
-            $font,
-            $fontSize,
-            [0, 0, 0]
-        );
-
-        $dompdf->render();
-
-        return $pdf->stream("{$pdfFilename}.pdf");
+    /**
+     * Sanitizes the display title into a safe filename for the PDF download.
+     */
+    private function buildPdfFilename(string $pdfTitle): string
+    {
+        $pdfFilename = preg_replace('/[^A-Za-z0-9_\- ]/', '', $pdfTitle);
+        return preg_replace('/\s+/', '_', trim($pdfFilename));
     }
 }

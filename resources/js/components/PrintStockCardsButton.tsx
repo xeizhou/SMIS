@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, Filter, PackageX, Search } from 'lucide-react';
+import { Printer, Filter, PackageX, Search, MonitorSmartphone } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -28,15 +28,24 @@ export default function PrintStockCardsButton({ totalItems, filters }: PrintStoc
     const hasFundFilter = fundCluster !== 'All';
     const hasSearchFilter = searchQuery !== 'None';
 
-    const handleConfirmPrint = () => {
+    const buildParams = () => {
         const params = new URLSearchParams();
 
         if (hasFundFilter) params.append('fund_cluster', fundCluster);
         if (unissuedOnly) params.append('unissued', 'true');
         if (hasSearchFilter) params.append('search', searchQuery);
 
+        return params;
+    };
+
+    const handleConfirmPrint = () => {
         setIsOpen(false);
-        window.open(`/stock-items/print-cards?${params.toString()}`, '_blank');
+        window.open(`/stock-items/print-cards?${buildParams().toString()}`, '_blank');
+    };
+
+    const handleBrowserPrint = () => {
+        setIsOpen(false);
+        window.open(`/stock-items/print-cards-html?${buildParams().toString()}`, '_blank');
     };
 
     const filterRows = [
@@ -116,20 +125,34 @@ export default function PrintStockCardsButton({ totalItems, filters }: PrintStoc
                             ))}
                         </div>
 
+                        {totalItems > 100 && (
+                            <p className="text-xs text-muted-foreground text-center">
+                                Large result set — "Print via Browser" tends to load faster than the PDF download.
+                            </p>
+                        )}
+
                         <p className="text-sm text-muted-foreground text-center pt-1">
                             Do you want to continue?
                         </p>
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="flex-col gap-2 sm:flex-row">
                         <Button variant="outline" onClick={() => setIsOpen(false)}>
                             Cancel
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={handleBrowserPrint}
+                            className="border-[#612A35]/40 text-[#612A35] hover:bg-[#612A35]/5 flex items-center gap-2"
+                        >
+                            <MonitorSmartphone className="size-4" />
+                            Print via Browser
                         </Button>
                         <Button
                             onClick={handleConfirmPrint}
                             className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
                         >
-                            Continue
+                            Download PDF
                         </Button>
                     </DialogFooter>
                 </DialogContent>
