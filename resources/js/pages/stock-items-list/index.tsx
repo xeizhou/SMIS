@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Printer, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Search, Printer, MonitorSmartphone, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import {
     Select,
     SelectTrigger,
@@ -127,6 +127,16 @@ export default function Index({ items, fundClusters, filters }: Props) {
         if (!itemToPrint) return;
         window.open(
             `/stock-items/print-cards?search=${encodeURIComponent(itemToPrint.stock_no)}`,
+            '_blank'
+        );
+        setPrintConfirmOpen(false);
+        setItemToPrint(null);
+    };
+
+    const handleBrowserPrintSingle = () => {
+        if (!itemToPrint) return;
+        window.open(
+            `/stock-items/print-cards-html?search=${encodeURIComponent(itemToPrint.stock_no)}`,
             '_blank'
         );
         setPrintConfirmOpen(false);
@@ -286,11 +296,11 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                 items.data.map((item, index) => (
                                     <tr
                                         key={item.stock_no ?? `${item.item_name}-${index}`}
-                                        className={'border-b transition-colors hover:bg-muted/40'} 
-                                        data-search-0={item.item_name} 
+                                        className={'border-b transition-colors hover:bg-muted/40'}
+                                        data-search-0={item.item_name}
                                         data-record-id={item.stock_no}
                                     >
-                                        <td 
+                                        <td
                                             className="px-4 py-3 max-w-[600px] truncate"
                                             title={`${item.item_name}${item.item_description ? ` - ${item.item_description}` : ''}`}
                                         >
@@ -368,15 +378,23 @@ export default function Index({ items, fundClusters, filters }: Props) {
                         </p>
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="flex-col gap-2 sm:flex-row">
                         <Button variant="outline" onClick={() => setPrintConfirmOpen(false)}>
                             Cancel
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={handleBrowserPrintSingle}
+                            className="border-[#612A35]/40 text-[#612A35] hover:bg-[#612A35]/5 flex items-center gap-2"
+                        >
+                            <MonitorSmartphone className="size-4" />
+                            Print via Browser
                         </Button>
                         <Button
                             onClick={handleConfirmPrintSingle}
                             className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
                         >
-                            Continue
+                            Download PDF
                         </Button>
                     </DialogFooter>
                 </DialogContent>
