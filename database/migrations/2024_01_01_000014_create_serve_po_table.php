@@ -13,7 +13,7 @@ return new class extends Migration
             $table->date('po_date')->nullable();
             $table->date('po_received_date')->nullable();
             $table->string('inclusive_date', 100)->nullable();
-            $table->date('due_date')->nullable();
+            $table->string('delivery_term', 100)->nullable();
             $table->string('pr_number', 50)->nullable();
             $table->date('pr_date')->nullable();
             $table->string('philgeps_reference_no', 50)->nullable();

@@ -69,7 +69,7 @@ interface PurchaseOrder {
     po_date: string | null;
     po_received_date: string | null;
     inclusive_date: string | null;
-    due_date: string | null;
+    delivery_term: number | string | null;
     pr_number: string | null;
     pr_date: string | null;
     philgeps_reference_no: string | null;
@@ -398,7 +398,7 @@ const emptyForm = {
     po_date: '',
     po_received_date: '',
     inclusive_date: '',
-    due_date: '',
+    delivery_term: '',
     pr_number: '',
     pr_date: '',
     philgeps_reference_no: '',
@@ -456,7 +456,10 @@ function toFormData(po: PurchaseOrder | null): typeof emptyForm {
         po_date: toDateInputValue(po.po_date),
         po_received_date: toDateInputValue(po.po_received_date),
         inclusive_date: po.inclusive_date ?? '',
-        due_date: toDateInputValue(po.due_date),
+        delivery_term:
+        po.delivery_term === null || po.delivery_term === undefined
+            ? ''
+            : String(po.delivery_term),
         pr_number: po.pr_number ?? '',
         pr_date: toDateInputValue(po.pr_date),
         philgeps_reference_no: po.philgeps_reference_no ?? '',
@@ -812,12 +815,13 @@ export default function PurchaseOrderEditForm({
                                     error={errors.po_received_date}
                                 />
                                 <Field
-                                    label="Due Date"
-                                    name="due_date"
-                                    type="date"
-                                    value={data.due_date}
+                                    label="Delivery Term (Days)"
+                                    name="delivery_term"
+                                    type="number"
+                                    value={data.delivery_term}
                                     onChange={handleChange}
-                                    error={errors.due_date}
+                                    error={errors.delivery_term}
+                                    placeholder="e.g. 15"
                                 />
                                 <Field
                                     label="Inclusive Date"
