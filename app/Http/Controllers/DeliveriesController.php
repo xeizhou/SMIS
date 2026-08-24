@@ -113,44 +113,51 @@ class DeliveriesController extends Controller
     /**
      * Update the specified delivery.
      */
+    /**
+ * Update the specified delivery.
+ */
     public function update(Request $request, Delivery $delivery): RedirectResponse
     {
-    $validated = $request->validate([
-        'delivery_id' => ['nullable', 'string', 'max:50', 'unique:delivery,delivery_id'],
-        'po_number' => ['required', 'string', 'max:50', 'exists:serve_po,po_number'],
-        'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
-        'delivery_dates' => ['nullable', 'array'],
-        'delivery_dates.*' => ['date'],
-        'po_date_received' => ['nullable', 'date'],
-        'delivery_term' => ['nullable', 'integer', 'min:0'],
-        'due_date' => ['nullable', 'date'],
-        'no_of_days_ld' => ['nullable', 'integer', 'min:0'],
-        'received_by_1' => ['nullable', 'string', 'max:150'],
-        'received_by_2' => ['nullable', 'string', 'max:150'],
-        'end_user' => ['nullable', 'string', 'max:150'],
-        'place_of_delivery' => ['nullable', 'string', 'max:255'],
-        'status' => ['nullable', 'string', 'max:50'],
-        'remarks' => ['nullable', 'string'],
-        'total_amount_delivered' => ['nullable', 'numeric', 'min:0'],
-        'po_total_amount' => ['nullable', 'numeric', 'min:0'],
-        'folder_link' => ['nullable', 'string', 'max:500'],
-    ]);
+        $validated = $request->validate([
+            'po_number' => ['required', 'string', 'max:50', 'exists:serve_po,po_number'],
+            'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
+            'delivery_dates' => ['nullable', 'array'],
+            'delivery_dates.*' => ['date'],
+            'po_date_received' => ['nullable', 'date'],
+            'delivery_term' => ['nullable', 'integer', 'min:0'],
+            'due_date' => ['nullable', 'date'],
+            'no_of_days_ld' => ['nullable', 'integer', 'min:0'],
+            'received_by_1' => ['nullable', 'string', 'max:150'],
+            'received_by_2' => ['nullable', 'string', 'max:150'],
+            'end_user' => ['nullable', 'string', 'max:150'],
+            'place_of_delivery' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'string', 'max:50'],
+            'remarks' => ['nullable', 'string'],
+            'total_amount_delivered' => ['nullable', 'numeric', 'min:0'],
+            'po_total_amount' => ['nullable', 'numeric', 'min:0'],
+            'folder_link' => ['nullable', 'string', 'max:500'],
+        ]);
 
-    $dates = collect($validated['delivery_dates'] ?? [])->filter()->values();
-    unset($validated['delivery_dates']);
+        $dates = collect($validated['delivery_dates'] ?? [])->filter()->values();
+        unset($validated['delivery_dates']);
 
-    $validated['delivery_id'] ??= now()->format('YmdHis').'-'.substr(md5(uniqid()), 0, 6);
-    $validated['total_amount_delivered'] ??= 0;
-    $validated['po_total_amount'] ??= 0;
-    $validated['delivery_date'] = $dates->sort()->last();
+        $validated['total_amount_delivered'] ??= 0;
+        $validated['po_total_amount'] ??= 0;
 
-    $delivery = Delivery::create($validated);
+        if ($dates->isNotEmpty()) {
+            $validated['delivery_date'] = $dates->sort()->last();
+        }
 
-    foreach ($dates as $date) {
-        $delivery->deliveryDates()->create(['delivery_date' => $date]);
-    }
+        $delivery->update($validated);
 
-    return redirect()->back()->with('success', 'Delivery record added successfully.');
+        if ($dates->isNotEmpty()) {
+            $delivery->deliveryDates()->delete();
+            foreach ($dates as $date) {
+                $delivery->deliveryDates()->create(['delivery_date' => $date]);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Delivery record updated successfully.');
     }
 
     /**
