@@ -42,6 +42,15 @@ export default function ItemMultiSelect({
     const selected = options.filter((o) => value.includes(o.stock_no));
     const available = options.filter((o) => !value.includes(o.stock_no));
 
+    const trimmedQuery = query.trim();
+    const hasExactMatch = available.some(
+        (o) => o.item_name.trim().toLowerCase() === trimmedQuery.toLowerCase()
+    );
+    // Always show "Add new" once onAddNew is provided — pre-filled with
+    // the current query if there's no exact match, otherwise just opens
+    // the modal blank (or with the query, if they want to add a near-dup).
+    const showAddNew = !!onAddNew && !hasExactMatch;
+
     const toggleItem = (stockNo: string) => {
         onChange(
             value.includes(stockNo)
@@ -110,37 +119,47 @@ export default function ItemMultiSelect({
                         />
                         <CommandList style={{ maxHeight: '220px', overflowY: 'auto' }}>
                             <CommandEmpty>
-                                <div className="px-2 py-3 text-center text-sm text-muted-foreground">
+                                <p className="px-2 py-3 text-center text-sm text-muted-foreground">
                                     No item found.
-                                    {onAddNew && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                onAddNew(query);
-                                                setOpen(false);
-                                            }}
-                                            className="mt-2 flex w-full items-center justify-center gap-1 rounded-md border border-dashed px-2 py-1.5 text-sm font-medium text-primary hover:bg-muted"
-                                        >
-                                            <Plus className="size-3.5" />
-                                            Add {query ? `"${query}"` : 'new item'}
-                                        </button>
-                                    )}
-                                </div>
+                                </p>
                             </CommandEmpty>
+
+                            {showAddNew && (
+                                <CommandGroup>
+                                    <CommandItem
+                                        value={`__add_new__${trimmedQuery}`}
+                                        onSelect={() => {
+                                            onAddNew(trimmedQuery);
+                                            setOpen(false);
+                                        }}
+                                        className="text-primary"
+                                    >
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        {trimmedQuery
+                                            ? `Add "${trimmedQuery}" as new item`
+                                            : 'Add new item'}
+                                    </CommandItem>
+                                </CommandGroup>
+                            )}
+
                             <CommandGroup>
                                 {available.map((item) => (
                                     <CommandItem
                                         key={item.stock_no}
-                                        value={`${item.item_name} ${item.stock_no}`}
+                                        value={`${item.item_name} ${item.stock_no} ${item.description ?? ''}`}
                                         onSelect={() => {
                                             toggleItem(item.stock_no);
                                             setQuery('');
+                                            setOpen(false);
                                         }}
                                     >
                                         <Check className="mr-2 h-4 w-4 opacity-0" />
                                         <div className="flex flex-col">
                                             <span>{item.item_name}</span>
-                                            <span className="text-xs text-muted-foreground">{item.stock_no}</span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {item.stock_no}
+                                                {item.description ? ` · ${item.description}` : ''}
+                                            </span>
                                         </div>
                                     </CommandItem>
                                 ))}
