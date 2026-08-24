@@ -201,6 +201,21 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                         <h1 className="text-2xl font-bold text-foreground">Delivery Monitoring</h1>
                         <p className="mt-1 text-sm text-muted-foreground">Manage and track all deliveries</p>
                     </div>
+                    <div className="bg-muted/50 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
+                        <Link
+                            href="/deliveries"
+                            preserveState
+                            className="bg-background text-foreground shadow-sm inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                        >
+                            Deliveries
+                        </Link>
+                        <Link
+                            href="/delivery-follow-ups"
+                            className="text-muted-foreground hover:text-foreground inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                        >
+                            Follow-ups
+                        </Link>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

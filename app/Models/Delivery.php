@@ -90,6 +90,11 @@ class Delivery extends Model
         return $this->morphMany(Attachment::class, 'attachable');
     }
 
+    public function deliveryFollowUps(): HasMany
+    {
+        return $this->hasMany(DeliveryFollowUp::class, 'delivery_id', 'delivery_id');
+    }
+
     /**
      * Always reflects the linked PO's current po_received_date.
      */

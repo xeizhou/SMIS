@@ -92,6 +92,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             });
 
         $dueDeliveries = \App\Models\Delivery::with('supplier')
+            ->withExists('deliveryFollowUps')
             ->where(function($query) {
                 $query->whereNull('status')
                       ->orWhere('status', '!=', 'CANCELLED');
@@ -100,7 +101,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             ->filter(function ($delivery) {
                 return $delivery->due_date !== null;
             })
-            ->sortBy(function ($delivery) {
+            ->sortByDesc(function ($delivery) {
                 return $delivery->due_date;
             })
             ->map(function ($delivery) {
@@ -135,6 +136,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                     'diff_days' => $diffDays,
                     'status' => $delivery->status,
                     'end_user' => $delivery->end_user,
+                    'has_follow_up' => $delivery->delivery_follow_ups_exists ?? false,
                     'supplier' => $delivery->supplier ? [
                         'supplier_name' => $delivery->supplier->supplier_name,
                     ] : null,
@@ -471,6 +473,10 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::delete('/deliveries/{delivery}', [DeliveriesController::class, 'destroy'])->name('deliveries.destroy');
     Route::post('/deliveries/{delivery}/attachments', [DeliveriesController::class, 'uploadAttachments'])
         ->name('deliveries.attachments.upload');
+
+    Route::get('/delivery-follow-ups', [\App\Http\Controllers\DeliveryFollowUpController::class, 'index'])->name('delivery-follow-ups.index');
+    Route::post('/delivery-follow-ups', [\App\Http\Controllers\DeliveryFollowUpController::class, 'store'])->name('delivery-follow-ups.store');
+    Route::delete('/delivery-follow-ups/{id}', [\App\Http\Controllers\DeliveryFollowUpController::class, 'destroy'])->name('delivery-follow-ups.destroy');
 
     Route::get('/iar', [IARController::class, 'index'])->name('iar.index');
     Route::post('/iar', [IARController::class, 'store'])->name('iar.store');
