@@ -44,7 +44,7 @@ const platformNavItems: NavItem[] = [
 const procurementNavItems: NavItem[] = [
     { title: 'Purchase Orders', href: '/purchase-orders' },
     { title: 'PO Letter Monitoring', href: '/po-letter-monitoring' },
-    { title: 'Delivery Monitoring', href: '/deliveries' },
+    { title: 'Delivery Monitoring', href: '/deliveries', activeUrls: ['/deliveries', '/delivery-follow-ups'] },
     { title: 'Reports Monitoring', href: '/iar' },
     { title: 'Supplier List', href: '/supplier' },
     { title: 'Fund Clusters', href: '/fund-clusters' },

@@ -12,4 +12,5 @@ export interface NavItem {
     icon?: LucideIcon;
     items?: NavItem[];
     external?: boolean;
+    activeUrls?: string[];
 }

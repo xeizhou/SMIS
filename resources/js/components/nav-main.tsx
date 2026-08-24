@@ -60,7 +60,10 @@ export function NavMain({
     const currentPath = stripQuery(page.url);
 
     const initiallyOpen = sections.find((section) =>
-        section.items.some((item) => hrefToUrl(item.href) === currentPath),
+        section.items.some((item) => {
+            const url = hrefToUrl(item.href);
+            return url === currentPath || item.activeUrls?.includes(currentPath);
+        }),
     )?.title;
 
     const [openSection, setOpenSection] = useState<string | undefined>(
@@ -77,7 +80,10 @@ export function NavMain({
         const resetOpenSection = () => {
             const activeSection = sections.find((section) =>
                 section.items.some(
-                    (item) => hrefToUrl(item.href) === currentPath,
+                    (item) => {
+                        const url = hrefToUrl(item.href);
+                        return url === currentPath || item.activeUrls?.includes(currentPath);
+                    }
                 ),
             );
             setOpenSection(activeSection ? activeSection.title : undefined);
@@ -118,7 +124,10 @@ export function NavMain({
 
                 {filteredSections.map((section) => {
                     const isSectionActive = section.items.some(
-                        (item) => hrefToUrl(item.href) === currentPath,
+                        (item) => {
+                            const url = hrefToUrl(item.href);
+                            return url === currentPath || item.activeUrls?.includes(currentPath);
+                        }
                     );
 
                     if (isCollapsed) {
@@ -199,7 +208,7 @@ export function NavMain({
                                                     <SidebarMenuSubButton
                                                         asChild
                                                         isActive={
-                                                            url === currentPath
+                                                            url === currentPath || item.activeUrls?.includes(currentPath)
                                                         }
                                                     >
                                                         <Link
