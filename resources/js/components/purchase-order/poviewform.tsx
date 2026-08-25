@@ -42,6 +42,12 @@ interface Attachment {
     url: string;
 }
 
+interface StockItem {
+    stock_no: string;
+    item_name: string;
+    description: string | null;
+}
+
 interface PurchaseOrder {
     po_number: string;
     item_description: string | null;
@@ -71,6 +77,7 @@ interface PurchaseOrder {
     fundCluster: FundCluster | null;
     office: Office | null;
     attachments?: Attachment[];
+    items?: StockItem[];
 }
 
 interface Props {
@@ -225,6 +232,7 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
 
     const po = purchaseOrder;
     const attachments = po.attachments ?? [];
+    const items = po.items ?? [];
 
     return (
         <>
@@ -253,9 +261,34 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                                 )}
                                 <Detail label="Mode of Procurement" value={po.mode_of_procurement ?? '—'} />
                             </div>
+
                             <div className="mt-4">
-                                <p className={labelClass}>Item Description</p>
-                                <p className={valueClass + ' whitespace-pre-wrap'}>{po.item_description ?? '—'}</p>
+                                <p className={labelClass}>Items</p>
+                                {items.length > 0 ? (
+                                    <ScrollArea className="max-h-[160px] mt-1.5">
+                                        <div className="space-y-1.5 pr-2">
+                                            {items.map((item) => (
+                                                <div
+                                                    key={item.stock_no}
+                                                    className="rounded-md border px-2.5 py-1.5"
+                                                >
+                                                    <p className="text-sm font-medium text-foreground">
+                                                        {item.item_name}
+                                                    </p>
+                                                    {item.description && (
+                                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                                            {item.description}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
+                                ) : po.item_description ? (
+                                    <p className={valueClass + ' whitespace-pre-wrap'}>{po.item_description}</p>
+                                ) : (
+                                    <p className={valueClass}>—</p>
+                                )}
                             </div>
                         </section>
 

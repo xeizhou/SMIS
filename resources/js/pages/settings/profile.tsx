@@ -178,21 +178,21 @@ export default function Profile() {
                             <>
                                 <div className="grid gap-2">
                                     <Label htmlFor="name">Username</Label>
-                                    <Input
-                                        id="name"
-                                        name="name"
-                                        defaultValue={auth.user.name}
-                                        required
-                                        maxLength={255}
-                                        pattern="[a-zA-Z0-9_ ]+"
-                                        title="Letters, numbers, underscores, and spaces only"
-                                        autoComplete="username"
-                                        placeholder="Username"
-                                    />
-                                    <InputError message={errors.name} />
-                                    <p className="text-xs text-muted-foreground">
-                                        Letters, numbers, underscores, and spaces only.
-                                    </p>
+                                        <Input
+                                            id="name"
+                                            name="name"
+                                            defaultValue={auth.user.name}
+                                            required
+                                            maxLength={255}
+                                            pattern="[a-zA-Z0-9_. ]+"
+                                            title="Letters, numbers, underscores, periods, and spaces only"
+                                            autoComplete="username"
+                                            placeholder="Username"
+                                        />
+                                        <InputError message={errors.name} />
+                                        <p className="text-xs text-muted-foreground">
+                                            Letters, numbers, underscores, periods, and spaces only.
+                                        </p>
                                 </div>
 
                                 <div className="grid gap-2">
