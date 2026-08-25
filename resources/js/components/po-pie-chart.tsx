@@ -35,7 +35,7 @@ export function PoPieChart({ stats }: Props) {
 
             <div className="flex-1 min-h-0 flex items-center justify-center">
                 {hasData ? (
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                         <PieChart>
                             <Pie
                                 data={data}

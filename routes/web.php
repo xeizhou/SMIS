@@ -150,6 +150,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             ->count();
 
         $allPendingDeliveries = \App\Models\Delivery::with(['supplier', 'servePo'])
+            ->withExists('deliveryFollowUps')
             ->where('status', 'PENDING')
             ->orderBy('data_entry_timestamp', 'desc')
             ->get()
@@ -160,6 +161,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                     'due_date' => $delivery->due_date ? $delivery->due_date->format('Y-m-d') : null,
                     'status' => $delivery->status,
                     'end_user' => $delivery->end_user,
+                    'has_follow_up' => $delivery->delivery_follow_ups_exists ?? false,
                     'supplier' => $delivery->supplier ? [
                         'supplier_name' => $delivery->supplier->supplier_name,
                     ] : null,

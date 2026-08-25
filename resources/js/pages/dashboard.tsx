@@ -1,6 +1,6 @@
-import { Head, usePage, router } from '@inertiajs/react';
-import { RefreshCw, ClipboardCheck, FileText, Truck, Bell, Tv } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Head, usePage, router, useForm } from '@inertiajs/react';
+import { RefreshCw, ClipboardCheck, FileText, Truck, Bell, Tv, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckCircle2, MessageSquarePlus, Phone, Mail, Plus, X } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import { CalendarButton } from '@/calendar/components/calendar-button';
 import { DueDeliveries  } from '@/components/due-deliveries';
 import type {DueDelivery} from '@/components/due-deliveries';
@@ -24,6 +24,10 @@ import {
 } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DialogFooter } from '@/components/ui/dialog';
 
 // Remove MOCK_NOTIFICATIONS
 
@@ -50,6 +54,7 @@ type DashboardPageProps = {
         due_date?: string | null;
         status: string;
         end_user?: string;
+        has_follow_up?: boolean;
         supplier?: { supplier_name: string } | null;
     }[];
     allPendingInspections?: {
@@ -110,6 +115,53 @@ export default function Dashboard() {
     const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
     const [isPendingInspectionsModalOpen, setIsPendingInspectionsModalOpen] = useState(false);
     const [isPendingClearancesModalOpen, setIsPendingClearancesModalOpen] = useState(false);
+    const [pendingDeliveriesSort, setPendingDeliveriesSort] = useState<'desc' | 'asc'>('desc');
+
+    const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
+    const [isCustomNoticeType, setIsCustomNoticeType] = useState(false);
+    
+    const { data: followUpData, setData: setFollowUpData, post: postFollowUp, processing: processingFollowUp, reset: resetFollowUp } = useForm({
+        delivery_id: '',
+        notice_type: 'Phone',
+        follow_up_date: '',
+        remarks: '',
+    });
+
+    const openFollowUpModal = (deliveryId: string) => {
+        setFollowUpData({
+            delivery_id: deliveryId,
+            notice_type: 'Phone',
+            follow_up_date: '',
+            remarks: '',
+        });
+        
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(now.getTime() - offset)).toISOString().slice(0, 16);
+        setFollowUpData('follow_up_date', localISOTime);
+        setIsCustomNoticeType(false);
+        setFollowUpModalOpen(true);
+    };
+
+    const submitFollowUp = (e: React.FormEvent) => {
+        e.preventDefault();
+        postFollowUp('/delivery-follow-ups', {
+            preserveScroll: true,
+            onSuccess: () => {
+                setFollowUpModalOpen(false);
+                resetFollowUp();
+            },
+        });
+    };
+
+    const sortedPendingDeliveries = useMemo(() => {
+        if (!allPendingDeliveries) return [];
+        return [...allPendingDeliveries].sort((a, b) => {
+            const dateA = a.due_date ? new Date(a.due_date).getTime() : 0;
+            const dateB = b.due_date ? new Date(b.due_date).getTime() : 0;
+            return pendingDeliveriesSort === 'desc' ? dateB - dateA : dateA - dateB;
+        });
+    }, [allPendingDeliveries, pendingDeliveriesSort]);
 
     // Initialize from localStorage on mount
     useEffect(() => {
@@ -246,46 +298,94 @@ export default function Dashboard() {
             </div>
 
             <Dialog open={isPendingModalOpen} onOpenChange={setIsPendingModalOpen}>
-                <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0">
-                    <DialogHeader className="p-6 pb-4 border-b border-border/50">
+                <DialogContent className="sm:max-w-3xl w-full max-h-[85vh] flex flex-col gap-0 p-0">
+                    <DialogHeader className="p-6 pb-4 border-b border-border/50 flex flex-row items-center justify-between pr-10">
                         <DialogTitle className="text-xl font-semibold flex items-center gap-2">
                             <Truck className="size-5 text-blue-500" />
                             Pending Deliveries ({pendingDeliveries ?? 0})
                         </DialogTitle>
+                        <div className="flex items-center gap-2">
+                            <Button asChild variant="outline" size="sm" className="h-8 shadow-sm">
+                                <Link href="/delivery-follow-ups">
+                                    View Follow-ups
+                                </Link>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-2 shadow-sm"
+                                onClick={() => setPendingDeliveriesSort(prev => prev === 'desc' ? 'asc' : 'desc')}
+                                title={`Sort ${pendingDeliveriesSort === 'desc' ? 'Ascending' : 'Descending'}`}
+                            >
+                                {pendingDeliveriesSort === 'desc' ? (
+                                    <>
+                                        <ArrowDownWideNarrow className="size-4" />
+                                        Sort: Descending
+                                    </>
+                                ) : (
+                                    <>
+                                        <ArrowUpNarrowWide className="size-4" />
+                                        Sort: Ascending
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     </DialogHeader>
                     
                     <div className="flex-1 overflow-y-auto p-6 pt-2">
-                        {allPendingDeliveries && allPendingDeliveries.length > 0 ? (
+                        {sortedPendingDeliveries && sortedPendingDeliveries.length > 0 ? (
                             <div className="grid gap-3 mt-4">
-                                {allPendingDeliveries.map((delivery) => (
-                                    <div key={delivery.delivery_id} className="flex items-start justify-between rounded-lg border border-border p-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
-                                        <div className="grid gap-1">
-                                            <Link 
-                                                href={`/deliveries?highlight_id=${delivery.delivery_id}`} 
-                                                onClick={() => notificationsHighlight(String(delivery.delivery_id), '/deliveries')}
-                                                className="font-semibold text-primary hover:underline"
-                                            >
-                                                {delivery.po_number}
-                                            </Link>
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                                <span className="font-medium text-foreground/80">{delivery.supplier?.supplier_name || 'Unknown Supplier'}</span>
-                                                {delivery.end_user && (
-                                                    <>
-                                                        <span className="text-muted-foreground/40">•</span>
-                                                        <span>{delivery.end_user}</span>
-                                                    </>
+                                {sortedPendingDeliveries.map((delivery) => (
+                                    <div key={delivery.delivery_id} className="flex items-center rounded-lg border border-l-4 border-l-blue-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-blue-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
+                                                <Link 
+                                                    href={`/deliveries?highlight_id=${delivery.delivery_id}`} 
+                                                    onClick={() => notificationsHighlight(String(delivery.delivery_id), '/deliveries')}
+                                                    className="hover:underline"
+                                                >
+                                                    {delivery.po_number}
+                                                </Link>
+                                            </p>
+                                            <p className="truncate text-neutral-500 text-sm mt-0.5">
+                                                {delivery.supplier?.supplier_name || 'Unknown Supplier'}
+                                                {delivery.end_user && <span className="mx-1.5 text-neutral-300 dark:text-neutral-600">•</span>}
+                                                {delivery.end_user && <span>{delivery.end_user}</span>}
+                                            </p>
+                                            
+                                            <div className="mt-1.5 flex items-center gap-2">
+                                                <span className="rounded-md bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+                                                    {delivery.status}
+                                                </span>
+                                                {delivery.due_date && (
+                                                    <span className="text-sm font-bold text-neutral-500">
+                                                        Due: {format(new Date(delivery.due_date), 'MMM d, yyyy')}
+                                                    </span>
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="flex flex-col items-end gap-2">
-                                            <div className="rounded-md bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
-                                                {delivery.status}
-                                            </div>
-                                            {delivery.due_date && (
-                                                <div className="text-xs text-muted-foreground">
-                                                    Due: {format(new Date(delivery.due_date), 'MMM d, yyyy')}
-                                                </div>
-                                            )}
+                                        
+                                        <div className="shrink-0 ml-4">
+                                            <Button 
+                                                variant="outline" 
+                                                size="default"
+                                                className={`gap-2 text-sm px-4 border-dashed border-neutral-300 hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800 ${delivery.has_follow_up ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 cursor-default opacity-80' : ''}`}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    if (!delivery.has_follow_up) {
+                                                        openFollowUpModal(delivery.delivery_id);
+                                                    }
+                                                }}
+                                            >
+                                                {delivery.has_follow_up ? (
+                                                    <CheckCircle2 className="size-4" />
+                                                ) : (
+                                                    <MessageSquarePlus className="size-4" />
+                                                )}
+                                                <span className="hidden sm:inline">{delivery.has_follow_up ? 'Followed up' : 'Log Follow-up'}</span>
+                                                <span className="sm:hidden">{delivery.has_follow_up ? 'Logged' : 'Log'}</span>
+                                            </Button>
                                         </div>
                                     </div>
                                 ))}
@@ -300,7 +400,7 @@ export default function Dashboard() {
             </Dialog>
 
             <Dialog open={isPendingInspectionsModalOpen} onOpenChange={setIsPendingInspectionsModalOpen}>
-                <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0">
+                <DialogContent className="sm:max-w-3xl w-full max-h-[85vh] flex flex-col gap-0 p-0">
                     <DialogHeader className="p-6 pb-4 border-b border-border/50">
                         <DialogTitle className="text-xl font-semibold flex items-center gap-2">
                             <ClipboardCheck className="size-5 text-amber-500" />
@@ -312,34 +412,37 @@ export default function Dashboard() {
                         {allPendingInspections && allPendingInspections.length > 0 ? (
                             <div className="grid gap-3 mt-4">
                                 {allPendingInspections.map((inspection) => (
-                                    <div key={inspection.pir_id} className="flex items-start justify-between rounded-lg border border-border p-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
-                                        <div className="grid gap-1">
-                                            <Link 
-                                                href={`/iar?highlight_search=${inspection.po_number}`} 
-                                                onClick={() => notificationsHighlight(inspection.po_number, '/iar')}
-                                                className="font-semibold text-primary hover:underline"
-                                            >
-                                                {inspection.po_number}
-                                            </Link>
-                                            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-1">
-                                                <span className="font-medium text-foreground/80">{inspection.supplier?.supplier_name || 'Unknown Supplier'}</span>
+                                    <div key={inspection.pir_id} className="flex items-center rounded-lg border border-l-4 border-l-amber-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-amber-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
+                                                <Link 
+                                                    href={`/iar?highlight_search=${inspection.po_number}`} 
+                                                    onClick={() => notificationsHighlight(inspection.po_number, '/iar')}
+                                                    className="hover:underline"
+                                                >
+                                                    {inspection.po_number}
+                                                </Link>
+                                            </p>
+                                            <p className="truncate text-neutral-500 text-sm mt-0.5">
+                                                <span>{inspection.supplier?.supplier_name || 'Unknown Supplier'}</span>
                                                 {(inspection.iar_number || inspection.invoice_number) && (
-                                                    <span className="text-muted-foreground/40">•</span>
+                                                    <span className="mx-1.5 text-neutral-300 dark:text-neutral-600">•</span>
                                                 )}
                                                 {inspection.iar_number && (
                                                     <span>IAR: {inspection.iar_number}</span>
                                                 )}
                                                 {inspection.iar_number && inspection.invoice_number && (
-                                                    <span className="text-muted-foreground/40">•</span>
+                                                    <span className="mx-1.5 text-neutral-300 dark:text-neutral-600">•</span>
                                                 )}
                                                 {inspection.invoice_number && (
                                                     <span>Invoice: {inspection.invoice_number}</span>
                                                 )}
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-2">
-                                            <div className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                                                PENDING
+                                            </p>
+                                            
+                                            <div className="mt-1.5 flex items-center gap-2">
+                                                <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                                                    PENDING
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -355,7 +458,7 @@ export default function Dashboard() {
             </Dialog>
 
             <Dialog open={isPendingClearancesModalOpen} onOpenChange={setIsPendingClearancesModalOpen}>
-                <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0">
+                <DialogContent className="sm:max-w-3xl w-full max-h-[85vh] flex flex-col gap-0 p-0">
                     <DialogHeader className="p-6 pb-4 border-b border-border/50">
                         <DialogTitle className="text-xl font-semibold flex items-center gap-2">
                             <FileText className="size-5 text-rose-500" />
@@ -367,34 +470,37 @@ export default function Dashboard() {
                         {allPendingClearances && allPendingClearances.length > 0 ? (
                             <div className="grid gap-3 mt-4">
                                 {allPendingClearances.map((issuance) => (
-                                    <div key={issuance.pir_id} className="flex items-start justify-between rounded-lg border border-border p-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
-                                        <div className="grid gap-1">
-                                            <Link 
-                                                href={`/iar?highlight_search=${issuance.po_number}`} 
-                                                onClick={() => notificationsHighlight(issuance.po_number, '/iar')}
-                                                className="font-semibold text-primary hover:underline"
-                                            >
-                                                {issuance.po_number}
-                                            </Link>
-                                            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-1">
-                                                <span className="font-medium text-foreground/80">{issuance.supplier?.supplier_name || 'Unknown Supplier'}</span>
+                                    <div key={issuance.pir_id} className="flex items-center rounded-lg border border-l-4 border-l-rose-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-rose-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
+                                                <Link 
+                                                    href={`/iar?highlight_search=${issuance.po_number}`} 
+                                                    onClick={() => notificationsHighlight(issuance.po_number, '/iar')}
+                                                    className="hover:underline"
+                                                >
+                                                    {issuance.po_number}
+                                                </Link>
+                                            </p>
+                                            <p className="truncate text-neutral-500 text-sm mt-0.5">
+                                                <span>{issuance.supplier?.supplier_name || 'Unknown Supplier'}</span>
                                                 {(issuance.iar_number || issuance.invoice_number) && (
-                                                    <span className="text-muted-foreground/40">•</span>
+                                                    <span className="mx-1.5 text-neutral-300 dark:text-neutral-600">•</span>
                                                 )}
                                                 {issuance.iar_number && (
                                                     <span>IAR: {issuance.iar_number}</span>
                                                 )}
                                                 {issuance.iar_number && issuance.invoice_number && (
-                                                    <span className="text-muted-foreground/40">•</span>
+                                                    <span className="mx-1.5 text-neutral-300 dark:text-neutral-600">•</span>
                                                 )}
                                                 {issuance.invoice_number && (
                                                     <span>Invoice: {issuance.invoice_number}</span>
                                                 )}
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-2">
-                                            <div className="rounded-md bg-rose-100 px-2 py-1 text-xs font-semibold text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">
-                                                PENDING
+                                            </p>
+                                            
+                                            <div className="mt-1.5 flex items-center gap-2">
+                                                <span className="rounded-md bg-rose-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">
+                                                    PENDING
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -406,6 +512,113 @@ export default function Dashboard() {
                             </div>
                         )}
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={followUpModalOpen} onOpenChange={setFollowUpModalOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Log Supplier Follow-up</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={submitFollowUp} className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="notice_type">Communication Method</Label>
+                            <div className="flex items-center gap-2">
+                                {isCustomNoticeType ? (
+                                    <div className="flex flex-1 items-center gap-2">
+                                        <Input
+                                            id="notice_type"
+                                            type="text"
+                                            placeholder="Enter custom method..."
+                                            value={followUpData.notice_type}
+                                            onChange={(e) => setFollowUpData('notice_type', e.target.value)}
+                                            required
+                                            autoFocus
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="shrink-0 rounded-md w-10 h-10 border border-neutral-200 dark:border-neutral-800"
+                                            onClick={() => {
+                                                setIsCustomNoticeType(false);
+                                                setFollowUpData('notice_type', 'Phone');
+                                            }}
+                                            aria-label="Back to predefined choices"
+                                        >
+                                            <X className="w-4 h-4 text-neutral-500" />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-1 items-center gap-2">
+                                        <Select 
+                                            value={followUpData.notice_type} 
+                                            onValueChange={(value) => setFollowUpData('notice_type', value)}
+                                        >
+                                            <SelectTrigger id="notice_type" className="flex-1">
+                                                <SelectValue placeholder="Select method" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Phone">
+                                                    <div className="flex items-center gap-2">
+                                                        <Phone className="w-4 h-4 text-blue-500" />
+                                                        Phone Call
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem value="Email">
+                                                    <div className="flex items-center gap-2">
+                                                        <Mail className="w-4 h-4 text-emerald-500" />
+                                                        Email Notice
+                                                    </div>
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            className="shrink-0 w-10 h-10 border-neutral-200 dark:border-neutral-800 border"
+                                            onClick={() => {
+                                                setIsCustomNoticeType(true);
+                                                setFollowUpData('notice_type', '');
+                                            }}
+                                            aria-label="Add custom method"
+                                        >
+                                            <Plus className="w-4 h-4 text-neutral-500" />
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="follow_up_date">Date & Time</Label>
+                            <Input
+                                id="follow_up_date"
+                                type="datetime-local"
+                                value={followUpData.follow_up_date}
+                                onChange={(e) => setFollowUpData('follow_up_date', e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="remarks">Remarks (Optional)</Label>
+                            <Input
+                                id="remarks"
+                                type="text"
+                                placeholder="Any additional notes..."
+                                value={followUpData.remarks}
+                                onChange={(e) => setFollowUpData('remarks', e.target.value)}
+                            />
+                        </div>
+                        <DialogFooter className="mt-4">
+                            <Button type="button" variant="outline" onClick={() => setFollowUpModalOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={processingFollowUp} className="bg-red-700 hover:bg-red-800 text-white">
+                                Save Follow-up
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
         </>

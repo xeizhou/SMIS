@@ -90,7 +90,7 @@ export function PoLettersStatusChart({ data }: Props) {
             </div>
 
             <div className="mt-4 flex-1 min-h-0 w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <BarChart data={rows} barGap={4} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
                         <XAxis
