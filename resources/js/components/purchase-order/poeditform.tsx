@@ -254,7 +254,9 @@ function SelectField({
     );
 }
 
-// Custom Searchable Dropdown
+// Custom Searchable Dropdown — "Add new" row is always visible in the
+// list (not just tucked inside CommandEmpty), so it's there whether or
+// not the search currently has matches.
 interface SearchableSelectProps {
     label: string;
     value: string;
@@ -286,6 +288,15 @@ function SearchableSelect({
     const [query, setQuery] = useState('');
 
     const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    const trimmedQuery = query.trim();
+    const hasExactMatch = options.some(
+        (o) => o.label.trim().toLowerCase() === trimmedQuery.toLowerCase()
+    );
+    // Always show "Add new" once onAddNew is provided — pre-filled with
+    // the current query if there's no exact match, otherwise just opens
+    // the modal blank (or with the query, if they want to add a near-dup).
+    const showAddNew = !!onAddNew && !hasExactMatch;
 
     return (
         <div>
@@ -334,23 +345,27 @@ function SearchableSelect({
                         />
                         <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
                             <CommandEmpty>
-                                <div className="px-2 py-3 text-center text-sm text-muted-foreground">
+                                <p className="px-2 py-3 text-center text-sm text-muted-foreground">
                                     No item found.
-                                    {onAddNew && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                onAddNew(query);
-                                                setOpen(false);
-                                            }}
-                                            className="mt-2 flex w-full items-center justify-center gap-1 rounded-md border border-dashed px-2 py-1.5 text-sm font-medium text-primary hover:bg-muted"
-                                        >
-                                            <Plus className="size-3.5" />
-                                            Add {query ? `"${query}"` : addNewLabel}
-                                        </button>
-                                    )}
-                                </div>
+                                </p>
                             </CommandEmpty>
+
+                            {showAddNew && (
+                                <CommandGroup>
+                                    <CommandItem
+                                        value={`__add_new__${trimmedQuery}`}
+                                        onSelect={() => {
+                                            onAddNew(trimmedQuery);
+                                            setOpen(false);
+                                        }}
+                                        className="text-primary"
+                                    >
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        {trimmedQuery ? `Add "${trimmedQuery}" as ${addNewLabel}` : `Add ${addNewLabel}`}
+                                    </CommandItem>
+                                </CommandGroup>
+                            )}
+
                             <CommandGroup>
                                 {options.map((opt) => (
                                     <CommandItem
