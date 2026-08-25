@@ -27,6 +27,7 @@ class PurchaseOrdersController extends Controller
     {
         $search = $request->string('search')->toString() ?: null;
         $fundCluster = $request->string('fund_cluster')->toString() ?: null;
+        $office = $request->string('office')->toString() ?: null;
 
         $purchaseOrders = ServePo::query()
             ->with([
@@ -48,6 +49,7 @@ class PurchaseOrdersController extends Controller
                 });
             })
             ->when($fundCluster, fn ($query, $fundCluster) => $query->where('fund_cluster_id', $fundCluster))
+            ->when($office, fn ($query, $office) => $query->where('end_user', $office))
             ->latest()
             ->paginateWithHighlight(10)
             ->withQueryString();
@@ -57,6 +59,7 @@ class PurchaseOrdersController extends Controller
             'filters' => [
                 'search' => $search,
                 'fund_cluster' => $fundCluster,
+                'office' => $office,
             ],
             'suppliers' => Supplier::select('supplier_id', 'supplier_name')
                 ->orderByDesc('supplier_id')
