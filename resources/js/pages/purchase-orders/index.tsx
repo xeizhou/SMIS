@@ -431,6 +431,7 @@ export default function Index({
                 suppliers={suppliers}
                 fundClusters={fundClusters}
                 offices={offices}
+                stockItems={stockItems}
             />
 
             <PurchaseOrderViewForm

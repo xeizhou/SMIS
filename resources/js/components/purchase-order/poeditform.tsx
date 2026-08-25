@@ -39,6 +39,8 @@ import {
     ChevronsUpDown,
 } from "lucide-react";
 import SupplierQuickAddModal from '@/components/suppliers/supplier-quick-add-modal';
+import ItemMultiSelect, { type StockItemOption } from '@/components/purchase-order/item-multi-select';
+import StockItemQuickAddModal from '@/components/purchase-order/stock-item-quick-add-modal';
 
 interface Supplier {
     supplier_id: number;
@@ -88,6 +90,7 @@ interface PurchaseOrder {
     coa_processed_date: string | null;
     date_forwarded_frontdesk: string | null;
     attachments?: Attachment[];
+    items?: { stock_no: string }[];
 }
 
 interface Props {
@@ -97,6 +100,7 @@ interface Props {
     suppliers: Supplier[];
     fundClusters: FundCluster[];
     offices: Office[];
+    stockItems: StockItemOption[];
 }
 
 interface FieldProps {
@@ -576,12 +580,14 @@ export default function PurchaseOrderEditForm({
     suppliers,
     fundClusters,
     offices,
+    stockItems,
 }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [newFiles, setNewFiles] = useState<StagedFile[]>([]);
+    const [itemStockNos, setItemStockNos] = useState<string[]>([]);
     const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
     const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
     const [refreshingField, setRefreshingField] = useState<string | null>(null);
@@ -592,11 +598,20 @@ export default function PurchaseOrderEditForm({
     const [quickAddOpen, setQuickAddOpen] = useState(false);
     const [quickAddQuery, setQuickAddQuery] = useState('');
 
+    // Stock item quick-add state — same pattern as PurchaseOrderAddForm
+    const [stockItemOptions, setStockItemOptions] = useState<StockItemOption[]>(stockItems);
+    const [itemQuickAddOpen, setItemQuickAddOpen] = useState(false);
+    const [itemQuickAddQuery, setItemQuickAddQuery] = useState('');
+
     // Keep local supplier list in sync if the parent passes a fresh
     // `suppliers` prop (e.g. after a manual refresh).
     useEffect(() => {
         setSupplierOptions(suppliers);
     }, [suppliers]);
+
+    useEffect(() => {
+        setStockItemOptions(stockItems);
+    }, [stockItems]);
 
     const handleRefreshData = (field: string) => {
         setRefreshingField(field);
@@ -621,6 +636,7 @@ export default function PurchaseOrderEditForm({
             setExistingAttachments(purchaseOrder?.attachments ?? []);
             setDeletedAttachmentIds([]);
             setPreviewTarget(null);
+            setItemStockNos(purchaseOrder?.items?.map((i) => i.stock_no) ?? []); // add this
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, purchaseOrder]);
@@ -714,6 +730,7 @@ export default function PurchaseOrderEditForm({
             `/purchase-orders/${encodeURIComponent(purchaseOrder.po_number)}`,
             {
                 ...data,
+                item_stock_nos: itemStockNos, // add this
                 total_amount_diff: diff,
                 responsibility_center: responsibilityCenter,
                 deleted_attachment_ids: deletedAttachmentIds,
@@ -894,22 +911,18 @@ export default function PurchaseOrderEditForm({
                                         error={errors.inclusive_date}
                                         placeholder="e.g. Jan 1 - Jan 15, 2026"
                                     />
-                                )}
-                                
+                                )}                 
                                 <div className="md:col-span-2">
-                                    <label className={labelClass}>Item Description</label>
-                                    <textarea
-                                        name="item_description"
-                                        value={data.item_description}
-                                        onChange={(e) =>
-                                            setData({ ...data, item_description: e.target.value })
-                                        }
-                                        rows={4}
-                                        className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                    <ItemMultiSelect
+                                        value={itemStockNos}
+                                        onChange={setItemStockNos}
+                                        options={stockItemOptions}
+                                        error={errors.item_stock_nos}
+                                        onAddNew={(query) => {
+                                            setItemQuickAddQuery(query);
+                                            setItemQuickAddOpen(true);
+                                        }}
                                     />
-                                    {errors.item_description && (
-                                        <p className="mt-1 text-xs text-red-500">{errors.item_description}</p>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1290,6 +1303,16 @@ export default function PurchaseOrderEditForm({
                 onCreated={(created) => {
                     setSupplierOptions((prev) => [...prev, created]);
                     handleSelectChange('supplier_id')(String(created.supplier_id));
+                }}
+            />
+
+            <StockItemQuickAddModal
+                open={itemQuickAddOpen}
+                onOpenChange={setItemQuickAddOpen}
+                initialName={itemQuickAddQuery}
+                onCreated={(created) => {
+                    setStockItemOptions((prev) => [...prev, created]);
+                    setItemStockNos((prev) => [...prev, created.stock_no]);
                 }}
             />
         </>

@@ -140,6 +140,8 @@ class PurchaseOrdersController extends Controller
                 'max:50',
                 Rule::unique('serve_po', 'po_number')->ignore($servePo->po_number, 'po_number'),
             ],
+            'item_stock_nos' => ['nullable', 'array'],
+            'item_stock_nos.*' => ['string', 'exists:stock_items,stock_no'],
             'po_date' => ['nullable', 'date'],
             'item_description' => ['nullable', 'string'],
             'po_received_date' => ['nullable', 'date'],
@@ -166,9 +168,14 @@ class PurchaseOrdersController extends Controller
             'deleted_attachment_ids.*' => ['integer'],
         ]);
 
+        $itemStockNos = $validated['item_stock_nos'] ?? [];
+        unset($validated['item_stock_nos']);
+
         $validated['total_amount_abc'] ??= 0;
         $validated['total_amount_po'] ??= 0;
         $validated['total_amount_diff'] = $validated['total_amount_abc'] - $validated['total_amount_po'];
+
+    // ... rest unchanged (attachment deletion, transaction, etc.)
 
         // Handle deleted attachments before updating PO
         $deletedAttachmentIds = $validated['deleted_attachment_ids'] ?? [];
