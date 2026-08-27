@@ -109,7 +109,7 @@ class TransactionLogsController extends Controller
             'offices' => Office::orderByDesc('office_code')->get(),
             'stockItems' => StockItem::with('units')
                 ->orderByDesc('created_at')
-                ->get(['stock_no', 'item_name', 'description'])
+                ->get(['stock_no', 'item_name', 'description', 'fund_cluster_id'])
                 ->map(function ($item) {
                     $item->available_stock = $this->getAvailableStock($item->stock_no);
                     return $item;

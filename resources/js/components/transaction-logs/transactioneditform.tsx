@@ -49,6 +49,8 @@ interface StockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
+    fund_cluster_id: string | null;
+    available_stock?: number;
     units?: {
         unitID: number;
         pivot?: {
@@ -247,7 +249,11 @@ function SearchableSelect({
                 </PopoverTrigger>
 
                 <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
-                    <Command>
+                    <Command
+                        filter={(value, search) => {
+                            return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                        }}
+                    >
                         <CommandInput placeholder={placeholder} />
                         <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
                             <CommandEmpty>No item found.</CommandEmpty>
@@ -255,7 +261,7 @@ function SearchableSelect({
                                 {options.map((opt) => (
                                     <CommandItem
                                         key={opt.value}
-                                        value={`${opt.label} ${opt.value}`}
+                                        value={opt.label}
                                         onSelect={() => {
                                             onChange(opt.value);
                                             setOpen(false);
@@ -314,6 +320,10 @@ export default function TransactionEditForm({
     // Used purely to detect whether the user is changing RECEIVE<->ISSUE,
     // which is treated differently from an ordinary typo correction.
     const [originalType, setOriginalType] = useState('');
+    // Snapshot of the original quantity, needed to "add back" this
+    // transaction's own effect on the computed available_stock so editing
+    // it doesn't count against itself.
+    const [originalQuantity, setOriginalQuantity] = useState(0);
 
     // Tracks the selected stock item by its unique stock_no, since
     // item_name alone can collide (e.g. two "RTX 3060" variants with
@@ -341,6 +351,7 @@ export default function TransactionEditForm({
                 office_code: transaction.office_code,
             });
             setOriginalType(transaction.transaction_type);
+            setOriginalQuantity(transaction.quantity);
 
             // stock_no is now stored directly on the transaction, so no need
             // to re-derive it by matching item_name/description (which could
@@ -377,10 +388,37 @@ export default function TransactionEditForm({
     // in-place correction, regardless of this flag.
     const isTypeChanged = originalType !== '' && data.transaction_type !== originalType;
 
+    // Derived: currently selected stock item + its available balance.
+    // available_stock (from the backend) already reflects this
+    // transaction's own original effect, so we "add it back" here to get
+    // the true balance available for this edit, then re-subtract/add
+    // depending on whether this transaction itself was ISSUE or RECEIVE.
+    const selectedItem = stockItems.find((s) => s.stock_no === selectedStockNo);
+    const rawAvailableStock = selectedItem?.available_stock ?? null;
+
+    const isSameStockItem = selectedStockNo === (transaction?.stock_no ?? '');
+    const adjustedAvailableStock =
+        rawAvailableStock === null
+            ? null
+            : isSameStockItem
+              ? rawAvailableStock +
+                (originalType === 'ISSUE' ? originalQuantity : 0) -
+                (originalType === 'RECEIVE' ? originalQuantity : 0)
+              : rawAvailableStock;
+
+    const isOverStock =
+        data.transaction_type === 'ISSUE' &&
+        adjustedAvailableStock !== null &&
+        Number(data.quantity) > adjustedAvailableStock;
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!transaction) {
+            return;
+        }
+
+        if (isOverStock) {
             return;
         }
 
@@ -481,6 +519,7 @@ export default function TransactionEditForm({
                                         item_name: selectedItem?.item_name ?? '',
                                         description: selectedItem?.description ?? '',
                                         unitID: defaultUnitID,
+                                        fund_cluster: selectedItem?.fund_cluster_id ?? '',
                                     }));
                                 }}
                                 error={errors.item_name}
@@ -513,16 +552,32 @@ export default function TransactionEditForm({
                                     ).values()
                                 )}
                             />
-                            <Field
-                                label="Quantity"
-                                name="quantity"
-                                type="number"
-                                min="0"
-                                value={data.quantity}
-                                onChange={handleChange}
-                                error={errors.quantity}
-                                required
-                            />
+                            <div>
+                                <Field
+                                    label="Quantity"
+                                    name="quantity"
+                                    type="number"
+                                    min="0"
+                                    value={data.quantity}
+                                    onChange={handleChange}
+                                    error={
+                                        isOverStock
+                                            ? `Cannot issue more than available stock (${adjustedAvailableStock}).`
+                                            : errors.quantity
+                                    }
+                                    required
+                                />
+                                {data.transaction_type === 'ISSUE' && adjustedAvailableStock !== null && (
+                                    <p
+                                        className={cn(
+                                            'mt-1 text-xs',
+                                            isOverStock ? 'text-red-500 font-medium' : 'text-muted-foreground'
+                                        )}
+                                    >
+                                        Available stock: {adjustedAvailableStock}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -568,7 +623,7 @@ export default function TransactionEditForm({
 
                         <Button
                             type="submit"
-                            disabled={processing}
+                            disabled={processing || isOverStock}
                             style={{ backgroundColor: isTypeChanged ? '#612A35' : '#612A35' }}
                         >
                             {processing
