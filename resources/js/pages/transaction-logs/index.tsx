@@ -73,6 +73,9 @@ interface PaginatedTransactions {
 interface Filters {
     search: string | null;
     transaction_type: string | null;
+    fund_cluster: string | null;
+    date_from: string | null;
+    date_to: string | null;
     sort_field?: string;
     sort_direction?: 'asc' | 'desc';
 }
@@ -87,16 +90,9 @@ interface Props {
 }
 
 function formatDate(dateString: string) {
-    if (!dateString) {
-        return '—';
-    }
-
+    if (!dateString) return '—';
     const date = new Date(dateString);
-
-    if (isNaN(date.getTime())) {
-        return dateString;
-    }
-
+    if (isNaN(date.getTime())) return dateString;
     return date.toLocaleDateString('en-PH', {
         year: 'numeric',
         month: 'short',
@@ -114,6 +110,12 @@ export default function Index({
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [transactionType, setTransactionType] = useState(filters.transaction_type ?? 'all');
+    const [fundClusterFilter, setFundClusterFilter] = useState(filters.fund_cluster ?? 'all');
+    
+    // Default native date states
+    const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
+    const [dateTo, setDateTo] = useState(filters.date_to ?? '');
+
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -121,12 +123,30 @@ export default function Index({
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
 
+    const getFilterParams = (overrides = {}) => ({
+        search,
+        transaction_type: transactionType,
+        fund_cluster: fundClusterFilter, 
+        date_from: dateFrom,
+        date_to: dateTo,
+        sort_field: filters.sort_field,
+        sort_direction: filters.sort_direction,
+        ...overrides,
+    });
+
     const handleSort = (field: string) => {
         const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
         
         router.get(
             '/transaction-logs',
-            { search, transaction_type: transactionType, sort_field: field, sort_direction: direction },
+            { 
+                search, 
+                transaction_type: transactionType, 
+                date_from: dateFrom, 
+                date_to: dateTo,     
+                sort_field: field, 
+                sort_direction: direction 
+            },
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -139,7 +159,8 @@ export default function Index({
         e.preventDefault();
         router.get(
             '/transaction-logs',
-            { search, transaction_type: transactionType, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
+            { search, transaction_type: transactionType, date_from: dateFrom, date_to: dateTo, 
+                sort_field: filters.sort_field, sort_direction: filters.sort_direction },
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -151,6 +172,7 @@ export default function Index({
     const handleClear = () => {
         setSearch('');
         setTransactionType('all');
+        setFundClusterFilter('all');
         router.get(
             '/transaction-logs',
             {},
@@ -191,13 +213,13 @@ export default function Index({
                 {/* Search + Filter */}
                 <form
                     onSubmit={handleSearch}
-                    className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+                    className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
                 >
-                    <div className="flex flex-wrap gap-2 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 flex-1">
                         <div className="relative w-full max-w-sm">
                             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                placeholder="Search item, reference..."
+                                placeholder="Search item, reference, office..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="pl-9"
@@ -210,24 +232,70 @@ export default function Index({
                                 setTransactionType(value);
                                 router.get(
                                     '/transaction-logs',
-                                    { search, transaction_type: value, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
-                                    {
-                                        preserveState: true,
-                                        preserveScroll: true,
-                                        replace: true,
-                                    }
+                                    { 
+                                        search, 
+                                        transaction_type: value, 
+                                        date_from: dateFrom, // <-- ADD THIS
+                                        date_to: dateTo,     // <-- ADD THIS
+                                        sort_field: filters.sort_field, 
+                                        sort_direction: filters.sort_direction 
+                                    },
+                                    { preserveState: true, preserveScroll: true, replace: true }
                                 );
                             }}
                         >
-                            <SelectTrigger className={`w-[180px] ${transactionType === 'all' ? 'text-muted-foreground' : ''}`}>
+                            <SelectTrigger className={`w-[140px] ${transactionType === 'all' ? 'text-muted-foreground' : ''}`}>
                                 <SelectValue placeholder="Filter by Type" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Filter by Type</SelectItem>
+                                <SelectItem value="all">All Types</SelectItem>
                                 <SelectItem value="ISSUE">ISSUE</SelectItem>
                                 <SelectItem value="RECEIVE">RECEIVE</SelectItem>
                             </SelectContent>
                         </Select>
+
+                        <Select
+                            value={fundClusterFilter}
+                            onValueChange={(value) => {
+                                setFundClusterFilter(value);
+                                router.get(
+                                    '/transaction-logs',
+                                    getFilterParams({ fund_cluster: value }),
+                                    { preserveState: true, preserveScroll: true, replace: true }
+                                );
+                            }}
+                        >
+                            <SelectTrigger className={`w-[160px] ${fundClusterFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Fund" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Funds</SelectItem>
+                                {fundClusters.map((fc) => (
+                                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
+                                        {fc.fund_cluster_id}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {/* Native Date Range Inputs using Shadcn Input Component */}
+                        <div className="flex items-center gap-2 bg-background">
+                            <Input
+                                type="date"
+                                value={dateFrom}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                                className="w-auto text-muted-foreground"
+                                title="From Date"
+                            />
+                            <span className="text-sm text-muted-foreground">to</span>
+                            <Input
+                                type="date"
+                                value={dateTo}
+                                onChange={(e) => setDateTo(e.target.value)}
+                                className="w-auto text-muted-foreground"
+                                title="To Date"
+                            />
+                        </div>
 
                         <Button type="submit" variant="secondary">
                             Search
@@ -240,10 +308,11 @@ export default function Index({
                             Clear
                         </Button>
                     </div>
+                    
                     <Button
                         type="button"
                         onClick={() => setDialogOpen(true)}
-                        className="w-full lg:w-auto"
+                        className="w-full xl:w-auto"
                         style={{ backgroundColor: '#612A35' }}
                     >
                         Add Transaction
@@ -290,12 +359,6 @@ export default function Index({
                                     onClick={() => handleSort('reference')}
                                 >
                                     <div className="flex items-center gap-2">Reference</div>
-                                </th>
-                                <th 
-                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
-                                    onClick={() => handleSort('fund_cluster')}
-                                >
-                                    <div className="flex items-center gap-2">Fund Cluster</div>
                                 </th>
                                 <th 
                                     className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
@@ -348,7 +411,6 @@ export default function Index({
                                         <td className="px-4 py-3">{tx.unit?.unit_short_name ?? '—'}</td>
                                         <td className="px-4 py-3 text-center">{tx.quantity}</td>
                                         <td className="px-4 py-3">{tx.reference}</td>
-                                        <td className="px-4 py-3">{tx.fund_cluster_detail?.fund_cluster_id ?? '—'}</td>
                                         <td className="px-4 py-3">{tx.office?.office_code ?? '—'}</td>
                                         <td className="px-4 py-3 text-center">
                                             <div className="flex items-center justify-center gap-3">

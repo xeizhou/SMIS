@@ -260,15 +260,6 @@ export default function Index({
                                         Description
                                     </button>
                                 </th>
-                                <th className="p-0 font-semibold text-white bg-[#370001]">
-                                    <button
-                                        type="button"
-                                        className="flex w-full items-center gap-2 px-4 py-3 text-left outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
-                                        onClick={() => handleSort('fund_cluster_id')}
-                                    >
-                                        Fund Cluster
-                                    </button>
-                                </th>
                                 {/* Non-clickable headers still get the explicit bg-[#370001] class */}
                                 <th className="px-4 py-3 text-left font-semibold text-white bg-[#370001]">
                                     Unit(s)
@@ -303,9 +294,6 @@ export default function Index({
                                             <td className="px-4 py-3">{stock.item_name}</td>
                                             <td className="px-4 py-3">
                                                 {stock.description || '—'}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                {stock.fund_cluster ? stock.fund_cluster.fund_cluster_id : '—'}
                                             </td>
                                             <td className="px-4 py-3">
                                                 {stock.units && stock.units.length > 0 
