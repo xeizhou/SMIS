@@ -1106,9 +1106,9 @@ export default function PurchaseOrderEditForm({
                                                                     openExistingAttachmentPreview(att);
                                                                 }
                                                             }}
-                                                            className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer"
+                                                            className="flex items-center gap-2 rounded-md border px-2 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer sm:gap-2.5 sm:px-2.5"
                                                         >
-                                                            <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                            <div className="h-7 w-7 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden sm:h-8 sm:w-8">
                                                                 {type === 'image' ? (
                                                                     <img
                                                                         src={`/storage/${att.file_path}`}
@@ -1120,16 +1120,16 @@ export default function PurchaseOrderEditForm({
                                                                 )}
                                                             </div>
                                                             <div className="min-w-0 flex-1">
-                                                                <p className="truncate text-sm">{att.original_name}</p>
-                                                                <p className="text-[11px] text-muted-foreground">{formatBytes(att.file_size)}</p>
+                                                                <p className="truncate text-xs sm:text-sm">{att.original_name}</p>
+                                                                <p className="hidden text-[11px] text-muted-foreground sm:block">{formatBytes(att.file_size)}</p>
                                                             </div>
-                                                            <Badge variant="outline" className="text-[10px] h-5">
+                                                            <Badge variant="outline" className="hidden text-[10px] h-5 sm:inline-flex">
                                                                 {getExtension(att.original_name).toUpperCase()}
                                                             </Badge>
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="h-7 w-7 text-red-500 hover:text-red-600"
+                                                                className="h-6 w-6 shrink-0 text-red-500 hover:text-red-600 sm:h-7 sm:w-7"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     removeExistingAttachment(att.id);
@@ -1158,9 +1158,9 @@ export default function PurchaseOrderEditForm({
                                                         <button
                                                             type="button"
                                                             onClick={() => openNewFilePreview(staged)}
-                                                            className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/50 transition-colors cursor-pointer"
+                                                            className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/50 transition-colors cursor-pointer sm:gap-3 sm:px-3 sm:py-2"
                                                         >
-                                                            <div className="h-9 w-9 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                            <div className="h-7 w-7 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden sm:h-9 sm:w-9">
                                                                 {staged.previewUrl ? (
                                                                     <img
                                                                         src={staged.previewUrl}
@@ -1171,10 +1171,10 @@ export default function PurchaseOrderEditForm({
                                                                     <FileIcon type={type} />
                                                                 )}
                                                             </div>
-                                                            <span className="min-w-0 flex-1 truncate text-sm">
+                                                            <span className="min-w-0 flex-1 truncate text-xs sm:text-sm">
                                                                 {file.name}
                                                             </span>
-                                                            <span className="shrink-0 text-xs text-muted-foreground">
+                                                            <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
                                                                 {formatBytes(file.size)}
                                                             </span>
                                                             <span
@@ -1193,10 +1193,10 @@ export default function PurchaseOrderEditForm({
                                                                 className="shrink-0 text-red-600 hover:text-red-800"
                                                                 title="Remove"
                                                             >
-                                                                <X className="size-4" />
+                                                                <X className="size-3.5 sm:size-4" />
                                                             </span>
                                                         </button>
-                                                    </li>
+                                                    </li>   
                                                 );
                                             })}
                                         </ul>

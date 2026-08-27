@@ -165,3 +165,13 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* Radix ScrollArea injects an internal `display: table` wrapper around
+   its content to measure scroll size. That wrapper won't shrink to fit
+   its container, so any unbroken long string inside a ScrollArea (e.g.
+   a long filename with no spaces) grows the ScrollArea — and everything
+   around it — instead of truncating. Force it back to block layout. */
+[data-radix-scroll-area-viewport] > div {
+    display: block !important;
+    min-width: 0 !important;
+}
