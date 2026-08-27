@@ -36,6 +36,7 @@ class ImportController extends Controller
             'item_name' => true,
             'description' => false,
             'unit_short_name' => false, // default unit, matched against units table
+            'fund_cluster_id' => false, // optional, matched against fund_clusters table
         ],
         'units' => [
             'unit_name' => true,
@@ -76,6 +77,7 @@ class ImportController extends Controller
         'item_name' => ['name', 'item'],
         'stock_no' => ['stock', 'stock_number', 'stockno', 'code', 'item_code'],
         'description' => ['desc'],
+        'fund_cluster_id' => ['fund', 'fund_cluster'],
         'transaction_type' => ['type'],
         'transaction_date' => ['date'],
         'reference' => ['ref', 'ref_no', 'reference_no'],
@@ -90,77 +92,97 @@ class ImportController extends Controller
      * POST /import/items
      */
     public function items(Request $request)
-    {
-        return $this->handleImport($request, 'items', function (array $rows, bool $merge) {
-            $created = 0;
-            $updated = 0;
-            $skipped = [];
+        {
+            return $this->handleImport($request, 'items', function (array $rows, bool $merge) {
+                $created = 0;
+                $updated = 0;
+                $skipped = [];
 
-            foreach ($rows as $i => $row) {
-                $validator = Validator::make($row, [
-                    'stock_no' => 'required|string|max:255',
-                    'item_name' => 'required|string|max:255',
-                    'description' => 'nullable|string|max:255',
-                    'unit_short_name' => 'nullable|string|max:255',
-                ]);
+                foreach ($rows as $i => $row) {
+                    $validator = Validator::make($row, [
+                        'stock_no' => 'required|string|max:255',
+                        'item_name' => 'required|string|max:255',
+                        'description' => 'nullable|string|max:255',
+                        'unit_short_name' => 'nullable|string|max:255',
+                        'fund_cluster_id' => 'nullable|string|max:50',
+                    ]);
 
-                if ($validator->fails()) {
-                    $skipped[] = "Row {$this->rowLabel($i)}: " . $validator->errors()->first();
-                    continue;
-                }
+                    if ($validator->fails()) {
+                        $skipped[] = "Row {$this->rowLabel($i)}: " . $validator->errors()->first();
+                        continue;
+                    }
 
-                $existing = StockItem::where('stock_no', $row['stock_no'])->first();
+                    $existing = StockItem::where('stock_no', $row['stock_no'])->first();
 
-                if ($existing && ! $merge) {
-                    $skipped[] = "Row {$this->rowLabel($i)}: stock_no '{$row['stock_no']}' already exists (merge is off).";
-                    continue;
-                }
+                    if ($existing && ! $merge) {
+                        $skipped[] = "Row {$this->rowLabel($i)}: stock_no '{$row['stock_no']}' already exists (merge is off).";
+                        continue;
+                    }
 
-                $attrs = [
-                    'item_name' => $row['item_name'],
-                    'description' => $row['description'] ?? null,
-                ];
+                    $attrs = [
+                        'item_name' => $row['item_name'],
+                        'description' => $row['description'] ?? null,
+                    ];
 
-                if ($existing) {
-                    $existing->update($attrs);
-                    $item = $existing;
-                    $updated++;
-                } else {
-                    $item = StockItem::create(['stock_no' => $row['stock_no'], ...$attrs]);
-                    $created++;
-                }
+                    // Resolve fund cluster if given. It's a real FK (fund_cluster_id
+                    // references fund_clusters.fund_cluster_id with nullOnDelete),
+                    // so an unresolved value can't be saved as-is.
+                    if (! empty($row['fund_cluster_id'])) {
+                        $fundCluster = FundCluster::where('fund_cluster_id', $row['fund_cluster_id'])->first();
 
-                // Attach default unit if a matching unit_short_name was given.
-                // The label might be a short code ("pcs") or a full unit
-                // name ("bottle") depending on the source file — match either.
-                if (! empty($row['unit_short_name'])) {
-                    $unit = Unit::where('unit_short_name', $row['unit_short_name'])
-                        ->orWhere('unit_name', $row['unit_short_name'])
-                        ->first();
-                    if ($unit) {
-                        // IMPORTANT: syncWithoutDetaching only adds/updates
-                        // the given pivot row — it does NOT clear is_default
-                        // on any other unit already attached to this item.
-                        // Re-importing the same stock_no under a different
-                        // unit label (e.g. "bottle" in one file, "gallon" in
-                        // another) would otherwise leave TWO units marked
-                        // default, which silently double-counts the balance
-                        // in every report that joins on is_default = true.
-                        // Unset every other default first, then set this one.
-                        $item->units()->updateExistingPivot(
-                            $item->units->pluck('unitID')->all(),
-                            ['is_default' => false]
-                        );
-                        $item->units()->syncWithoutDetaching([$unit->unitID => ['is_default' => true]]);
+                        if ($fundCluster) {
+                            $attrs['fund_cluster_id'] = $fundCluster->fund_cluster_id;
+                        } elseif ($merge) {
+                            $fundCluster = FundCluster::create([
+                                'fund_cluster_id' => $row['fund_cluster_id'],
+                                'fund_description' => $row['fund_cluster_id'],
+                            ]);
+                            $attrs['fund_cluster_id'] = $fundCluster->fund_cluster_id;
+                        } else {
+                            $skipped[] = "Row {$this->rowLabel($i)}: fund cluster '{$row['fund_cluster_id']}' not found, item saved without it.";
+                        }
+                    }
+
+                    if ($existing) {
+                        $existing->update($attrs);
+                        $item = $existing;
+                        $updated++;
                     } else {
-                        $skipped[] = "Row {$this->rowLabel($i)}: unit '{$row['unit_short_name']}' not found, item saved without it.";
+                        $item = StockItem::create(['stock_no' => $row['stock_no'], ...$attrs]);
+                        $created++;
+                    }
+
+                    // Attach default unit if a matching unit_short_name was given.
+                    // The label might be a short code ("pcs") or a full unit
+                    // name ("bottle") depending on the source file — match either.
+                    if (! empty($row['unit_short_name'])) {
+                        $unit = Unit::where('unit_short_name', $row['unit_short_name'])
+                            ->orWhere('unit_name', $row['unit_short_name'])
+                            ->first();
+                        if ($unit) {
+                            // IMPORTANT: syncWithoutDetaching only adds/updates
+                            // the given pivot row — it does NOT clear is_default
+                            // on any other unit already attached to this item.
+                            // Re-importing the same stock_no under a different
+                            // unit label (e.g. "bottle" in one file, "gallon" in
+                            // another) would otherwise leave TWO units marked
+                            // default, which silently double-counts the balance
+                            // in every report that joins on is_default = true.
+                            // Unset every other default first, then set this one.
+                            $item->units()->updateExistingPivot(
+                                $item->units->pluck('unitID')->all(),
+                                ['is_default' => false]
+                            );
+                            $item->units()->syncWithoutDetaching([$unit->unitID => ['is_default' => true]]);
+                        } else {
+                            $skipped[] = "Row {$this->rowLabel($i)}: unit '{$row['unit_short_name']}' not found, item saved without it.";
+                        }
                     }
                 }
-            }
 
-            return [$created, $updated, $skipped];
-        });
-    }
+                return [$created, $updated, $skipped];
+            });
+        }
 
     /**
      * POST /import/units
@@ -464,7 +486,7 @@ class ImportController extends Controller
     private function exampleRow(string $type): array
     {
         return match ($type) {
-            'items' => ['STK-0001', 'Bond Paper A4', 'Substance 20', 'REAM'],
+            'items' => ['STK-0001', 'Bond Paper A4', 'Substance 20', 'REAM', '101'],
             'units' => ['Ream', 'REAM'],
             'transactions' => ['RECEIVE', now()->format('Y-m-d'), 'STK-0001', 'Bond Paper A4', 'Substance 20', 'REAM', 'DR-0001', 50, 'OFC-01', '101'],
             'offices' => ['OFC-01', 'Supply Management Unit', 'University of Southeastern Philippines', 'Juan Dela Cruz', 'smu@usep.edu.ph'],

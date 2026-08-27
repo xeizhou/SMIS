@@ -16,11 +16,17 @@ interface Unit {
     };
 }
 
+interface FundCluster {
+    fund_cluster_id: string;
+    fund_description: string;
+}
+
 interface StockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
-    remarks: string | null;
+    fund_cluster_id: string | null;
+    fund_cluster?: FundCluster | null;
     units?: Unit[];
 }
 
@@ -48,6 +54,10 @@ export default function StockItemViewForm({ open, onOpenChange, stock }: Props) 
         return null;
     }
 
+    const fundClusterLabel = stock.fund_cluster
+        ? `${stock.fund_cluster.fund_cluster_id} - ${stock.fund_cluster.fund_description}`
+        : stock.fund_cluster_id ?? '—';
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-[1000px] w-[95vw] max-h-[90vh] overflow-hidden p-0">
@@ -67,6 +77,7 @@ export default function StockItemViewForm({ open, onOpenChange, stock }: Props) 
                                     <div className="sm:col-span-2">
                                         <Detail label="Description" value={stock.description ?? '—'} />
                                     </div>
+                                    <Detail label="Fund Cluster" value={fundClusterLabel} />
                                 </div>
                             </section>
 
@@ -76,14 +87,6 @@ export default function StockItemViewForm({ open, onOpenChange, stock }: Props) 
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <Detail label="Default Unit" value={(stock.units?.find(u => u.pivot?.is_default) || stock.units?.[0])?.unit_short_name ?? '—'} />
                                     <Detail label="All Units" value={stock.units?.map(u => u.unit_short_name).join(', ') ?? '—'} />
-                                </div>
-                            </section>
-
-                            {/* Section: Additional Info */}
-                            <section>
-                                <p className={sectionTitleClass}>Additional Info</p>
-                                <div className="grid grid-cols-1 gap-4">
-                                    <Detail label="Remarks" value={stock.remarks ?? '—'} />
                                 </div>
                             </section>
                         </div>
