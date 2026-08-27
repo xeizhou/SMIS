@@ -14,7 +14,13 @@ return new class extends Migration
             $table->boolean('is_default')->default(false);
 
             $table->primary(['stock_no', 'unitID']);
-            $table->foreign('stock_no')->references('stock_no')->on('stock_items')->cascadeOnDelete();
+            
+            // Added cascadeOnUpdate() here!
+            $table->foreign('stock_no')
+                  ->references('stock_no')
+                  ->on('stock_items')
+                  ->cascadeOnUpdate()
+                  ->cascadeOnDelete();
         });
 
         // Optional but recommended: Drop the old column to prevent confusion

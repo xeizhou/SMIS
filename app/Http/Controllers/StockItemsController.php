@@ -64,12 +64,12 @@ class StockItemsController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'stock_no' => 'required|string|max:255|unique:stock_items,stock_no',
+            'stock_no' => 'required|string|max:255|unique:stock_items,stock_no,' . $stockItem->stock_no . ',stock_no',
+            
             'item_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:255',
             'fund_cluster_id' => 'nullable|exists:fund_clusters,fund_cluster_id',
             
-            // Validation for the units array
             'units' => 'required|array|min:1',
             'units.*.unitID' => 'required|exists:units,unitID',
             'units.*.is_default' => 'required|boolean',
@@ -90,11 +90,12 @@ class StockItemsController extends Controller
     public function update(Request $request, StockItem $stockItem)
     {
         $validated = $request->validate([
+            'stock_no' => 'required|string|max:255|unique:stock_items,stock_no,' . $stockItem->stock_no . ',stock_no',
+    
             'item_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:255',
             'fund_cluster_id' => 'nullable|exists:fund_clusters,fund_cluster_id',
-
-            // Validation for the units array
+            
             'units' => 'required|array|min:1',
             'units.*.unitID' => 'required|exists:units,unitID',
             'units.*.is_default' => 'required|boolean',
