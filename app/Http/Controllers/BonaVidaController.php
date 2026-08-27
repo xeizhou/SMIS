@@ -16,6 +16,7 @@ class BonaVidaController extends Controller
      */
     public function index(Request $request): Response
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->string('search')->toString() ?: null;
         $office_code = $request->string('office_code')->toString() ?: null;
 
@@ -30,7 +31,7 @@ class BonaVidaController extends Controller
 
         $records = (clone $query)
             ->orderBy('date_received', 'desc')
-            ->paginateWithHighlight(10)
+            ->paginateWithHighlight($perPage)
             ->withQueryString();
 
         $offices = Office::orderBy('office_name')->get();

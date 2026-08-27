@@ -1,4 +1,5 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
@@ -52,6 +53,12 @@ interface PaginatedRrspMonitoring {
         label: string;
         active: boolean;
     }[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
 }
 
 interface Filters {
@@ -384,23 +391,8 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                     </ScrollArea>
 
                 {rrspMonitorings.data.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-1 p-4">
-                        {rrspMonitorings.links.map((link, i) => (
-                            <Link
-                                key={i}
-                                href={link.url ?? '#'}
-                                preserveState
-                                preserveScroll
-                                className={
-                                    'rounded-lg border px-4 py-2 text-sm font-medium transition-colors ' +
-                                    (link.active
-                                        ? 'border-[#612A35] bg-[#612A35] text-white'
-                                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100') +
-                                    (!link.url ? ' pointer-events-none opacity-40' : '')
-                                }
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        ))}
+                    <div className="p-4">
+                        <Pagination meta={rrspMonitorings} />
                     </div>
                 )}
             </div>

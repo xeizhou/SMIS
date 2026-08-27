@@ -10,6 +10,7 @@ class RRSPController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $query = \App\Models\RrspMonitoring::with('items');
 
         if ($request->filled('search')) {
@@ -33,7 +34,7 @@ class RRSPController extends Controller
 
         $rrspMonitorings = $query
             ->latest()
-            ->paginateWithHighlight(4)
+            ->paginateWithHighlight($perPage)
             ->withQueryString()
             ->through(function ($rrsp) {
                 return [

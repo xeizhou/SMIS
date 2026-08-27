@@ -19,6 +19,7 @@ class ClearanceController extends Controller
      */
     public function index(Request $request): Response
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->string('search')->toString() ?: null;
         $status = $request->string('status')->toString() ?: null;
 
@@ -39,7 +40,7 @@ class ClearanceController extends Controller
         $records = (clone $query)
             ->with('attachments')
             ->orderByDesc('claim_date')
-            ->paginateWithHighlight(10)
+            ->paginateWithHighlight($perPage)
             ->withQueryString();
 
         $statuses = Clearance::query()

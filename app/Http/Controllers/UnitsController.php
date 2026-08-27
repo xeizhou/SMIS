@@ -13,6 +13,7 @@ class UnitsController extends Controller
      */
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
 
         // 1. Get the sorting parameters (defaulting to unitID descending)
@@ -36,7 +37,7 @@ class UnitsController extends Controller
         })
             // 3. Apply the dynamic sorting
             ->orderBy($sortField, $sortDirection)
-            ->paginateWithHighlight(10)
+            ->paginateWithHighlight($perPage)
             ->withQueryString();
 
         return Inertia::render('units/index', [

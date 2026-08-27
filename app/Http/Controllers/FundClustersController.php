@@ -13,6 +13,7 @@ class FundClustersController extends Controller
      */
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
 
         $fundClusters = FundCluster::when($search, function ($query, $search) {
@@ -23,7 +24,7 @@ class FundClustersController extends Controller
         })
             // Fund clusters have timestamps; show newest first
             ->orderByDesc('created_at')
-            ->paginateWithHighlight(10)
+            ->paginateWithHighlight($perPage)
             ->withQueryString();
 
         return Inertia::render('fundclusters/index', [
