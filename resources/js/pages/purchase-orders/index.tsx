@@ -16,6 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import Pagination from '@/components/Pagination';
 
 interface Supplier {
     supplier_id: number;
@@ -70,6 +71,12 @@ interface PaginatedPurchaseOrders {
         label: string;
         active: boolean;
     }[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
 }
 
 interface Filters {
@@ -393,26 +400,11 @@ export default function Index({
                         </tbody>
                     </table><ScrollBar orientation="horizontal" /></ScrollArea>
 
-                {purchaseOrders.data.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-1 p-4">
-                        {purchaseOrders.links.map((link, i) => (
-                            <Link
-                                key={i}
-                                href={link.url ?? '#'}
-                                preserveState
-                                preserveScroll
-                                className={
-                                    'rounded-lg border px-4 py-2 text-sm font-medium transition-colors ' +
-                                    (link.active
-                                        ? 'border-[#612A35] bg-[#612A35] text-white'
-                                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100') +
-                                    (!link.url ? ' pointer-events-none opacity-40' : '')
-                                }
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        ))}
-                    </div>
-                )}
+                    {purchaseOrders.data.length > 0 && (
+                        <div className="p-4">
+                            <Pagination meta={purchaseOrders} />
+                        </div>
+                    )}
             </div>
 
             <PurchaseOrderAddForm
