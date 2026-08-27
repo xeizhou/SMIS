@@ -49,6 +49,7 @@ interface StockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
+    fund_cluster_id: string | null;
     available_stock?: number;
     units?: {
         unitID: number;
@@ -472,6 +473,7 @@ export default function TransactionAddForm({
                                                 item_name: selectedItem?.item_name ?? '',
                                                 description: selectedItem?.description ?? '',
                                                 unitID: defaultUnitID,
+                                                fund_cluster: selectedItem?.fund_cluster_id ?? '',
                                             }));
                                         }}
                                         error={errors.item_name}
