@@ -12,6 +12,7 @@ class StockItemsController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
         $fundClusterId = $request->input('fund_cluster_id');
         
@@ -45,7 +46,7 @@ class StockItemsController extends Controller
 
         // 3. Apply the dynamic sorting
         $stockItems = $query->orderBy($sortField, $sortDirection)
-            ->paginateWithHighlight(10)
+            ->paginateWithHighlight($perPage)
             ->withQueryString();
 
         return Inertia::render('stock-items/index', [

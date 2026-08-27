@@ -10,6 +10,7 @@ class RRPPEController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $query = RRPPEMonitoring::query();
 
         if ($request->filled('search')) {
@@ -26,7 +27,7 @@ class RRPPEController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        $data = $query->latest()->paginateWithHighlight(10)->withQueryString();
+        $data = $query->latest()->paginateWithHighlight($perPage)->withQueryString();
 
         return Inertia::render('rrppe-monitoring/index', [
             'data' => $data,

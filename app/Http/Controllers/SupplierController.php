@@ -10,6 +10,7 @@ class SupplierController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $query = Supplier::query();
 
         // Search
@@ -33,7 +34,7 @@ class SupplierController extends Controller
             'suppliers' => $query
                 // Supplier model has no timestamps; order by primary key desc to show newest
                 ->orderBy('supplier_id', 'desc')
-                ->paginateWithHighlight(10)
+                ->paginateWithHighlight($perPage)
                 ->withQueryString(),
 
             'filters' => [

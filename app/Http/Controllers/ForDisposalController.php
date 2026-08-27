@@ -14,6 +14,7 @@ class ForDisposalController extends Controller
      */
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
         $condition_of_ppe = $request->input('condition_of_ppe');
 
@@ -32,7 +33,7 @@ class ForDisposalController extends Controller
             $query->where('condition_of_ppe', $condition_of_ppe);
         }
 
-        $data = $query->latest()->paginateWithHighlight(10)->withQueryString();
+        $data = $query->latest()->paginateWithHighlight($perPage)->withQueryString();
 
         $preRepairs = PreRepairMonitoring::all();
 

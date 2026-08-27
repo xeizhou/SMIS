@@ -19,6 +19,7 @@ class DeliveriesController extends Controller
      */
     public function index(Request $request): Response
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->string('search')->toString() ?: null;
         $status = $request->string('status')->toString() ?: null;
         $poNumber = $request->string('po_number')->toString() ?: null;
@@ -45,7 +46,7 @@ class DeliveriesController extends Controller
             ->when($status, fn ($query, $status) => $query->where('status', $status))
             ->when($poNumber, fn ($query, $poNumber) => $query->where('po_number', $poNumber))
             ->orderByDesc('data_entry_timestamp')
-            ->paginateWithHighlight(10)
+            ->paginateWithHighlight($perPage)
             ->withQueryString();
 
         return Inertia::render('deliveries/index', [

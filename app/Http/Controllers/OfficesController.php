@@ -13,6 +13,7 @@ class OfficesController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $query = Office::query();
 
         if ($request->filled('search')) {
@@ -31,7 +32,7 @@ class OfficesController extends Controller
             'offices' => $query
                 // Offices table has no timestamps; show newest by office_code desc
                 ->orderByDesc('office_code')
-                ->paginateWithHighlight(10)
+                ->paginateWithHighlight($perPage)
                 ->withQueryString(),
 
             'filters' => [

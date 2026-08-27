@@ -1,4 +1,5 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import Pagination from '@/components/Pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -36,6 +37,11 @@ interface ReportItem {
 interface PaginatedItems {
     data: ReportItem[];
     total: number;
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    from: number | null;
+    to: number | null;
     links: {
         url: string | null;
         label: string;
@@ -308,23 +314,8 @@ export default function Index({ items, fundClusters, filters }: Props) {
                     </div>
 
                     {items.data.length > 0 && (
-                        <div className="flex flex-wrap justify-center gap-1 p-4">
-                            {items.links.map((link, i) => (
-                                <Link
-                                    key={i}
-                                    href={link.url ?? '#'}
-                                    preserveState
-                                    preserveScroll
-                                    className={
-                                        'rounded-lg border px-4 py-2 text-sm font-medium transition-colors ' +
-                                        (link.active
-                                            ? 'border-[#612A35] bg-[#612A35] text-white'
-                                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100') +
-                                        (!link.url ? ' pointer-events-none opacity-40' : '')
-                                    }
-                                    dangerouslySetInnerHTML={{ __html: link.label }}
-                                />
-                            ))}
+                        <div className="p-4">
+                            <Pagination meta={items} />
                         </div>
                     )}
                 </div>

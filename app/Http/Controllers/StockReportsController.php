@@ -25,6 +25,7 @@ class StockReportsController extends Controller
      */
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $cutoffDate = $request->input('cutoff_date'); // 'YYYY-MM-DD' or null
         $fundClusterId = $request->input('fund_cluster_id'); // null/all or a fund_cluster_id
 
@@ -72,7 +73,7 @@ class StockReportsController extends Controller
             )
             ->orderBy('i.item_name');
 
-        $items = $query->paginate(15)->withQueryString();
+        $items = $query->paginate($perPage)->withQueryString();
 
         $fundClusters = FundCluster::orderBy('fund_cluster_id')->get(['fund_cluster_id', 'fund_description']);
 

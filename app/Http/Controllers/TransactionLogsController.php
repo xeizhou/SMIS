@@ -19,6 +19,7 @@ class TransactionLogsController extends Controller
      */
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
@@ -92,7 +93,7 @@ class TransactionLogsController extends Controller
             $query->orderBy($sortField, $sortDirection);
         }
 
-        $transactions = $query->paginateWithHighlight(10)->withQueryString();
+        $transactions = $query->paginateWithHighlight($perPage)->withQueryString();
 
         // Avoid key collision: relation "fundCluster" snake-cases to "fund_cluster",
         // which clobbers the raw FK column of the same name in JSON output.

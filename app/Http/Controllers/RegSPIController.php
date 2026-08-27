@@ -17,6 +17,7 @@ class RegSPIController extends Controller
      */
     public function index(Request $request): Response
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->string('search')->toString() ?: null;
         $rrspNo = $request->string('rrsp_no')->toString() ?: null;
         $fundClusterId = $request->string('fund_cluster_id')->toString() ?: null;
@@ -36,7 +37,7 @@ class RegSPIController extends Controller
             ->when($rrspNo, fn ($query, $rrspNo) => $query->where('rrsp_no', $rrspNo))
             ->when($fundClusterId, fn ($query, $fundClusterId) => $query->where('fund_cluster_id', $fundClusterId))
             ->orderByDesc('created_at')
-            ->paginateWithHighlight(10)
+            ->paginateWithHighlight($perPage)
             ->withQueryString();
 
         return Inertia::render('regspi-monitoring/index', [

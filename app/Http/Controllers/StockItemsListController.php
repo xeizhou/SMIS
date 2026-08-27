@@ -34,6 +34,7 @@ class StockItemsListController extends Controller
 
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
         $issuedStatus = $request->input('issued_status'); // 'issued' | 'unissued' | null/all
         $fundClusterId = $request->input('fund_cluster_id'); // null/all or a fund_cluster_id
@@ -116,7 +117,7 @@ class StockItemsListController extends Controller
             $query->havingRaw("{$issueCountExpr} = 0");
         }
 
-        $items = $query->paginate(10)->withQueryString();
+        $items = $query->paginate($perPage)->withQueryString();
 
         // Attach human-readable fund cluster descriptions per row.
         $fundClusters = FundCluster::orderBy('fund_cluster_id')->get(['fund_cluster_id', 'fund_description']);

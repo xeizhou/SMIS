@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import Pagination from '@/components/Pagination';
 import { auditLogsHighlight } from './auditLogsHighlight';
 import { Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -33,8 +34,9 @@ interface PaginatedData {
     links: PaginationLink[];
     current_page: number;
     last_page: number;
-    from: number;
-    to: number;
+    per_page: number;
+    from: number | null;
+    to: number | null;
     total: number;
 }
 
@@ -195,25 +197,8 @@ export default function Index({ logs, filters }: Props) {
                 </div>
 
                 {logs.data.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-1 p-4">
-                        {logs.links.map((link, i) => (
-                            <Link
-                                key={i}
-                                href={link.url ?? '#'}
-                                preserveScroll
-                                preserveState
-                                className={
-                                    'px-3 py-1.5 rounded-md text-sm border transition-colors ' +
-                                    (link.active
-                                        ? 'bg-[#612A35] text-white border-[#612A35]'
-                                        : 'bg-card text-foreground border-border hover:bg-muted/50') +
-                                    (!link.url
-                                        ? ' opacity-40 pointer-events-none'
-                                        : '')
-                                }
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        ))}
+                    <div className="p-4">
+                        <Pagination meta={logs} />
                     </div>
                 )}
             </div>

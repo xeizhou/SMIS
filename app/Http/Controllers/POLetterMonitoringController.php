@@ -19,6 +19,7 @@ class POLetterMonitoringController extends Controller
      */
     public function index(Request $request): Response
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->string('search')->toString() ?: null;
         $status = $request->string('status')->toString() ?: null;
         $type = $request->string('type')->toString() ?: null;
@@ -50,7 +51,7 @@ class POLetterMonitoringController extends Controller
         ->when($status, fn ($query, $status) => $query->where('status_of_the_letter', $status))
         ->when($type, fn ($query, $type) => $query->where('type_of_letter', $type))
         ->orderByDesc('created_at')
-        ->paginateWithHighlight(10)
+        ->paginateWithHighlight($perPage)
         ->withQueryString();
 
         return Inertia::render('po-letter-monitoring/index', [

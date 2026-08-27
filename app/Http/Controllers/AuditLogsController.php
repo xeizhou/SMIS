@@ -13,6 +13,7 @@ class AuditLogsController extends Controller
      */
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
         $role = $request->input('role');
 
@@ -31,7 +32,7 @@ class AuditLogsController extends Controller
             })
             ->orderBy('log_timestamp', 'desc');
 
-        $logs = $query->paginateWithHighlight(10)->withQueryString();
+        $logs = $query->paginateWithHighlight($perPage)->withQueryString();
 
 
         // Map the items to a more frontend-friendly format

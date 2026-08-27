@@ -15,6 +15,7 @@ class EmployeeFileLocatorController extends Controller
      */
     public function index(Request $request): Response
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->string('search')->toString() ?: null;
         $status = $request->string('status')->toString() ?: null;
 
@@ -31,7 +32,7 @@ class EmployeeFileLocatorController extends Controller
 
         $records = (clone $query)
             ->orderBy('last_name')
-            ->paginateWithHighlight(10)
+            ->paginateWithHighlight($perPage)
             ->withQueryString();
 
         $statuses = (clone $query)

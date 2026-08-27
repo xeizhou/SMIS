@@ -96,6 +96,7 @@ class IARController extends Controller
      */
     public function index(Request $request)
     {
+        $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
 
         $query = PirMonitoring::with(['supplier', 'fundCluster', 'attachments', 'inspectionEntries'])
@@ -119,7 +120,7 @@ class IARController extends Controller
         }
 
         $pirs = $query->orderBy('pir_id', 'desc')
-            ->paginateWithHighlight(10)
+            ->paginateWithHighlight($perPage)
             ->withQueryString();
 
         // Avoid key collision: relation "fundCluster" snake-cases to "fund_cluster",
