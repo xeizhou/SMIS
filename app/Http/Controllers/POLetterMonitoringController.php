@@ -97,7 +97,10 @@ class POLetterMonitoringController extends Controller
 
         // id doesn't exist until after create — the frontend needs it back
         // to upload any attachments staged before the record existed.
-        return redirect()->back()->with('success', 'PO letter record added successfully.');
+            return redirect()->back()->with([
+                'success' => 'PO letter record added successfully.',
+                'newRecordId' => $poLetterMonitoring->id,
+            ]);
     }
 
     /**

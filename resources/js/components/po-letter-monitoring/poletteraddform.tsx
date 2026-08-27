@@ -548,13 +548,35 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
             '/po-letter-monitoring',
             payload,
             {
-                onSuccess: () => {
-                    onOpenChange(false);
-                    setData(emptyForm);
-                    setErrors({});
+                onSuccess: (page) => {
+                    const newId = (page.props.flash as any)?.newRecordId;
+
+                    if (files.length > 0 && newId) {
+                        const formData = new FormData();
+                        files.forEach(({ file }) => formData.append('files[]', file));
+
+                        router.post(
+                            `/po-letter-monitoring/${newId}/attachments`,
+                            formData,
+                            {
+                                forceFormData: true,
+                                onFinish: () => {
+                                    onOpenChange(false);
+                                    resetForm();
+                                    setProcessing(false);
+                                },
+                            }
+                        );
+                    } else {
+                        onOpenChange(false);
+                        resetForm();
+                        setProcessing(false);
+                    }
                 },
-                onError: (errors) => setErrors(errors),
-                onFinish: () => setProcessing(false),
+                onError: (errors) => {
+                    setErrors(errors);
+                    setProcessing(false);
+                },
             }
         );
     };
@@ -753,59 +775,59 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                                 className="hidden"
                                 onChange={handleFileSelect}
                             />
-                            {files.length > 0 && (
-                                <ul className="mt-2 divide-y divide-border rounded-md border border-border">
-                                    {files.map((staged) => {
-                                        const { id, file } = staged;
-                                        const type = getFileType(file.name);
-                                        return (
-                                            <li key={id}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openFilePreview(staged)}
-                                                    className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/50 transition-colors cursor-pointer"
-                                                >
-                                                    <div className="h-9 w-9 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
-                                                        {staged.previewUrl ? (
-                                                            <img
-                                                                src={staged.previewUrl}
-                                                                alt={file.name}
-                                                                className="h-full w-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <FileIcon type={type} />
-                                                        )}
-                                                    </div>
-                                                    <span className="min-w-0 flex-1 truncate text-sm">
-                                                        {file.name}
-                                                    </span>
-                                                    <span className="shrink-0 text-xs text-muted-foreground">
-                                                        {formatBytes(file.size)}
-                                                    </span>
-                                                    <span
-                                                        role="button"
-                                                        tabIndex={0}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            removeFile(id);
-                                                        }}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                {files.length > 0 && (
+                                    <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+                                        {files.map((staged) => {
+                                            const { id, file } = staged;
+                                            const type = getFileType(file.name);
+                                            return (
+                                                <li key={id}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openFilePreview(staged)}
+                                                        className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/50 transition-colors cursor-pointer sm:gap-3 sm:px-3 sm:py-2"
+                                                    >
+                                                        <div className="h-7 w-7 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden sm:h-9 sm:w-9">
+                                                            {staged.previewUrl ? (
+                                                                <img
+                                                                    src={staged.previewUrl}
+                                                                    alt={file.name}
+                                                                    className="h-full w-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <FileIcon type={type} />
+                                                            )}
+                                                        </div>
+                                                        <span className="min-w-0 flex-1 truncate text-xs sm:text-sm">
+                                                            {file.name}
+                                                        </span>
+                                                        <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                                                            {formatBytes(file.size)}
+                                                        </span>
+                                                        <span
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 removeFile(id);
-                                                            }
-                                                        }}
-                                                        className="shrink-0 text-red-600 hover:text-red-800"
-                                                        title="Remove"
-                                                    >
-                                                        <X className="size-4" />
-                                                    </span>
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            )}
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                                    e.stopPropagation();
+                                                                    removeFile(id);
+                                                                }
+                                                            }}
+                                                            className="shrink-0 text-red-600 hover:text-red-800"
+                                                            title="Remove"
+                                                        >
+                                                            <X className="size-3.5 sm:size-4" />
+                                                        </span>
+                                                    </button>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
                         </div>
                     </div>
 

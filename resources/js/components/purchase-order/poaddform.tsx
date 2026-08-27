@@ -954,9 +954,9 @@ export default function PurchaseOrderAddForm({
                                                             <button
                                                                 type="button"
                                                                 onClick={() => openFilePreview(staged)}
-                                                                className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/50 transition-colors cursor-pointer"
+                                                                className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/50 transition-colors cursor-pointer sm:gap-3 sm:px-3 sm:py-2"
                                                             >
-                                                                <div className="h-9 w-9 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                                <div className="h-7 w-7 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden sm:h-9 sm:w-9">
                                                                     {staged.previewUrl ? (
                                                                         <img
                                                                             src={staged.previewUrl}
@@ -967,8 +967,10 @@ export default function PurchaseOrderAddForm({
                                                                         <FileTypeIcon type={type} />
                                                                     )}
                                                                 </div>
-                                                                <span className="min-w-0 flex-1 truncate text-sm">{file.name}</span>
-                                                                <span className="shrink-0 text-xs text-muted-foreground">{formatBytes(file.size)}</span>
+                                                                <span className="min-w-0 flex-1 truncate text-xs sm:text-sm">{file.name}</span>
+                                                                <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                                                                    {formatBytes(file.size)}
+                                                                </span>
                                                                 <span
                                                                     role="button"
                                                                     tabIndex={0}
@@ -985,7 +987,7 @@ export default function PurchaseOrderAddForm({
                                                                     className="shrink-0 text-red-600 hover:text-red-800"
                                                                     title="Remove"
                                                                 >
-                                                                    <X className="size-4" />
+                                                                    <X className="size-3.5 sm:size-4" />
                                                                 </span>
                                                             </button>
                                                         </li>

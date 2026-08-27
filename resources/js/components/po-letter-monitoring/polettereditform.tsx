@@ -802,51 +802,51 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                                             {existingAttachments.map((att) => {
                                                 const type = getFileType(att.original_name);
                                                 return (
-                                                    <div
-                                                        key={att.id}
-                                                        role="button"
-                                                        tabIndex={0}
-                                                        onClick={() => openExistingAttachmentPreview(att)}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                                openExistingAttachmentPreview(att);
-                                                            }
-                                                        }}
-                                                        className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer"
-                                                    >
-                                                        <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
-                                                            {type === 'image' ? (
-                                                                <img
-                                                                    src={att.url}
-                                                                    alt={att.original_name}
-                                                                    className="h-full w-full object-cover"
-                                                                />
-                                                            ) : (
-                                                                <FileIcon type={type} />
-                                                            )}
-                                                        </div>
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="truncate text-sm">{att.original_name}</p>
-                                                            {att.file_size !== undefined && (
-                                                                <p className="text-[11px] text-muted-foreground">{formatBytes(att.file_size)}</p>
-                                                            )}
-                                                        </div>
-                                                        <Badge variant="outline" className="text-[10px] h-5">
-                                                            {getExtension(att.original_name).toUpperCase()}
-                                                        </Badge>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-7 w-7 text-red-500 hover:text-red-600"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                removeExistingAttachment(att.id);
-                                                            }}
-                                                            title="Remove"
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        </Button>
+                                                <div
+                                                    key={att.id}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => openExistingAttachmentPreview(att)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                            openExistingAttachmentPreview(att);
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-2 rounded-md border px-2 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer sm:gap-2.5 sm:px-2.5"
+                                                >
+                                                    <div className="h-7 w-7 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden sm:h-8 sm:w-8">
+                                                        {type === 'image' ? (
+                                                            <img
+                                                                src={att.url}
+                                                                alt={att.original_name}
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <FileIcon type={type} />
+                                                        )}
                                                     </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-xs sm:text-sm">{att.original_name}</p>
+                                                        {att.file_size !== undefined && (
+                                                            <p className="hidden text-[11px] text-muted-foreground sm:block">{formatBytes(att.file_size)}</p>
+                                                        )}
+                                                    </div>
+                                                    <Badge variant="outline" className="hidden text-[10px] h-5 sm:inline-flex">
+                                                        {getExtension(att.original_name).toUpperCase()}
+                                                    </Badge>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-6 w-6 shrink-0 text-red-500 hover:text-red-600 sm:h-7 sm:w-7"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            removeExistingAttachment(att.id);
+                                                        }}
+                                                        title="Remove"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
                                                 );
                                             })}
                                         </div>
