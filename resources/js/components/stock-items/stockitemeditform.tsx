@@ -30,10 +30,16 @@ interface Unit {
     };
 }
 
+interface FundCluster {
+    fund_cluster_id: string;
+    fund_description: string;
+}
+
 interface StockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
+    fund_cluster_id?: string | null;
     units?: Unit[];
 }
 
@@ -42,6 +48,7 @@ interface Props {
     onOpenChange: (open: boolean) => void;
     stock: StockItem | null;
     units: Unit[];
+    fundClusters: FundCluster[];
 }
 
 interface FieldProps {
@@ -54,6 +61,7 @@ interface FieldProps {
     placeholder?: string;
     type?: string;
     min?: string;
+    disabled?: boolean;
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
@@ -69,6 +77,7 @@ function Field({
     placeholder = '',
     type = 'text',
     min,
+    disabled = false,
 }: FieldProps) {
     return (
         <div>
@@ -83,6 +92,7 @@ function Field({
                 onChange={onChange}
                 placeholder={placeholder}
                 min={min}
+                disabled={disabled}
             />
             {error && (
                 <p className="mt-1 text-xs text-red-500">{error}</p>
@@ -132,13 +142,16 @@ function SearchableSelect({
                         role="combobox"
                         aria-expanded={open}
                         className={cn(
-                            'w-full justify-between font-normal',
+                            'w-full justify-between font-normal flex items-center',
                             !selectedLabel && 'text-muted-foreground',
                             error && 'border-red-500'
                         )}
                     >
-                        {selectedLabel || placeholder}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        {/* Truncate text logic */}
+                        <span className="truncate flex-1 text-left mr-2">
+                            {selectedLabel || placeholder}
+                        </span>
+                        <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>
 
@@ -162,11 +175,11 @@ function SearchableSelect({
                                     >
                                         <Check
                                             className={cn(
-                                                'mr-2 h-4 w-4',
+                                                'mr-2 h-4 w-4 shrink-0',
                                                 value === opt.value ? 'opacity-100' : 'opacity-0'
                                             )}
                                         />
-                                        {opt.label}
+                                        <span className="truncate">{opt.label}</span>
                                     </CommandItem>
                                 ))}
                             </CommandGroup>
@@ -185,10 +198,13 @@ export default function StockItemEditForm({
     onOpenChange,
     stock,
     units,
+    fundClusters,
 }: Props) {
     const [data, setData] = useState({
+        stock_no: '',
         item_name: '',
         description: '',
+        fund_cluster_id: '',
         units: [{ unitID: '', is_default: true }],
     });
     
@@ -206,8 +222,10 @@ export default function StockItemEditForm({
                 : [{ unitID: '', is_default: true }]; // Fallback if somehow none
 
             setData({
+                stock_no: stock.stock_no,
                 item_name: stock.item_name,
                 description: stock.description ?? '',
+                fund_cluster_id: stock.fund_cluster_id ?? '',
                 units: mappedUnits,
             });
             setErrors({});
@@ -290,6 +308,15 @@ export default function StockItemEditForm({
                                 <h3 className={sectionTitleClass}>Item Details</h3>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <Field
+                                        label="Stock No."
+                                        name="stock_no"
+                                        value={data.stock_no}
+                                        onChange={handleChange}
+                                        error={errors.stock_no}
+                                        required
+                                        placeholder="Enter stock number"
+                                    />
+                                    <Field
                                         label="Item Name"
                                         name="item_name"
                                         value={data.item_name}
@@ -298,14 +325,32 @@ export default function StockItemEditForm({
                                         required
                                         placeholder="e.g. Bond Paper A4"
                                     />
-                                    <Field
-                                        label="Description"
-                                        name="description"
-                                        value={data.description}
-                                        onChange={handleChange}
-                                        error={errors.description}
-                                        placeholder="e.g. 70gsm, 500 sheets per ream"
-                                    />
+                                    
+                                    {/* Add the Fund Cluster Select Field */}
+                                    <div className="md:col-span-1">
+                                        <SearchableSelect
+                                            label="Fund Cluster"
+                                            value={data.fund_cluster_id}
+                                            onChange={(val) => setData({ ...data, fund_cluster_id: val })}
+                                            placeholder="Select Fund Cluster..."
+                                            options={fundClusters.map((fc) => ({
+                                                value: fc.fund_cluster_id,
+                                                label: `${fc.fund_cluster_id} - ${fc.fund_description}`,
+                                            }))}
+                                            error={errors.fund_cluster_id}
+                                        />
+                                    </div>
+                                    
+                                    <div className="md:col-span-1">
+                                        <Field
+                                            label="Description"
+                                            name="description"
+                                            value={data.description}
+                                            onChange={handleChange}
+                                            error={errors.description}
+                                            placeholder="e.g. 70gsm, 500 sheets per ream"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -332,7 +377,8 @@ export default function StockItemEditForm({
                                                     {unitObj.is_default && <span className="text-[10px] text-muted-foreground font-semibold">Def.</span>}
                                                 </div>
                                                 
-                                                <div className="flex-1">
+                                                {/* Added w-0 min-w-0 flex-1 to prevent overflow from blowing out layout */}
+                                                <div className="flex-1 w-0 min-w-0">
                                                     <SearchableSelect
                                                         value={unitObj.unitID}
                                                         onChange={(val) => handleUnitChange(index, val)}
