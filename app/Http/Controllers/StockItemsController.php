@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\StockItem;
 use App\Models\Unit;
+use App\Models\FundCluster;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -12,13 +13,14 @@ class StockItemsController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $fundClusterId = $request->input('fund_cluster_id');
         
         // 1. Get the sorting parameters (defaulting to created_at descending if none provided)
         $sortField = $request->input('sort_field', 'created_at');
         $sortDirection = $request->input('sort_direction', 'desc');
 
         // 2. Validate the sort field to prevent SQL injection
-        $allowedSorts = ['stock_no', 'item_name', 'description', 'created_at'];
+        $allowedSorts = ['stock_no', 'item_name', 'description', 'fund_cluster_id', 'created_at']; 
         if (!in_array($sortField, $allowedSorts)) {
             $sortField = 'created_at';
         }
@@ -26,13 +28,19 @@ class StockItemsController extends Controller
         // Validate the sort direction
         $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
-        $query = StockItem::with(['units'])
+        $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
+
+        $query = StockItem::with(['units', 'fundCluster'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
                     $sub->where('stock_no', 'like', "%{$search}%")
                         ->orWhere('item_name', 'like', "%{$search}%")
                         ->orWhere('description', 'like', "%{$search}%");
                 });
+            })
+
+            ->when($fundClusterId, function ($q) use ($fundClusterId) {
+                $q->where('fund_cluster_id', $fundClusterId);
             });
 
         // 3. Apply the dynamic sorting
@@ -42,10 +50,11 @@ class StockItemsController extends Controller
 
         return Inertia::render('stock-items/index', [
             'stockItems' => $stockItems,
-            // Lists used in filters: show newest entries first where applicable
             'units' => Unit::orderByDesc('unitID')->get(),
+            'fundClusters' => FundCluster::orderBy('fund_cluster_id')->get(),
             'filters' => [
                 'search' => $search,
+                'fund_cluster_id' => $fundClusterId, // 4. Return it to the frontend
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
             ],
@@ -58,6 +67,7 @@ class StockItemsController extends Controller
             'stock_no' => 'required|string|max:255|unique:stock_items,stock_no',
             'item_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:255',
+            'fund_cluster_id' => 'nullable|exists:fund_clusters,fund_cluster_id',
             
             // Validation for the units array
             'units' => 'required|array|min:1',
@@ -82,6 +92,7 @@ class StockItemsController extends Controller
         $validated = $request->validate([
             'item_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:255',
+            'fund_cluster_id' => 'nullable|exists:fund_clusters,fund_cluster_id',
 
             // Validation for the units array
             'units' => 'required|array|min:1',

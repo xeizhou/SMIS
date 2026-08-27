@@ -27,10 +27,16 @@ interface Unit {
     unit_short_name: string;
 }
 
+interface FundCluster {
+    fund_cluster_id: string;
+    fund_description: string;
+}
+
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     units: Unit[];
+    fundClusters: FundCluster[]; // Added prop
 }
 
 interface FieldProps {
@@ -121,13 +127,16 @@ function SearchableSelect({
                         role="combobox"
                         aria-expanded={open}
                         className={cn(
-                            'w-full justify-between font-normal',
+                            'w-full justify-between font-normal flex items-center', // Added flex constraints
                             !selectedLabel && 'text-muted-foreground',
                             error && 'border-red-500'
                         )}
                     >
-                        {selectedLabel || placeholder}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        {/* Truncate ensures long text cuts off with ... instead of expanding/overlapping */}
+                        <span className="truncate flex-1 text-left mr-2">
+                            {selectedLabel || placeholder}
+                        </span>
+                        <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>
 
@@ -151,11 +160,11 @@ function SearchableSelect({
                                     >
                                         <Check
                                             className={cn(
-                                                'mr-2 h-4 w-4',
+                                                'mr-2 h-4 w-4 shrink-0',
                                                 value === opt.value ? 'opacity-100' : 'opacity-0'
                                             )}
                                         />
-                                        {opt.label}
+                                        <span className="truncate">{opt.label}</span>
                                     </CommandItem>
                                 ))}
                             </CommandGroup>
@@ -173,6 +182,7 @@ const getEmptyForm = () => ({
     stock_no: '',
     item_name: '',
     description: '',
+    fund_cluster_id: '',
     units: [{ unitID: '', is_default: true }], // Initialize with 1 empty default unit
 });
 
@@ -180,6 +190,7 @@ export default function StockItemAddForm({
     open,
     onOpenChange,
     units,
+    fundClusters,
 }: Props) {
     const [data, setData] = useState(getEmptyForm());
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -286,7 +297,23 @@ export default function StockItemAddForm({
                                         required
                                         placeholder="Enter item name"
                                     />
-                                    <div className="md:col-span-2">
+                                    
+                                    {/* Fund Cluster Select Field */}
+                                    <div className="md:col-span-1">
+                                        <SearchableSelect
+                                            label="Fund Cluster"
+                                            value={data.fund_cluster_id}
+                                            onChange={(val) => setData({ ...data, fund_cluster_id: val })}
+                                            placeholder="Select Fund Cluster..."
+                                            options={fundClusters.map((fc) => ({
+                                                value: fc.fund_cluster_id,
+                                                label: `${fc.fund_cluster_id} - ${fc.fund_description}`,
+                                            }))}
+                                            error={errors.fund_cluster_id}
+                                        />
+                                    </div>
+
+                                    <div className="md:col-span-1">
                                         <Field
                                             label="Description"
                                             name="description"
@@ -322,7 +349,7 @@ export default function StockItemAddForm({
                                                     {unitObj.is_default && <span className="text-[10px] text-muted-foreground font-semibold">Def.</span>}
                                                 </div>
                                                 
-                                                <div className="flex-1">
+                                                <div className="flex-1 w-0 min-w-0">
                                                     <SearchableSelect
                                                         value={unitObj.unitID}
                                                         onChange={(val) => handleUnitChange(index, val)}

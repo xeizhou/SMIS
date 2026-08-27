@@ -17,6 +17,13 @@ return new class extends Migration
                 ->constrained('units', 'unitID')
                 ->nullOnDelete();
 
+            // Add the fund cluster column and foreign key here
+            $table->string('fund_cluster_id', 50)->nullable();
+            $table->foreign('fund_cluster_id')
+                  ->references('fund_cluster_id')
+                  ->on('fund_clusters')
+                  ->nullOnDelete();
+
             $table->string('link', 500)->nullable();
             
             $table->timestamps();

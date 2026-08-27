@@ -34,6 +34,7 @@ class StockItem extends Model
         'item_name',
         'description',
         'unitID',
+        'fund_cluster_id',
     ];
 
     public function unit(): BelongsTo

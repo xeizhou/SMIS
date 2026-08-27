@@ -8,6 +8,13 @@ import StockItemEditForm from '@/components/stock-items/stockitemeditform';
 import StockItemViewForm from '@/components/stock-items/stockitemviewform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 interface Unit {
     unitID: number;
@@ -18,11 +25,18 @@ interface Unit {
     };
 }
 
+interface FundCluster {
+    fund_cluster_id: string;
+    fund_description: string;
+}
+
 interface StockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
     remarks: string | null;
+    fund_cluster_id?: string | null;
+    fund_cluster?: FundCluster; 
     units?: Unit[];
 }
 
@@ -37,6 +51,7 @@ interface PaginatedStockItems {
 
 interface Filters {
     search: string | null;
+    fund_cluster_id?: string | null;
     sort_field?: string;
     sort_direction?: 'asc' | 'desc';
 }
@@ -44,15 +59,18 @@ interface Filters {
 interface Props {
     stockItems: PaginatedStockItems;
     units: Unit[];
+    fundClusters: FundCluster[];
     filters: Filters;
 }
 
 export default function Index({
     stockItems,
     units,
+    fundClusters,
     filters,
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const [fundClusterFilter, setFundClusterFilter] = useState(filters.fund_cluster_id ?? '');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [viewOpen, setViewOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -66,7 +84,7 @@ export default function Index({
         
         router.get(
             '/stock-items',
-            { search, sort_field: field, sort_direction: direction },
+            { search, fund_cluster_id: fundClusterFilter, sort_field: field, sort_direction: direction },
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -79,7 +97,7 @@ export default function Index({
         e.preventDefault();
         router.get(
             '/stock-items',
-            { search, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
+            { search, fund_cluster_id: fundClusterFilter, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -90,6 +108,7 @@ export default function Index({
 
     const handleClear = () => {
         setSearch('');
+        setFundClusterFilter('');
         router.get(
             '/stock-items',
             {},
@@ -148,6 +167,46 @@ export default function Index({
                             />
                         </div>
 
+                        <Select
+                            value={fundClusterFilter || 'all'}
+                            onValueChange={(value) => {
+                                // Convert 'all' back to an empty string so the backend clears the filter
+                                const newValue = value === 'all' ? '' : value;
+                                
+                                setFundClusterFilter(newValue);
+
+                                router.get(
+                                    '/stock-items',
+                                    {
+                                        search,
+                                        fund_cluster_id: newValue,
+                                        sort_field: filters.sort_field,
+                                        sort_direction: filters.sort_direction,
+                                    },
+                                    {
+                                        preserveState: true,
+                                        preserveScroll: true,
+                                        replace: true,
+                                    }
+                                );
+                            }}
+                        >
+                            <SelectTrigger className={`w-[220px] ${!fundClusterFilter || fundClusterFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Fund Cluster" />
+                            </SelectTrigger>
+
+                            <SelectContent>
+                                <SelectItem value="all">
+                                    Filter by Fund Cluster
+                                </SelectItem>
+                                {fundClusters.map((fc) => (
+                                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
+                                        {fc.fund_cluster_id} - {fc.fund_description}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
                         <Button type="submit" variant="secondary">
                             Search
                         </Button>
@@ -201,6 +260,15 @@ export default function Index({
                                         Description
                                     </button>
                                 </th>
+                                <th className="p-0 font-semibold text-white bg-[#370001]">
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center gap-2 px-4 py-3 text-left outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
+                                        onClick={() => handleSort('fund_cluster_id')}
+                                    >
+                                        Fund Cluster
+                                    </button>
+                                </th>
                                 {/* Non-clickable headers still get the explicit bg-[#370001] class */}
                                 <th className="px-4 py-3 text-left font-semibold text-white bg-[#370001]">
                                     Unit(s)
@@ -235,6 +303,9 @@ export default function Index({
                                             <td className="px-4 py-3">{stock.item_name}</td>
                                             <td className="px-4 py-3">
                                                 {stock.description || '—'}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {stock.fund_cluster ? stock.fund_cluster.fund_cluster_id : '—'}
                                             </td>
                                             <td className="px-4 py-3">
                                                 {stock.units && stock.units.length > 0 
@@ -305,6 +376,7 @@ export default function Index({
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
                 units={units}
+                fundClusters={fundClusters}
             />
             <StockItemViewForm
                 open={viewOpen}
@@ -316,6 +388,7 @@ export default function Index({
                 onOpenChange={setEditOpen}
                 stock={selectedStock}
                 units={units}
+                fundClusters={fundClusters}
             />
             <StockItemDeleteModal
                 open={isDeleteModalOpen}
