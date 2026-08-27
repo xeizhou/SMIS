@@ -28,6 +28,7 @@ class PurchaseOrdersController extends Controller
         $search = $request->string('search')->toString() ?: null;
         $fundCluster = $request->string('fund_cluster')->toString() ?: null;
         $office = $request->string('office')->toString() ?: null;
+        $perPage = $request->integer('per_page', 10);
 
         $purchaseOrders = ServePo::query()
             ->with([
@@ -51,7 +52,7 @@ class PurchaseOrdersController extends Controller
             ->when($fundCluster, fn ($query, $fundCluster) => $query->where('fund_cluster_id', $fundCluster))
             ->when($office, fn ($query, $office) => $query->where('end_user', $office))
             ->latest()
-            ->paginateWithHighlight(10)
+            ->paginateWithHighlight($perPage)
             ->withQueryString();
 
         return Inertia::render('purchase-orders/index', [
