@@ -52,16 +52,9 @@ class User extends Authenticatable implements PasskeyUser
         ];
     }
 
-    public function getAvatarUrlAttribute(): ?string
+    public function getAvatarUrlAttribute()
     {
-        if (! $this->avatar_path) {
-            return null;
-        }
-
-        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
-        $disk = Storage::disk('public');
-
-        return $disk->url($this->avatar_path);
+        return $this->avatar_path ? route('avatar.show', $this->id) : null;
     }
 
     public function isAdmin(): bool

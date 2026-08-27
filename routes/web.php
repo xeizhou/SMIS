@@ -399,6 +399,13 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             });
     })->name('online-users');
 
+    Route::get('/avatar/{user}', function (\App\Models\User $user) {
+        abort_unless($user->avatar_path, 404);
+        abort_unless(\Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar_path), 404);
+
+        return \Illuminate\Support\Facades\Storage::disk('public')->response($user->avatar_path);
+    })->name('avatar.show');
+
     Route::post('/notifications/clear', function (\Illuminate\Http\Request $request) {
         $request->user()->notifications()->delete();
         return back();
