@@ -42,20 +42,27 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureActions(): void
     {
         Fortify::authenticateUsing(function (Request $request) {
-            $email = Str::lower($request->input(Fortify::username()));
+            $login = trim((string) $request->input(Fortify::username()));
             $password = $request->input('password');
 
-            $user = User::where('email', $email)->first();
+            \Log::info('CUSTOM AUTH CLOSURE HIT', [
+                'login' => $login,
+                'is_email' => filter_var($login, FILTER_VALIDATE_EMAIL) ? 'yes' : 'no',
+            ]);
+
+            $user = filter_var($login, FILTER_VALIDATE_EMAIL)
+                ? User::where('email', Str::lower($login))->first()
+                : User::whereRaw('LOWER(name) = ?', [Str::lower($login)])->first();
+            
+                \Log::info('CUSTOM AUTH CLOSURE RESULT', [
+                'user_found' => $user ? $user->id : null,
+                'password_match' => $user ? Hash::check($password, $user->password) : null,
+            ]);
 
             if (!$user || !Hash::check($password, $user->password)) {
                 return null;
             }
 
-            // Single-session enforcement: reject the login here, before
-            // Auth::login() is ever called, if this account already has a
-            // live session elsewhere. Throwing here surfaces the message
-            // through Fortify's normal errors.email mechanism — no changes
-            // needed to the React login form.
             if ($user->hasActiveSessionOwnedByAnother()) {
                 throw ValidationException::withMessages([
                     Fortify::username() => 'This account is already logged in on another device.',
