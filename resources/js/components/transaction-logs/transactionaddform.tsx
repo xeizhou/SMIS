@@ -49,6 +49,7 @@ interface StockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
+    available_stock?: number;
     units?: {
         unitID: number;
         pivot?: {
@@ -233,7 +234,11 @@ function SearchableSelect({
                 </PopoverTrigger>
 
                 <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
-                    <Command>
+                    <Command
+                        filter={(value, search) => {
+                            return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                        }}
+                    >
                         <CommandInput placeholder={placeholder} />
                         <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
                             <CommandEmpty>No item found.</CommandEmpty>
@@ -241,7 +246,7 @@ function SearchableSelect({
                                 {options.map((opt) => (
                                     <CommandItem
                                         key={opt.value}
-                                        value={`${opt.label} ${opt.value}`}
+                                        value={opt.label}
                                         onSelect={() => {
                                             onChange(opt.value);
                                             setOpen(false);
@@ -353,8 +358,22 @@ export default function TransactionAddForm({
         });
     };
 
+    // Derived: currently selected stock item + its available balance
+    const selectedItem = stockItems.find((s) => s.stock_no === selectedStockNo);
+    const availableStock = selectedItem?.available_stock ?? null;
+
+    const isOverStock =
+        data.transaction_type === 'ISSUE' &&
+        availableStock !== null &&
+        Number(data.quantity) > availableStock;
+
     const handleSubmit = (e: React.FormEvent) => {
                 e.preventDefault();
+
+                if (isOverStock) {
+                    return;
+                }
+
                 setProcessing(true);
 
                 router.post('/transaction-logs', {
@@ -485,16 +504,32 @@ export default function TransactionAddForm({
                                             ).values()
                                         )}
                                     />
-                                    <Field
-                                        label="Quantity"
-                                        name="quantity"
-                                        type="number"
-                                        min="0"
-                                        value={data.quantity}
-                                        onChange={handleChange}
-                                        error={errors.quantity}
-                                        required
-                                    />
+                                    <div>
+                                        <Field
+                                            label="Quantity"
+                                            name="quantity"
+                                            type="number"
+                                            min="0"
+                                            value={data.quantity}
+                                            onChange={handleChange}
+                                            error={
+                                                isOverStock
+                                                    ? `Cannot issue more than available stock (${availableStock}).`
+                                                    : errors.quantity
+                                            }
+                                            required
+                                        />
+                                        {data.transaction_type === 'ISSUE' && availableStock !== null && (
+                                            <p
+                                                className={cn(
+                                                    'mt-1 text-xs',
+                                                    isOverStock ? 'text-red-500 font-medium' : 'text-muted-foreground'
+                                                )}
+                                            >
+                                                Available stock: {availableStock}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -551,7 +586,7 @@ export default function TransactionAddForm({
                                     <Button
                                         type="submit"
                                         variant="outline"
-                                        disabled={processing}
+                                        disabled={processing || isOverStock}
                                         onClick={() => setSubmitAction('continue')}
                                         className="border-[#612A35] text-[#612A35] hover:bg-[#612A35] hover:text-white"
                                     >
@@ -560,7 +595,7 @@ export default function TransactionAddForm({
 
                                     <Button
                                         type="submit"
-                                        disabled={processing}
+                                        disabled={processing || isOverStock}
                                         style={{ backgroundColor: '#612A35' }}
                                         onClick={() => setSubmitAction('close')}
                                     >

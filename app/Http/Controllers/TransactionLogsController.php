@@ -52,6 +52,7 @@ class TransactionLogsController extends Controller
                 $q->where(function ($sub) use ($search) {
                     // Reverted: Only search item, reference, and office
                     $sub->where('item_name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
                         ->orWhere('reference', 'like', "%{$search}%")
                         ->orWhere('office_code', 'like', "%{$search}%")
                         ->orWhereHas('office', function ($officeQuery) use ($search) {
@@ -106,7 +107,13 @@ class TransactionLogsController extends Controller
             'units' => Unit::orderByDesc('unitID')->get(),
             'fundClusters' => FundCluster::orderByDesc('created_at')->get(),
             'offices' => Office::orderByDesc('office_code')->get(),
-            'stockItems' => StockItem::with('units')->orderByDesc('created_at')->get(['stock_no', 'item_name', 'description']),
+            'stockItems' => StockItem::with('units')
+                ->orderByDesc('created_at')
+                ->get(['stock_no', 'item_name', 'description'])
+                ->map(function ($item) {
+                    $item->available_stock = $this->getAvailableStock($item->stock_no);
+                    return $item;
+                }),
 
             'filters' => [
                 'search' => $search,
@@ -118,6 +125,24 @@ class TransactionLogsController extends Controller
                 'sort_direction' => $sortDirection,
             ],
         ]);
+    }
+
+    /**
+     * Current stock balance for a stock_no, computed from transaction history.
+     * $excludeId lets update() ignore the transaction being edited.
+     */
+    private function getAvailableStock(string $stockNo, ?int $excludeId = null): int
+    {
+        $query = Transaction::where('stock_no', $stockNo);
+
+        if ($excludeId) {
+            $query->where('transactionID', '!=', $excludeId);
+        }
+
+        $received = (clone $query)->where('transaction_type', 'RECEIVE')->sum('quantity');
+        $issued = (clone $query)->where('transaction_type', 'ISSUE')->sum('quantity');
+
+        return $received - $issued;
     }
 
     /**
@@ -137,6 +162,16 @@ class TransactionLogsController extends Controller
             'quantity' => 'required|integer|min:0',
             'office_code' => 'required|string|exists:offices,office_code',
         ]);
+
+        if ($validated['transaction_type'] === 'ISSUE' && $validated['stock_no']) {
+        $available = $this->getAvailableStock($validated['stock_no']);
+
+        if ($validated['quantity'] > $available) {
+            return back()->withErrors([
+                'quantity' => "Cannot issue {$validated['quantity']} unit(s) — only {$available} in stock.",
+            ])->withInput();
+        }
+    }
 
         $transaction = Transaction::create($validated);
 
@@ -162,6 +197,16 @@ class TransactionLogsController extends Controller
             'quantity' => 'required|integer|min:0',
             'office_code' => 'required|string|exists:offices,office_code',
         ]);
+
+        if ($validated['transaction_type'] === 'ISSUE' && $validated['stock_no']) {
+            $available = $this->getAvailableStock($validated['stock_no'], $transaction->transactionID);
+
+            if ($validated['quantity'] > $available) {
+                return back()->withErrors([
+                    'quantity' => "Cannot issue {$validated['quantity']} unit(s) — only {$available} in stock.",
+                ])->withInput();
+            }
+        }
 
         $isTypeChanged = $request->boolean('is_type_changed')
             && $validated['transaction_type'] !== $transaction->transaction_type;
