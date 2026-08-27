@@ -263,15 +263,6 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                 <th className="p-0 font-semibold text-white bg-[#370001]">
                                     <button
                                         type="button"
-                                        className="flex w-full items-center gap-2 px-4 py-3 text-left outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
-                                        onClick={() => handleSort('fund_cluster')}
-                                    >
-                                        Fund Cluster
-                                    </button>
-                                </th>
-                                <th className="p-0 font-semibold text-white bg-[#370001]">
-                                    <button
-                                        type="button"
                                         className="flex w-full items-center justify-center gap-2 px-4 py-3 outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
                                         onClick={() => handleSort('balance_per_stock_card')}
                                     >
@@ -286,7 +277,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                         <tbody>
                             {items.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-16 text-center">
+                                    <td colSpan={4} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No items found.
                                         </p>
@@ -308,13 +299,6 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                             {item.item_description ? ` - ${item.item_description}` : ''}
                                         </td>
                                         <td className="px-4 py-3">{item.unit_short_name}</td>
-                                        <td className="px-4 py-3">
-                                            {item.fund_clusters.length > 0
-                                                ? item.fund_clusters
-                                                      .map((fc) => fc.fund_cluster_id)
-                                                      .join(', ')
-                                                : '—'}
-                                        </td>
                                         <td className="px-4 py-3 text-center font-medium">
                                             {item.balance_per_stock_card}
                                         </td>

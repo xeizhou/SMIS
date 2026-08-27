@@ -20,8 +20,10 @@ class TransactionLogsController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $fundClusterFilter = $request->input('fund_cluster'); // 1. Catch the new filter
 
-        // 1. Get the sorting parameters (defaulting to transactionID descending)
         $sortField = $request->input('sort_field', 'transactionID');
         $sortDirection = $request->input('sort_direction', 'desc');
 
@@ -48,13 +50,32 @@ class TransactionLogsController extends Controller
         $query = Transaction::with(['unit', 'fundCluster', 'office'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
+                    // Reverted: Only search item, reference, and office
                     $sub->where('item_name', 'like', "%{$search}%")
-                        ->orWhere('reference', 'like', "%{$search}%");
+                        ->orWhere('reference', 'like', "%{$search}%")
+                        ->orWhere('office_code', 'like', "%{$search}%")
+                        ->orWhereHas('office', function ($officeQuery) use ($search) {
+                            $officeQuery->where('office_name', 'like', "%{$search}%")
+                                        ->orWhere('entity_name', 'like', "%{$search}%");
+                        });
                 });
             });
 
         if ($request->filled('transaction_type') && $request->transaction_type !== 'all') {
             $query->where('transaction_type', $request->transaction_type);
+        }
+
+        if ($request->filled('fund_cluster') && $request->fund_cluster !== 'all') {
+            $query->where('fund_cluster', $request->fund_cluster);
+        }
+
+        if ($dateFrom) {
+            // Starts at midnight of the selected day
+            $query->where('transaction_date', '>=', $dateFrom . ' 00:00:00');
+        }
+        if ($dateTo) {
+            // Ends at the very last second of the selected day
+            $query->where('transaction_date', '<=', $dateTo . ' 23:59:59');
         }
 
         // 3. Apply the dynamic sorting
@@ -90,6 +111,9 @@ class TransactionLogsController extends Controller
             'filters' => [
                 'search' => $search,
                 'transaction_type' => $request->input('transaction_type', 'all'),
+                'fund_cluster' => $request->input('fund_cluster', 'all'), // 3. Pass to frontend
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
             ],
