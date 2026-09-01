@@ -22,6 +22,7 @@ class ClearanceController extends Controller
         $perPage = $request->integer('per_page', 10);
         $search = $request->string('search')->toString() ?: null;
         $status = $request->string('status')->toString() ?: null;
+        $formAttribute = $request->string('form_attribute')->toString() ?: null;
 
         $query = Clearance::query()
             ->with(['office:office_code,office_name', 'checker:id,name'])
@@ -35,7 +36,8 @@ class ClearanceController extends Controller
                         ->orWhereHas('checker', fn ($userQuery) => $userQuery->where('name', 'like', "%{$search}%"));
                 });
             })
-            ->when($status, fn ($query, $status) => $query->where('status', $status));
+            ->when($status, fn ($query, $status) => $query->where('status', $status))
+            ->when($formAttribute, fn ($query, $formAttribute) => $query->where('form_attribute', $formAttribute));
 
         $records = (clone $query)
             ->with('attachments')
@@ -53,13 +55,25 @@ class ClearanceController extends Controller
             ->values()
             ->all();
 
+        $forms = Clearance::query()
+            ->select('form_attribute')
+            ->whereNotNull('form_attribute')
+            ->where('form_attribute', '!=', '')
+            ->distinct()
+            ->orderBy('form_attribute')
+            ->pluck('form_attribute')
+            ->values()
+            ->all();
+
         return Inertia::render('clearance/index', [
             'records' => $records,
             'filters' => [
                 'search' => $search,
                 'status' => $status,
+                'form_attribute' => $formAttribute,
             ],
             'statuses' => $statuses,
+            'forms' => $forms,
             'offices' => Office::select('office_code', 'office_name')
                 ->orderBy('office_name')
                 ->get(),
@@ -76,6 +90,7 @@ class ClearanceController extends Controller
             'office' => ['required', 'exists:offices,office_code'],
             'received_by' => ['required', 'string', 'max:100'],
             'remarks' => ['nullable', 'string', 'max:255'],
+            'form_attribute' => ['nullable', 'string', 'max:100'],
         ]);
 
         $validated['status'] = 'Pending';
@@ -115,6 +130,7 @@ class ClearanceController extends Controller
             'office' => ['required', 'exists:offices,office_code'],
             'received_by' => ['required', 'string', 'max:100'],
             'remarks' => ['nullable', 'string', 'max:255'],
+            'form_attribute' => ['nullable', 'string', 'max:100'],
             'deleted_attachment_ids' => ['nullable', 'array'],
             'deleted_attachment_ids.*' => ['integer'],
         ]);
@@ -165,10 +181,12 @@ class ClearanceController extends Controller
         $validated = $request->validate([
             'cleared' => 'boolean',
             'claimed' => 'boolean',
+            'end_user_claim' => ['nullable', 'string', 'max:100'],
         ]);
 
         // Assign the validated cleared boolean back to the model
         $clearance->cleared = $validated['cleared'];
+        $clearance->end_user_claim = $validated['end_user_claim'] ?? null;
 
         if ($validated['claimed'] && !$clearance->claim_date) {
             $clearance->claim_date = now();

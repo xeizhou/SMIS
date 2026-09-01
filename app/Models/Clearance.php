@@ -28,6 +28,8 @@ class Clearance extends Model
         'pending',
         'remarks',
         'checked_by_id',
+        'form_attribute',
+        'end_user_claim',
     ];
 
     protected $casts = [

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 interface UserOption {
     id: number;
@@ -26,6 +27,7 @@ interface ClearanceRecord {
     pending: boolean | string;
     remarks: string | null;
     checker?: UserOption | null;
+    end_user_claim?: string | null;
 }
 
 interface Props {
@@ -38,6 +40,7 @@ export default function ClearanceProcessModal({ open, onOpenChange, record }: Pr
     const { data, setData, patch, processing, errors, reset, clearErrors } = useForm({
         cleared: false,
         claimed: false,
+        end_user_claim: '',
     });
 
     useEffect(() => {
@@ -46,6 +49,7 @@ export default function ClearanceProcessModal({ open, onOpenChange, record }: Pr
             setData({
                 cleared: record.cleared === true || record.cleared === 'true' || record.cleared === '1',
                 claimed: !!record.claim_date,
+                end_user_claim: record.end_user_claim ?? '',
             });
         }
     }, [record, open]);
@@ -77,7 +81,7 @@ export default function ClearanceProcessModal({ open, onOpenChange, record }: Pr
                         <p className="text-sm font-medium">Name: <span className="font-normal text-muted-foreground">{record.name}</span></p>
                         <p className="text-sm font-medium mt-1">Office: <span className="font-normal text-muted-foreground">{typeof record.office === 'string' ? record.office : (record.office as OfficeOption)?.office_name}</span></p>
                         {record.checker && (
-                            <p className="text-sm font-medium mt-1">Claimed By: <span className="font-normal text-muted-foreground">{record.checker.name}</span></p>
+                            <p className="text-sm font-medium mt-1">Released By: <span className="font-normal text-muted-foreground">{record.checker.name}</span></p>
                         )}
                     </div>
                 )}
@@ -114,6 +118,19 @@ export default function ClearanceProcessModal({ open, onOpenChange, record }: Pr
                             disabled={!data.cleared}
                         />
                     </div>
+
+                    {data.claimed && (
+                        <div className="space-y-1.5 px-1">
+                            <Label htmlFor="end_user_claim">Claimed By</Label>
+                            <Input
+                                id="end_user_claim"
+                                value={data.end_user_claim}
+                                onChange={(e) => setData('end_user_claim', e.target.value)}
+                                placeholder="Enter end user name"
+                            />
+                            {errors.end_user_claim && <p className="text-xs text-red-500">{errors.end_user_claim}</p>}
+                        </div>
+                    )}
 
                     <div className="flex justify-end gap-3 pt-4">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>

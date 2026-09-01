@@ -35,7 +35,18 @@ const emptyForm: Record<string, string> = {
     received_by: '',
     cleared: 'false',
     remarks: '',
+    form_attribute: '',
 };
+
+const clearanceTypes = [
+    'retired',
+    'jo/cos/reliever',
+    'resignation',
+    'external campus',
+    'transfer',
+    'faculty clearance',
+    'others'
+];
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
 const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
@@ -179,6 +190,7 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
     const [processing, setProcessing] = useState(false);
     const [newFiles, setNewFiles] = useState<StagedFile[]>([]);
     const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null);
+    const [isOtherType, setIsOtherType] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -193,6 +205,7 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
             });
             setNewFiles([]);
             setPreviewTarget(null);
+            setIsOtherType(false);
         }
     }, [open]);
 
@@ -217,6 +230,16 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
             ...data,
             [name]: value,
         });
+    };
+
+    const handleTypeSelect = (value: string) => {
+        if (value === 'others') {
+            setIsOtherType(true);
+            setData((prev) => ({ ...prev, form_attribute: '' }));
+        } else {
+            setIsOtherType(false);
+            setData((prev) => ({ ...prev, form_attribute: value }));
+        }
     };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -268,6 +291,7 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
         formData.append('office', data.office);
         formData.append('received_by', data.received_by);
         if (data.remarks) formData.append('remarks', data.remarks);
+        if (data.form_attribute) formData.append('form_attribute', data.form_attribute);
 
         newFiles.forEach(({ file }) => formData.append('files[]', file));
 
@@ -306,7 +330,7 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                     {/* Section: Requester Information */}
                     <div>
                         <h3 className={sectionTitleClass}>Requester Information</h3>
-                        <div className="grid gap-4 md:grid-cols-3">
+                        <div className="grid gap-4 md:grid-cols-2">
                             <div>
                                 <label className={labelClass} htmlFor="name">Name <span className="text-red-500">*</span></label>
                                 <Input id="name" name="name" value={data.name} onChange={handleChange} placeholder="Enter full name" />
@@ -330,6 +354,35 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                                 <label className={labelClass} htmlFor="received_by">Received By <span className="text-red-500">*</span></label>
                                 <Input id="received_by" name="received_by" value={data.received_by} onChange={handleChange} placeholder="Enter receiver name" />
                                 {errors.received_by && <p className="mt-1 text-xs text-red-500">{errors.received_by}</p>}
+                            </div>
+
+                            <div>
+                                <label className={labelClass}>Type</label>
+                                <Select 
+                                    value={isOtherType ? 'others' : (clearanceTypes.includes(data.form_attribute) ? data.form_attribute : (data.form_attribute ? 'others' : ''))}
+                                    onValueChange={handleTypeSelect}
+                                >
+                                    <SelectTrigger className={errors.form_attribute ? 'border-red-500' : ''}>
+                                        <SelectValue placeholder="Select type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {clearanceTypes.map((type) => (
+                                            <SelectItem key={type} value={type} className="capitalize">
+                                                {type}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {isOtherType && (
+                                    <Input 
+                                        className="mt-2" 
+                                        placeholder="Specify other form" 
+                                        name="form_attribute" 
+                                        value={data.form_attribute} 
+                                        onChange={handleChange} 
+                                    />
+                                )}
+                                {errors.form_attribute && <p className="mt-1 text-xs text-red-500">{errors.form_attribute}</p>}
                             </div>
                         </div>
                     </div>
