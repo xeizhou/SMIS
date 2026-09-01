@@ -30,12 +30,14 @@ export function ChatListButton({ isCollapsed }: { isCollapsed: boolean }) {
             .catch(() => {});
     };
 
+    // Poll regardless of whether the popover is open, so the unread ping
+    // shows up on the bell icon as soon as a new message arrives —
+    // not just after the user has already clicked in to check.
     useEffect(() => {
-        if (!open) return;
         fetchConversations();
-        const interval = setInterval(fetchConversations, 8000);
+        const interval = setInterval(fetchConversations, 15000);
         return () => clearInterval(interval);
-    }, [open]);
+    }, []);
 
     function openChat(c: Conversation) {
         setActiveChat(c);
