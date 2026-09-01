@@ -73,6 +73,7 @@ class StockItemsListController extends Controller
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
                     $sub->where('i.item_name', 'like', "%{$search}%")
+                        ->orWhere('i.description', 'like', "%{$search}%")
                         ->orWhere('i.stock_no', 'like', "%{$search}%");
                 });
             })
@@ -254,6 +255,7 @@ class StockItemsListController extends Controller
             ->when($search && $search !== 'None', function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
                     $sub->where('i.item_name', 'like', "%{$search}%")
+                        ->orWhere('i.description', 'like', "%{$search}%")
                         ->orWhere('i.stock_no', 'like', "%{$search}%");
                 });
             })

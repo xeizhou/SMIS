@@ -153,7 +153,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                         <div className="relative w-full max-w-sm">
                             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                placeholder="Search item name..."
+                                placeholder="Search item..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="pl-9"
