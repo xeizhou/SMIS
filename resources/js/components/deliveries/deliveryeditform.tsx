@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X, RefreshCw, Check, ChevronsUpDown, Trash2, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive } from 'lucide-react';
+import { Paperclip, X, RefreshCw, Check, ChevronsUpDown, Trash2, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive, Plus } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -52,12 +52,17 @@ interface PurchaseOrderOption {
     po_received_date: string | null;
 }
 
+interface DeliveryDateRecord {
+    delivery_date: string;
+}
+
 interface DeliveryRecord {
     delivery_id: string;
     po_number: string;
     supplier_id: number | null;
     supplier?: SupplierOption | null;
     delivery_date: string | null;
+    delivery_dates?: DeliveryDateRecord[];
     po_date_received: string | null;
     delivery_term: string | number | null;
     due_date: string | null;
@@ -343,7 +348,7 @@ const emptyForm = {
     po_number: '',
     supplier_id: '',
     supplier_name: '',
-    delivery_date: '',
+    delivery_dates: [''] as string[],
     po_date_received: '',
     delivery_term: '',
     due_date: '',
@@ -372,11 +377,20 @@ function generateFileId() {
 
 function toFormData(delivery: DeliveryRecord | null) {
     if (!delivery) return emptyForm;
+
+    // Prefer the delivery_dates relation (multiple dates); fall back to the
+    // single legacy delivery_date column for older/unmigrated records.
+    const dates = delivery.delivery_dates && delivery.delivery_dates.length > 0
+        ? delivery.delivery_dates.map((d) => toDateInputValue(d.delivery_date)).filter(Boolean)
+        : delivery.delivery_date
+            ? [toDateInputValue(delivery.delivery_date)]
+            : [];
+
     return {
         po_number: delivery.po_number ?? '',
         supplier_id: delivery.supplier_id === null || delivery.supplier_id === undefined ? '' : String(delivery.supplier_id),
         supplier_name: delivery.supplier?.supplier_name ?? '',
-        delivery_date: toDateInputValue(delivery.delivery_date),
+        delivery_dates: dates.length > 0 ? dates : [''],
         po_date_received: toDateInputValue(delivery.po_date_received),
         delivery_term: delivery.delivery_term === null || delivery.delivery_term === undefined ? '' : String(delivery.delivery_term),
         due_date: toDateInputValue(delivery.due_date),
@@ -450,7 +464,14 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
     }, []);
 
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
-    const computedLdDays = daysBetween(data.due_date, data.delivery_date);
+
+    // Latest non-empty delivery date drives the "days late" calculation,
+    // same convention used to pick delivery_date on the backend (sort().last()).
+    const latestDeliveryDate = data.delivery_dates
+        .filter((d) => d.trim() !== '')
+        .sort()
+        .pop() ?? '';
+    const computedLdDays = daysBetween(data.due_date, latestDeliveryDate);
 
     // Status is auto-derived from delivery data — not manually picked, except
     // CANCELLED which stays a manual override since it can't be inferred.
@@ -461,8 +482,9 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
             }
 
             let nextStatus = '';
+            const anyDate = prev.delivery_dates.some((d) => d.trim() !== '');
 
-            if (!prev.delivery_date) {
+            if (!anyDate) {
                 nextStatus = 'PENDING';
             } else {
                 const delivered = parseFloat(prev.total_amount_delivered);
@@ -484,7 +506,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
 
             return { ...prev, status: nextStatus };
         });
-    }, [data.delivery_date, data.total_amount_delivered, data.po_total_amount]);
+    }, [data.delivery_dates, data.total_amount_delivered, data.po_total_amount]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -516,6 +538,30 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
             ...data,
             [name]: value,
         });
+    };
+
+    const updateDeliveryDate = (index: number, value: string) => {
+        setData((prev) => ({
+            ...prev,
+            delivery_dates: prev.delivery_dates.map((d, i) => (i === index ? value : d)),
+        }));
+    };
+
+    const addDeliveryDate = () => {
+        setData((prev) => ({
+            ...prev,
+            delivery_dates: [...prev.delivery_dates, ''],
+        }));
+    };
+
+    const removeDeliveryDate = (index: number) => {
+        setData((prev) => ({
+            ...prev,
+            delivery_dates:
+                prev.delivery_dates.length > 1
+                    ? prev.delivery_dates.filter((_, i) => i !== index)
+                    : prev.delivery_dates,
+        }));
     };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -574,6 +620,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
         const { supplier_name, ...rest } = data;
         const payload = {
             ...rest,
+            delivery_dates: rest.delivery_dates.filter((d) => d.trim() !== ''),
             delivery_term: Number(rest.delivery_term) || 0,
             no_of_days_ld: computedLdDays,
             po_total_amount: rest.po_total_amount || (selectedPo?.total_amount_po != null ? String(selectedPo.total_amount_po) : ''),
@@ -700,14 +747,41 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                             <div>
                                 <h3 className={sectionTitleClass}>Delivery Information</h3>
                                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                                    <Field 
-                                        label="Date of Delivery" 
-                                        name="delivery_date" 
-                                        type="date" 
-                                        value={data.delivery_date} 
-                                        onChange={handleChange} 
-                                        error={errors.delivery_date}
-                                    />
+                                    {/* Multiple delivery dates — same chip pattern as the Add form */}
+                                    <div className="md:col-span-2">
+                                        <label className={labelClass}>Date(s) of Delivery</label>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {data.delivery_dates.map((date, index) => (
+                                                <div key={`delivery-date-${index}`} className="flex items-center gap-1">
+                                                    <Input
+                                                        type="date"
+                                                        value={date}
+                                                        onChange={(e) => updateDeliveryDate(index, e.target.value)}
+                                                        className="h-9 w-36"
+                                                    />
+                                                    {data.delivery_dates.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeDeliveryDate(index)}
+                                                            className="text-muted-foreground hover:text-red-600"
+                                                            title="Remove date"
+                                                        >
+                                                            <X className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                onClick={addDeliveryDate}
+                                                className="flex h-9 w-9 items-center justify-center rounded-md border border-dashed text-muted-foreground hover:bg-muted/40"
+                                                title="Add another delivery date"
+                                            >
+                                                <Plus className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
+                                        {errors.delivery_dates && <p className="mt-1 text-xs text-red-500">{errors.delivery_dates}</p>}
+                                    </div>
 
                                     <Field
                                         label="No. of Days (LD)"

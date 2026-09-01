@@ -27,7 +27,7 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
-import { toDateInputValue, addDays } from '@/lib/date';
+import { toDateInputValue, addDays, daysBetween } from '@/lib/date';
 
 interface SupplierOption {
     supplier_id: number;
@@ -366,6 +366,14 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
     const hasDeliveryDate = data.delivery_dates.some((d) => d.trim() !== '');
 
+    // Latest non-empty delivery date drives the "days late" calculation,
+    // same convention used to pick delivery_date on the backend (sort().last()).
+    const latestDeliveryDate = data.delivery_dates
+        .filter((d) => d.trim() !== '')
+        .sort()
+        .pop() ?? '';
+    const computedLdDays = daysBetween(data.due_date, latestDeliveryDate);
+
     // Status is auto-derived from delivery data — not manually picked, except
     // CANCELLED which stays a manual override since it can't be inferred.
     useEffect(() => {
@@ -513,7 +521,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
             delivery_dates: rest.delivery_dates.filter((d) => d.trim() !== ''),
             delivery_id: newDeliveryId,
             delivery_term: Number(rest.delivery_term) || 0,
-            no_of_days_ld: rest.no_of_days_ld || 0,
+            no_of_days_ld: computedLdDays,
             po_total_amount: rest.po_total_amount || (selectedPo?.total_amount_po != null ? String(selectedPo.total_amount_po) : ''),
             end_user: rest.end_user || (selectedPo?.end_user ?? ''),
             supplier_id: rest.supplier_id || (selectedPo?.supplier_id ? String(selectedPo.supplier_id) : ''),
@@ -671,6 +679,17 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                 </div>
                                 {errors.delivery_dates && <p className="mt-1 text-xs text-red-500">{errors.delivery_dates}</p>}
                             </div>
+
+                            <Field
+                                label="No. of Days (LD)"
+                                name="no_of_days_ld"
+                                type="number"
+                                value={String(computedLdDays)}
+                                onChange={handleChange}
+                                error={errors.no_of_days_ld}
+                                readOnly
+                                disabled
+                            />
 
                             <Field
                                 label="Received By (1)"
