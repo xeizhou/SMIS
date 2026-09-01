@@ -69,11 +69,8 @@ interface Props {
 
 export default function Index({ records, filters, statuses, forms, offices }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
-    const [categoryFilter, setCategoryFilter] = useState(() => {
-        if (filters.status) return `status:${filters.status}`;
-        if (filters.form_attribute) return `type:${filters.form_attribute}`;
-        return 'all';
-    });
+    const [statusFilter, setStatusFilter] = useState(filters.status ?? 'all');
+    const [typeFilter, setTypeFilter] = useState(filters.form_attribute ?? 'all');
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -83,33 +80,36 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
 
-        let newStatus = '';
-        let newForm = '';
-        if (categoryFilter.startsWith('status:')) {
-            newStatus = categoryFilter.replace('status:', '');
-        } else if (categoryFilter.startsWith('type:')) {
-            newForm = categoryFilter.replace('type:', '');
-        }
+        const newStatus = statusFilter === 'all' ? '' : statusFilter;
+        const newType = typeFilter === 'all' ? '' : typeFilter;
 
-        router.get('/clearance', { search, status: newStatus, form_attribute: newForm }, {
+        router.get('/clearance', { search, status: newStatus, form_attribute: newType }, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
         });
     };
 
-    const handleCategoryChange = (value: string) => {
-        setCategoryFilter(value);
+    const handleStatusChange = (value: string) => {
+        setStatusFilter(value);
 
-        let newStatus = '';
-        let newForm = '';
-        if (value.startsWith('status:')) {
-            newStatus = value.replace('status:', '');
-        } else if (value.startsWith('type:')) {
-            newForm = value.replace('type:', '');
-        }
+        const newStatus = value === 'all' ? '' : value;
+        const newType = typeFilter === 'all' ? '' : typeFilter;
 
-        router.get('/clearance', { search, status: newStatus, form_attribute: newForm }, {
+        router.get('/clearance', { search, status: newStatus, form_attribute: newType }, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const handleTypeChange = (value: string) => {
+        setTypeFilter(value);
+
+        const newStatus = statusFilter === 'all' ? '' : statusFilter;
+        const newType = value === 'all' ? '' : value;
+
+        router.get('/clearance', { search, status: newStatus, form_attribute: newType }, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -118,7 +118,8 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
 
     const handleClear = () => {
         setSearch('');
-        setCategoryFilter('all');
+        setStatusFilter('all');
+        setTypeFilter('all');
 
         router.get('/clearance', {}, {
             preserveState: true,
@@ -161,28 +162,27 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
                             <Input placeholder="Search by name or received by" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
                         </div>
 
-                        <Select value={categoryFilter} onValueChange={handleCategoryChange}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="All Categories" />
+                        <Select value={statusFilter} onValueChange={handleStatusChange}>
+                            <SelectTrigger className="w-[160px]">
+                                <SelectValue placeholder="All Status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Categories</SelectItem>
-                                {statuses.length > 0 && (
-                                    <SelectGroup>
-                                        <SelectLabel>Status</SelectLabel>
-                                        {statuses.map((item) => (
-                                            <SelectItem key={`status:${item}`} value={`status:${item}`}>{item}</SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                )}
-                                {forms.length > 0 && (
-                                    <SelectGroup>
-                                        <SelectLabel>Type</SelectLabel>
-                                        {forms.map((item) => (
-                                            <SelectItem key={`type:${item}`} value={`type:${item}`}>{item}</SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                )}
+                                <SelectItem value="all">All Status</SelectItem>
+                                {statuses.map((item) => (
+                                    <SelectItem key={item} value={item}>{item}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={typeFilter} onValueChange={handleTypeChange}>
+                            <SelectTrigger className="w-[160px]">
+                                <SelectValue placeholder="All Types" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Types</SelectItem>
+                                {forms.map((item) => (
+                                    <SelectItem key={item} value={item}>{item}</SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
 
