@@ -9,8 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('model:prune')->daily();
-
-if (\App\Models\Setting::get('delivery_email_enabled', true)) {
-    $time = \App\Models\Setting::get('delivery_email_schedule_time', '08:00');
-    Schedule::command('deliveries:send-overdue-emails')->dailyAt($time);
-}
+Schedule::command('deliveries:send-overdue-emails')->dailyAt('08:00');

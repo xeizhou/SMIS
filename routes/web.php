@@ -620,8 +620,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         }
 
         return response()->json([
-            'delivery_email_enabled' => \App\Models\Setting::get('delivery_email_enabled', true),
-            'delivery_email_schedule_time' => \App\Models\Setting::get('delivery_email_schedule_time', '08:00'),
+            'delivery_email_enabled' => true,
+            'delivery_email_schedule_time' => '08:00',
             'raw_tasks' => $tasks,
         ]);
     })->name('api.scheduled-tasks.index');
@@ -632,10 +632,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             'delivery_email_schedule_time' => 'required|string',
         ]);
 
-        \App\Models\Setting::set('delivery_email_enabled', $request->boolean('delivery_email_enabled'));
-        \App\Models\Setting::set('delivery_email_schedule_time', $request->input('delivery_email_schedule_time'));
-
-        return response()->json(['message' => 'Settings saved successfully.']);
+        return response()->json(['message' => 'Settings model was removed. Changes are not persisted.']);
     })->name('api.scheduled-tasks.store');
 
     Route::get('/api/messages/{message}/attachment', [\App\Http\Controllers\MessageController::class, 'attachment'])
