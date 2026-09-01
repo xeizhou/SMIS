@@ -56,8 +56,14 @@ const formatCurrency = (amount: number | string | null | undefined) => {
     }).format(num);
 };
 
+const conditionBadgeClass = (condition: string) => {
+    if (condition === 'UNSERVICEABLE') {
+        return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+    }
+    return 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300';
+};
+
 export default function Index({ data = { data: [], links: [], current_page: 1, last_page: 1, per_page: 10, total: 0, from: null, to: null }, filters = {} }: { data?: PaginatedForDisposal, filters?: any }) {
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -68,11 +74,6 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
     const [conditionFilter, setConditionFilter] = useState(filters.condition_of_ppe || 'all');
 
     const [selectedItem, setSelectedItem] = useState<ForDisposalMonitoring | null>(null);
-
-    const openAddModal = () => {
-        setSelectedItem(null);
-        setIsAddModalOpen(true);
-    };
 
     const openEditModal = (item: ForDisposalMonitoring) => {
         setSelectedItem(item);
@@ -164,8 +165,11 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                         <thead className="bg-[#3e0b0e] text-white/90">
                             <tr>
                                 <th className="px-4 py-3 font-medium">Transaction No.</th>
+                                <th className="px-4 py-3 font-medium">Property No.</th>
                                 <th className="px-4 py-3 font-medium">Description</th>
+                                <th className="px-4 py-3 font-medium">Location</th>
                                 <th className="px-4 py-3 font-medium">Amount</th>
+                                <th className="px-4 py-3 font-medium">Condition</th>
                                 <th className="px-4 py-3 font-medium text-center">Actions</th>
                             </tr>
                         </thead>
@@ -177,8 +181,15 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                         className={'transition-colors duration-1000 ' + 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'} data-search-0={item.property_no} data-search-1={item.transaction_no} data-record-id={item.id}
                                     >
                                         <td className="px-4 py-3 font-medium">{item.transaction_no}</td>
+                                        <td className="px-4 py-3">{item.property_no}</td>
                                         <td className="px-4 py-3">{item.description}</td>
+                                        <td className="px-4 py-3">{item.location}</td>
                                         <td className="px-4 py-3">{formatCurrency(item.amount)}</td>
+                                        <td className="px-4 py-3">
+                                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${conditionBadgeClass(item.condition_of_ppe)}`}>
+                                                {item.condition_of_ppe}
+                                            </span>
+                                        </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">
                                                 <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
@@ -196,7 +207,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-16 text-center">
+                                    <td colSpan={7} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No For Disposal records added yet.
                                         </p>
