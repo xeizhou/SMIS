@@ -17,15 +17,14 @@ class RRPPEMonitoring extends Model
     protected $fillable = [
         'rrppe_no',
         'date_received',
-        'item_description',
-        'quantity',
-        'property_no',
         'end_user_name',
-        'cost',
-        'status',
-        'area',
-        'remarks',
+        'return_by',
     ];
+
+    public function items()
+    {
+        return $this->hasMany(RrppeItem::class, 'rrppe_monitoring_id');
+    }
 
     public function getActivityUrl()
     {

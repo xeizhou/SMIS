@@ -2,18 +2,18 @@
 
 namespace Database\Factories;
 
-use App\Models\RrspItem;
-use App\Models\RRSPMonitoring;
+use App\Models\RrppeItem;
+use App\Models\RRPPEMonitoring;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-class RrspItemFactory extends Factory
+class RrppeItemFactory extends Factory
 {
-    protected $model = RrspItem::class;
+    protected $model = RrppeItem::class;
 
     public function definition(): array
     {
         return [
-            'rrsp_monitoring_id' => RRSPMonitoring::factory(),
+            'rrppe_monitoring_id' => RRPPEMonitoring::factory(),
             'item_name' => $this->faker->word(),
             'item_description' => $this->faker->sentence(6),
             'quantity' => $this->faker->numberBetween(1, 50),

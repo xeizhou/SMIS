@@ -62,32 +62,38 @@ export default function RrppeViewModal({ open, onOpenChange, item }: Props) {
                     <section>
                         <p className={sectionTitleClass}>General Information</p>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            <Detail label="RRPPE No." value={item.rrppe_no} />
-                            <Detail label="Date Received" value={item.date_received} />
-                            <div className="sm:col-span-3">
-                                <Detail label="Item Description" value={item.item_description} />
-                            </div>
-                        </div>
-                    </section>
-                    <section>
-                        <p className={sectionTitleClass}>Asset Details</p>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            <Detail label="Quantity" value={item.quantity} />
-                            <Detail label="Property No." value={item.property_no} />
-                            <Detail label="Cost" value={formatCurrency(item.cost)} />
+                            <Detail label="RRPPE No." value={item.rrppeNo} />
+                            <Detail label="Date Received" value={item.dateReceived} />
+                            <Detail label="End User Name" value={item.endUserName || '-'} />
+                            <Detail label="Return By" value={item.returnBy || '-'} />
                         </div>
                     </section>
 
                     <section>
-                        <p className={sectionTitleClass}>Assignment & Status</p>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            <Detail label="End User Name" value={item.end_user_name || '-'} />
-                            <Detail label="Area" value={item.area || '-'} />
-                            <Detail label="Status" value={<StatusBadge status={item.status} />} />
-                            {item.status === 'UNSERVICEABLE' && (
-                                <div className="sm:col-span-3">
-                                    <Detail label="Remarks / Findings" value={item.remarks || '-'} />
-                                </div>
+                        <p className={sectionTitleClass}>Items</p>
+                        <div className="space-y-6">
+                            {item.items && item.items.length > 0 ? (
+                                item.items.map((i, index) => (
+                                    <div key={index} className="rounded-md border p-4 bg-muted/10">
+                                        <h4 className="mb-3 text-sm font-medium">Item #{index + 1}</h4>
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                            <Detail label="Item Name" value={i.itemName || '-'} />
+                                            <Detail label="Item Description" value={i.itemDescription || '-'} />
+                                            <Detail label="Quantity" value={i.quantity || '-'} />
+                                            <Detail label="Property No." value={i.propertyNo || '-'} />
+                                            <Detail label="Cost" value={formatCurrency(i.cost)} />
+                                            <Detail label="Area" value={i.area || '-'} />
+                                            <Detail label="Status" value={<StatusBadge status={i.status} />} />
+                                            {i.status === 'UNSERVICEABLE' && (
+                                                <div className="sm:col-span-3">
+                                                    <Detail label="Remarks / Findings" value={i.remarks || '-'} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No items available.</p>
                             )}
                         </div>
                     </section>
