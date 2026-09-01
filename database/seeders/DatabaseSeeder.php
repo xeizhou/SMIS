@@ -110,7 +110,9 @@ class DatabaseSeeder extends Seeder
         }
 
         if (RRPPEMonitoring::count() === 0) {
-            $rrppe = RRPPEMonitoring::factory(40)->create();
+            $rrppe = RRPPEMonitoring::factory(40)
+                ->has(\App\Models\RrppeItem::factory()->count(rand(1, 5)), 'items')
+                ->create();
         } else {
             $rrppe = RRPPEMonitoring::all();
         }

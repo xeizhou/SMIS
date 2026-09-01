@@ -32,8 +32,8 @@ import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
 const platformNavItems: NavItem[] = [
-    { title: 'RRPPE Monitoring', href: '/rrppe-monitoring' },
-    { title: 'RRSP Monitoring', href: '/rrsp-monitoring' },
+    { title: 'RRPPE Monitoring', href: '/rrppe-monitoring', activeUrls: ['/rrppe-monitoring', '/rrppe-monitoring/areas'] },
+    { title: 'RRSP Monitoring', href: '/rrsp-monitoring', activeUrls: ['/rrsp-monitoring', '/rrsp-monitoring/areas'] },
     { title: 'RegSPI Monitoring', href: '/regspi-monitoring' },
     { title: 'ITR / PTR Monitoring', href: '/itr-ptr-monitoring' },
     { title: 'For-Disposal Monitoring', href: '/for-disposal-monitoring' },

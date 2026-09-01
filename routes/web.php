@@ -427,6 +427,11 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::put('/rrppe-monitoring/{id}', [RRPPEController::class, 'update'])->name('rrppe-monitoring.update');
     Route::delete('/rrppe-monitoring/{id}', [RRPPEController::class, 'destroy'])->name('rrppe-monitoring.destroy');
 
+    Route::get('/rrppe-monitoring/areas', [App\Http\Controllers\RrppeAreaController::class, 'index'])->name('rrppe-monitoring.areas.index');
+    Route::post('/rrppe-monitoring/areas', [App\Http\Controllers\RrppeAreaController::class, 'store'])->name('rrppe-monitoring.areas.store');
+    Route::put('/rrppe-monitoring/areas/{area}', [App\Http\Controllers\RrppeAreaController::class, 'update'])->name('rrppe-monitoring.areas.update');
+    Route::delete('/rrppe-monitoring/areas/{area}', [App\Http\Controllers\RrppeAreaController::class, 'destroy'])->name('rrppe-monitoring.areas.destroy');
+
     Route::get('/rrsp-monitoring', [RRSPController::class, 'index'])->name('rrsp-monitoring.index');
     Route::get('/rrsp-monitoring/areas', [App\Http\Controllers\AreaController::class, 'index'])->name('rrsp-monitoring.areas.index');
     Route::post('/rrsp-monitoring/areas', [App\Http\Controllers\AreaController::class, 'store'])->name('rrsp-monitoring.areas.store');
