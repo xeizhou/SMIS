@@ -434,7 +434,7 @@ export default function StockItemEditForm({
                                 </Button>
                                 <Button
                                     type="submit"
-                                    style={{ backgroundColor: '#612A35' }}
+                                    className="w-full lg:w-auto bg-[#612A35] hover:bg-[#612A35]/90 text-white"
                                     disabled={isProcessing}
                                 >
                                     {isProcessing ? 'Updating...' : 'Update Stock Item'}

@@ -624,7 +624,7 @@ export default function TransactionEditForm({
                         <Button
                             type="submit"
                             disabled={processing || isOverStock}
-                            style={{ backgroundColor: isTypeChanged ? '#612A35' : '#612A35' }}
+                            className="w-full lg:w-auto bg-[#612A35] hover:bg-[#612A35]/90 text-white"
                         >
                             {processing
                                 ? 'Saving...'

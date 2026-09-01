@@ -141,7 +141,7 @@ export default function UnitAddForm({
                         </Button>
                         <Button
                             type="submit"
-                            style={{ backgroundColor: '#612A35' }}
+                            className="bg-[#612A35] hover:bg-[#612A35]/90 text-white"
                         >
                             Save Unit
                         </Button>

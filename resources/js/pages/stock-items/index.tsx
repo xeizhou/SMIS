@@ -198,13 +198,13 @@ export default function Index({
                                 );
                             }}
                         >
-                            <SelectTrigger className={`w-[220px] ${!fundClusterFilter || fundClusterFilter === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Fund Cluster" />
+                            <SelectTrigger className="w-[220px] text-black">
+                                <SelectValue placeholder="All Fund Clusters" />
                             </SelectTrigger>
 
                             <SelectContent>
                                 <SelectItem value="all">
-                                    Filter by Fund Cluster
+                                    All Fund Clusters
                                 </SelectItem>
                                 {fundClusters.map((fc) => (
                                     <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
@@ -228,8 +228,7 @@ export default function Index({
                     <Button
                         type="button"
                         onClick={() => setDialogOpen(true)}
-                        className="w-full lg:w-auto"
-                        style={{ backgroundColor: '#612A35' }}
+                        className="w-full lg:w-auto bg-[#612A35] hover:bg-[#612A35]/90 text-white"
                     >
                         Add Stock Item
                     </Button>
@@ -237,7 +236,14 @@ export default function Index({
 
                 {/* Table */}
                 <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm table-fixed">
+                        <colgroup>
+                            <col className="w-[15%]" />
+                            <col className="w-[20%]" />
+                            <col className="w-[30%]" />
+                            <col className="w-[20%]" />
+                            <col className="w-[15%]" />
+                        </colgroup>
                         <thead className="border-b">
                             <tr>
                                 <th className="p-0 font-semibold text-white bg-[#370001]">
@@ -297,9 +303,9 @@ export default function Index({
                                             data-search-0={stock.item_name} 
                                             data-record-id={stock.stock_no}
                                         >
-                                            <td className="px-4 py-3 font-medium">{stock.stock_no}</td>
-                                            <td className="px-4 py-3">{stock.item_name}</td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-3 font-medium truncate">{stock.stock_no}</td>
+                                            <td className="px-4 py-3 truncate">{stock.item_name}</td>
+                                            <td className="px-4 py-3 truncate">
                                                 {stock.description || '—'}
                                             </td>
                                             <td className="px-4 py-3">

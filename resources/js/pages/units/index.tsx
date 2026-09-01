@@ -146,8 +146,7 @@ export default function Index({ units, filters }: Props) {
                     <Button
                         type="button"
                         onClick={() => setDialogOpen(true)}
-                        className="w-full lg:w-auto"
-                        style={{ backgroundColor: '#612A35' }}
+                        className="w-full lg:w-auto bg-[#612A35] hover:bg-[#612A35]/90 text-white"
                     >
                         Add Unit
                     </Button>
