@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Printer, MonitorSmartphone, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Search } from 'lucide-react';
 import {
     Select,
     SelectTrigger,
@@ -10,15 +10,9 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from '@/components/ui/dialog';
 import { useState } from 'react';
 import PrintStockCardsButton from '@/components/PrintStockCardsButton';
+import PdfPreviewModal from '@/components/stock-items-list/PdfPreviewModal';
 
 interface FundClusterRef {
     fund_cluster_id: string;
@@ -75,7 +69,6 @@ export default function Index({ items, fundClusters, filters }: Props) {
     const [issuedStatus, setIssuedStatus] = useState(filters.issued_status ?? 'all');
     const [fundClusterId, setFundClusterId] = useState(filters.fund_cluster_id ?? 'all');
 
-    const [printConfirmOpen, setPrintConfirmOpen] = useState(false);
     const [itemToPrint, setItemToPrint] = useState<StockCardItem | null>(null);
 
     const applyFilters = (
@@ -122,31 +115,6 @@ export default function Index({ items, fundClusters, filters }: Props) {
                 replace: true,
             }
         );
-    };
-
-    const handlePrintClick = (item: StockCardItem) => {
-        setItemToPrint(item);
-        setPrintConfirmOpen(true);
-    };
-
-    const handleConfirmPrintSingle = () => {
-        if (!itemToPrint) return;
-        window.open(
-            `/stock-items/print-cards?search=${encodeURIComponent(itemToPrint.stock_no)}`,
-            '_blank'
-        );
-        setPrintConfirmOpen(false);
-        setItemToPrint(null);
-    };
-
-    const handleBrowserPrintSingle = () => {
-        if (!itemToPrint) return;
-        window.open(
-            `/stock-items/print-cards-html?search=${encodeURIComponent(itemToPrint.stock_no)}`,
-            '_blank'
-        );
-        setPrintConfirmOpen(false);
-        setItemToPrint(null);
     };
 
     return (
@@ -275,15 +243,12 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                         Balance per Stock Card
                                     </button>
                                 </th>
-                                <th className="px-4 py-3 text-center font-semibold text-white bg-[#370001]">
-                                    Actions
-                                </th>
                             </tr>
                         </thead>
                         <tbody>
                             {items.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-16 text-center">
+                                    <td colSpan={3} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No items found.
                                         </p>
@@ -293,7 +258,8 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                 items.data.map((item, index) => (
                                     <tr
                                         key={item.stock_no ?? `${item.item_name}-${index}`}
-                                        className={'border-b transition-colors hover:bg-muted/40'}
+                                        className="border-b transition-colors hover:bg-muted/60 cursor-pointer"
+                                        onClick={() => setItemToPrint(item)}
                                         data-search-0={item.item_name}
                                         data-record-id={item.stock_no}
                                     >
@@ -307,16 +273,6 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                         <td className="px-4 py-3">{item.unit_short_name}</td>
                                         <td className="px-4 py-3 text-center font-medium">
                                             {item.balance_per_stock_card}
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <button
-                                                type="button"
-                                                onClick={() => handlePrintClick(item)}
-                                                className="text-[#612A35] hover:text-[#612A35]/70"
-                                                title="Print this stock card"
-                                            >
-                                                <Printer className="size-4" />
-                                            </button>
                                         </td>
                                     </tr>
                                 ))
@@ -332,48 +288,26 @@ export default function Index({ items, fundClusters, filters }: Props) {
                 )}
             </div>
 
-            {/* Per-row print confirmation dialog */}
-            <Dialog open={printConfirmOpen} onOpenChange={setPrintConfirmOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Printer className="size-5 text-[#612A35]" />
-                            Print Confirmation
-                        </DialogTitle>
-                    </DialogHeader>
-
-                    <div className="py-2">
-                        <p className="text-sm text-muted-foreground">
-                            Print the stock card for{' '}
-                            <span className="font-medium text-foreground">
-                                {itemToPrint?.item_name}
-                                {itemToPrint?.item_description ? ` - ${itemToPrint.item_description}` : ''}
-                            </span>
-                            ?
-                        </p>
-                    </div>
-
-                    <DialogFooter className="flex-col gap-2 sm:flex-row">
-                        <Button variant="outline" onClick={() => setPrintConfirmOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={handleBrowserPrintSingle}
-                            className="border-[#612A35]/40 text-[#612A35] hover:bg-[#612A35]/5 flex items-center gap-2"
-                        >
-                            <MonitorSmartphone className="size-4" />
-                            Print via Browser
-                        </Button>
-                        <Button
-                            onClick={handleConfirmPrintSingle}
-                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
-                        >
-                            Download PDF
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* The newly separated PDF Preview Modal */}
+            <PdfPreviewModal
+                isOpen={!!itemToPrint}
+                onClose={() => setItemToPrint(null)}
+                title={
+                    itemToPrint
+                        ? `${itemToPrint.item_name}${itemToPrint.item_description ? ` - ${itemToPrint.item_description}` : ''}`
+                        : ''
+                }
+                pdfUrl={
+                    itemToPrint
+                        ? `/stock-items/print-cards?search=${encodeURIComponent(itemToPrint.stock_no)}`
+                        : ''
+                }
+                filename={
+                    itemToPrint
+                        ? `Stock_Card_${itemToPrint.stock_no.replace(/\s+/g, '_')}.pdf`
+                        : ''
+                }
+            />
         </>
     );
 }
