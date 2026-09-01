@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use App\Models\RrspItem;
+use App\Models\RRPPEMonitoring;
+use App\Observers\RrspItemObserver;
+use App\Observers\RRPPEMonitoringObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +27,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+
+        RrspItem::observe(RrspItemObserver::class);
+        RRPPEMonitoring::observe(RRPPEMonitoringObserver::class);
+
         $this->configureDefaults();
 
         \Illuminate\Database\Eloquent\Builder::macro(

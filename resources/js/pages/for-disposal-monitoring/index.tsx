@@ -3,19 +3,15 @@ import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2, Eye } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import ForDisposalAddForm from '@/components/for-disposal-monitoring/for-disposal-add-form';
 import ForDisposalDeleteModal from '@/components/for-disposal-monitoring/for-disposal-delete-modal';
-import ForDisposalEditForm from '@/components/for-disposal-monitoring/for-disposal-edit-form';
 import ForDisposalViewModal from '@/components/for-disposal-monitoring/for-disposal-view-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { PreRepairMonitoring } from '@/pages/pre-repair-monitoring/index';
 
 export type ForDisposalMonitoring = {
     id: number;
     transaction_no: string;
-    pre_repair_no: string;
     from_accountable_officer: string;
     to_accountable_officer: string;
     property_no: string;
@@ -45,14 +41,14 @@ export type PaginatedForDisposal = {
 
 const formatCurrency = (amount: number | string | null | undefined) => {
     if (amount === null || amount === undefined || amount === '') {
-return '-';
-}
+        return '-';
+    }
 
     const num = Number(amount);
 
     if (isNaN(num)) {
-return '-';
-}
+        return '-';
+    }
 
     return new Intl.NumberFormat('en-PH', {
         style: 'currency',
@@ -60,8 +56,8 @@ return '-';
     }).format(num);
 };
 
-export default function Index({ data = { data: [], links: [], current_page: 1, last_page: 1, per_page: 10, total: 0, from: null, to: null }, filters = {}, preRepairs = [] }: { data?: PaginatedForDisposal, filters?: any, preRepairs?: PreRepairMonitoring[] }) {
-        const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+export default function Index({ data = { data: [], links: [], current_page: 1, last_page: 1, per_page: 10, total: 0, from: null, to: null }, filters = {} }: { data?: PaginatedForDisposal, filters?: any }) {
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -72,8 +68,6 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
     const [conditionFilter, setConditionFilter] = useState(filters.condition_of_ppe || 'all');
 
     const [selectedItem, setSelectedItem] = useState<ForDisposalMonitoring | null>(null);
-
-    
 
     const openAddModal = () => {
         setSelectedItem(null);
@@ -163,15 +157,6 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                             Clear
                         </Button>
                     </div>
-
-                    <Button
-                        type="button"
-                        onClick={openAddModal}
-                        className="w-full lg:w-auto text-white"
-                        style={{ backgroundColor: '#612A35' }}
-                    >
-                        Add For Disposal
-                    </Button>
                 </form>
 
                 <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
@@ -179,14 +164,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                         <thead className="bg-[#3e0b0e] text-white/90">
                             <tr>
                                 <th className="px-4 py-3 font-medium">Transaction No.</th>
-                                
-                                
                                 <th className="px-4 py-3 font-medium">Description</th>
-                                
-                                
-                                
-                                
-                                
                                 <th className="px-4 py-3 font-medium">Amount</th>
                                 <th className="px-4 py-3 font-medium text-center">Actions</th>
                             </tr>
@@ -194,17 +172,12 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                             {data.data.length > 0 ? (
                                 data.data.map((item) => (
-                                    <tr 
-                                        key={item.id} 
+                                    <tr
+                                        key={item.id}
                                         className={'transition-colors duration-1000 ' + 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'} data-search-0={item.property_no} data-search-1={item.transaction_no} data-record-id={item.id}
                                     >
                                         <td className="px-4 py-3 font-medium">{item.transaction_no}</td>
-                                        
-                                        
                                         <td className="px-4 py-3">{item.description}</td>
-                                        
-                                        
-                                        
                                         <td className="px-4 py-3">{formatCurrency(item.amount)}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">
@@ -245,29 +218,16 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                 )}
             </div>
 
-            <ForDisposalAddForm
-                open={isAddModalOpen}
-                onOpenChange={setIsAddModalOpen}
-                preRepairs={preRepairs}
-            />
-
-            <ForDisposalEditForm
-                open={isEditModalOpen}
-                onOpenChange={setIsEditModalOpen}
-                item={selectedItem}
-                preRepairs={preRepairs}
-            />
-
             <ForDisposalViewModal
                 open={isViewModalOpen}
                 onOpenChange={setIsViewModalOpen}
                 item={viewItem}
             />
 
-            <ForDisposalDeleteModal 
-                open={isDeleteModalOpen} 
-                onOpenChange={setIsDeleteModalOpen} 
-                itemId={itemToDelete} 
+            <ForDisposalDeleteModal
+                open={isDeleteModalOpen}
+                onOpenChange={setIsDeleteModalOpen}
+                itemId={itemToDelete}
             />
         </>
     );

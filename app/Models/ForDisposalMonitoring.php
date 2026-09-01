@@ -16,6 +16,8 @@ class ForDisposalMonitoring extends Model
     protected $table = 'for_disposal_monitoring';
 
     protected $fillable = [
+        'source_type',
+        'source_id',
         'transaction_no',
         'pre_repair_no',
         'from_accountable_officer',
