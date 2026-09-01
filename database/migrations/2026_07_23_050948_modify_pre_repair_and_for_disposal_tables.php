@@ -12,14 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         // Drop the foreign key connecting pre-repair to ITR/PTR
+        // and add remarks to pre-repair records.
         Schema::table('pre_repair_monitoring', function (Blueprint $table) {
             $table->dropForeign(['transaction_no', 'property_no']);
-            $table->text('remarks')->nullable()->after('condition_of_ppe');
-        });
 
-        // Add remarks to for disposal
-        Schema::table('for_disposal_monitoring', function (Blueprint $table) {
-            $table->text('remarks')->nullable()->after('condition_of_ppe');
+            $table->text('remarks')
+                ->nullable()
+                ->after('condition_of_ppe');
         });
     }
 
@@ -30,13 +29,13 @@ return new class extends Migration
     {
         Schema::table('pre_repair_monitoring', function (Blueprint $table) {
             $table->dropColumn('remarks');
-            $table->foreign(['transaction_no', 'property_no'], 'fk_pre_repair_transaction')
+
+            $table->foreign(
+                ['transaction_no', 'property_no'],
+                'fk_pre_repair_transaction'
+            )
                 ->references(['transaction_no', 'property_no'])
                 ->on('itr_ptr_monitoring');
-        });
-
-        Schema::table('for_disposal_monitoring', function (Blueprint $table) {
-            $table->dropColumn('remarks');
         });
     }
 };

@@ -65,7 +65,6 @@ export default function ForDisposalViewModal({
                         <p className={sectionTitleClass}>General Information</p>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                             <Detail label="Transaction No." value={item.transaction_no} />
-                            <Detail label="Pre-Repair No." value={item.pre_repair_no} />
                             <Detail label="Property No." value={item.property_no} />
                             <div className="sm:col-span-3">
                                 <Detail label="Description" value={item.description} />
