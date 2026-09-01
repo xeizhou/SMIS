@@ -1,6 +1,5 @@
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import EmployeeFileAddForm from '@/components/employee-file-locator/employeefileaddform';
@@ -9,6 +8,7 @@ import EmployeeFileEditForm from '@/components/employee-file-locator/employeefil
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import SortableTable, { ColumnDef } from '@/components/table/SortableTable';
 
 interface EmployeeFileRecord {
     efr_id: number;
@@ -39,12 +39,15 @@ interface Props {
     filters: {
         search: string | null;
         status: string | null;
+        // Add the sort variables
+        sort_field?: string;
+        sort_direction?: 'asc' | 'desc';
     };
     statuses: string[];
 }
 
 export default function Index({ records, filters, statuses }: Props) {
-        const [search, setSearch] = useState(filters.search ?? '');
+    const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? '');
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -53,44 +56,29 @@ export default function Index({ records, filters, statuses }: Props) {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-
         router.get(
             '/employee-file-locator',
-            { search, status },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            { search, status, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
     const handleStatusChange = (value: string) => {
         setStatus(value);
-
         router.get(
             '/employee-file-locator',
-            { search, status: value },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            { search, status: value, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
     const handleClear = () => {
         setSearch('');
         setStatus('');
-
         router.get(
             '/employee-file-locator',
             {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
@@ -104,11 +92,52 @@ export default function Index({ records, filters, statuses }: Props) {
         setIsDeleteOpen(true);
     };
 
+    // 2. Define the Columns for SortableTable
+    const columns: ColumnDef<EmployeeFileRecord>[] = [
+        {
+            key: 'last_name', // We use last_name as the sort trigger for the backend
+            label: 'Name',
+            sortable: true,
+            width: 'w-[40%]',
+            // Render perfectly formats the name
+            render: (record) => `${record.last_name}, ${record.first_name}${record.middle_name ? ` ${record.middle_name}` : ''}`
+        },
+        { key: 'area', label: 'Area', sortable: true, width: 'w-[30%]' },
+        { key: 'status', label: 'Status', sortable: true, width: 'w-[15%]' },
+        {
+            key: 'actions',
+            label: 'Actions',
+            sortable: false,
+            width: 'w-[15%]',
+            render: (record) => (
+                <div className="flex items-center justify-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => openEdit(record)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="Edit"
+                    >
+                        <Pencil className="size-4" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => openDelete(record)}
+                        className="text-red-600 hover:text-red-800"
+                        title="Delete"
+                    >
+                        <Trash2 className="size-4" />
+                    </button>
+                </div>
+            )
+        }
+    ];
+
     return (
         <>
             <Head title="Employee File Locator" />
 
             <div className="p-4 space-y-6 sm:p-6">
+                {/* Header Section */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">
@@ -120,6 +149,7 @@ export default function Index({ records, filters, statuses }: Props) {
                     </div>
                 </div>
 
+                {/* Filters Section */}
                 <form
                     onSubmit={handleSearch}
                     className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
@@ -140,7 +170,7 @@ export default function Index({ records, filters, statuses }: Props) {
                                 <SelectValue placeholder="All Status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All Status</SelectItem>
+                                <SelectItem value="all">All Status</SelectItem>
                                 {statuses.map((item) => (
                                     <SelectItem key={item} value={item}>
                                         {item}
@@ -168,60 +198,17 @@ export default function Index({ records, filters, statuses }: Props) {
                     </Button>
                 </form>
 
-                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
-                        <thead className="border-b" style={{ backgroundColor: '#370001' }}>
-                            <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Name</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Area</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Status</th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {records.data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-16 text-center">
-                                        <p className="text-base font-medium text-muted-foreground">
-                                            No employee file records added yet.
-                                        </p>
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                            Click <strong>"Add Employee File"</strong> to create your first record.
-                                        </p>
-                                    </td>
-                                </tr>
-                            ) : (
-                                records.data.map((record) => (
-                                    <tr key={record.efr_id} className={'border-b transition-colors hover:bg-muted/40'} data-search-0={record.employee_no} data-record-id={record.efr_id}>
-                                        <td className="px-4 py-3">
-                                            {`${record.last_name}, ${record.first_name}${record.middle_name ? ` ${record.middle_name}` : ''}`}
-                                        </td>
-                                        <td className="px-4 py-3">{record.area}</td>
-                                        <td className="px-4 py-3">{record.status}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openEdit(record)}
-                                                    className="text-blue-600 hover:text-blue-800"
-                                                    title="Edit"
-                                                >
-                                                    <Pencil className="size-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openDelete(record)}
-                                                    className="text-red-600 hover:text-red-800"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
+                {/* 3. Drop in the new Reusable Table */}
+                <SortableTable
+                    data={records.data}
+                    columns={columns}
+                    sortField={filters.sort_field}
+                    sortDirection={filters.sort_direction}
+                    url="/employee-file-locator"
+                    // Pass current search and status so sorting doesn't reset them!
+                    currentFilters={{ search, status: status === 'all' ? '' : status }}
+                    emptyMessage="No employee file records added yet."
+                />
 
                 {records.data.length > 0 && (
                     <div className="p-4">
@@ -239,13 +226,7 @@ export default function Index({ records, filters, statuses }: Props) {
 
 Index.layout = {
     breadcrumbs: [
-        {
-            title: 'Personnel Files',
-            href: '#',
-        },
-        {
-            title: 'Employee File Locator',
-            href: '/employee-file-locator',
-        },
+        { title: 'Personnel Files', href: '#' },
+        { title: 'Employee File Locator', href: '/employee-file-locator' },
     ],
 };

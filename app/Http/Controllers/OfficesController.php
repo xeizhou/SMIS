@@ -11,14 +11,27 @@ use Illuminate\Support\Facades\DB;
 
 class OfficesController extends Controller
 {
-    public function index(Request $request)
+public function index(Request $request)
     {
         $perPage = $request->integer('per_page', 10);
+        $search = $request->input('search');
+
+        // 1. Get the sorting parameters from the request
+        $sortField = $request->input('sort_field', 'office_code');
+        $sortDirection = $request->input('sort_direction', 'asc');
+
+        // 2. Validate the sort field to prevent SQL injection
+        $allowedSorts = ['office_code', 'office_name', 'entity_name', 'office_head', 'email']; 
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'office_code';
+        }
+
+        // Validate the sort direction
+        $sortDirection = strtolower($sortDirection) === 'desc' ? 'desc' : 'asc';
+
         $query = Office::query();
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-
+        if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('office_code', 'like', "%{$search}%")
                     ->orWhere('office_name', 'like', "%{$search}%")
@@ -28,15 +41,18 @@ class OfficesController extends Controller
             });
         }
 
-        return Inertia::render('offices/index', [
-            'offices' => $query
-                // Offices table has no timestamps; show newest by office_code desc
-                ->orderByDesc('office_code')
-                ->paginateWithHighlight($perPage)
-                ->withQueryString(),
+        // 3. Apply the dynamic sorting to your query
+        $offices = $query->orderBy($sortField, $sortDirection)
+            ->paginateWithHighlight($perPage)
+            ->withQueryString();
 
+        return Inertia::render('offices/index', [
+            'offices' => $offices,
             'filters' => [
-                'search' => $request->search,
+                'search' => $search,
+                // 4. Return the sorting state to the React frontend
+                'sort_field' => $sortField,
+                'sort_direction' => $sortDirection,
             ],
         ]);
     }

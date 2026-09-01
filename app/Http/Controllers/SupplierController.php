@@ -8,15 +8,14 @@ use Inertia\Inertia;
 
 class SupplierController extends Controller
 {
-    public function index(Request $request)
+public function index(Request $request)
     {
         $perPage = $request->integer('per_page', 10);
         $query = Supplier::query();
 
-        // Search
+        // Search Filter
         if ($request->filled('search')) {
             $search = $request->search;
-
             $query->where(function ($q) use ($search) {
                 $q->where('supplier_name', 'like', "%{$search}%")
                     ->orWhere('contact_person', 'like', "%{$search}%")
@@ -30,20 +29,34 @@ class SupplierController extends Controller
             $query->where('status', $request->status);
         }
 
+        // 1. Get Sort Parameters (Default to supplier_id desc)
+        $sortField = $request->input('sort_field', 'supplier_id');
+        $sortDirection = $request->input('sort_direction', 'desc');
+
+        // 2. Validate Allowed Sort Fields
+        $allowedSorts = ['supplier_id', 'supplier_name', 'contact_person', 'contact_number', 'email_address', 'status'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'supplier_id';
+        }
+        $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
+
         return Inertia::render('supplier/index', [
             'suppliers' => $query
-                // Supplier model has no timestamps; order by primary key desc to show newest
-                ->orderBy('supplier_id', 'desc')
+                // 3. Apply Dynamic Sort
+                ->orderBy($sortField, $sortDirection)
                 ->paginateWithHighlight($perPage)
                 ->withQueryString(),
 
             'filters' => [
                 'search' => $request->search,
                 'status' => $request->status ?? 'all',
+                // 4. Return Sort State
+                'sort_field' => $sortField,
+                'sort_direction' => $sortDirection,
             ],
         ]);
     }
-
+    
     public function quickAdd(Request $request)
     {
         $validated = $request->validate([

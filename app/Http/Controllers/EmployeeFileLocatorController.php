@@ -13,11 +13,22 @@ class EmployeeFileLocatorController extends Controller
     /**
      * Display the Employee File Locator page.
      */
-    public function index(Request $request): Response
+public function index(Request $request): Response
     {
         $perPage = $request->integer('per_page', 10);
         $search = $request->string('search')->toString() ?: null;
         $status = $request->string('status')->toString() ?: null;
+
+        // 1. Get sort parameters (default to sorting by last_name ascending)
+        $sortField = $request->input('sort_field', 'last_name');
+        $sortDirection = $request->input('sort_direction', 'asc');
+
+        // 2. Security validation
+        $allowedSorts = ['last_name', 'area', 'status'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'last_name';
+        }
+        $sortDirection = strtolower($sortDirection) === 'desc' ? 'desc' : 'asc';
 
         $query = EmployeeFileLocator::query()
             ->when($search, function ($query, $search) {
@@ -30,8 +41,9 @@ class EmployeeFileLocatorController extends Controller
             })
             ->when($status, fn ($query, $status) => $query->where('status', $status));
 
+        // 3. Apply the dynamic sort
         $records = (clone $query)
-            ->orderBy('last_name')
+            ->orderBy($sortField, $sortDirection)
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 
@@ -52,6 +64,9 @@ class EmployeeFileLocatorController extends Controller
             'filters' => [
                 'search' => $search,
                 'status' => $status,
+                // 4. Pass the sorting state back to React
+                'sort_field' => $sortField,
+                'sort_direction' => $sortDirection,
             ],
             'statuses' => $statuses,
         ]);

@@ -17,12 +17,23 @@ class ClearanceController extends Controller
     /**
      * Display the Clearance page.
      */
-    public function index(Request $request): Response
+public function index(Request $request): Response
     {
         $perPage = $request->integer('per_page', 10);
         $search = $request->string('search')->toString() ?: null;
         $status = $request->string('status')->toString() ?: null;
         $formAttribute = $request->string('form_attribute')->toString() ?: null;
+
+        // 1. Get sort parameters (default to claim_date descending)
+        $sortField = $request->input('sort_field', 'claim_date');
+        $sortDirection = $request->input('sort_direction', 'desc');
+
+        // 2. Validate sort fields
+        $allowedSorts = ['name', 'office', 'form_attribute', 'received_by', 'end_user_claim', 'claim_date', 'status'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'claim_date';
+        }
+        $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
         $query = Clearance::query()
             ->with(['office:office_code,office_name', 'checker:id,name'])
@@ -39,9 +50,10 @@ class ClearanceController extends Controller
             ->when($status, fn ($query, $status) => $query->where('status', $status))
             ->when($formAttribute, fn ($query, $formAttribute) => $query->where('form_attribute', $formAttribute));
 
+        // 3. Apply the dynamic sort
         $records = (clone $query)
             ->with('attachments')
-            ->orderByDesc('claim_date')
+            ->orderBy($sortField, $sortDirection)
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 
@@ -71,6 +83,9 @@ class ClearanceController extends Controller
                 'search' => $search,
                 'status' => $status,
                 'form_attribute' => $formAttribute,
+                // 4. Return the sorting state
+                'sort_field' => $sortField,
+                'sort_direction' => $sortDirection,
             ],
             'statuses' => $statuses,
             'forms' => $forms,

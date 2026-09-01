@@ -1,7 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
+import { Search, Pencil, Trash2, ClipboardCheck } from 'lucide-react';
 import { useState } from 'react';
 import ClearanceAddForm from '@/components/clearance/clearanceaddform';
 import ClearanceDeleteModal from '@/components/clearance/clearancedeletemodal';
@@ -9,9 +8,9 @@ import ClearanceEditForm from '@/components/clearance/clearanceeditform';
 import ClearanceProcessModal from '@/components/clearance/clearanceprocessmodal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { ClipboardCheck } from 'lucide-react';
+import SortableTable, { ColumnDef } from '@/components/table/SortableTable';
 
 interface OfficeOption {
     office_code: string;
@@ -42,11 +41,7 @@ interface ClearanceRecord {
 
 interface PaginatedRecords {
     data: ClearanceRecord[];
-    links: {
-        url: string | null;
-        label: string;
-        active: boolean;
-    }[];
+    links: { url: string | null; label: string; active: boolean; }[];
     current_page: number;
     last_page: number;
     per_page: number;
@@ -61,6 +56,8 @@ interface Props {
         search: string | null;
         status: string | null;
         form_attribute: string | null;
+        sort_field?: string;
+        sort_direction?: 'asc' | 'desc';
     };
     statuses: string[];
     forms: string[];
@@ -71,61 +68,47 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
     const [search, setSearch] = useState(filters.search ?? '');
     const [statusFilter, setStatusFilter] = useState(filters.status ?? 'all');
     const [typeFilter, setTypeFilter] = useState(filters.form_attribute ?? 'all');
+    
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isProcessOpen, setIsProcessOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<ClearanceRecord | null>(null);
 
+    const updateFilters = (newSearch: string, newStatus: string, newType: string) => {
+        router.get(
+            '/clearance',
+            {
+                search: newSearch,
+                status: newStatus === 'all' ? '' : newStatus,
+                form_attribute: newType === 'all' ? '' : newType,
+                sort_field: filters.sort_field,
+                sort_direction: filters.sort_direction,
+            },
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
+    };
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-
-        const newStatus = statusFilter === 'all' ? '' : statusFilter;
-        const newType = typeFilter === 'all' ? '' : typeFilter;
-
-        router.get('/clearance', { search, status: newStatus, form_attribute: newType }, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
+        updateFilters(search, statusFilter, typeFilter);
     };
 
     const handleStatusChange = (value: string) => {
         setStatusFilter(value);
-
-        const newStatus = value === 'all' ? '' : value;
-        const newType = typeFilter === 'all' ? '' : typeFilter;
-
-        router.get('/clearance', { search, status: newStatus, form_attribute: newType }, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
+        updateFilters(search, value, typeFilter);
     };
 
     const handleTypeChange = (value: string) => {
         setTypeFilter(value);
-
-        const newStatus = statusFilter === 'all' ? '' : statusFilter;
-        const newType = value === 'all' ? '' : value;
-
-        router.get('/clearance', { search, status: newStatus, form_attribute: newType }, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
+        updateFilters(search, statusFilter, value);
     };
 
     const handleClear = () => {
         setSearch('');
         setStatusFilter('all');
         setTypeFilter('all');
-
-        router.get('/clearance', {}, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
+        router.get('/clearance', {}, { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const openEdit = (record: ClearanceRecord) => {
@@ -142,6 +125,77 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
         setSelectedRecord(record);
         setIsProcessOpen(true);
     };
+
+    const columns: ColumnDef<ClearanceRecord>[] = [
+        { key: 'name', label: 'Name', sortable: true, width: 'w-[15%]' },
+        {
+            key: 'office',
+            label: 'Office',
+            sortable: true, // sorts by foreign key 'office'
+            width: 'w-[15%]',
+            render: (record) => typeof record.office === 'string'
+                ? record.office
+                : record.office?.office_name ?? record.office_data?.office_name ?? '—'
+        },
+        {
+            key: 'form_attribute',
+            label: 'Type',
+            sortable: true,
+            width: 'w-[10%]',
+            render: (record) => record.form_attribute ?? '—'
+        },
+        {
+            key: 'checker', // Relation column - sorting disabled to prevent SQL errors
+            label: 'Released By',
+            sortable: false, 
+            width: 'w-[12%]',
+            render: (record) => record.checker?.name ?? '—'
+        },
+        {
+            key: 'end_user_claim',
+            label: 'Claimed By',
+            sortable: true,
+            width: 'w-[12%]',
+            render: (record) => record.end_user_claim ?? '—'
+        },
+        {
+            key: 'claim_date',
+            label: 'Claim Date',
+            sortable: true,
+            width: 'w-[13%]',
+            render: (record) => record.claim_date
+                ? new Date(record.claim_date).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                : '—'
+        },
+        {
+            key: 'status',
+            label: 'Status',
+            sortable: true,
+            width: 'w-[10%]',
+            render: (record) => <StatusBadge status={record.status} />
+        },
+        {
+            key: 'actions',
+            label: 'Actions',
+            sortable: false,
+            width: 'w-[13%]',
+            render: (record) => (
+                <div className="flex items-center justify-start gap-4">
+                    <button type="button" onClick={() => openEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
+                        <Pencil className="size-4" />
+                    </button>
+                    <button type="button" onClick={() => openDelete(record)} className="text-red-600 hover:text-red-800" title="Delete">
+                        <Trash2 className="size-4" />
+                    </button>
+                    {record.status !== 'Completed' && (
+                        <button type="button" onClick={() => openProcess(record)} className="text-green-600 hover:text-green-800" title="Process Clearance">
+                            <ClipboardCheck className="size-4" />
+                        </button>
+                    )}
+                </div>
+            )
+        }
+    ];
 
     return (
         <>
@@ -195,67 +249,19 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
                     </Button>
                 </form>
 
-                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
-                        <thead className="border-b" style={{ backgroundColor: '#370001' }}>
-                            <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Name</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Office</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Type</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Released By</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Claimed By</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Claim Date</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Status</th>
-                                <th className="w-[180px] px-4 py-3 text-left font-semibold text-white">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {records.data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="px-6 py-16 text-center">
-                                        <p className="text-base font-medium text-muted-foreground">No clearance records added yet.</p>
-                                        <p className="mt-1 text-sm text-muted-foreground">Click <strong>"Add Clearance"</strong> to create your first record.</p>
-                                    </td>
-                                </tr>
-                            ) : (
-                                records.data.map((record) => (
-                                    <tr key={record.clearance_id} className={'border-b transition-colors hover:bg-muted/40'} data-search-0={record.name} data-record-id={record.clearance_id}>
-                                        <td className="px-4 py-3">{record.name}</td>
-                                        <td className="px-4 py-3">
-                                            {typeof record.office === 'string'
-                                                ? record.office
-                                                : record.office?.office_name ?? record.office_data?.office_name ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3">{record.form_attribute ?? '—'}</td>
-                                        <td className="px-4 py-3">
-                                            {record.checker?.name ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {record.end_user_claim ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {record.claim_date ? new Date(record.claim_date).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
-                                        </td>
-                                        <td className="px-4 py-3"><StatusBadge status={record.status} /></td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-start gap-4">
-                                                <button type="button" onClick={() => openEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
-                                                    <Pencil className="size-4" />
-                                                </button>
-                                                <button type="button" onClick={() => openDelete(record)} className="text-red-600 hover:text-red-800" title="Delete">
-                                                    <Trash2 className="size-4" />
-                                                </button>
-                                                {record.status !== 'Completed' && (
-                                                    <button type="button" onClick={() => openProcess(record)} className="text-green-600 hover:text-green-800" title="Process Clearance">
-                                                        <ClipboardCheck className="size-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
+                <SortableTable
+                    data={records.data}
+                    columns={columns}
+                    sortField={filters.sort_field}
+                    sortDirection={filters.sort_direction}
+                    url="/clearance"
+                    currentFilters={{
+                        search,
+                        status: statusFilter === 'all' ? '' : statusFilter,
+                        form_attribute: typeFilter === 'all' ? '' : typeFilter
+                    }}
+                    emptyMessage="No clearance records added yet."
+                />
 
                 {records.data.length > 0 && (
                     <div className="p-4">
@@ -274,13 +280,7 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
 
 Index.layout = {
     breadcrumbs: [
-        {
-            title: 'Personnel Files',
-            href: '#',
-        },
-        {
-            title: 'Clearance',
-            href: '/clearance',
-        },
+        { title: 'Personnel Files', href: '#' },
+        { title: 'Clearance', href: '/clearance' },
     ],
 };
