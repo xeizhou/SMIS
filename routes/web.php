@@ -378,25 +378,26 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     })->name('dashboard');
 
     Route::get('/api/online-users', function () {
-        return \App\Models\User::query()
-            ->select('id', 'name', 'role', 'avatar_path', 'current_session_id')
-            ->get()
-            ->map(function ($u) {
-                $lastActivity = $u->current_session_id
-                    ? DB::table('sessions')->where('id', $u->current_session_id)->value('last_activity')
-                    : null;
+            return \App\Models\User::query()
+                ->select('id', 'name', 'email', 'role', 'avatar_path', 'current_session_id')
+                ->get()
+                ->map(function ($u) {
+                    $lastActivity = $u->current_session_id
+                        ? DB::table('sessions')->where('id', $u->current_session_id)->value('last_activity')
+                        : null;
 
-                $online = $lastActivity !== null && $lastActivity >= now()->subMinutes(2)->timestamp;
+                    $online = $lastActivity !== null && $lastActivity >= now()->subMinutes(2)->timestamp;
 
-                return [
-                    'id' => $u->id,
-                    'name' => $u->name,
-                    'role' => $u->role,
-                    'avatar' => $u->avatar_url,
-                    'online' => $online,
-                    'last_seen' => $lastActivity ? \Carbon\Carbon::createFromTimestamp($lastActivity)->diffForHumans() : null,
-                ];
-            });
+                    return [
+                        'id' => $u->id,
+                        'name' => $u->name,
+                        'email' => $u->email,
+                        'role' => $u->role,
+                        'avatar' => $u->avatar_url,
+                        'online' => $online,
+                        'last_seen' => $lastActivity ? \Carbon\Carbon::createFromTimestamp($lastActivity)->diffForHumans() : null,
+                    ];
+                });
     })->name('online-users');
 
     Route::get('/avatar/{user}', function (\App\Models\User $user) {
@@ -610,6 +611,52 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
 
         Route::get('/audit-logs', [AuditLogsController::class, 'index'])->name('audit-logs.index');
     });
+
+    Route::get('/api/messages/unread-counts', [\App\Http\Controllers\MessageController::class, 'unreadCounts']);
+    Route::get('/api/messages/{user}', [\App\Http\Controllers\MessageController::class, 'show']);
+    Route::post('/api/messages/{user}', [\App\Http\Controllers\MessageController::class, 'store']);
+
+    Route::get('/api/messages', function (\Illuminate\Http\Request $request) {
+        $me = $request->user();
+
+        $partnerIds = \App\Models\Message::where('sender_id', $me->id)
+            ->orWhere('receiver_id', $me->id)
+            ->get(['sender_id', 'receiver_id'])
+            ->flatMap(fn ($m) => [$m->sender_id, $m->receiver_id])
+            ->unique()
+            ->reject(fn ($id) => $id == $me->id)
+            ->values();
+
+        return \App\Models\User::whereIn('id', $partnerIds)
+            ->select('id', 'name', 'avatar_path')
+            ->get()
+            ->map(function ($u) use ($me) {
+                $last = \App\Models\Message::where(function ($q) use ($me, $u) {
+                        $q->where('sender_id', $me->id)->where('receiver_id', $u->id);
+                    })
+                    ->orWhere(function ($q) use ($me, $u) {
+                        $q->where('sender_id', $u->id)->where('receiver_id', $me->id);
+                    })
+                    ->latest('created_at')
+                    ->first();
+
+                $unread = \App\Models\Message::where('sender_id', $u->id)
+                    ->where('receiver_id', $me->id)
+                    ->whereNull('read_at')
+                    ->count();
+
+                return [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'avatar' => $u->avatar_url,
+                    'last_message' => $last?->body,
+                    'last_at' => $last?->created_at?->diffForHumans(),
+                    'unread' => $unread,
+                ];
+            })
+            ->sortByDesc(fn ($u) => $u['unread'] > 0 ? 1 : 0)
+            ->values();
+    })->name('messages.index');
 
     // Calendar
     Route::get('/calendar', function () {
