@@ -69,6 +69,20 @@ function formatTime(iso: string): string {
     return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
+// Reads the CSRF token from the XSRF-TOKEN cookie instead of the
+// <meta name="csrf-token"> tag. The meta tag is only written into the
+// document once, at full page load — after an Inertia SPA transition
+// (e.g. right after login, which regenerates the session/token) it goes
+// stale and causes the very next manual fetch() here to 419. The cookie,
+// on the other hand, gets refreshed by Laravel on every response, so
+// it's never stale regardless of client-side navigation. Sent back as
+// X-XSRF-TOKEN (not X-CSRF-TOKEN) since Laravel's VerifyCsrfToken
+// middleware decrypts that specific header automatically.
+function getCsrfToken(): string {
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
 function formatDayLabel(iso: string): string {
     const date = new Date(iso);
     const today = new Date();
@@ -242,14 +256,13 @@ export function ChatPopover(props: Props) {
         if (body) formData.append('body', body);
         if (fileToSend) formData.append('attachment', fileToSend);
 
-        const csrfMeta = document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null;
-        const csrfToken = csrfMeta ? csrfMeta.content : '';
+        const csrfToken = getCsrfToken();
 
         fetch('/api/messages/' + userId, {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
+                'X-XSRF-TOKEN': csrfToken,
             },
             body: formData,
         })
