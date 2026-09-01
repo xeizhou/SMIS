@@ -86,7 +86,7 @@ class StockItemsController extends Controller
         }
         $stockItem->units()->sync($syncData);
 
-        return redirect()->back()->with('success', 'Stock item aaded successfully.');
+        return redirect()->back()->with('success', 'Stock item added successfully.');
     }
 
     public function update(Request $request, StockItem $stockItem)

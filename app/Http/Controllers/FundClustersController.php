@@ -11,10 +11,21 @@ class FundClustersController extends Controller
     /**
      * Display the Fund Clusters page.
      */
-    public function index(Request $request)
+public function index(Request $request)
     {
         $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
+
+        // 1. Get the sorting parameters
+        $sortField = $request->input('sort_field', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'desc');
+
+        // 2. Validate sort fields to prevent SQL injection
+        $allowedSorts = ['fund_cluster_id', 'fund_description', 'created_at'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'created_at';
+        }
+        $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
         $fundClusters = FundCluster::when($search, function ($query, $search) {
             $query->where(function ($q) use ($search) {
@@ -22,8 +33,8 @@ class FundClustersController extends Controller
                     ->orWhere('fund_description', 'like', "%{$search}%");
             });
         })
-            // Fund clusters have timestamps; show newest first
-            ->orderByDesc('created_at')
+            // 3. Apply dynamic sorting
+            ->orderBy($sortField, $sortDirection)
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 
@@ -31,6 +42,9 @@ class FundClustersController extends Controller
             'fundClusters' => $fundClusters,
             'filters' => [
                 'search' => $search,
+                // 4. Send sort state to frontend
+                'sort_field' => $sortField,
+                'sort_direction' => $sortDirection,
             ],
         ]);
     }
