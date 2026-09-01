@@ -30,12 +30,17 @@ interface SupplierOption {
     supplier_name: string;
 }
 
+interface DeliveryDateRecord {
+    delivery_date: string;
+}
+
 interface DeliveryRecord {
     delivery_id: string;
     po_number: string;
     supplier_id: number | null;
     supplier?: SupplierOption | null;
     delivery_date: string | null;
+    delivery_dates?: DeliveryDateRecord[];
     po_date_received: string | null;
     delivery_term: string | null;
     due_date: string | null;
@@ -85,6 +90,33 @@ function formatCurrency(value: string | number | null | undefined) {
 function formatDate(value: string | null) {
     if (!value) return '—';
     return new Date(value).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// Delivery dates render as a chip list rather than a single Detail value,
+// since a delivery can now have multiple dates (see delivery_dates relation).
+function DeliveryDatesDetail({ delivery }: { delivery: DeliveryRecord }) {
+    const dates = delivery.delivery_dates && delivery.delivery_dates.length > 0
+        ? delivery.delivery_dates.map((d) => d.delivery_date).filter(Boolean)
+        : delivery.delivery_date
+            ? [delivery.delivery_date]
+            : [];
+
+    return (
+        <div>
+            <p className={labelClass}>Date(s) of Delivery</p>
+            {dates.length === 0 ? (
+                <p className={valueClass}>—</p>
+            ) : (
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                    {dates.map((date, index) => (
+                        <Badge key={`${date}-${index}`} variant="outline" className="text-xs font-normal">
+                            {formatDate(date)}
+                        </Badge>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 }
 
 function getExtension(filename: string) {
@@ -207,7 +239,7 @@ export default function DeliveryViewForm({ open, onOpenChange, delivery }: Props
                             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                                 <Detail label="PO Number" value={delivery.po_number} />
                                 <Detail label="Supplier" value={delivery.supplier?.supplier_name ?? '—'} />
-                                <Detail label="Date of Delivery" value={formatDate(delivery.delivery_date)} />
+                                <DeliveryDatesDetail delivery={delivery} />
                                 <Detail label="PO Date Received" value={formatDate(delivery.po_date_received)} />
                                 <Detail label="Delivery Term" value={delivery.delivery_term ?? '—'} />
                                 <Detail label="Due Date" value={formatDate(delivery.due_date)} />
