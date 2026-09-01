@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\MassPrunable;
 
 class AuditLog extends Model
 {
+    use MassPrunable;
+
     protected $table = 'audit_logs';
 
     protected $primaryKey = 'auditLogID';
@@ -28,5 +31,13 @@ class AuditLog extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'userID', 'id');
+    }
+
+    /**
+     * Get the prunable models.
+     */
+    public function prunable()
+    {
+        return static::where('log_timestamp', '<', now()->subDays(30));
     }
 }

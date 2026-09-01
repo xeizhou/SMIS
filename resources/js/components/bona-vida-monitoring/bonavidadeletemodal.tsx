@@ -16,7 +16,7 @@ interface BonaVidaRecord {
     qty: number;
     price: string;
     total_amount: string;
-    invoice_no: number;
+    invoice_no: string;
     invoice_date: string;
     remarks: string | null;
 }

@@ -454,6 +454,9 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
 
     Route::get('/bona-vida-monitoring', [BonaVidaController::class, 'index'])->name('bona-vida-monitoring.index');
     Route::get('/bona-vida-monitoring/summary', [BonaVidaController::class, 'summary'])->name('bona-vida-monitoring.summary');
+    Route::get('/bona-vida-monitoring/by-invoice/{invoice_no}', [BonaVidaController::class, 'getByInvoice'])->name('bona-vida-monitoring.getByInvoice');
+    Route::post('/bona-vida-monitoring/bulk', [BonaVidaController::class, 'bulkStore'])->name('bona-vida-monitoring.bulkStore');
+    Route::put('/bona-vida-monitoring/bulk/{invoice_no}', [BonaVidaController::class, 'bulkUpdate'])->name('bona-vida-monitoring.bulkUpdate');
     Route::post('/bona-vida-monitoring', [BonaVidaController::class, 'store'])->name('bona-vida-monitoring.store');
     Route::put('/bona-vida-monitoring/{bonavida}', [BonaVidaController::class, 'update'])->name('bona-vida-monitoring.update');
     Route::delete('/bona-vida-monitoring/{bonavida}', [BonaVidaController::class, 'destroy'])->name('bona-vida-monitoring.destroy');

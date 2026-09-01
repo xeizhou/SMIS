@@ -68,6 +68,87 @@ class BonaVidaController extends Controller
     }
 
     /**
+     * Store multiple bona vida records at once.
+     */
+    public function bulkStore(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'records' => ['required', 'array', 'min:1'],
+            'records.*.date_received' => ['required', 'date'],
+            'records.*.office_code' => ['required', 'string', 'exists:offices,office_code'],
+            'records.*.qty' => ['required', 'integer', 'min:1'],
+            'records.*.price' => ['required', 'numeric', 'min:0'],
+            'records.*.total_amount' => ['required', 'numeric', 'min:0'],
+            'records.*.invoice_no' => ['required', 'string', 'max:100'],
+            'records.*.invoice_date' => ['required', 'date'],
+            'records.*.remarks' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($validated) {
+            foreach ($validated['records'] as $recordData) {
+                BonaVidaMonitoring::create($recordData);
+            }
+        });
+
+        return redirect()->back()->with('success', 'Bona Vida records added successfully.');
+    }
+
+    /**
+     * Get records by invoice number.
+     */
+    public function getByInvoice($invoice_no)
+    {
+        $records = BonaVidaMonitoring::with('office')->where('invoice_no', $invoice_no)->get();
+        return response()->json($records);
+    }
+
+    /**
+     * Update multiple bona vida records for an invoice.
+     */
+    public function bulkUpdate(Request $request, $invoice_no): RedirectResponse
+    {
+        $validated = $request->validate([
+            'records' => ['required', 'array', 'min:1'],
+            'records.*.bvm_id' => ['nullable', 'integer'],
+            'records.*.date_received' => ['required', 'date'],
+            'records.*.office_code' => ['required', 'string', 'exists:offices,office_code'],
+            'records.*.qty' => ['required', 'integer', 'min:1'],
+            'records.*.price' => ['required', 'numeric', 'min:0'],
+            'records.*.total_amount' => ['required', 'numeric', 'min:0'],
+            'records.*.invoice_no' => ['required', 'string', 'max:100'],
+            'records.*.invoice_date' => ['required', 'date'],
+            'records.*.remarks' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $invoice_no) {
+            $submittedIds = collect($validated['records'])->pluck('bvm_id')->filter()->toArray();
+
+            // Delete records that are no longer in the list for this invoice (fetch to fire events)
+            $recordsToDelete = BonaVidaMonitoring::where('invoice_no', $invoice_no)
+                ->whereNotIn('bvm_id', $submittedIds)
+                ->get();
+            
+            foreach ($recordsToDelete as $recordToDelete) {
+                $recordToDelete->delete();
+            }
+
+            // Update or Create
+            foreach ($validated['records'] as $recordData) {
+                if (!empty($recordData['bvm_id'])) {
+                    $model = BonaVidaMonitoring::find($recordData['bvm_id']);
+                    if ($model) {
+                        $model->update(\Illuminate\Support\Arr::except($recordData, ['bvm_id']));
+                    }
+                } else {
+                    BonaVidaMonitoring::create(\Illuminate\Support\Arr::except($recordData, ['bvm_id']));
+                }
+            }
+        });
+
+        return redirect()->back()->with('success', 'Bona Vida records updated successfully.');
+    }
+
+    /**
      * Update the specified bona vida record.
      */
     public function update(Request $request, BonaVidaMonitoring $bonavida): RedirectResponse

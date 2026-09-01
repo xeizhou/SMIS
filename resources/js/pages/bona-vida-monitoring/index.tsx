@@ -24,7 +24,7 @@ interface BonaVidaRecord {
     qty: number;
     price: string;
     total_amount: string;
-    invoice_no: number;
+    invoice_no: string;
     invoice_date: string;
     remarks: string | null;
     office?: Office;
@@ -220,7 +220,7 @@ export default function Index({ records, filters, offices }: Props) {
                                 </tr>
                             ) : (
                                 records.data.map((record) => (
-                                    <tr key={record.bvm_id} className={'border-b transition-colors hover:bg-muted/40'} data-search-0={record.property_no} data-search-1={record.bv_no} data-record-id={record.bvm_id}>
+                                    <tr key={record.bvm_id} className={'border-b transition-colors hover:bg-muted/40'} data-search-0={record.invoice_no} data-search-1={record.remarks} data-record-id={record.bvm_id}>
                                         <td className="px-4 py-3">{record.date_received ? new Date(record.date_received).toLocaleDateString() : '—'}</td>
                                         <td className="px-4 py-3">{record.office?.office_name ?? record.office_code}</td>
                                         <td className="px-4 py-3">{record.invoice_no}</td>

@@ -14,7 +14,7 @@ interface BonaVidaRecord {
     qty: number;
     price: string;
     total_amount: string;
-    invoice_no: number;
+    invoice_no: string;
     invoice_date: string;
     remarks: string | null;
     office?: {
@@ -62,9 +62,15 @@ export default function BonaVidaViewForm({ open, onOpenChange, record }: Props) 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <Detail label="Date Received" value={record.date_received ? new Date(record.date_received).toLocaleDateString() : '—'} />
                             <Detail label="Office" value={record.office?.office_name ?? record.office_code} />
-                            <div className="sm:col-span-2">
-                                <Detail label="Remarks" value={record.remarks ?? '—'} />
-                            </div>
+                        </div>
+                    </section>
+
+                    {/* Section: Invoice Information */}
+                    <section>
+                        <p className={sectionTitleClass}>Invoice Information</p>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <Detail label="Invoice No" value={record.invoice_no} />
+                            <Detail label="Invoice Date" value={record.invoice_date ? new Date(record.invoice_date).toLocaleDateString() : '—'} />
                         </div>
                     </section>
 
@@ -78,12 +84,11 @@ export default function BonaVidaViewForm({ open, onOpenChange, record }: Props) 
                         </div>
                     </section>
 
-                    {/* Section: Invoice Information */}
+                    {/* Section: Remarks */}
                     <section>
-                        <p className={sectionTitleClass}>Invoice Information</p>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <Detail label="Invoice No" value={record.invoice_no} />
-                            <Detail label="Invoice Date" value={record.invoice_date ? new Date(record.invoice_date).toLocaleDateString() : '—'} />
+                        <p className={sectionTitleClass}>Additional Notes</p>
+                        <div className="grid grid-cols-1 gap-4">
+                            <Detail label="Remarks" value={record.remarks ?? '—'} />
                         </div>
                     </section>
                 </div>
