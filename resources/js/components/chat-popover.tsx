@@ -117,6 +117,7 @@ export function ChatPopover(props: Props) {
     const inputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
+    const hasScrolledInitially = useRef(false);
 
     useEffect(function () {
         const raf = requestAnimationFrame(function () {
@@ -166,6 +167,8 @@ export function ChatPopover(props: Props) {
     }
 
     useEffect(function () {
+        hasScrolledInitially.current = false;
+        setLoaded(false);
         fetchMessages();
         const interval = setInterval(function () {
             if (document.hidden) return;
@@ -178,7 +181,8 @@ export function ChatPopover(props: Props) {
 
     useEffect(function () {
         if (bottomRef.current) {
-            bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+            bottomRef.current.scrollIntoView({ behavior: hasScrolledInitially.current ? 'smooth' : 'auto' });
+            hasScrolledInitially.current = true;
         }
     }, [messages]);
 

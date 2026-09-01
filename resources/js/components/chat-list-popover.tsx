@@ -37,7 +37,16 @@ export function ChatListButton({ isCollapsed }: { isCollapsed: boolean }) {
         return () => clearInterval(interval);
     }, [open]);
 
-    const totalUnread = conversations.reduce((sum, c) => sum + c.unread, 0);
+    function openChat(c: Conversation) {
+        setActiveChat(c);
+        // Clear the unread dot immediately rather than waiting for the next poll —
+        // the messages themselves get marked read server-side once ChatPopover fetches them.
+        setConversations((prev) =>
+            prev.map((conv) => (conv.id === c.id ? { ...conv, unread: 0 } : conv)),
+        );
+    }
+
+    const hasUnread = conversations.some((c) => c.unread > 0);
 
     return (
         <>
@@ -52,10 +61,8 @@ export function ChatListButton({ isCollapsed }: { isCollapsed: boolean }) {
                 >
                     <span className="relative">
                         <MessageCircle className="h-4 w-4" />
-                        {totalUnread > 0 && (
-                            <span className="absolute -right-1.5 -top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-medium text-white">
-                                {totalUnread > 9 ? '9+' : totalUnread}
-                            </span>
+                        {hasUnread && (
+                            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#3d0002]" />
                         )}
                     </span>
                     {!isCollapsed && <span className="text-[11px] font-medium uppercase tracking-wide">Chats</span>}
@@ -86,27 +93,31 @@ export function ChatListButton({ isCollapsed }: { isCollapsed: boolean }) {
                             conversations.map((c) => (
                                 <button
                                     key={c.id}
-                                    onClick={() => setActiveChat(c)}
+                                    onClick={() => openChat(c)}
                                     className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-white/5 transition-colors"
                                 >
-                                    <Avatar className="h-9 w-9 shrink-0">
-                                        <AvatarImage src={c.avatar ?? undefined} />
-                                        <AvatarFallback className="bg-white/10 text-xs text-white">{c.name[0]}</AvatarFallback>
-                                    </Avatar>
+                                    <span className="relative shrink-0">
+                                        <Avatar className="h-9 w-9">
+                                            <AvatarImage src={c.avatar ?? undefined} />
+                                            <AvatarFallback className="bg-white/10 text-xs text-white">{c.name[0]}</AvatarFallback>
+                                        </Avatar>
+                                        {c.unread > 0 && (
+                                            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[#2a0002]" />
+                                        )}
+                                    </span>
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center justify-between gap-2">
-                                            <p className="truncate text-sm font-medium text-white">{c.name}</p>
+                                            <p className={cn('truncate text-sm', c.unread > 0 ? 'font-semibold text-white' : 'font-medium text-white')}>
+                                                {c.name}
+                                            </p>
                                             {c.last_at && <span className="shrink-0 text-[10px] text-white/40">{c.last_at}</span>}
                                         </div>
                                         {c.last_message && (
-                                            <p className="truncate text-xs text-white/50">{c.last_message}</p>
+                                            <p className={cn('truncate text-xs', c.unread > 0 ? 'text-white/80' : 'text-white/50')}>
+                                                {c.last_message}
+                                            </p>
                                         )}
                                     </div>
-                                    {c.unread > 0 && (
-                                        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
-                                            {c.unread}
-                                        </span>
-                                    )}
                                 </button>
                             ))
                         )}
