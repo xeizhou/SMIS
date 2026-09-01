@@ -26,11 +26,17 @@ class EnsureSingleSession
         // we're on the first request with the final ID, claim it.
         if ($request->session()->pull('auth.pending_claim')) {
             if (! $user->claimSession($sessionId)) {
-                // Lost a race to a simultaneous login for this account.
-                return $this->forceLogout(
-                    $request,
-                    'This account was signed in from another device just now. Please try logging in again.'
-                );
+                // Reload from DB — a concurrent request for this SAME session
+                // may have already won the claim between our pull() and now.
+                $user->refresh();
+
+                if ($user->current_session_id !== $sessionId) {
+                    return $this->forceLogout(
+                        $request,
+                        'This account was signed in from another device just now. Please try logging in again.'
+                    );
+                }
+                // else: sibling request already claimed it for us — fall through
             }
 
             return $next($request);
