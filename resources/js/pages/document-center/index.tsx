@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     FileText,
@@ -15,6 +20,9 @@ import {
     X,
     Download,
     ExternalLink,
+    Clock,
+    Settings,
+    Save,
 } from 'lucide-react';
 
 interface ItemOption {
@@ -426,6 +434,141 @@ function GalleryTab({
     );
 }
 
+function ScheduledTasksTab() {
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [settings, setSettings] = useState({
+        delivery_email_enabled: true,
+        delivery_email_schedule_time: '08:00',
+    });
+    const [rawTasks, setRawTasks] = useState<{cron: string, command: string, next_due: string}[]>([]);
+
+    useEffect(() => {
+        fetch('/api/scheduled-tasks')
+            .then(res => res.json())
+            .then(data => {
+                setSettings({
+                    delivery_email_enabled: Boolean(data.delivery_email_enabled),
+                    delivery_email_schedule_time: data.delivery_email_schedule_time || '08:00',
+                });
+                setRawTasks(data.raw_tasks || []);
+                setLoading(false);
+            });
+    }, []);
+
+    const handleSave = () => {
+        setSaving(true);
+        fetch('/api/scheduled-tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': (document.head.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+            },
+            body: JSON.stringify(settings),
+        })
+            .then(res => res.json())
+            .then(() => {
+                toast.success('Scheduled tasks settings saved successfully!');
+            })
+            .catch(() => toast.error('Failed to save settings.'))
+            .finally(() => setSaving(false));
+    };
+
+    if (loading) {
+        return <div className="text-muted-foreground animate-pulse text-sm text-center py-10">Loading scheduled tasks...</div>;
+    }
+
+    return (
+        <div className="animate-in fade-in space-y-6 duration-300">
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden">
+                <div className="border-b p-4 sm:p-6 bg-muted/40 flex items-start gap-4">
+                    <div className="bg-primary/10 text-primary p-2.5 rounded-lg">
+                        <Mail className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg">Overdue Delivery Auto-Emailer</h3>
+                        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                            Automatically sends reminder emails to suppliers when their deliveries are exactly 1 day past due. 
+                            This runs silently in the background every day.
+                        </p>
+                    </div>
+                </div>
+                <div className="p-4 sm:p-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label className="text-base">Enable Auto-Emailer</Label>
+                            <p className="text-sm text-muted-foreground">Turn this background task on or off globally.</p>
+                        </div>
+                        <Switch 
+                            checked={settings.delivery_email_enabled} 
+                            onCheckedChange={(checked) => setSettings(s => ({ ...s, delivery_email_enabled: checked }))}
+                        />
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                            <Label className="text-base">Daily Execution Time</Label>
+                            <p className="text-sm text-muted-foreground">What time should the system check for overdue deliveries?</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Clock className="text-muted-foreground h-4 w-4" />
+                            <Input 
+                                type="time" 
+                                className="w-[130px]" 
+                                value={settings.delivery_email_schedule_time}
+                                onChange={(e) => setSettings(s => ({ ...s, delivery_email_schedule_time: e.target.value }))}
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div className="border-t p-4 bg-muted/20 flex justify-end">
+                    <Button onClick={handleSave} disabled={saving} className="gap-2">
+                        {saving ? <Settings className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Save Settings
+                    </Button>
+                </div>
+            </div>
+
+            {/* Next Execution Status */}
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden mt-6">
+                <div className="border-b p-4 sm:p-5 bg-muted/40">
+                    <h3 className="font-semibold text-base">Upcoming Background Tasks</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Status of automated system tasks and their next scheduled execution time.
+                    </p>
+                </div>
+                <div className="divide-y">
+                    {rawTasks.map((task, i) => {
+                        let title = "Unknown Task";
+                        let description = "A system background task.";
+                        
+                        if (task.command.includes('send-overdue-emails')) {
+                            title = "Overdue Delivery Emails";
+                            description = "When the auto-emailer is scheduled to run next.";
+                        } else if (task.command.includes('model:prune')) {
+                            title = "System Audit Logs Cleanup";
+                            description = "Automatically deletes background Audit Logs older than 30 days to free up space. No other modules or data are affected.";
+                        }
+
+                        return (
+                            <div key={i} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-muted/10 transition-colors">
+                                <div className="space-y-1">
+                                    <h3 className="font-semibold text-sm">{title}</h3>
+                                    <p className="text-xs text-muted-foreground">{description}</p>
+                                </div>
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-500/10 text-green-700 dark:text-green-400 whitespace-nowrap">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    {task.next_due}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function DocumentCenterIndex({
     purchaseOrders,
     clearances,
@@ -448,11 +591,14 @@ export default function DocumentCenterIndex({
                         </div>
 
                         <TabsList className="w-full sm:w-auto">
-                            <TabsTrigger value="archive" className="flex-1 px-16 sm:flex-none">
+                            <TabsTrigger value="archive" className="flex-1 px-10 sm:flex-none">
                                 Archive
                             </TabsTrigger>
-                            <TabsTrigger value="gallery" className="flex-1 px-16 sm:flex-none">
+                            <TabsTrigger value="gallery" className="flex-1 px-10 sm:flex-none">
                                 Gallery
+                            </TabsTrigger>
+                            <TabsTrigger value="scheduled-tasks" className="flex-1 px-10 sm:flex-none">
+                                Scheduled Tasks
                             </TabsTrigger>
                         </TabsList>
                     </div>
@@ -466,6 +612,10 @@ export default function DocumentCenterIndex({
 
                     <TabsContent value="gallery" className="animate-in fade-in mt-5 duration-300 sm:mt-6">
                         <GalleryTab purchaseOrders={purchaseOrders} clearances={clearances} />
+                    </TabsContent>
+
+                    <TabsContent value="scheduled-tasks" className="animate-in fade-in mt-5 duration-300 sm:mt-6">
+                        <ScheduledTasksTab />
                     </TabsContent>
                 </Tabs>
             </div>
