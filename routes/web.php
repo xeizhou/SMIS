@@ -597,7 +597,10 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/document-center/po/{po_number}/attachments', [DocumentCenterController::class, 'poAttachments'])
     ->name('document-center.po-attachments');
     Route::get('/document-center/clearance/{id}/attachments', [DocumentCenterController::class, 'clearanceAttachments'])
-    ->name('document-center.clearance-attachments');    
+    ->name('document-center.clearance-attachments'); 
+    
+    Route::get('/api/messages/{message}/attachment', [\App\Http\Controllers\MessageController::class, 'attachment'])
+    ->name('messages.attachment');   
 
     // ==========================================================
     // System/Administration (sidebar: "System/Administration")
