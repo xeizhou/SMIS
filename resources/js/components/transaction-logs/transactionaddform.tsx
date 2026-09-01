@@ -598,8 +598,8 @@ export default function TransactionAddForm({
                                     <Button
                                         type="submit"
                                         disabled={processing || isOverStock}
-                                        style={{ backgroundColor: '#612A35' }}
                                         onClick={() => setSubmitAction('close')}
+                                        className="bg-[#612A35] hover:bg-[#612A35]/90 disabled:opacity-50 disabled:hover:bg-[#612A35] text-white"
                                     >
                                         {processing && submitAction === 'close' ? 'Saving...' : 'Save Transaction'}
                                     </Button>

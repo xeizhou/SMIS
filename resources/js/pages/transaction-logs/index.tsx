@@ -251,7 +251,7 @@ export default function Index({
                                 );
                             }}
                         >
-                            <SelectTrigger className={`w-[140px] ${transactionType === 'all' ? 'text-muted-foreground' : ''}`}>
+                            <SelectTrigger className="w-[140px] text-black">
                                 <SelectValue placeholder="Filter by Type" />
                             </SelectTrigger>
                             <SelectContent>
@@ -272,11 +272,11 @@ export default function Index({
                                 );
                             }}
                         >
-                            <SelectTrigger className={`w-[160px] ${fundClusterFilter === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Fund" />
+                            <SelectTrigger className="w-[220px] text-black">
+                                <SelectValue placeholder="All Fund Clusters" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Funds</SelectItem>
+                                <SelectItem value="all">All Fund Clusters</SelectItem>
                                 {fundClusters.map((fc) => (
                                     <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
                                         {fc.fund_cluster_id}
@@ -291,7 +291,7 @@ export default function Index({
                                 type="date"
                                 value={dateFrom}
                                 onChange={(e) => setDateFrom(e.target.value)}
-                                className="w-auto text-muted-foreground"
+                                className="w-auto text-black"
                                 title="From Date"
                             />
                             <span className="text-sm text-muted-foreground">to</span>
@@ -299,7 +299,7 @@ export default function Index({
                                 type="date"
                                 value={dateTo}
                                 onChange={(e) => setDateTo(e.target.value)}
-                                className="w-auto text-muted-foreground"
+                                className="w-auto text-black"
                                 title="To Date"
                             />
                         </div>
@@ -319,8 +319,7 @@ export default function Index({
                     <Button
                         type="button"
                         onClick={() => setDialogOpen(true)}
-                        className="w-full xl:w-auto"
-                        style={{ backgroundColor: '#612A35' }}
+                        className="w-full xl:w-auto bg-[#612A35] hover:bg-[#612A35]/90 text-white flex items-center gap-2"
                     >
                         Add Transaction
                     </Button>
@@ -328,7 +327,17 @@ export default function Index({
 
                 {/* Table */}
                 <div className="overflow-hidden rounded-xl border border-border bg-card overflow-x-auto">
-                    <table className="w-full text-sm whitespace-nowrap">
+                    <table className="w-full text-sm table-fixed">
+                        <colgroup>
+                            <col className="w-[8%]" />   {/* Type */}
+                            <col className="w-[10%]" />  {/* Date */}
+                            <col className="w-[24%]" />  {/* Item Name */}
+                            <col className="w-[8%]" />   {/* Unit */}
+                            <col className="w-[7%]" />   {/* Qty */}
+                            <col className="w-[13%]" />  {/* Reference */}
+                            <col className="w-[10%]" />  {/* Office */}
+                            <col className="w-[10%]" />  {/* Actions */}
+                        </colgroup>
                         <thead className="border-b">
                             <tr>
                                 <th 
@@ -380,7 +389,7 @@ export default function Index({
                         <tbody>
                             {transactions.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="px-6 py-16 text-center">
+                                    <td colSpan={8} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No transactions added yet.
                                         </p>
@@ -395,7 +404,7 @@ export default function Index({
                                         key={tx.transactionID}
                                         className="border-b transition-colors hover:bg-muted/40"
                                     >
-                                        <td className="px-4 py-3">
+                                        <td className="px-4 py-3 truncate">
                                             <span
                                                 className={
                                                     'px-2 py-1 rounded-full text-xs font-semibold ' +
@@ -407,18 +416,18 @@ export default function Index({
                                                 {tx.transaction_type}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">{formatDate(tx.transaction_date)}</td>
+                                        <td className="px-4 py-3 truncate">{formatDate(tx.transaction_date)}</td>
                                         <td
-                                            className="px-4 py-3 max-w-[250px] truncate"
+                                            className="px-4 py-3 truncate"
                                             title={`${tx.item_name}${tx.description ? ` - ${tx.description}` : ''}`}
                                         >
                                             {tx.item_name}
                                             {tx.description ? ` - ${tx.description}` : ''}
                                         </td>
-                                        <td className="px-4 py-3">{tx.unit?.unit_short_name ?? '—'}</td>
-                                        <td className="px-4 py-3 text-center">{tx.quantity}</td>
-                                        <td className="px-4 py-3">{tx.reference}</td>
-                                        <td className="px-4 py-3">{tx.office?.office_code ?? '—'}</td>
+                                        <td className="px-4 py-3 truncate">{tx.unit?.unit_short_name ?? '—'}</td>
+                                        <td className="px-4 py-3 text-center truncate">{tx.quantity}</td>
+                                        <td className="px-4 py-3 truncate">{tx.reference}</td>
+                                        <td className="px-4 py-3 truncate">{tx.office?.office_code ?? '—'}</td>
                                         <td className="px-4 py-3 text-center">
                                             <div className="flex items-center justify-center gap-3">
                                                 <button

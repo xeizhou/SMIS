@@ -213,7 +213,12 @@ export default function Index({ items, fundClusters, filters }: Props) {
 
                 {/* Table */}
                 <div className="overflow-hidden rounded-xl border border-border bg-card overflow-x-auto">
-                    <table className="w-full text-sm whitespace-nowrap">
+                    <table className="w-full text-sm table-fixed">
+                        <colgroup>
+                            <col className="w-[65%]" />  {/* Item Description */}
+                            <col className="w-[15%]" />  {/* Unit */}
+                            <col className="w-[20%]" />  {/* Balance per Stock Card */}
+                        </colgroup>
                         <thead className="border-b">
                             <tr>
                                 <th className="p-0 font-semibold text-white bg-[#370001]">
@@ -264,13 +269,13 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                         data-record-id={item.stock_no}
                                     >
                                         <td
-                                            className="px-4 py-3 max-w-[600px] truncate"
+                                            className="px-4 py-3 truncate"
                                             title={`${item.item_name}${item.item_description ? ` - ${item.item_description}` : ''}`}
                                         >
                                             {item.item_name}
                                             {item.item_description ? ` - ${item.item_description}` : ''}
                                         </td>
-                                        <td className="px-4 py-3">{item.unit_short_name}</td>
+                                        <td className="px-4 py-3 truncate">{item.unit_short_name}</td>
                                         <td className="px-4 py-3 text-center font-medium">
                                             {item.balance_per_stock_card}
                                         </td>
