@@ -1,8 +1,8 @@
-import { useForm } from '@inertiajs/react';
+import { useForm, router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, RefreshCw } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -23,10 +23,10 @@ import {
 
 interface RrspItem {
     id: number;
+    itemName: string;
     itemDescription: string;
     quantity: number;
     propertyNo: string | null;
-    cost: number | null;
     kindOfSemiExpendable: string | null;
     status: string | null;
     area: string | null;
@@ -38,6 +38,7 @@ interface RrspMonitoring {
     rrspNo: string;
     dateReceived: string;
     endUserName: string | null;
+    returnBy: string | null;
     items?: RrspItem[];
 }
 
@@ -45,20 +46,22 @@ interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     rrsp: RrspMonitoring | null;
+    areas: string[];
 }
 
-export default function RrspEditForm({ open, onOpenChange, rrsp }: Props) {
+export default function RrspEditForm({ open, onOpenChange, rrsp, areas }: Props) {
     const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
     const { data, setData, put, processing, errors, reset } = useForm({
         rrspNo: '',
         dateReceived: '',
         endUserName: '',
+        returnBy: '',
         items: [
             {
+                itemName: '',
                 itemDescription: '',
                 quantity: '',
                 propertyNo: '',
-                cost: '',
                 kindOfSemiExpendable: '',
                 status: '',
                 area: '',
@@ -73,20 +76,21 @@ export default function RrspEditForm({ open, onOpenChange, rrsp }: Props) {
                 rrspNo: rrsp.rrspNo ?? '',
                 dateReceived: rrsp.dateReceived ?? '',
                 endUserName: rrsp.endUserName ?? '',
+                returnBy: rrsp.returnBy ?? '',
                 items: rrsp.items && rrsp.items.length > 0 ? rrsp.items.map(item => ({
+                    itemName: item.itemName ?? '',
                     itemDescription: item.itemDescription ?? '',
                     quantity: item.quantity?.toString() ?? '',
                     propertyNo: item.propertyNo ?? '',
-                    cost: item.cost?.toString() ?? '',
                     kindOfSemiExpendable: item.kindOfSemiExpendable ?? '',
                     status: item.status ?? '',
                     area: item.area ?? '',
                     remarks: item.remarks ?? '',
                 })) : [{
+                    itemName: '',
                     itemDescription: '',
                     quantity: '',
                     propertyNo: '',
-                    cost: '',
                     kindOfSemiExpendable: '',
                     status: '',
                     area: '',
@@ -101,10 +105,10 @@ export default function RrspEditForm({ open, onOpenChange, rrsp }: Props) {
         setData('items', [
             ...data.items,
             {
+                itemName: '',
                 itemDescription: '',
                 quantity: '',
                 propertyNo: '',
-                cost: '',
                 kindOfSemiExpendable: '',
                 status: '',
                 area: '',
@@ -154,11 +158,12 @@ return;
                     {/* Section: General Information */}
                     <div>
                         <h3 className={sectionTitleClass}>General Information</h3>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                             <div className="space-y-1.5">
-                                <Label htmlFor="edit-rrspNo">RRSP No</Label>
+                                <Label htmlFor="edit-rrspNo">RRSP No <span className="text-destructive">*</span></Label>
                                 <Input
                                     id="edit-rrspNo"
+                                    required
                                     value={data.rrspNo}
                                     onChange={(e) => setData('rrspNo', e.target.value)}
                                 />
@@ -184,6 +189,15 @@ return;
                                     id="edit-endUserName"
                                     value={data.endUserName}
                                     onChange={(e) => setData('endUserName', e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="edit-returnBy">Return by</Label>
+                                <Input
+                                    id="edit-returnBy"
+                                    placeholder="Name/Person"
+                                    value={data.returnBy}
+                                    onChange={(e) => setData('returnBy', e.target.value)}
                                 />
                             </div>
                         </div>
@@ -214,6 +228,18 @@ return;
                                     )}
                                     <h4 className="mb-3 text-sm font-medium">Item #{index + 1}</h4>
                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                                        <div className="space-y-1.5 md:col-span-2">
+                                            <Label htmlFor={`edit-item-${index}-name`}>Item Name <span className="text-destructive">*</span></Label>
+                                            <Input
+                                                id={`edit-item-${index}-name`}
+                                                required
+                                                value={item.itemName}
+                                                onChange={(e) => updateItem(index, 'itemName', e.target.value)}
+                                            />
+                                            {(errors as any)[`items.${index}.itemName`] && (
+                                                <p className="text-sm text-destructive">{(errors as any)[`items.${index}.itemName`]}</p>
+                                            )}
+                                        </div>
                                         <div className="space-y-1.5 md:col-span-2">
                                             <Label htmlFor={`edit-item-${index}-desc`}>Item Description <span className="text-destructive">*</span></Label>
                                             <Input
@@ -249,17 +275,6 @@ return;
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label htmlFor={`edit-item-${index}-cost`}>Amount / Cost</Label>
-                                            <Input
-                                                id={`edit-item-${index}-cost`}
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                value={item.cost}
-                                                onChange={(e) => updateItem(index, 'cost', e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
                                             <Label htmlFor={`edit-item-${index}-kind`}>Kind of Semi-Expendable</Label>
                                             <Select
                                                 value={item.kindOfSemiExpendable}
@@ -275,12 +290,30 @@ return;
                                             </Select>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label htmlFor={`edit-item-${index}-area`}>Area</Label>
-                                            <Input
-                                                id={`edit-item-${index}-area`}
+                                            <div className="flex items-center justify-between">
+                                                <Label htmlFor={`edit-item-${index}-area`}>Area</Label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => router.reload({ only: ['areas'] })}
+                                                    className="text-muted-foreground hover:text-foreground transition-colors"
+                                                    title="Refresh Areas"
+                                                >
+                                                    <RefreshCw className="size-3.5" />
+                                                </button>
+                                            </div>
+                                            <Select
                                                 value={item.area}
-                                                onChange={(e) => updateItem(index, 'area', e.target.value)}
-                                            />
+                                                onValueChange={(value) => updateItem(index, 'area', value)}
+                                            >
+                                                <SelectTrigger id={`edit-item-${index}-area`} className="w-full">
+                                                    <SelectValue placeholder="Select Area" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {areas.map((a) => (
+                                                        <SelectItem key={a} value={a}>{a}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label htmlFor={`edit-item-${index}-status`}>Status</Label>

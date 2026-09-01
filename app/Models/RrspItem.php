@@ -11,6 +11,7 @@ class RrspItem extends Model
 
     protected $fillable = [
         'rrsp_monitoring_id',
+        'item_name',
         'item_description',
         'quantity',
         'property_no',
