@@ -183,7 +183,6 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                         value={data.property_no}
                                         onChange={handleChange}
                                         error={errors.property_no}
-                                        required
                                     />
                                     <Field
                                         label="Date Release"
@@ -298,7 +297,7 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                 </h3>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                     <Field
-                                        label="Claimed By"
+                                        label="Approved by"
                                         name="claimed_by"
                                         value={data.claimed_by}
                                         onChange={handleChange}
@@ -306,7 +305,7 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                         required
                                     />
                                     <Field
-                                        label="From Accountable Officer"
+                                        label="Released/Issued by"
                                         name="from_accountable_officer"
                                         value={data.from_accountable_officer}
                                         onChange={handleChange}
@@ -314,7 +313,7 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                         required
                                     />
                                     <Field
-                                        label="To Accountable Officer"
+                                        label="Received by"
                                         name="to_accountable_officer"
                                         value={data.to_accountable_officer}
                                         onChange={handleChange}

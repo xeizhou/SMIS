@@ -88,9 +88,9 @@ export default function ItrPtrViewModal({ open, onOpenChange, item }: Props) {
                     <section>
                         <p className={sectionTitleClass}>Accountability</p>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            <Detail label="Claimed By" value={item.claimed_by} />
-                            <Detail label="From Accountable Officer" value={item.from_accountable_officer} />
-                            <Detail label="To Accountable Officer" value={item.to_accountable_officer} />
+                            <Detail label="Approved by" value={item.claimed_by} />
+                            <Detail label="Released/Issued by" value={item.from_accountable_officer} />
+                            <Detail label="Received by" value={item.to_accountable_officer} />
                         </div>
                     </section>
                 </div>
