@@ -8,7 +8,7 @@ import ClearanceEditForm from '@/components/clearance/clearanceeditform';
 import ClearanceProcessModal from '@/components/clearance/clearanceprocessmodal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { ClipboardCheck } from 'lucide-react';
 
@@ -35,6 +35,8 @@ interface ClearanceRecord {
     office_data?: OfficeOption | null;
     checker?: UserOption | null;
     checked_by_id?: number | null;
+    form_attribute?: string | null;
+    end_user_claim?: string | null;
 }
 
 interface PaginatedRecords {
@@ -51,14 +53,20 @@ interface Props {
     filters: {
         search: string | null;
         status: string | null;
+        form_attribute: string | null;
     };
     statuses: string[];
+    forms: string[];
     offices: OfficeOption[];
 }
 
-export default function Index({ records, filters, statuses, offices }: Props) {
-        const [search, setSearch] = useState(filters.search ?? '');
-    const [status, setStatus] = useState(filters.status ?? '');
+export default function Index({ records, filters, statuses, forms, offices }: Props) {
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [categoryFilter, setCategoryFilter] = useState(() => {
+        if (filters.status) return `status:${filters.status}`;
+        if (filters.form_attribute) return `type:${filters.form_attribute}`;
+        return 'all';
+    });
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -68,17 +76,33 @@ export default function Index({ records, filters, statuses, offices }: Props) {
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
 
-        router.get('/clearance', { search, status }, {
+        let newStatus = '';
+        let newForm = '';
+        if (categoryFilter.startsWith('status:')) {
+            newStatus = categoryFilter.replace('status:', '');
+        } else if (categoryFilter.startsWith('type:')) {
+            newForm = categoryFilter.replace('type:', '');
+        }
+
+        router.get('/clearance', { search, status: newStatus, form_attribute: newForm }, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
         });
     };
 
-    const handleStatusChange = (value: string) => {
-        setStatus(value);
+    const handleCategoryChange = (value: string) => {
+        setCategoryFilter(value);
 
-        router.get('/clearance', { search, status: value }, {
+        let newStatus = '';
+        let newForm = '';
+        if (value.startsWith('status:')) {
+            newStatus = value.replace('status:', '');
+        } else if (value.startsWith('type:')) {
+            newForm = value.replace('type:', '');
+        }
+
+        router.get('/clearance', { search, status: newStatus, form_attribute: newForm }, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -87,7 +111,7 @@ export default function Index({ records, filters, statuses, offices }: Props) {
 
     const handleClear = () => {
         setSearch('');
-        setStatus('');
+        setCategoryFilter('all');
 
         router.get('/clearance', {}, {
             preserveState: true,
@@ -130,15 +154,28 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                             <Input placeholder="Search by name or received by" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
                         </div>
 
-                        <Select value={status} onValueChange={handleStatusChange}>
+                        <Select value={categoryFilter} onValueChange={handleCategoryChange}>
                             <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="All Status" />
+                                <SelectValue placeholder="All Categories" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All Status</SelectItem>
-                                {statuses.map((item) => (
-                                    <SelectItem key={item} value={item}>{item}</SelectItem>
-                                ))}
+                                <SelectItem value="all">All Categories</SelectItem>
+                                {statuses.length > 0 && (
+                                    <SelectGroup>
+                                        <SelectLabel>Status</SelectLabel>
+                                        {statuses.map((item) => (
+                                            <SelectItem key={`status:${item}`} value={`status:${item}`}>{item}</SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                )}
+                                {forms.length > 0 && (
+                                    <SelectGroup>
+                                        <SelectLabel>Type</SelectLabel>
+                                        {forms.map((item) => (
+                                            <SelectItem key={`type:${item}`} value={`type:${item}`}>{item}</SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                )}
                             </SelectContent>
                         </Select>
 
@@ -156,6 +193,8 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                             <tr>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Name</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Office</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Type</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Released By</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Claimed By</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Claim Date</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Status</th>
@@ -165,7 +204,7 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                         <tbody>
                             {records.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center">
+                                    <td colSpan={8} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">No clearance records added yet.</p>
                                         <p className="mt-1 text-sm text-muted-foreground">Click <strong>"Add Clearance"</strong> to create your first record.</p>
                                     </td>
@@ -179,8 +218,12 @@ export default function Index({ records, filters, statuses, offices }: Props) {
                                                 ? record.office
                                                 : record.office?.office_name ?? record.office_data?.office_name ?? '—'}
                                         </td>
+                                        <td className="px-4 py-3">{record.form_attribute ?? '—'}</td>
                                         <td className="px-4 py-3">
                                             {record.checker?.name ?? '—'}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {record.end_user_claim ?? '—'}
                                         </td>
                                         <td className="px-4 py-3">
                                             {record.claim_date ? new Date(record.claim_date).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}

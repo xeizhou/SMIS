@@ -91,6 +91,9 @@ interface ClearanceRecord {
     remarks: string | null;
     office_data?: OfficeOption | null;
     attachments?: Attachment[];
+    checker?: { id: number; name: string } | null;
+    clearance_type?: string | null;
+    form_attribute?: string | null;
 }
 
 interface Props {
@@ -107,7 +110,18 @@ const emptyForm: Record<string, string> = {
     received_by: '',
     cleared: 'false',
     remarks: '',
+    form_attribute: '',
 };
+
+const clearanceTypes = [
+    'retired',
+    'jo/cos/reliever',
+    'resignation',
+    'external campus',
+    'transfer',
+    'faculty clearance',
+    'others'
+];
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
 const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
@@ -205,6 +219,7 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
     const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
     const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
     const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null);
+    const [isOtherType, setIsOtherType] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -216,7 +231,14 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
                 office: typeof record.office === 'object' && record.office !== null ? record.office.office_code : (record.office || ''),
                 received_by: record.received_by,
                 remarks: record.remarks ?? '',
+                form_attribute: record.form_attribute ?? '',
             });
+
+            if (record.form_attribute && !clearanceTypes.includes(record.form_attribute)) {
+                setIsOtherType(true);
+            } else {
+                setIsOtherType(false);
+            }
 
             setErrors({});
             newFiles.forEach((f) => {
@@ -250,6 +272,16 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
             ...data,
             [name]: value,
         });
+    };
+
+    const handleTypeSelect = (value: string) => {
+        if (value === 'others') {
+            setIsOtherType(true);
+            setData((prev) => ({ ...prev, form_attribute: '' }));
+        } else {
+            setIsOtherType(false);
+            setData((prev) => ({ ...prev, form_attribute: value }));
+        }
     };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -373,7 +405,7 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
                     {/* Section: Requester Information */}
                     <div>
                         <h3 className={sectionTitleClass}>Requester Information</h3>
-                        <div className="grid gap-4 md:grid-cols-3">
+                        <div className="grid gap-4 md:grid-cols-2">
                             <div>
                                 <label className={labelClass} htmlFor="edit_name">Name <span className="text-red-500">*</span></label>
                                 <Input id="edit_name" name="name" value={data.name} onChange={handleChange} />
@@ -407,11 +439,45 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
                             
                             {record?.checker && (
                                 <div>
-                                    <label className={labelClass}>Claimed By</label>
+                                    <label className={labelClass}>Released By</label>
                                     <Input value={record.checker.name} readOnly className="bg-muted" />
                                 </div>
                             )}
 
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 className={sectionTitleClass}>Clearance Details</h3>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className={labelClass}>Form</label>
+                                <Select 
+                                    value={isOtherType ? 'others' : (clearanceTypes.includes(data.form_attribute) ? data.form_attribute : (data.form_attribute ? 'others' : ''))}
+                                    onValueChange={handleTypeSelect}
+                                >
+                                    <SelectTrigger className={errors.form_attribute ? 'border-red-500' : ''}>
+                                        <SelectValue placeholder="Select form" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {clearanceTypes.map((type) => (
+                                            <SelectItem key={type} value={type} className="capitalize">
+                                                {type}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {isOtherType && (
+                                    <Input 
+                                        className="mt-2" 
+                                        placeholder="Specify other form" 
+                                        name="form_attribute" 
+                                        value={data.form_attribute} 
+                                        onChange={handleChange} 
+                                    />
+                                )}
+                                {errors.form_attribute && <p className="mt-1 text-xs text-red-500">{errors.form_attribute}</p>}
+                            </div>
                         </div>
                     </div>
 
