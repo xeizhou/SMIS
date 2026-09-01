@@ -378,25 +378,26 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     })->name('dashboard');
 
     Route::get('/api/online-users', function () {
-        return \App\Models\User::query()
-            ->select('id', 'name', 'role', 'avatar_path', 'current_session_id')
-            ->get()
-            ->map(function ($u) {
-                $lastActivity = $u->current_session_id
-                    ? DB::table('sessions')->where('id', $u->current_session_id)->value('last_activity')
-                    : null;
+            return \App\Models\User::query()
+                ->select('id', 'name', 'email', 'role', 'avatar_path', 'current_session_id')
+                ->get()
+                ->map(function ($u) {
+                    $lastActivity = $u->current_session_id
+                        ? DB::table('sessions')->where('id', $u->current_session_id)->value('last_activity')
+                        : null;
 
-                $online = $lastActivity !== null && $lastActivity >= now()->subMinutes(2)->timestamp;
+                    $online = $lastActivity !== null && $lastActivity >= now()->subMinutes(2)->timestamp;
 
-                return [
-                    'id' => $u->id,
-                    'name' => $u->name,
-                    'role' => $u->role,
-                    'avatar' => $u->avatar_url,
-                    'online' => $online,
-                    'last_seen' => $lastActivity ? \Carbon\Carbon::createFromTimestamp($lastActivity)->diffForHumans() : null,
-                ];
-            });
+                    return [
+                        'id' => $u->id,
+                        'name' => $u->name,
+                        'email' => $u->email,
+                        'role' => $u->role,
+                        'avatar' => $u->avatar_url,
+                        'online' => $online,
+                        'last_seen' => $lastActivity ? \Carbon\Carbon::createFromTimestamp($lastActivity)->diffForHumans() : null,
+                    ];
+                });
     })->name('online-users');
 
     Route::get('/avatar/{user}', function (\App\Models\User $user) {

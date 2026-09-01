@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 interface OnlineUser {
     id: number;
     name: string;
+    email: string | null;
     role: string | null;
     avatar: string | null;
     online: boolean;
@@ -148,6 +149,9 @@ export function OnlineUsersBar() {
                                     </Avatar>
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate font-medium text-white">{u.name}</p>
+                                        {u.email && (
+                                            <p className="truncate text-xs text-white/50">{u.email}</p>
+                                        )}
                                         {u.role && (
                                             <p className="truncate text-xs capitalize text-white/50">{u.role}</p>
                                         )}
