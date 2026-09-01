@@ -9,10 +9,10 @@ import { StatusBadge } from '@/components/ui/status-badge';
 
 interface RrspItem {
     id: number;
+    itemName: string;
     itemDescription: string;
     quantity: number;
     propertyNo: string | null;
-    cost: number | null;
     kindOfSemiExpendable: string | null;
     status: string | null;
     area: string | null;
@@ -24,6 +24,7 @@ interface RrspMonitoring {
     rrspNo: string;
     dateReceived: string | null;
     endUserName: string | null;
+    returnBy: string | null;
     createdAt: string | null;
     updatedAt: string | null;
     items?: RrspItem[];
@@ -106,10 +107,11 @@ return (
             <div className="mt-2 space-y-6">
                 <section>
                     <p className={sectionTitleClass}>General Information</p>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                         <Detail label="RRSP No." value={rrsp.rrspNo} />
                         <Detail label="Date Received" value={formatDate(rrsp.dateReceived)} />
                         <Detail label="End User" value={rrsp.endUserName ?? '—'} />
+                        <Detail label="Return By" value={rrsp.returnBy ?? '—'} />
                     </div>
                 </section>
 
@@ -121,11 +123,13 @@ return (
                                 <h4 className="mb-3 text-sm font-medium border-b pb-2">Item #{index + 1}</h4>
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                                     <div className="sm:col-span-2">
+                                        <Detail label="Item Name" value={item.itemName ?? '—'} />
+                                    </div>
+                                    <div className="sm:col-span-2">
                                         <Detail label="Item Description" value={item.itemDescription ?? '—'} />
                                     </div>
                                     <Detail label="Quantity" value={item.quantity?.toString() ?? '—'} />
                                     <Detail label="Property No." value={item.propertyNo ?? '—'} />
-                                    <Detail label="Cost" value={formatCurrency(item.cost)} />
                                     <Detail label="Kind of Semi-Expendable" value={item.kindOfSemiExpendable ?? '—'} />
                                     <Detail label="Area" value={item.area ?? '—'} />
                                     <Detail label="Status" value={<StatusBadge status={item.status} />} />

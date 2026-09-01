@@ -1,7 +1,7 @@
-import { useForm } from '@inertiajs/react';
+import { useForm, router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, RefreshCw } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -24,20 +24,22 @@ import {
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    areas: string[];
 }
 
-export default function RrspAddForm({ open, onOpenChange }: Props) {
+export default function RrspAddForm({ open, onOpenChange, areas }: Props) {
     const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
     const { data, setData, post, processing, errors, reset } = useForm({
         rrspNo: '',
         dateReceived: '',
         endUserName: '',
+        returnBy: '',
         items: [
             {
+                itemName: '',
                 itemDescription: '',
                 quantity: '',
                 propertyNo: '',
-                cost: '',
                 kindOfSemiExpendable: '',
                 status: '',
                 area: '',
@@ -50,10 +52,10 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
         setData('items', [
             ...data.items,
             {
+                itemName: '',
                 itemDescription: '',
                 quantity: '',
                 propertyNo: '',
-                cost: '',
                 kindOfSemiExpendable: '',
                 status: '',
                 area: '',
@@ -99,9 +101,9 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                     {/* Section: General Information */}
                     <div>
                         <h3 className={sectionTitleClass}>General Information</h3>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                             <div className="space-y-1.5">
-                                <Label htmlFor="rrspNo">RRSP No</Label>
+                                <Label htmlFor="rrspNo">RRSP No <span className="text-destructive">*</span></Label>
                                 <Input
                                     required
                                     id="rrspNo"
@@ -116,7 +118,6 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                             <div className="space-y-1.5">
                                 <Label htmlFor="dateReceived">Date Received</Label>
                                 <Input
-                                    required
                                     id="dateReceived"
                                     type="date"
                                     value={data.dateReceived}
@@ -133,6 +134,15 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                                     placeholder="e.g. Pier Lolita D. Sy"
                                     value={data.endUserName}
                                     onChange={(e) => setData('endUserName', e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="returnBy">Return by</Label>
+                                <Input
+                                    id="returnBy"
+                                    placeholder="Name/Person"
+                                    value={data.returnBy}
+                                    onChange={(e) => setData('returnBy', e.target.value)}
                                 />
                             </div>
                         </div>
@@ -163,6 +173,19 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                                     )}
                                     <h4 className="mb-3 text-sm font-medium">Item #{index + 1}</h4>
                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                                        <div className="space-y-1.5 md:col-span-2">
+                                            <Label htmlFor={`item-${index}-name`}>Item Name <span className="text-destructive">*</span></Label>
+                                            <Input
+                                                id={`item-${index}-name`}
+                                                required
+                                                placeholder="e.g. Laptop"
+                                                value={item.itemName}
+                                                onChange={(e) => updateItem(index, 'itemName', e.target.value)}
+                                            />
+                                            {(errors as any)[`items.${index}.itemName`] && (
+                                                <p className="text-sm text-destructive">{(errors as any)[`items.${index}.itemName`]}</p>
+                                            )}
+                                        </div>
                                         <div className="space-y-1.5 md:col-span-2">
                                             <Label htmlFor={`item-${index}-desc`}>Item Description <span className="text-destructive">*</span></Label>
                                             <Input
@@ -201,18 +224,6 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label htmlFor={`item-${index}-cost`}>Amount / Cost</Label>
-                                            <Input
-                                                id={`item-${index}-cost`}
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                placeholder="15000.00"
-                                                value={item.cost}
-                                                onChange={(e) => updateItem(index, 'cost', e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
                                             <Label htmlFor={`item-${index}-kind`}>Kind of Semi-Expendable</Label>
                                             <Select
                                                 value={item.kindOfSemiExpendable}
@@ -228,13 +239,30 @@ export default function RrspAddForm({ open, onOpenChange }: Props) {
                                             </Select>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label htmlFor={`item-${index}-area`}>Area</Label>
-                                            <Input
-                                                id={`item-${index}-area`}
-                                                placeholder="e.g. Records Section"
+                                            <div className="flex items-center justify-between">
+                                                <Label htmlFor={`item-${index}-area`}>Area</Label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => router.reload({ only: ['areas'] })}
+                                                    className="text-muted-foreground hover:text-foreground transition-colors"
+                                                    title="Refresh Areas"
+                                                >
+                                                    <RefreshCw className="size-3.5" />
+                                                </button>
+                                            </div>
+                                            <Select
                                                 value={item.area}
-                                                onChange={(e) => updateItem(index, 'area', e.target.value)}
-                                            />
+                                                onValueChange={(value) => updateItem(index, 'area', value)}
+                                            >
+                                                <SelectTrigger id={`item-${index}-area`} className="w-full">
+                                                    <SelectValue placeholder="Select Area" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {areas.map((a) => (
+                                                        <SelectItem key={a} value={a}>{a}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label htmlFor={`item-${index}-status`}>Status</Label>

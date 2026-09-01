@@ -27,6 +27,7 @@ class RrspMonitoring extends Model
         'rrsp_no',
         'date_received',
         'end_user_name',
+        'return_by',
     ];
 
     protected $casts = [

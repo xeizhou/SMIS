@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
@@ -7,6 +7,8 @@ import RrspAddForm from '@/components/rrsp-monitoring/rrspaddform';
 import RrspDeleteModal from '@/components/rrsp-monitoring/rrspdeletemodal';
 import RrspEditForm from '@/components/rrsp-monitoring/rrspeditform';
 import RrspViewForm from '@/components/rrsp-monitoring/rrspviewform';
+import RrspPrintTemplate from '@/components/rrsp-monitoring/rrspprinttemplate';
+import { printComponent } from '@/lib/print-utils';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,10 +22,10 @@ import {
 
 interface RrspItem {
     id: number;
+    itemName: string;
     itemDescription: string;
     quantity: number;
     propertyNo: string | null;
-    cost: number | null;
     kindOfSemiExpendable: string | null;
     status: string | null;
     area: string | null;
@@ -33,14 +35,8 @@ interface RrspMonitoring {
     id: string;
     rrspNo: string;
     dateReceived: string;
-    itemDescription: string;
-    quantity: number;
-    propertyNo: string | null;
     endUserName: string | null;
-    cost: number | null;
-    kindOfSemiExpendable: string | null;
-    status: string | null;
-    area: string | null;
+    returnBy: string | null;
     createdAt: string | null;
     updatedAt: string | null;
     items?: RrspItem[];
@@ -69,6 +65,7 @@ interface Filters {
 interface Props {
     rrspMonitorings: PaginatedRrspMonitoring;
     filters: Filters;
+    areas: string[];
 }
 
 const STATUS_OPTIONS = ['SERVICEABLE', 'UNSERVICEABLE'];
@@ -100,7 +97,7 @@ return '—';
     });
 }
 
-export default function Index({ rrspMonitorings, filters }: Props) {
+export default function Index({ rrspMonitorings, filters, areas }: Props) {
         const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -172,6 +169,10 @@ export default function Index({ rrspMonitorings, filters }: Props) {
         setDeleteDialogOpen(true);
     };
 
+    const handlePrint = (rrsp: RrspMonitoring) => {
+        printComponent(<RrspPrintTemplate rrsp={rrsp} />);
+    };
+
     return (
         <>
             <Head title="RRSP Monitoring" />
@@ -186,6 +187,21 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                         <p className="mt-1 text-sm text-muted-foreground">
                             Manage and track all Report of Receipts of Semi-Expendable Property
                         </p>
+                    </div>
+                    <div className="bg-muted/50 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
+                        <Link
+                            href="/rrsp-monitoring"
+                            preserveState
+                            className="bg-background text-foreground shadow-sm inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                        >
+                            RRSP Records
+                        </Link>
+                        <Link
+                            href="/rrsp-monitoring/areas"
+                            className="text-muted-foreground hover:text-foreground inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                        >
+                            Area Records
+                        </Link>
                     </div>
                     {/* Horizontal fading border */}
                     <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
@@ -253,13 +269,16 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                         RRSP No
                                     </th>
                                     <th className="px-4 py-3 text-left font-semibold text-white">
-                                        Item Description
+                                        Item Name
                                     </th>
                                     <th className="px-4 py-3 text-left font-semibold text-white">
                                         Property No
                                     </th>
                                     <th className="px-4 py-3 text-left font-semibold text-white">
                                         End User
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-semibold text-white">
+                                        Return By
                                     </th>
                                     <th className="px-4 py-3 text-left font-semibold text-white">
                                         Area
@@ -269,9 +288,6 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                     </th>
                                     <th className="px-4 py-3 text-center font-semibold text-white">
                                         Qty
-                                    </th>
-                                    <th className="px-4 py-3 text-right font-semibold text-white">
-                                        Cost
                                     </th>
                                     <th className="px-4 py-3 text-left font-semibold text-white">
                                         Status
@@ -303,18 +319,21 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                         
                                         return (
                                             <tbody key={rrsp.id} className="group border-b border-border">
-                                                <tr className={'border-b border-border/50 transition-colors duration-1000 hover:bg-muted/40'} data-search-0={rrsp.propertyNo} data-search-1={rrsp.rrspNo} data-record-id={rrsp.id}>
+                                                <tr className={'border-b border-border/50 transition-colors duration-1000 hover:bg-muted/40'} data-search-0={firstItem?.propertyNo} data-search-1={rrsp.rrspNo} data-record-id={rrsp.id}>
                                                     <td className="px-4 py-3 font-medium" rowSpan={itemsCount}>
                                                         {rrsp.rrspNo}
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        {firstItem?.itemDescription ?? '—'}
+                                                        {firstItem?.itemName ?? '—'}
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         {firstItem?.propertyNo ?? '—'}
                                                     </td>
                                                     <td className="px-4 py-3" rowSpan={itemsCount}>
                                                         {rrsp.endUserName ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3" rowSpan={itemsCount}>
+                                                        {rrsp.returnBy ?? '—'}
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         {firstItem?.area ?? '—'}
@@ -324,9 +343,6 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                                     </td>
                                                     <td className="px-4 py-3 text-center">
                                                         {firstItem?.quantity ?? '—'}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        {formatCurrency(firstItem?.cost ?? null)}
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         {firstItem?.status ? <StatusBadge status={firstItem.status} /> : '—'}
@@ -351,6 +367,14 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                                             </button>
                                                             <button
                                                                 type="button"
+                                                                onClick={() => handlePrint(rrsp)}
+                                                                className="text-gray-600 hover:text-gray-800"
+                                                                title="Print"
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-printer"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                                                            </button>
+                                                            <button
+                                                                type="button"
                                                                 onClick={() => handleView(rrsp)}
                                                                 className="text-foreground hover:text-muted-foreground"
                                                                 title="View"
@@ -361,9 +385,9 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                                     </td>
                                                 </tr>
                                                 {rrsp.items && rrsp.items.length > 1 && rrsp.items.slice(1).map((item) => (
-                                                    <tr key={item.id} className={'border-b border-border/50 transition-colors duration-1000 hover:bg-muted/40'} data-search-0={rrsp.propertyNo} data-search-1={rrsp.rrspNo} data-record-id={rrsp.id}>
+                                                    <tr key={item.id} className={'border-b border-border/50 transition-colors duration-1000 hover:bg-muted/40'} data-search-0={item.propertyNo} data-search-1={rrsp.rrspNo} data-record-id={rrsp.id}>
                                                         <td className="px-4 py-3">
-                                                            {item.itemDescription ?? '—'}
+                                                            {item.itemName ?? '—'}
                                                         </td>
                                                         <td className="px-4 py-3">
                                                             {item.propertyNo ?? '—'}
@@ -373,9 +397,6 @@ export default function Index({ rrspMonitorings, filters }: Props) {
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
                                                             {item.quantity ?? '—'}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            {formatCurrency(item.cost ?? null)}
                                                         </td>
                                                         <td className="px-4 py-3">
                                                             {item.status ? <StatusBadge status={item.status} /> : '—'}
@@ -400,12 +421,14 @@ export default function Index({ rrspMonitorings, filters }: Props) {
             <RrspAddForm
                 open={addDialogOpen}
                 onOpenChange={setAddDialogOpen}
+                areas={areas}
             />
 
             <RrspEditForm
                 open={editDialogOpen}
                 onOpenChange={setEditDialogOpen}
                 rrsp={selectedRrsp}
+                areas={areas}
             />
 
             <RrspViewForm

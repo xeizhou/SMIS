@@ -428,6 +428,10 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::delete('/rrppe-monitoring/{id}', [RRPPEController::class, 'destroy'])->name('rrppe-monitoring.destroy');
 
     Route::get('/rrsp-monitoring', [RRSPController::class, 'index'])->name('rrsp-monitoring.index');
+    Route::get('/rrsp-monitoring/areas', [App\Http\Controllers\AreaController::class, 'index'])->name('rrsp-monitoring.areas.index');
+    Route::post('/rrsp-monitoring/areas', [App\Http\Controllers\AreaController::class, 'store'])->name('rrsp-monitoring.areas.store');
+    Route::put('/rrsp-monitoring/areas/{area}', [App\Http\Controllers\AreaController::class, 'update'])->name('rrsp-monitoring.areas.update');
+    Route::delete('/rrsp-monitoring/areas/{area}', [App\Http\Controllers\AreaController::class, 'destroy'])->name('rrsp-monitoring.areas.destroy');
     Route::post('/rrsp-monitoring', [RRSPController::class, 'store'])->name('rrsp-monitoring.store');
     Route::put('/rrsp-monitoring/{rrsp}', [RRSPController::class, 'update'])->name('rrsp-monitoring.update');
     Route::delete('/rrsp-monitoring/{rrsp}', [RRSPController::class, 'destroy'])->name('rrsp-monitoring.destroy');
