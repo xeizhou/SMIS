@@ -499,6 +499,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/delivery-follow-ups', [\App\Http\Controllers\DeliveryFollowUpController::class, 'index'])->name('delivery-follow-ups.index');
     Route::post('/delivery-follow-ups', [\App\Http\Controllers\DeliveryFollowUpController::class, 'store'])->name('delivery-follow-ups.store');
     Route::delete('/delivery-follow-ups/{id}', [\App\Http\Controllers\DeliveryFollowUpController::class, 'destroy'])->name('delivery-follow-ups.destroy');
+    Route::get('/deliveries/{id}/recent-follow-ups', [\App\Http\Controllers\DeliveryFollowUpController::class, 'recentFollowUps'])->name('deliveries.recent-follow-ups');
+    Route::post('/deliveries/{id}/send-follow-up', [\App\Http\Controllers\DeliveryFollowUpController::class, 'sendFollowUpEmail'])->name('deliveries.send-follow-up');
 
     Route::get('/iar', [IARController::class, 'index'])->name('iar.index');
     Route::post('/iar', [IARController::class, 'store'])->name('iar.store');
@@ -599,6 +601,43 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/document-center/clearance/{id}/attachments', [DocumentCenterController::class, 'clearanceAttachments'])
     ->name('document-center.clearance-attachments'); 
     
+    // Scheduled Tasks API
+    Route::get('/api/scheduled-tasks', function () {
+        \Illuminate\Support\Facades\Artisan::call('schedule:list');
+        $output = preg_replace('/\x1b\[[0-9;]*m/', '', \Illuminate\Support\Facades\Artisan::output());
+        
+        $lines = explode("\n", trim($output));
+        $tasks = [];
+        foreach ($lines as $line) {
+            if (empty(trim($line))) continue;
+            if (preg_match('/^\s*([0-9\*\/\-\,]+(?:\s+[0-9\*\/\-\,]+){4})\s+(.+?)\s+\.{2,}\s+Next Due:\s+(.+)$/i', $line, $matches)) {
+                $tasks[] = [
+                    'cron' => trim($matches[1]),
+                    'command' => trim($matches[2]),
+                    'next_due' => trim($matches[3]),
+                ];
+            }
+        }
+
+        return response()->json([
+            'delivery_email_enabled' => \App\Models\Setting::get('delivery_email_enabled', true),
+            'delivery_email_schedule_time' => \App\Models\Setting::get('delivery_email_schedule_time', '08:00'),
+            'raw_tasks' => $tasks,
+        ]);
+    })->name('api.scheduled-tasks.index');
+
+    Route::post('/api/scheduled-tasks', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'delivery_email_enabled' => 'required|boolean',
+            'delivery_email_schedule_time' => 'required|string',
+        ]);
+
+        \App\Models\Setting::set('delivery_email_enabled', $request->boolean('delivery_email_enabled'));
+        \App\Models\Setting::set('delivery_email_schedule_time', $request->input('delivery_email_schedule_time'));
+
+        return response()->json(['message' => 'Settings saved successfully.']);
+    })->name('api.scheduled-tasks.store');
+
     Route::get('/api/messages/{message}/attachment', [\App\Http\Controllers\MessageController::class, 'attachment'])
     ->name('messages.attachment');   
 

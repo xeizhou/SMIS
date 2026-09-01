@@ -2,6 +2,7 @@ import { router, Link, useForm } from '@inertiajs/react';
 import { RefreshCw, User, CalendarDays, ClipboardList, Package, ArrowRight, MessageSquarePlus, Phone, Mail, Loader2, CheckCircle2, Filter, ArrowDownWideNarrow, ArrowUpNarrowWide, Check, Plus, X } from 'lucide-react';
 import { dueDeliveriesHighlight } from './dueDeliveriesHighlight';
 import { useState, useMemo } from 'react';
+import { format } from 'date-fns';
 import {
     Tooltip,
     TooltipContent,
@@ -155,35 +156,52 @@ export function DueDeliveries({ deliveries }: Props) {
 
     const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
     const [isCustomNoticeType, setIsCustomNoticeType] = useState(false);
+    const [recentFollowUps, setRecentFollowUps] = useState<any[]>([]);
+    const [isLoadingFollowUps, setIsLoadingFollowUps] = useState(false);
     
     const { data: formData, setData: setFormData, post, processing, reset } = useForm({
         delivery_id: '',
         notice_type: 'Phone',
         follow_up_date: '',
         remarks: '',
+        custom_message: '',
     });
 
-    const openFollowUpModal = (deliveryId: string) => {
+    const openFollowUpModal = async (deliveryId: string) => {
         setFormData({
             delivery_id: deliveryId,
             notice_type: 'Phone',
             follow_up_date: '',
             remarks: '',
+            custom_message: '',
         });
         
-        // Convert current date to local timezone string for datetime-local input
         const now = new Date();
         const offset = now.getTimezoneOffset() * 60000;
         const localISOTime = (new Date(now.getTime() - offset)).toISOString().slice(0, 16);
         setFormData('follow_up_date', localISOTime);
-        setFormData('follow_up_date', localISOTime);
         setIsCustomNoticeType(false);
         setFollowUpModalOpen(true);
+        
+        setIsLoadingFollowUps(true);
+        try {
+            const response = await fetch(`/deliveries/${deliveryId}/recent-follow-ups`);
+            const data = await response.json();
+            setRecentFollowUps(data);
+        } catch (error) {
+            console.error('Failed to fetch recent follow-ups', error);
+        } finally {
+            setIsLoadingFollowUps(false);
+        }
     };
 
     const submitFollowUp = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/delivery-follow-ups', {
+        const url = formData.notice_type === 'Email' 
+            ? `/deliveries/${formData.delivery_id}/send-follow-up` 
+            : '/delivery-follow-ups';
+            
+        post(url, {
             preserveScroll: true,
             onSuccess: () => {
                 setFollowUpModalOpen(false);
@@ -258,7 +276,7 @@ export function DueDeliveries({ deliveries }: Props) {
                                                 ) : (
                                                     <MessageSquarePlus className="size-4" />
                                                 )}
-                                                <span className="hidden sm:inline">{item.has_follow_up ? 'Followed up' : 'Log Follow-up'}</span>
+                                                <span className="hidden sm:inline">{item.has_follow_up ? 'Followed up' : 'Follow Up Supplier'}</span>
                                                 <span className="sm:hidden">{item.has_follow_up ? 'Logged' : 'Log'}</span>
                                             </Button>
                                         </div>
@@ -534,23 +552,57 @@ export function DueDeliveries({ deliveries }: Props) {
                             <Input
                                 id="remarks"
                                 type="text"
-                                placeholder="Any additional notes..."
+                                placeholder={formData.notice_type === 'Email' ? "Internal notes..." : "Any additional notes..."}
                                 value={formData.remarks}
                                 onChange={(e) => setFormData('remarks', e.target.value)}
                             />
                         </div>
+                        
+                        {formData.notice_type === 'Email' && (
+                            <div className="grid gap-2 border-t pt-4 mt-2 border-neutral-100 dark:border-neutral-800">
+                                <Label htmlFor="custom_message" className="text-blue-600 dark:text-blue-400">Custom Email Message (Optional)</Label>
+                                <p className="text-xs text-neutral-500">This will be injected into the automated email sent to the supplier.</p>
+                                <textarea
+                                    id="custom_message"
+                                    className="flex min-h-[80px] w-full rounded-md border border-neutral-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-950 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:placeholder:text-neutral-400 dark:focus-visible:ring-neutral-300"
+                                    placeholder="e.g. Please call me back at 555-1234..."
+                                    value={formData.custom_message}
+                                    onChange={(e) => setFormData('custom_message', e.target.value)}
+                                />
+                            </div>
+                        )}
+                        
+                        {recentFollowUps.length > 0 && (
+                            <div className="mt-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+                                <h4 className="text-xs font-semibold uppercase text-neutral-500 mb-3">Recent Follow-ups</h4>
+                                <div className="space-y-3 max-h-32 overflow-y-auto pr-2 text-sm">
+                                    {recentFollowUps.map((log) => (
+                                        <div key={log.id} className="flex gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-600 mt-1.5 shrink-0" />
+                                            <div>
+                                                <p className="text-neutral-900 dark:text-neutral-100 font-medium text-xs">
+                                                    {log.notice_type} <span className="text-neutral-500 font-normal">by {log.user_name} on {format(new Date(log.follow_up_date), 'MMM d, h:mm a')}</span>
+                                                </p>
+                                                {log.remarks && <p className="text-neutral-600 dark:text-neutral-400 text-xs mt-0.5">{log.remarks}</p>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <DialogFooter className="mt-4">
                             <Button type="button" variant="outline" onClick={() => setFollowUpModalOpen(false)}>
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={processing} className="bg-red-700 hover:bg-red-800 text-white">
+                            <Button type="submit" disabled={processing} className={formData.notice_type === 'Email' ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-red-700 hover:bg-red-800 text-white"}>
                                 {processing ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                         Saving...
                                     </>
                                 ) : (
-                                    'Save Record'
+                                    formData.notice_type === 'Email' ? 'Send Email & Save' : 'Save Record'
                                 )}
                             </Button>
                         </DialogFooter>

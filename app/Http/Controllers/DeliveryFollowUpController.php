@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 
 use App\Models\DeliveryFollowUp;
+use App\Models\Delivery;
+use App\Mail\DeliveryFollowUpMail;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class DeliveryFollowUpController extends Controller
@@ -75,5 +79,58 @@ class DeliveryFollowUpController extends Controller
         $followUp->delete();
 
         return back()->with('success', 'Follow-up deleted successfully.');
+    }
+
+    public function sendFollowUpEmail(Request $request, $id)
+    {
+        $delivery = Delivery::with('supplier')->findOrFail($id);
+
+        if (!$delivery->supplier || !$delivery->supplier->email_address) {
+            return back()->with('error', 'Supplier email address is not configured.');
+        }
+
+        try {
+            $customMessage = $request->input('custom_message');
+            Mail::to($delivery->supplier->email_address)->send(new DeliveryFollowUpMail($delivery, $customMessage));
+
+            // Log the follow up
+            $remarks = 'Manual email follow-up sent to supplier.';
+            if ($customMessage) {
+                $remarks .= ' Included custom message: ' . $customMessage;
+            }
+
+            DeliveryFollowUp::create([
+                'delivery_id' => $delivery->delivery_id,
+                'user_id' => Auth::id(),
+                'notice_type' => 'Email',
+                'follow_up_date' => now(),
+                'remarks' => $remarks,
+            ]);
+
+            return back()->with('success', 'Follow-up email sent successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to send follow-up email: ' . $e->getMessage());
+        }
+    }
+
+    public function recentFollowUps($id)
+    {
+        $followUps = DeliveryFollowUp::with('user')
+            ->where('delivery_id', $id)
+            ->latest('follow_up_date')
+            ->take(5)
+            ->get()
+            ->map(function ($followUp) {
+                return [
+                    'id' => $followUp->id,
+                    'notice_type' => $followUp->notice_type,
+                    'remarks' => $followUp->remarks,
+                    'user_name' => $followUp->user ? $followUp->user->name : 'System',
+                    'follow_up_date' => $followUp->follow_up_date->format('Y-m-d H:i:s'),
+                    'created_at' => $followUp->created_at->format('Y-m-d H:i:s'),
+                ];
+            });
+
+        return response()->json($followUps);
     }
 }
