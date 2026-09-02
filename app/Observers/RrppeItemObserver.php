@@ -24,7 +24,7 @@ class RrppeItemObserver
                 'source_id' => $item->id,
             ],
             [
-                'transaction_no' => 'RRPPE-' . ($rrppe->rrppe_no ?? $item->rrppe_monitoring_id) . '-' . $item->id,
+                'transaction_no' => ($rrppe->rrppe_no ?? $item->rrppe_monitoring_id) . '-' . $item->id,
                 'pre_repair_no' => $rrppe->rrppe_no ?? null,
                 'from_accountable_officer' => $rrppe->end_user_name ?? 'N/A',
                 'to_accountable_officer' => 'For Disposal',
