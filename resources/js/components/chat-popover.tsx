@@ -98,6 +98,18 @@ function formatDayLabel(iso: string): string {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// Start of yesterday (local time), ISO string. Used as the `since`
+// cutoff so the popover only ever loads today + yesterday's messages
+// on the initial/poll fetch — older days are excluded to keep the
+// payload small on chats with long history. Not a "load earlier"
+// feature; older messages simply aren't fetched by this component.
+function getTwoDayCutoffISO(): string {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 1);
+    cutoff.setHours(0, 0, 0, 0);
+    return cutoff.toISOString();
+}
+
 export function ChatPopover(props: Props) {
     const userId = props.userId;
     const userName = props.userName;
@@ -164,7 +176,11 @@ export function ChatPopover(props: Props) {
     }
 
     function fetchMessages() {
-        fetch('/api/messages/' + userId, { headers: { Accept: 'application/json' } })
+        const since = getTwoDayCutoffISO();
+
+        fetch('/api/messages/' + userId + '?since=' + encodeURIComponent(since), {
+            headers: { Accept: 'application/json' },
+        })
             .then(function (res) {
                 if (isSessionDead(res)) {
                     setSessionExpired(true);
@@ -174,7 +190,17 @@ export function ChatPopover(props: Props) {
             })
             .then(function (data) {
                 if (!data) return;
-                setMessages(data);
+
+                // Defensive client-side filter in case the backend
+                // hasn't been updated to honor `since` yet, or sends
+                // extra rows — never render anything older than
+                // yesterday from this component.
+                const cutoffTime = new Date(since).getTime();
+                const filtered = (data as ChatMessage[]).filter(function (m) {
+                    return new Date(m.created_at).getTime() >= cutoffTime;
+                });
+
+                setMessages(filtered);
                 setLoaded(true);
             })
             .catch(function () {});
