@@ -669,7 +669,12 @@ function ScheduledTasksTab() {
                             description = "When the auto-emailer is scheduled to run next.";
                         } else if (task.command.includes('model:prune')) {
                             title = "System Audit Logs Cleanup";
-                            description = "Automatically deletes background Audit Logs older than 30 days to free up space. No other modules or data are affected.";
+                            description = `Automatically deletes background Audit Logs older than ${settings.audit_logs_cleanup_days} days to free up space. No other modules or data are affected.`;
+                        } else if (task.command.includes('send-reminders')) {
+                            title = "Upcoming Delivery Reminders";
+                            const match = task.command.match(/--days=(\d+)/);
+                            const days = match ? match[1] : '';
+                            description = days ? `When the auto-emailer runs for deliveries due in exactly ${days} days.` : "When the upcoming auto-emailer is scheduled to run next.";
                         }
 
                         return (
