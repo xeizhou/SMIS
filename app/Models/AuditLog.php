@@ -38,6 +38,14 @@ class AuditLog extends Model
      */
     public function prunable()
     {
-        return static::where('log_timestamp', '<', now()->subDays(30));
+        $settingsPath = storage_path('app/scheduled_tasks_settings.json');
+        $days = 30;
+        if (file_exists($settingsPath)) {
+            $settings = json_decode(file_get_contents($settingsPath), true) ?? [];
+            if (isset($settings['audit_logs_cleanup_days'])) {
+                $days = (int) $settings['audit_logs_cleanup_days'];
+            }
+        }
+        return static::where('log_timestamp', '<', now()->subDays($days));
     }
 }

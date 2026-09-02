@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,7 @@ import {
     Settings,
     Save,
     Send,
+    Database,
 } from 'lucide-react';
 import {
     Select,
@@ -442,7 +444,7 @@ function GalleryTab({
     );
 }
 
-function ScheduledTasksTab() {
+function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean) => void }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [sending, setSending] = useState(false);
@@ -455,7 +457,33 @@ function ScheduledTasksTab() {
     const [settings, setSettings] = useState({
         delivery_email_enabled: false,
         delivery_email_schedule_time: '08:00',
+        reminder_email_enabled: false,
+        reminder_email_schedule_time: '08:00',
+        reminder_email_days: ['3'],
+        audit_logs_cleanup_days: 30,
     });
+    
+    const [originalSettings, setOriginalSettings] = useState({
+        delivery_email_enabled: false,
+        delivery_email_schedule_time: '08:00',
+        reminder_email_enabled: false,
+        reminder_email_schedule_time: '08:00',
+        reminder_email_days: ['3'],
+        audit_logs_cleanup_days: 30,
+    });
+
+    const isOverdueDirty = settings.delivery_email_enabled !== originalSettings.delivery_email_enabled ||
+        settings.delivery_email_schedule_time !== originalSettings.delivery_email_schedule_time;
+
+    const isUpcomingDirty = settings.reminder_email_enabled !== originalSettings.reminder_email_enabled ||
+        settings.reminder_email_schedule_time !== originalSettings.reminder_email_schedule_time ||
+        JSON.stringify(settings.reminder_email_days) !== JSON.stringify(originalSettings.reminder_email_days);
+
+    const isAuditDirty = settings.audit_logs_cleanup_days !== originalSettings.audit_logs_cleanup_days;
+
+    useEffect(() => {
+        if (onDirtyChange) onDirtyChange(isOverdueDirty || isUpcomingDirty || isAuditDirty);
+    }, [isOverdueDirty, isUpcomingDirty, isAuditDirty, onDirtyChange]);
     
     const [rawTasks, setRawTasks] = useState<any[]>([]);
 
@@ -463,27 +491,59 @@ function ScheduledTasksTab() {
         fetch('/api/scheduled-tasks')
             .then(res => res.json())
             .then(data => {
-                setSettings({
+                const newSettings = {
                     delivery_email_enabled: Boolean(data.delivery_email_enabled),
                     delivery_email_schedule_time: data.delivery_email_schedule_time || '08:00',
-                });
+                    reminder_email_enabled: Boolean(data.reminder_email_enabled),
+                    reminder_email_schedule_time: data.reminder_email_schedule_time || '08:00',
+                    reminder_email_days: Array.isArray(data.reminder_email_days) ? data.reminder_email_days : (data.reminder_email_days ? [data.reminder_email_days] : ['3']),
+                    audit_logs_cleanup_days: data.audit_logs_cleanup_days || 30,
+                };
+                setSettings(newSettings);
+                setOriginalSettings(newSettings);
                 setRawTasks(data.raw_tasks || []);
                 setLoading(false);
             });
     }, []);
 
-    const handleSave = () => {
+    const handleSave = (type: 'overdue' | 'upcoming' | 'audit') => {
         setSaving(true);
+        
+        let payload: any = { ...originalSettings };
+        if (type === 'overdue') {
+            payload.delivery_email_enabled = settings.delivery_email_enabled;
+            payload.delivery_email_schedule_time = settings.delivery_email_schedule_time;
+        } else if (type === 'upcoming') {
+            payload.reminder_email_enabled = settings.reminder_email_enabled;
+            payload.reminder_email_schedule_time = settings.reminder_email_schedule_time;
+            payload.reminder_email_days = settings.reminder_email_days;
+        } else if (type === 'audit') {
+            payload.audit_logs_cleanup_days = settings.audit_logs_cleanup_days;
+        }
+
         fetch('/api/scheduled-tasks', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': (document.head.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
             },
-            body: JSON.stringify(settings),
+            body: JSON.stringify(payload),
         })
             .then(res => res.json())
             .then(() => {
+                setOriginalSettings(prev => ({
+                    ...prev,
+                    ...(type === 'overdue' ? {
+                        delivery_email_enabled: payload.delivery_email_enabled,
+                        delivery_email_schedule_time: payload.delivery_email_schedule_time,
+                    } : type === 'upcoming' ? {
+                        reminder_email_enabled: payload.reminder_email_enabled,
+                        reminder_email_schedule_time: payload.reminder_email_schedule_time,
+                        reminder_email_days: payload.reminder_email_days,
+                    } : {
+                        audit_logs_cleanup_days: payload.audit_logs_cleanup_days,
+                    })
+                }));
                 toast.success('Scheduled tasks settings saved successfully!');
             })
             .catch(() => toast.error('Failed to save settings.'))
@@ -574,8 +634,161 @@ function ScheduledTasksTab() {
                         </div>
                     </div>
                 </div>
-                <div className="border-t p-4 bg-muted/20 flex justify-end">
-                    <Button onClick={handleSave} disabled={saving} className="gap-2">
+                <div className="border-t p-4 bg-muted/20 flex items-center justify-between">
+                    <div>
+                        {isOverdueDirty && (
+                            <p className="text-sm font-medium text-destructive animate-in fade-in italic">
+                                You have unsaved changes
+                            </p>
+                        )}
+                    </div>
+                    <Button onClick={() => handleSave('overdue')} disabled={!isOverdueDirty || saving} variant={isOverdueDirty ? 'default' : 'secondary'} className="gap-2">
+                        {saving ? <Settings className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Save Settings
+                    </Button>
+                </div>
+            </div>
+
+            
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden mt-6">
+                <div className="border-b p-4 sm:p-5 bg-muted/40 flex items-start gap-4">
+                    <div className="bg-primary/10 text-primary p-2.5 rounded-lg">
+                        <Mail className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg">Upcoming Delivery Auto-Emailer</h3>
+                        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                            Automatically sends reminder emails to suppliers for upcoming deliveries based on your configured timeline.
+                            This runs silently in the background every day.
+                        </p>
+                    </div>
+                </div>
+                
+                <div className="p-4 sm:p-6 space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                            <Label className="text-base">Enable Auto-Emailer</Label>
+                            <p className="text-sm text-muted-foreground">Turn this background task on or off globally.</p>
+                        </div>
+                        <Switch 
+                            checked={settings.reminder_email_enabled} 
+                            onCheckedChange={(checked) => setSettings(s => ({ ...s, reminder_email_enabled: checked }))}
+                        />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row justify-between gap-4">
+                        <div className="space-y-0.5">
+                            <Label className="text-base">Target Delivery Target</Label>
+                            <p className="text-sm text-muted-foreground">Send reminders for deliveries due in how many days?</p>
+                        </div>
+                        <div className="flex flex-wrap gap-4 sm:gap-6 mt-2 sm:mt-0">
+                            {['2', '3', '5', '7'].map((days) => (
+                                <div key={days} className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id={`reminder_${days}`}
+                                        checked={settings.reminder_email_days.includes(days)}
+                                        onCheckedChange={(checked) => {
+                                            setSettings(s => ({
+                                                ...s,
+                                                reminder_email_days: checked 
+                                                    ? [...s.reminder_email_days, days] 
+                                                    : s.reminder_email_days.filter(d => d !== days)
+                                            }));
+                                        }}
+                                    />
+                                    <label
+                                        htmlFor={`reminder_${days}`}
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                    >
+                                        Exactly {days} Days
+                                    </label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                            <Label className="text-base">Daily Execution Time</Label>
+                            <p className="text-sm text-muted-foreground">What time should the system send these reminders?</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Clock className="text-muted-foreground h-4 w-4" />
+                            <Input 
+                                type="time" 
+                                value={settings.reminder_email_schedule_time}
+                                onChange={(e) => setSettings(s => ({ ...s, reminder_email_schedule_time: e.target.value }))}
+                                className="w-[130px]"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div className="border-t p-4 bg-muted/20 flex items-center justify-between">
+                    <div>
+                        {isUpcomingDirty && (
+                            <p className="text-sm font-medium text-destructive animate-in fade-in italic">
+                                You have unsaved changes
+                            </p>
+                        )}
+                    </div>
+                    <Button onClick={() => handleSave('upcoming')} disabled={!isUpcomingDirty || saving} variant={isUpcomingDirty ? 'default' : 'secondary'} className="gap-2">
+                        {saving ? <Settings className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Save Settings
+                    </Button>
+                </div>
+            </div>
+
+            {/* Audit Logs Settings */}
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden mt-6">
+                <div className="border-b p-4 sm:p-5 bg-muted/40 flex items-start gap-4">
+                    <div className="bg-primary/10 text-primary p-2.5 rounded-lg">
+                        <Database className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg">System Audit Logs Cleanup</h3>
+                        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                            Configure how long background Audit Logs are kept before being automatically deleted to free up space. No other modules or data are affected.
+                        </p>
+                    </div>
+                </div>
+                
+                <div className="p-4 sm:p-6 space-y-6">
+                    <div className="space-y-4">
+                        <div className="space-y-3 max-w-xs">
+                            <Label>Keep logs older than</Label>
+                            <Select 
+                                value={String(settings.audit_logs_cleanup_days)} 
+                                onValueChange={(val) => setSettings({ ...settings, audit_logs_cleanup_days: parseInt(val) })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select timeframe" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="7">7 days</SelectItem>
+                                    <SelectItem value="15">15 days</SelectItem>
+                                    <SelectItem value="30">30 days</SelectItem>
+                                    <SelectItem value="60">60 days</SelectItem>
+                                    <SelectItem value="90">90 days</SelectItem>
+                                    <SelectItem value="180">180 days</SelectItem>
+                                    <SelectItem value="365">1 year</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                Logs older than this threshold will be pruned daily.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="border-t p-4 bg-muted/20 flex items-center justify-between">
+                    <div>
+                        {isAuditDirty && (
+                            <p className="text-sm font-medium text-destructive animate-in fade-in italic">
+                                You have unsaved changes
+                            </p>
+                        )}
+                    </div>
+                    <Button onClick={() => handleSave('audit')} disabled={!isAuditDirty || saving} variant={isAuditDirty ? 'default' : 'secondary'} className="gap-2">
                         {saving ? <Settings className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         Save Settings
                     </Button>
@@ -669,7 +882,7 @@ function ScheduledTasksTab() {
                             description = "When the auto-emailer is scheduled to run next.";
                         } else if (task.command.includes('model:prune')) {
                             title = "System Audit Logs Cleanup";
-                            description = "Automatically deletes background Audit Logs older than 30 days to free up space. No other modules or data are affected.";
+                            description = `Automatically deletes background Audit Logs older than ${settings.audit_logs_cleanup_days} days to free up space. No other modules or data are affected.`;
                         }
 
                         return (
@@ -698,12 +911,49 @@ export default function DocumentCenterIndex({
     purchaseOrders: ItemOption[];
     clearances: ItemOption[];
 }) {
+    const [activeTab, setActiveTab] = useState('archive');
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+
+        const removeInertiaListener = router.on('before', (event: any) => {
+            if (hasUnsavedChanges) {
+                if (event.detail?.visit?.prefetch) {
+                    return;
+                }
+                toast.error("Please save your settings before leaving this page.");
+                event.preventDefault();
+            }
+        });
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            removeInertiaListener();
+        };
+    }, [hasUnsavedChanges]);
+
+    const handleTabChange = (val: string) => {
+        if (hasUnsavedChanges) {
+            toast.error("Please save your settings before switching tabs.");
+            return;
+        }
+        setActiveTab(val);
+        setHasUnsavedChanges(false);
+    };
+
     return (
         <>
             <Head title="Document Center" />
 
             <div className="p-3 sm:p-6">
-                <Tabs defaultValue="archive">
+                <Tabs value={activeTab} onValueChange={handleTabChange}>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h1 className="text-foreground text-xl font-bold sm:text-2xl">Document Center</h1>
@@ -737,7 +987,7 @@ export default function DocumentCenterIndex({
                     </TabsContent>
 
                     <TabsContent value="scheduled-tasks" className="animate-in fade-in mt-5 duration-300 sm:mt-6">
-                        <ScheduledTasksTab />
+                        <ScheduledTasksTab onDirtyChange={setHasUnsavedChanges} />
                     </TabsContent>
                 </Tabs>
             </div>
