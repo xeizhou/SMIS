@@ -506,44 +506,20 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
             });
     }, []);
 
-    const handleSave = (type: 'overdue' | 'upcoming' | 'audit') => {
+    const handleSave = () => {
         setSaving(true);
         
-        let payload: any = { ...originalSettings };
-        if (type === 'overdue') {
-            payload.delivery_email_enabled = settings.delivery_email_enabled;
-            payload.delivery_email_schedule_time = settings.delivery_email_schedule_time;
-        } else if (type === 'upcoming') {
-            payload.reminder_email_enabled = settings.reminder_email_enabled;
-            payload.reminder_email_schedule_time = settings.reminder_email_schedule_time;
-            payload.reminder_email_days = settings.reminder_email_days;
-        } else if (type === 'audit') {
-            payload.audit_logs_cleanup_days = settings.audit_logs_cleanup_days;
-        }
-
         fetch('/api/scheduled-tasks', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': (document.head.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
             },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(settings),
         })
             .then(res => res.json())
             .then(() => {
-                setOriginalSettings(prev => ({
-                    ...prev,
-                    ...(type === 'overdue' ? {
-                        delivery_email_enabled: payload.delivery_email_enabled,
-                        delivery_email_schedule_time: payload.delivery_email_schedule_time,
-                    } : type === 'upcoming' ? {
-                        reminder_email_enabled: payload.reminder_email_enabled,
-                        reminder_email_schedule_time: payload.reminder_email_schedule_time,
-                        reminder_email_days: payload.reminder_email_days,
-                    } : {
-                        audit_logs_cleanup_days: payload.audit_logs_cleanup_days,
-                    })
-                }));
+                setOriginalSettings(settings);
                 toast.success('Scheduled tasks settings saved successfully!');
             })
             .catch(() => toast.error('Failed to save settings.'))
@@ -634,19 +610,6 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
                         </div>
                     </div>
                 </div>
-                <div className="border-t p-4 bg-muted/20 flex items-center justify-between">
-                    <div>
-                        {isOverdueDirty && (
-                            <p className="text-sm font-medium text-destructive animate-in fade-in italic">
-                                You have unsaved changes
-                            </p>
-                        )}
-                    </div>
-                    <Button onClick={() => handleSave('overdue')} disabled={!isOverdueDirty || saving} variant={isOverdueDirty ? 'default' : 'secondary'} className="gap-2">
-                        {saving ? <Settings className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        Save Settings
-                    </Button>
-                </div>
             </div>
 
             
@@ -723,19 +686,6 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
                         </div>
                     </div>
                 </div>
-                <div className="border-t p-4 bg-muted/20 flex items-center justify-between">
-                    <div>
-                        {isUpcomingDirty && (
-                            <p className="text-sm font-medium text-destructive animate-in fade-in italic">
-                                You have unsaved changes
-                            </p>
-                        )}
-                    </div>
-                    <Button onClick={() => handleSave('upcoming')} disabled={!isUpcomingDirty || saving} variant={isUpcomingDirty ? 'default' : 'secondary'} className="gap-2">
-                        {saving ? <Settings className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        Save Settings
-                    </Button>
-                </div>
             </div>
 
             {/* Audit Logs Settings */}
@@ -778,20 +728,6 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
                             </p>
                         </div>
                     </div>
-                </div>
-
-                <div className="border-t p-4 bg-muted/20 flex items-center justify-between">
-                    <div>
-                        {isAuditDirty && (
-                            <p className="text-sm font-medium text-destructive animate-in fade-in italic">
-                                You have unsaved changes
-                            </p>
-                        )}
-                    </div>
-                    <Button onClick={() => handleSave('audit')} disabled={!isAuditDirty || saving} variant={isAuditDirty ? 'default' : 'secondary'} className="gap-2">
-                        {saving ? <Settings className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        Save Settings
-                    </Button>
                 </div>
             </div>
 
@@ -905,6 +841,20 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
                     })}
                 </div>
             </div>
+
+            {/* Global Save Button - Sticky Bottom */}
+            {(isOverdueDirty || isUpcomingDirty || isAuditDirty) && (
+                <div className="sticky bottom-6 mt-8 rounded-xl border bg-card text-card-foreground shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between p-4 z-20 animate-in slide-in-from-bottom-5 fade-in duration-300 gap-4">
+                    <p className="text-sm font-medium text-destructive italic flex items-center gap-2">
+                        <Settings className="h-4 w-4 text-destructive animate-pulse" />
+                        You have unsaved changes in your settings
+                    </p>
+                    <Button onClick={handleSave} disabled={saving} className="gap-2 w-full sm:w-auto">
+                        {saving ? <Settings className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Save All Settings
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }
