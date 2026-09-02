@@ -619,20 +619,48 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             }
         }
 
-        return response()->json([
-            'delivery_email_enabled' => true,
+        // Read settings
+        $settingsPath = storage_path('app/scheduled_tasks_settings.json');
+        $settings = [];
+        if (file_exists($settingsPath)) {
+            $settings = json_decode(file_get_contents($settingsPath), true) ?? [];
+        }
+
+        return response()->json(array_merge([
+            'delivery_email_enabled' => false,
             'delivery_email_schedule_time' => '08:00',
+            'reminder_email_enabled' => false,
+            'reminder_email_schedule_time' => '08:00',
+            'reminder_email_days' => ['3'],
+            'audit_logs_cleanup_days' => 30,
             'raw_tasks' => $tasks,
-        ]);
+        ], $settings, ['raw_tasks' => $tasks]));
     })->name('api.scheduled-tasks.index');
 
     Route::post('/api/scheduled-tasks', function (\Illuminate\Http\Request $request) {
         $request->validate([
             'delivery_email_enabled' => 'required|boolean',
             'delivery_email_schedule_time' => 'required|string',
+            'reminder_email_enabled' => 'required|boolean',
+            'reminder_email_schedule_time' => 'required|string',
+            'reminder_email_days' => 'required|array',
+            'reminder_email_days.*' => 'string',
+            'audit_logs_cleanup_days' => 'sometimes|integer|min:1',
         ]);
 
-        return response()->json(['message' => 'Settings model was removed. Changes are not persisted.']);
+        $settings = $request->only([
+            'delivery_email_enabled',
+            'delivery_email_schedule_time',
+            'reminder_email_enabled',
+            'reminder_email_schedule_time',
+            'reminder_email_days',
+            'audit_logs_cleanup_days',
+        ]);
+
+        $settingsPath = storage_path('app/scheduled_tasks_settings.json');
+        file_put_contents($settingsPath, json_encode($settings, JSON_PRETTY_PRINT));
+
+        return response()->json(['message' => 'Settings saved successfully.']);
     })->name('api.scheduled-tasks.store');
 
     Route::post('/api/scheduled-tasks/force-email', function (\Illuminate\Http\Request $request) {
