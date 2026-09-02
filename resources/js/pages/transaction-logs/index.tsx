@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
@@ -399,9 +400,10 @@ export default function Index({
                                     </td>
                                 </tr>
                             ) : (
-                                transactions.data.map((tx) => (
-                                    <tr
+                                transactions.data.map((tx, index) => (
+                                    <AnimatedTableRow
                                         key={tx.transactionID}
+                                        index={index}
                                         className="border-b transition-colors hover:bg-muted/40"
                                     >
                                         <td className="px-4 py-3 truncate">
@@ -448,7 +450,7 @@ export default function Index({
                                                 </button>
                                             </div>
                                         </td>
-                                    </tr>
+                                    </AnimatedTableRow>
                                 ))
                             )}
                         </tbody>

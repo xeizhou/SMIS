@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -289,8 +290,9 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                     </tr>
                                 ) : (
                                     items.data.map((item, index) => (
-                                        <tr
+                                        <AnimatedTableRow
                                             key={item.stock_no ?? `${item.item_name}-${index}`}
+                                            index={index}
                                             className="border-b"
                                         >
                                             <td className="px-4 py-3">
@@ -306,7 +308,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                                     &nbsp;
                                                 </span>
                                             </td>
-                                        </tr>
+                                        </AnimatedTableRow>
                                     ))
                                 )}
                             </tbody>

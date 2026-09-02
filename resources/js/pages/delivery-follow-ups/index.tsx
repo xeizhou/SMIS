@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { AnimatedTableRow } from '@/components/animated-table-row';
 import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -149,8 +150,13 @@ export default function DeliveryFollowUpsIndex({ followUps, filters }: Props) {
                                     </td>
                                 </tr>
                             ) : (
-                                followUps.map((followUp) => (
-                                    <tr key={followUp.id} data-record-id={followUp.id} className="border-b transition-colors hover:bg-muted/40">
+                                followUps.map((followUp, index) => (
+                                    <AnimatedTableRow
+                                        key={followUp.id}
+                                        index={index}
+                                        data-record-id={followUp.id}
+                                        className="border-b transition-colors hover:bg-muted/40"
+                                    >
                                         <td className="px-4 py-3 font-medium">{followUp.po_number}</td>
                                         <td className="px-4 py-3">{followUp.supplier_name}</td>
                                         <td className="px-4 py-3">
@@ -190,7 +196,7 @@ export default function DeliveryFollowUpsIndex({ followUps, filters }: Props) {
                                                 </button>
                                             </div>
                                         </td>
-                                    </tr>
+                                    </AnimatedTableRow>
                                 ))
                             )}
                         </tbody>

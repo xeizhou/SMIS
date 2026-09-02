@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2, Eye } from 'lucide-react';
@@ -219,8 +220,15 @@ export default function Index({ records, filters, offices }: Props) {
                                     </td>
                                 </tr>
                             ) : (
-                                records.data.map((record) => (
-                                    <tr key={record.bvm_id} className={'border-b transition-colors hover:bg-muted/40'} data-search-0={record.invoice_no} data-search-1={record.remarks} data-record-id={record.bvm_id}>
+                                records.data.map((record, i) => (
+                                    <AnimatedTableRow
+                                        key={record.bvm_id}
+                                        index={i}
+                                        className="border-b transition-colors hover:bg-muted/40"
+                                        data-search-0={record.invoice_no}
+                                        data-search-1={record.remarks}
+                                        data-record-id={record.bvm_id}
+                                    >
                                         <td className="px-4 py-3">{record.date_received ? new Date(record.date_received).toLocaleDateString() : '—'}</td>
                                         <td className="px-4 py-3">{record.office?.office_name ?? record.office_code}</td>
                                         <td className="px-4 py-3">{record.invoice_no}</td>
@@ -253,7 +261,7 @@ export default function Index({ records, filters, offices }: Props) {
                                                 </button>
                                             </div>
                                         </td>
-                                    </tr>
+                                    </AnimatedTableRow>
                                 ))
                             )}
                         </tbody>

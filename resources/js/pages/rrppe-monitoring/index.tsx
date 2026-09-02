@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2, Eye } from 'lucide-react';
@@ -237,13 +238,19 @@ export default function Index({ data, filters = {}, statuses, areas }: { data: P
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                             {data.data.length > 0 ? (
-                                data.data.map((item) => {
+                                data.data.map((item, i) => {
                                     const itemsCount = item.items?.length || 1;
                                     const firstItem = item.items && item.items.length > 0 ? item.items[0] : null;
 
                                     return (
                                         <React.Fragment key={item.id}>
-                                            <tr className={'transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50'} data-search-0={firstItem?.propertyNo} data-search-1={item.rrppeNo} data-record-id={item.id}>
+                                            <AnimatedTableRow
+                                                index={i}
+                                                className="transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
+                                                data-search-0={firstItem?.propertyNo}
+                                                data-search-1={item.rrppeNo}
+                                                data-record-id={item.id}
+                                            >
                                                 <td className="px-4 py-3 font-medium border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{item.rrppeNo}</td>
                                                 <td className="px-4 py-3">{firstItem?.itemName ?? '—'}</td>
                                                 <td className="px-4 py-3">{firstItem?.propertyNo ?? '—'}</td>
@@ -276,9 +283,9 @@ export default function Index({ data, filters = {}, statuses, areas }: { data: P
                                                         </button>
                                                     </div>
                                                 </td>
-                                            </tr>
+                                            </AnimatedTableRow>
                                             {item.items && item.items.length > 1 && item.items.slice(1).map((subItem) => (
-                                                <tr key={subItem.id} className={'transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50'} data-search-0={subItem.propertyNo} data-search-1={item.rrppeNo} data-record-id={item.id}>
+                                                <AnimatedTableRow key={subItem.id} index={i} className="transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50" data-search-0={subItem.propertyNo} data-search-1={item.rrppeNo} data-record-id={item.id}>
                                                     <td className="px-4 py-3">{subItem.itemName ?? '—'}</td>
                                                     <td className="px-4 py-3">{subItem.propertyNo ?? '—'}</td>
                                                     <td className="px-4 py-3">{subItem.area ?? '—'}</td>
@@ -286,7 +293,7 @@ export default function Index({ data, filters = {}, statuses, areas }: { data: P
                                                     <td className="px-4 py-3">
                                                         {subItem.status ? <StatusBadge status={subItem.status} /> : '—'}
                                                     </td>
-                                                </tr>
+                                                </AnimatedTableRow>
                                             ))}
                                         </React.Fragment>
                                     );

@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { auditLogsHighlight } from './auditLogsHighlight';
 import { Search } from 'lucide-react';
@@ -134,9 +135,10 @@ export default function Index({ logs, filters }: Props) {
                         </thead>
                         <tbody>
                             {logs.data.length > 0 ? (
-                                logs.data.map((row) => (
-                                    <tr
+                                logs.data.map((row, index) => (
+                                    <AnimatedTableRow
                                         key={row.log_id}
+                                        index={index}
                                         data-record-id={row.log_id}
                                         className="transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
                                     >
@@ -180,7 +182,7 @@ export default function Index({ logs, filters }: Props) {
                                                 <span className="font-bold text-gray-900 underline dark:text-gray-50">{row.action}</span>
                                             )}
                                         </td>
-                                    </tr>
+                                    </AnimatedTableRow>
                                 ))
                             ) : (
                                 <tr>

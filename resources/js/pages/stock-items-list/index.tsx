@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -261,8 +262,9 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                 </tr>
                             ) : (
                                 items.data.map((item, index) => (
-                                    <tr
+                                    <AnimatedTableRow
                                         key={item.stock_no ?? `${item.item_name}-${index}`}
+                                        index={index}
                                         className="border-b transition-colors hover:bg-muted/60 cursor-pointer"
                                         onClick={() => setItemToPrint(item)}
                                         data-search-0={item.item_name}
@@ -279,7 +281,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                         <td className="px-4 py-3 text-center font-medium">
                                             {item.balance_per_stock_card}
                                         </td>
-                                    </tr>
+                                    </AnimatedTableRow>
                                 ))
                             )}
                         </tbody>

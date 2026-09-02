@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AnimatedTableRow } from '@/components/animated-table-row';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
@@ -344,11 +345,12 @@ export default function Index({
                                     </td>
                                 </tr>
                             ) : (
-                                pirs.data.map((pir) => (
-                                    <tr 
-                                        key={pir.pir_id} 
-                                        className={'transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50'} 
-                                        data-search-0={pir.iar_number} 
+                                pirs.data.map((pir, index) => (
+                                    <AnimatedTableRow
+                                        key={pir.pir_id}
+                                        index={index}
+                                        className="transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
+                                        data-search-0={pir.iar_number}
                                         data-search-1={pir.po_number}
                                         data-record-id={pir.pir_id}
                                     >
@@ -402,7 +404,7 @@ export default function Index({
                                                 </button>
                                             </div>
                                         </td>
-                                    </tr>
+                                    </AnimatedTableRow>
                                 ))
                             )}
                         </tbody>
