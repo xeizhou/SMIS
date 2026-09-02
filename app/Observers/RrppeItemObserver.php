@@ -13,6 +13,9 @@ class RrppeItemObserver
         $status = strtoupper(trim((string) $item->status));
 
         if ($status !== 'UNSERVICEABLE') {
+            ForDisposalMonitoring::where('source_type', 'rrppe_item')
+                ->where('source_id', $item->id)
+                ->delete();
             return;
         }
 

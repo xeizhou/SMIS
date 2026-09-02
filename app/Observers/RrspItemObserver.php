@@ -18,6 +18,9 @@ class RrspItemObserver
         $status = strtoupper(trim((string) $item->status));
 
         if ($status !== 'UNSERVICEABLE') {
+            ForDisposalMonitoring::where('source_type', 'rrsp_item')
+                ->where('source_id', $item->id)
+                ->delete();
             return;
         }
 
