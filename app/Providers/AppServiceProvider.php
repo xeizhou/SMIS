@@ -10,7 +10,7 @@ use Illuminate\Validation\Rules\Password;
 use App\Models\RrspItem;
 use App\Models\RRPPEMonitoring;
 use App\Observers\RrspItemObserver;
-use App\Observers\RRPPEMonitoringObserver;
+use App\Observers\RrppeItemObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
     {
 
         RrspItem::observe(RrspItemObserver::class);
-        RRPPEMonitoring::observe(RRPPEMonitoringObserver::class);
+        \App\Models\RrppeItem::observe(RrppeItemObserver::class);
 
         $this->configureDefaults();
 

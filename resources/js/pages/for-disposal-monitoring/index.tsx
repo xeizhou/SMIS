@@ -71,7 +71,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
     const [itemToDelete, setItemToDelete] = useState<number | null>(null);
 
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
-    const [conditionFilter, setConditionFilter] = useState(filters.condition_of_ppe || 'all');
+    const [sourceTypeFilter, setSourceTypeFilter] = useState(filters.source_type || 'all');
 
     const [selectedItem, setSelectedItem] = useState<ForDisposalMonitoring | null>(null);
 
@@ -82,13 +82,16 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
 
     const handleClear = () => {
         setSearchQuery('');
-        setConditionFilter('all');
+        setSourceTypeFilter('all');
         router.get('/for-disposal-monitoring', {}, { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get('/for-disposal-monitoring', { search: searchQuery, condition_of_ppe: conditionFilter === 'all' ? undefined : conditionFilter }, {
+        router.get('/for-disposal-monitoring', {
+            search: searchQuery,
+            source_type: sourceTypeFilter === 'all' ? undefined : sourceTypeFilter
+        }, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -134,21 +137,24 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
-                        <Select value={conditionFilter} onValueChange={(val) => {
-                            setConditionFilter(val);
+                        <Select value={sourceTypeFilter} onValueChange={(val) => {
+                            setSourceTypeFilter(val);
                             router.get(
                                 window.location.pathname,
-                                { search: searchQuery, condition_of_ppe: val === 'all' ? undefined : val },
+                                {
+                                    search: searchQuery,
+                                    source_type: val === 'all' ? undefined : val
+                                },
                                 { preserveState: true, preserveScroll: true, replace: true }
                             );
                         }}>
-                            <SelectTrigger className={`w-full sm:w-[200px] ${conditionFilter === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Condition" />
+                            <SelectTrigger className={`w-full sm:w-[150px] ${sourceTypeFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Source" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Filter by Condition</SelectItem>
-                                <SelectItem value="SERVICEABLE">SERVICEABLE</SelectItem>
-                                <SelectItem value="UNSERVICEABLE">UNSERVICEABLE</SelectItem>
+                                <SelectItem value="all">Source</SelectItem>
+                                <SelectItem value="rrppe_item">RRPPE</SelectItem>
+                                <SelectItem value="rrsp_item">RRSP</SelectItem>
                             </SelectContent>
                         </Select>
                         <Button type="submit" variant="secondary">
@@ -169,7 +175,6 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                 <th className="px-4 py-3 font-medium">Description</th>
                                 <th className="px-4 py-3 font-medium">Location</th>
                                 <th className="px-4 py-3 font-medium">Amount</th>
-                                <th className="px-4 py-3 font-medium">Condition</th>
                                 <th className="px-4 py-3 font-medium text-center">Actions</th>
                             </tr>
                         </thead>
@@ -185,11 +190,6 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                         <td className="px-4 py-3">{item.description}</td>
                                         <td className="px-4 py-3">{item.location}</td>
                                         <td className="px-4 py-3">{formatCurrency(item.amount)}</td>
-                                        <td className="px-4 py-3">
-                                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${conditionBadgeClass(item.condition_of_ppe)}`}>
-                                                {item.condition_of_ppe}
-                                            </span>
-                                        </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">
                                                 <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
@@ -207,7 +207,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-16 text-center">
+                                    <td colSpan={6} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No For Disposal records added yet.
                                         </p>

@@ -143,7 +143,9 @@ class RRPPEController extends Controller
             'return_by' => $validated['returnBy'],
         ]);
 
-        $record->items()->delete();
+        foreach ($record->items as $item) {
+            $item->delete();
+        }
         foreach ($validated['items'] as $item) {
             $record->items()->create([
                 'item_name' => $item['itemName'],
@@ -165,6 +167,9 @@ class RRPPEController extends Controller
     public function destroy($id)
     {
         $record = RRPPEMonitoring::findOrFail($id);
+        foreach ($record->items as $item) {
+            $item->delete();
+        }
         $record->delete();
 
         return redirect()->back()->with('success', 'RRPPE record archived successfully.');

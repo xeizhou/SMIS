@@ -21,6 +21,7 @@ class RrspItemObserver
             return;
         }
 
+
         $rrsp = $item->rrspMonitoring ?? $item->rrsp ?? null;
 
         // Fall back to a direct query if the relation isn't named as expected —

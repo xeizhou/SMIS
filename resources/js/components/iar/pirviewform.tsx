@@ -230,11 +230,6 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
                                                 key={`${group.iar_number}-${index}`}
                                                 className="flex flex-wrap items-start gap-4 rounded-md border bg-background/50 p-3 md:flex-nowrap"
                                             >
-                                                <div className="w-full shrink-0 md:w-40">
-                                                    <p className={labelClass}>IAR Number</p>
-                                                    <p className={valueClass + ' font-medium'}>{group.iar_number || '—'}</p>
-                                                </div>
-
                                                 <div className="min-w-0 flex-1">
                                                     <p className={labelClass}>Inspected By</p>
                                                     <p className={valueClass}>
@@ -261,6 +256,7 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
                         <div>
                             <h3 className={sectionTitleClass}>Receipt and Item/s Claimed by End-User</h3>
                             <div className="grid grid-cols-4 gap-6">
+                                <Detail label="IAR Number" value={pir.iar_number ?? '—'} />
                                 <Detail label="Receipt Receiving Date" value={formatDate(pir.receipt_receiving_date)} />
                                 <Detail label="Claimed By" value={pir.receipt_claimed_by ?? '—'} />
                                 <Detail label="Item/s Receiving Date" value={formatDate(pir.items_receiving_date)} />
@@ -274,7 +270,6 @@ export default function PirViewForm({ open, onOpenChange, pir }: Props) {
                         <div>
                             <h3 className={sectionTitleClass}>For Payment (Finance)</h3>
                             <div className="grid grid-cols-4 gap-6">
-                                <Detail label="IAR Number" value={pir.iar_number ?? '—'} />
                                 <Detail label="Date Forwarded to Finance" value={formatDate(pir.date_forwarded_to_finance)} />
                             </div>
                         </div>
