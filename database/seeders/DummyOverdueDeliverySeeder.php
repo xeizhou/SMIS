@@ -20,7 +20,7 @@ class DummyOverdueDeliverySeeder extends Seeder
         $po = ServePo::create([
             'po_number' => 'PO-TEST-' . rand(1000, 9999),
             'supplier_id' => $supplier->supplier_id,
-            'po_received_date' => now()->subDays(16)->format('Y-m-d'),
+            'po_received_date' => now()->subDays(12)->format('Y-m-d'),
             'delivery_term' => 15,
         ]);
 
