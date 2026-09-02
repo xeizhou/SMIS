@@ -73,7 +73,7 @@ export default function Pagination({
                             value={String(meta.per_page)}
                             onValueChange={handlePerPageChange}
                         >
-                            <SelectTrigger className="h-8 w-[70px]">
+                            <SelectTrigger className="h-8 w-[74px]">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent side="top">

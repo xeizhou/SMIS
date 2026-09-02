@@ -73,7 +73,11 @@ export function OnlineUsersBar() {
 
     if (!isAuthed) return null;
 
-    const sorted = [...users].sort((a, b) => Number(b.online) - Number(a.online));
+    const sorted = [...users].sort((a, b) => {
+        const onlineDiff = Number(b.online) - Number(a.online);
+        if (onlineDiff !== 0) return onlineDiff;
+        return a.id - b.id;
+    });
     const onlineCount = users.filter((u) => u.online).length;
 
     return (
