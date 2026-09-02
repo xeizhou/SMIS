@@ -16,6 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { buildFilterUrl } from '@/lib/filterUrl';
 
 interface Unit {
     unitID: number;
@@ -61,6 +62,7 @@ interface Filters {
     fund_cluster_id?: string | null;
     sort_field?: string;
     sort_direction?: 'asc' | 'desc';
+    per_page?: number;
 }
 
 interface Props {
@@ -86,17 +88,12 @@ export default function Index({
     const [stockToDelete, setStockToDelete] = useState<string | null>(null);
 
     const handleSort = (field: string) => {
-        // Toggle direction if clicking the same field, otherwise default to ascending
         const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
-        
+
         router.get(
             '/stock-items',
-            { search, fund_cluster_id: fundClusterFilter, sort_field: field, sort_direction: direction },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            buildFilterUrl({ search, fund_cluster_id: fundClusterFilter, sort_field: field, sort_direction: direction }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
@@ -104,12 +101,8 @@ export default function Index({
         e.preventDefault();
         router.get(
             '/stock-items',
-            { search, fund_cluster_id: fundClusterFilter, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            buildFilterUrl({ search, fund_cluster_id: fundClusterFilter, page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
@@ -118,12 +111,8 @@ export default function Index({
         setFundClusterFilter('');
         router.get(
             '/stock-items',
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            buildFilterUrl({ search: '', fund_cluster_id: '', page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
@@ -177,24 +166,13 @@ export default function Index({
                         <Select
                             value={fundClusterFilter || 'all'}
                             onValueChange={(value) => {
-                                // Convert 'all' back to an empty string so the backend clears the filter
                                 const newValue = value === 'all' ? '' : value;
-                                
                                 setFundClusterFilter(newValue);
 
                                 router.get(
                                     '/stock-items',
-                                    {
-                                        search,
-                                        fund_cluster_id: newValue,
-                                        sort_field: filters.sort_field,
-                                        sort_direction: filters.sort_direction,
-                                    },
-                                    {
-                                        preserveState: true,
-                                        preserveScroll: true,
-                                        replace: true,
-                                    }
+                                    buildFilterUrl({ search, fund_cluster_id: newValue, page: 1 }),
+                                    { preserveState: true, preserveScroll: true, replace: true }
                                 );
                             }}
                         >

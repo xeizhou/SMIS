@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import UnitAddForm from '@/components/units/unitaddform';
 import UnitDeleteModal from '@/components/units/unitdeletemodal';
 import UnitEditForm from '@/components/units/uniteditform';
+import { buildFilterUrl } from '@/lib/filterUrl';
 
 interface Unit {
     unitID: number;
@@ -34,6 +35,7 @@ interface Filters {
     search: string | null;
     sort_field?: string;
     sort_direction?: 'asc' | 'desc';
+    per_page?: number;
 }
 
 interface Props {
@@ -51,17 +53,12 @@ export default function Index({ units, filters }: Props) {
     const [unitToDelete, setUnitToDelete] = useState<number | null>(null);
 
     const handleSort = (field: string) => {
-        // Toggle direction if clicking the same field, otherwise default to ascending
         const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
-        
+
         router.get(
             '/units',
-            { search, sort_field: field, sort_direction: direction },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            buildFilterUrl({ search, sort_field: field, sort_direction: direction }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
@@ -69,12 +66,8 @@ export default function Index({ units, filters }: Props) {
         e.preventDefault();
         router.get(
             '/units',
-            { search, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            buildFilterUrl({ search, page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
@@ -82,12 +75,8 @@ export default function Index({ units, filters }: Props) {
         setSearch('');
         router.get(
             '/units',
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            buildFilterUrl({ search: '', page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 

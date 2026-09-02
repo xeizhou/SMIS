@@ -124,6 +124,7 @@ class TransactionLogsController extends Controller
                 'date_to' => $dateTo,
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
+                'per_page' => $perPage, 
             ],
         ]);
     }

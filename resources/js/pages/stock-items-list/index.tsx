@@ -13,6 +13,7 @@ import {
 import { useState } from 'react';
 import PrintStockCardsButton from '@/components/PrintStockCardsButton';
 import PdfPreviewModal from '@/components/stock-items-list/PdfPreviewModal';
+import { buildFilterUrl } from '@/lib/filterUrl';
 
 interface FundClusterRef {
     fund_cluster_id: string;
@@ -56,6 +57,7 @@ interface Filters {
     fund_cluster_id: string | null;
     sort_field?: string;
     sort_direction?: 'asc' | 'desc';
+    per_page?: number;
 }
 
 interface Props {
@@ -72,23 +74,19 @@ export default function Index({ items, fundClusters, filters }: Props) {
     const [itemToPrint, setItemToPrint] = useState<StockCardItem | null>(null);
 
     const applyFilters = (
-        overrides: Partial<{ search: string; issued_status: string; fund_cluster_id: string; sort_field: string; sort_direction: string }> = {}
+        overrides: Partial<{ search: string; issued_status: string; fund_cluster_id: string; sort_field: string; sort_direction: string; page: number }> = {}
     ) => {
         router.get(
             '/stock-items-list',
-            {
+            buildFilterUrl({
                 search,
                 issued_status: issuedStatus,
                 fund_cluster_id: fundClusterId,
                 sort_field: filters.sort_field,
                 sort_direction: filters.sort_direction,
                 ...overrides,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
@@ -99,7 +97,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        applyFilters();
+        applyFilters({ page: 1 });
     };
 
     const handleClear = () => {
@@ -108,12 +106,8 @@ export default function Index({ items, fundClusters, filters }: Props) {
         setFundClusterId('all');
         router.get(
             '/stock-items-list',
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            buildFilterUrl({ search: '', issued_status: 'all', fund_cluster_id: 'all', page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
@@ -164,7 +158,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                             value={issuedStatus}
                             onValueChange={(value) => {
                                 setIssuedStatus(value);
-                                applyFilters({ issued_status: value });
+                                applyFilters({ issued_status: value, page: 1 });
                             }}
                         >
                             <SelectTrigger className="w-[180px]">

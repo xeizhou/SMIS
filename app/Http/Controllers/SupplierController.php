@@ -53,6 +53,7 @@ public function index(Request $request)
                 // 4. Return Sort State
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
+                'per_page' => $perPage,
             ],
         ]);
     }

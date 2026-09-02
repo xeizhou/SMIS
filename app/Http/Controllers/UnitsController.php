@@ -46,6 +46,7 @@ class UnitsController extends Controller
                 'search' => $search,
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
+                'per_page' => $perPage,
             ],
         ]);
     }

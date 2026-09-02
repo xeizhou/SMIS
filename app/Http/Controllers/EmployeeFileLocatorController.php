@@ -67,6 +67,7 @@ public function index(Request $request): Response
                 // 4. Pass the sorting state back to React
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
+                'per_page' => $perPage,
             ],
             'statuses' => $statuses,
         ]);

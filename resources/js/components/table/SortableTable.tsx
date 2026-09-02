@@ -1,5 +1,6 @@
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
+import { buildFilterUrl } from '@/lib/filterUrl';
 
 export interface ColumnDef<T> {
     key: string;
@@ -31,10 +32,10 @@ export default function SortableTable<T>({
 
     const handleSort = (field: string) => {
         const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
-        
+
         router.get(
             url,
-            { ...currentFilters, sort_field: field, sort_direction: direction },
+            buildFilterUrl({ ...currentFilters, sort_field: field, sort_direction: direction }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };

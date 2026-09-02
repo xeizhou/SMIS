@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SortableTable, { ColumnDef } from '@/components/table/SortableTable';
+import { buildFilterUrl } from '@/lib/filterUrl';
 
 interface Supplier {
     supplier_id: number;
@@ -36,6 +37,7 @@ interface Filters {
     // Add sort fields
     sort_field?: string;
     sort_direction?: 'asc' | 'desc';
+    per_page?: number;
 }
 
 interface Props {
@@ -63,7 +65,7 @@ export default function Index({ suppliers, filters }: Props) {
         e.preventDefault();
         router.get(
             '/supplier',
-            { search, status, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
+            buildFilterUrl({ search, status, page: 1 }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -71,7 +73,11 @@ export default function Index({ suppliers, filters }: Props) {
     const handleClear = () => {
         setSearch('');
         setStatus('all');
-        router.get('/supplier', {}, { preserveState: true, preserveScroll: true, replace: true });
+        router.get(
+            '/supplier',
+            buildFilterUrl({ search: '', status: 'all', page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
     };
 
     // 2. Define Table Columns
@@ -179,12 +185,7 @@ export default function Index({ suppliers, filters }: Props) {
                                 setStatus(value);
                                 router.get(
                                     '/supplier',
-                                    {
-                                        search,
-                                        status: value,
-                                        sort_field: filters.sort_field,
-                                        sort_direction: filters.sort_direction
-                                    },
+                                    buildFilterUrl({ search, status: value, page: 1 }),
                                     { preserveState: true, preserveScroll: true, replace: true }
                                 );
                             }}

@@ -58,6 +58,7 @@ class StockItemsController extends Controller
                 'fund_cluster_id' => $fundClusterId, // 4. Return it to the frontend
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
+                'per_page' => $perPage,
             ],
         ]);
     }
