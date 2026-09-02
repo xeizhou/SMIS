@@ -20,6 +20,17 @@ class BonaVidaController extends Controller
         $search = $request->string('search')->toString() ?: null;
         $office_code = $request->string('office_code')->toString() ?: null;
 
+        // 1. Get Sort Parameters (Default to date_received desc)
+        $sortField = $request->input('sort_field', 'date_received');
+        $sortDirection = $request->input('sort_direction', 'desc');
+
+        // 2. Validate Allowed Sort Fields
+        $allowedSorts = ['date_received', 'office_code', 'invoice_no', 'total_amount'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'date_received';
+        }
+        $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
+
         $query = BonaVidaMonitoring::with('office')
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -29,8 +40,9 @@ class BonaVidaController extends Controller
             })
             ->when($office_code, fn ($query, $office_code) => $query->where('office_code', $office_code));
 
+        // 3. Apply Dynamic Sort
         $records = (clone $query)
-            ->orderBy('date_received', 'desc')
+            ->orderBy($sortField, $sortDirection)
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 
@@ -41,6 +53,10 @@ class BonaVidaController extends Controller
             'filters' => [
                 'search' => $search,
                 'office_code' => $office_code,
+                // 4. Return Sort State
+                'sort_field' => $sortField,
+                'sort_direction' => $sortDirection,
+                'per_page' => $perPage, 
             ],
             'offices' => $offices,
         ]);

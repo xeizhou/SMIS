@@ -1,7 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2, Eye } from 'lucide-react';
 import { useState } from 'react';
 import BonaVidaAddForm from '@/components/bona-vida-monitoring/bonavidaaddform';
@@ -12,6 +10,8 @@ import BonaVidaViewForm from '@/components/bona-vida-monitoring/bonavidaviewform
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import SortableTable, { ColumnDef } from '@/components/table/SortableTable';
+import { buildFilterUrl } from '@/lib/filterUrl';
 
 interface Office {
     office_code: string;
@@ -33,11 +33,7 @@ interface BonaVidaRecord {
 
 interface PaginatedRecords {
     data: BonaVidaRecord[];
-    links: {
-        url: string | null;
-        label: string;
-        active: boolean;
-    }[];
+    links: { url: string | null; label: string; active: boolean; }[];
     current_page: number;
     last_page: number;
     per_page: number;
@@ -46,65 +42,64 @@ interface PaginatedRecords {
     to: number | null;
 }
 
+interface Filters {
+    search: string | null;
+    office_code: string | null;
+    // Add sort fields
+    sort_field?: string;
+    sort_direction?: 'asc' | 'desc';
+    per_page?: number;
+}
+
 interface Props {
     records: PaginatedRecords;
-    filters: {
-        search: string | null;
-        office_code: string | null;
-    };
+    filters: Filters;
     offices: Office[];
 }
 
 export default function Index({ records, filters, offices }: Props) {
-        const [search, setSearch] = useState(filters.search ?? '');
-    const [officeCode, setOfficeCode] = useState(filters.office_code ?? '');
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [officeCode, setOfficeCode] = useState(filters.office_code ?? 'all');
+    
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isViewOpen, setIsViewOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+    
     const [selectedRecord, setSelectedRecord] = useState<BonaVidaRecord | null>(null);
+
+    const updateFilters = (newSearch: string, newOfficeCode: string) => {
+        router.get(
+            '/bona-vida-monitoring',
+            buildFilterUrl({
+                search: newSearch,
+                office_code: newOfficeCode === 'all' ? '' : newOfficeCode,
+                sort_field: filters.sort_field,
+                sort_direction: filters.sort_direction,
+                page: 1,
+            }),
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
+    };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-
-        router.get(
-            '/bona-vida-monitoring',
-            { search, office_code: officeCode },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
-        );
+        updateFilters(search, officeCode);
     };
 
     const handleOfficeChange = (value: string) => {
         setOfficeCode(value);
-
-        router.get(
-            '/bona-vida-monitoring',
-            { search, office_code: value },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
-        );
+        updateFilters(search, value);
     };
 
     const handleClear = () => {
         setSearch('');
-        setOfficeCode('');
-
+        setOfficeCode('all');
         router.get(
             '/bona-vida-monitoring',
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            buildFilterUrl({ search: '', office_code: '', page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
@@ -123,6 +118,71 @@ export default function Index({ records, filters, offices }: Props) {
         setIsDeleteOpen(true);
     };
 
+    // 2. Define Table Columns
+    const columns: ColumnDef<BonaVidaRecord>[] = [
+        {
+            key: 'date_received',
+            label: 'Date Received',
+            sortable: true,
+            width: 'w-[15%]',
+            render: (record) => record.date_received ? new Date(record.date_received).toLocaleDateString() : '—'
+        },
+        {
+            key: 'office_code', // Sorting by the FK string
+            label: 'Office',
+            sortable: true,
+            width: 'w-[30%]',
+            render: (record) => record.office?.office_name ?? record.office_code
+        },
+        {
+            key: 'invoice_no',
+            label: 'Invoice No',
+            sortable: true,
+            width: 'w-[20%]'
+        },
+        {
+            key: 'total_amount',
+            label: 'Total Amount',
+            sortable: true,
+            width: 'w-[20%]',
+            render: (record) => `₱${record.total_amount}`
+        },
+        {
+            key: 'actions',
+            label: 'Actions',
+            sortable: false,
+            width: 'w-[15%]',
+            render: (record) => (
+                <div className="flex items-center justify-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => openEdit(record)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="Edit"
+                    >
+                        <Pencil className="size-4" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => openDelete(record)}
+                        className="text-red-600 hover:text-red-800"
+                        title="Delete"
+                    >
+                        <Trash2 className="size-4" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => openView(record)}
+                        className="text-foreground hover:opacity-75"
+                        title="View"
+                    >
+                        <Eye className="size-4" />
+                    </button>
+                </div>
+            )
+        }
+    ];
+
     return (
         <>
             <Head title="Bona Vida Monitoring" />
@@ -130,19 +190,12 @@ export default function Index({ records, filters, offices }: Props) {
             <div className="p-4 space-y-6 sm:p-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-foreground">
-                            Bona Vida Monitoring
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Manage Bona Vida monitoring records.
-                        </p>
+                        <h1 className="text-2xl font-bold text-foreground">Bona Vida Monitoring</h1>
+                        <p className="mt-1 text-sm text-muted-foreground">Manage Bona Vida monitoring records.</p>
                     </div>
                 </div>
 
-                <form
-                    onSubmit={handleSearch}
-                    className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
-                >
+                <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex flex-wrap gap-2 flex-1">
                         <div className="relative w-full max-w-sm">
                             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -155,11 +208,11 @@ export default function Index({ records, filters, offices }: Props) {
                         </div>
 
                         <Select value={officeCode} onValueChange={handleOfficeChange}>
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className={`w-[180px] ${officeCode === 'all' ? 'text-muted-foreground' : ''}`}>
                                 <SelectValue placeholder="All Offices" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">All Offices</SelectItem>
+                                <SelectItem value="all">All Offices</SelectItem>
                                 {offices.map((office) => (
                                     <SelectItem key={office.office_code} value={office.office_code}>
                                         {office.office_name}
@@ -168,13 +221,8 @@ export default function Index({ records, filters, offices }: Props) {
                             </SelectContent>
                         </Select>
 
-                        <Button type="submit" variant="secondary">
-                            Search
-                        </Button>
-
-                        <Button type="button" variant="ghost" onClick={handleClear}>
-                            Clear
-                        </Button>
+                        <Button type="submit" variant="secondary">Search</Button>
+                        <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
                     </div>
 
                     <div className="flex flex-col gap-2 w-full lg:w-auto lg:flex-row">
@@ -197,75 +245,16 @@ export default function Index({ records, filters, offices }: Props) {
                     </div>
                 </form>
 
-                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
-                        <thead className="border-b" style={{ backgroundColor: '#370001' }}>
-                            <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Date Received</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Office</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Invoice No</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Total Amount</th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {records.data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-16 text-center">
-                                        <p className="text-base font-medium text-muted-foreground">
-                                            No Bona Vida records added yet.
-                                        </p>
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                            Click <strong>"Add Bona Vida Record"</strong> to create your first record.
-                                        </p>
-                                    </td>
-                                </tr>
-                            ) : (
-                                records.data.map((record, i) => (
-                                    <AnimatedTableRow
-                                        key={record.bvm_id}
-                                        index={i}
-                                        className="border-b transition-colors hover:bg-muted/40"
-                                        data-search-0={record.invoice_no}
-                                        data-search-1={record.remarks}
-                                        data-record-id={record.bvm_id}
-                                    >
-                                        <td className="px-4 py-3">{record.date_received ? new Date(record.date_received).toLocaleDateString() : '—'}</td>
-                                        <td className="px-4 py-3">{record.office?.office_name ?? record.office_code}</td>
-                                        <td className="px-4 py-3">{record.invoice_no}</td>
-                                        <td className="px-4 py-3">₱{record.total_amount}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openEdit(record)}
-                                                    className="text-blue-600 hover:text-blue-800"
-                                                    title="Edit"
-                                                >
-                                                    <Pencil className="size-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openDelete(record)}
-                                                    className="text-red-600 hover:text-red-800"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openView(record)}
-                                                    className="text-foreground hover:opacity-75"
-                                                    title="View"
-                                                >
-                                                    <Eye className="size-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </AnimatedTableRow>
-                                ))
-                            )}
-                        </tbody>
-                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
+                {/* 3. Reusable Table Component */}
+                <SortableTable
+                    data={records.data}
+                    columns={columns}
+                    sortField={filters.sort_field}
+                    sortDirection={filters.sort_direction}
+                    url="/bona-vida-monitoring"
+                    currentFilters={{ search, office_code: officeCode === 'all' ? '' : officeCode }}
+                    emptyMessage="No Bona Vida records added yet."
+                />
 
                 {records.data.length > 0 && (
                     <div className="p-4">
@@ -285,13 +274,7 @@ export default function Index({ records, filters, offices }: Props) {
 
 Index.layout = {
     breadcrumbs: [
-        {
-            title: 'Property',
-            href: '#',
-        },
-        {
-            title: 'Bona Vida Monitoring',
-            href: '/bona-vida-monitoring',
-        },
+        { title: 'Property', href: '#' },
+        { title: 'Bona Vida Monitoring', href: '/bona-vida-monitoring' },
     ],
 };
