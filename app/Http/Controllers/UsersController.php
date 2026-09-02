@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Storage;
 
 class UsersController extends Controller
 {
-    protected const PROTECTED_EMAIL = 'admin@gmail.com';
+    protected const PROTECTED_USER_ID = 1;
 
     public function index()
     {
@@ -20,7 +20,7 @@ class UsersController extends Controller
                 ->get()
                 ->map(fn (User $user) => [
                     ...$user->toArray(),
-                    'is_locked' => $user->email === self::PROTECTED_EMAIL,
+                    'is_locked' => $user->id === self::PROTECTED_USER_ID,
                 ]),
         ]);
     }
@@ -43,7 +43,7 @@ class UsersController extends Controller
 
     public function update(Request $request, User $user)
     {
-        if ($user->email === self::PROTECTED_EMAIL) {
+        if ($user->id === self::PROTECTED_USER_ID) {
             return back()->with('error', 'This account is locked and cannot be edited.');
         }
 
@@ -95,7 +95,7 @@ class UsersController extends Controller
 
     public function destroy(User $user)
         {
-            if ($user->email === self::PROTECTED_EMAIL) {
+            if ($user->id === self::PROTECTED_USER_ID) {
                 return back()->with('error', 'This account is locked and cannot be deleted.');
             }
 
