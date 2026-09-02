@@ -37,7 +37,7 @@ class RrspItemObserver
                 'source_id' => $item->id,
             ],
             [
-                'transaction_no' => 'RRSP-' . ($rrsp->rrsp_no ?? $item->rrsp_monitoring_id) . '-' . $item->id,
+                'transaction_no' => ($rrsp->rrsp_no ?? $item->rrsp_monitoring_id) . '-' . $item->id,
                 'pre_repair_no' => $rrsp->rrsp_no ?? null,
                 'from_accountable_officer' => $rrsp->end_user_name ?? 'N/A',
                 'to_accountable_officer' => 'For Disposal',
