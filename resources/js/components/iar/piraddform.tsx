@@ -705,7 +705,6 @@ export default function PirAddForm({
                 if (inspectors.length > 0 && dates.length > 0) {
                     return inspectors.flatMap((inspector) =>
                         dates.map((date) => ({
-                            iar_number: group.iar_number,
                             inspected_by: inspector,
                             inspection_date: date,
                         }))
@@ -714,7 +713,6 @@ export default function PirAddForm({
 
                 if (inspectors.length > 0) {
                     return inspectors.map((inspector) => ({
-                        iar_number: group.iar_number,
                         inspected_by: inspector,
                         inspection_date: '',
                     }));
@@ -722,7 +720,6 @@ export default function PirAddForm({
 
                 if (dates.length > 0) {
                     return dates.map((date) => ({
-                        iar_number: group.iar_number,
                         inspected_by: '',
                         inspection_date: date,
                     }));
@@ -787,7 +784,6 @@ export default function PirAddForm({
     );
 
     const forReleaseInspectionComplete = data.inspection_groups.some((group) =>
-        group.iar_number.trim() !== '' &&
         group.inspectors.some((value) => value.trim() !== '') &&
         group.inspection_dates.some((value) => value.trim() !== '')
     );
@@ -1234,31 +1230,7 @@ export default function PirAddForm({
                                             className="rounded-md border p-3"
                                         >
                                             <div className="flex flex-wrap items-start gap-3 md:flex-nowrap">
-                                                {/* IAR number */}
-                                                <div className="w-full shrink-0 md:w-48">
-                                                    <label className="mb-1 block text-xs text-muted-foreground">
-                                                        IAR Number
-                                                    </label>
-                                                    <Input
-                                                        value={group.iar_number}
-                                                        onChange={(e) => updateInspectionGroup(groupIndex, e.target.value)}
-                                                        disabled={!poSelected}
-                                                        placeholder="202603190005"
-                                                        maxLength={12}
-                                                        className={`h-8 ${
-                                                            group.iar_number.length > 0 && !isValidIarNumber(group.iar_number)
-                                                                ? 'border-red-500'
-                                                                : ''
-                                                        }`}
-                                                    />
-                                                    {group.iar_number.length > 0 && !isValidIarNumber(group.iar_number) && (
-                                                        <p className="mt-1 text-xs text-red-500">
-                                                            {group.iar_number.length < 12
-                                                                ? `${12 - group.iar_number.length} more digit(s) needed`
-                                                                : 'Invalid IAR number format (YYYYMMDDNNNN)'}
-                                                        </p>
-                                                    )}
-                                                </div>
+
                                                 {/* Inspectors */}
                                                 <div className="min-w-0 flex-1">
                                                     <label className="mb-1 block text-xs text-muted-foreground">
@@ -1367,6 +1339,30 @@ export default function PirAddForm({
                     <div>
                         <h3 className={sectionTitleClass}>Receipt and Item/s Claimed by End-User</h3>
                         <div className="grid grid-cols-4 gap-6">
+                            <div className="w-full">
+                                <label className="mb-1 block text-xs text-muted-foreground">
+                                    IAR Number
+                                </label>
+                                <Input
+                                    value={data.iar_number}
+                                    onChange={(e) => setData({ ...data, iar_number: formatIarNumberInput(e.target.value) })}
+                                    disabled={data.status !== 'COMPLETED'}
+                                    placeholder="202603190005"
+                                    maxLength={12}
+                                    className={`h-9 ${
+                                        data.iar_number.length > 0 && !isValidIarNumber(data.iar_number)
+                                            ? 'border-red-500 focus-visible:ring-red-500'
+                                            : ''
+                                    }`}
+                                />
+                                {data.iar_number.length > 0 && !isValidIarNumber(data.iar_number) && (
+                                    <p className="mt-1 text-xs text-red-500">
+                                        {data.iar_number.length < 12
+                                            ? `${12 - data.iar_number.length} more digit(s) needed`
+                                            : 'Invalid IAR number format (YYYYMMDDNNNN)'}
+                                    </p>
+                                )}
+                            </div>
                             <Field
                                 label="Receipt Receiving Date"
                                 name="receipt_receiving_date"

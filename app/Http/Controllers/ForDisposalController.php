@@ -16,7 +16,7 @@ class ForDisposalController extends Controller
     {
         $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
-        $condition_of_ppe = $request->input('condition_of_ppe');
+        $source_type = $request->input('source_type');
 
         $query = ForDisposalMonitoring::query();
 
@@ -29,8 +29,8 @@ class ForDisposalController extends Controller
             });
         }
 
-        if ($condition_of_ppe) {
-            $query->where('condition_of_ppe', $condition_of_ppe);
+        if ($source_type && $source_type !== 'all') {
+            $query->where('source_type', $source_type);
         }
 
         $data = $query->latest()->paginateWithHighlight($perPage)->withQueryString();
@@ -39,7 +39,7 @@ class ForDisposalController extends Controller
 
         return Inertia::render('for-disposal-monitoring/index', [
             'data' => $data,
-            'filters' => $request->only(['search', 'condition_of_ppe']),
+            'filters' => $request->only(['search', 'source_type']),
             'preRepairs' => $preRepairs,
         ]);
     }
