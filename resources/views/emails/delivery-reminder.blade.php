@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Overdue Notice</title>
+    <title>Delivery Reminder Notice</title>
 </head>
 <body style="margin:0; padding:0; background-color:#f4f4f5; font-family: Arial, Helvetica, sans-serif;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5; padding:32px 16px;">
@@ -13,7 +13,7 @@
 
                     {{-- Header --}}
                     <tr>
-                        <td style="background-color:#991b1b; padding:24px 32px;">
+                        <td style="background-color:#612A35; padding:24px 32px;">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td>
@@ -21,7 +21,7 @@
                                             Supply Management Unit
                                         </p>
                                         <p style="margin:4px 0 0; color:#ffffff; font-size:20px; font-weight:600;">
-                                            Delivery Overdue Notice
+                                            Delivery Reminder Notice
                                         </p>
                                     </td>
                                 </tr>
@@ -37,7 +37,7 @@
                             </p>
 
                             <p style="margin:0 0 24px; color:#374151; font-size:15px; line-height:1.6;">
-                                This is an automated internal notification that the delivery for Reference/PO Number <strong style="color:#111827;">{{ $delivery->po_number ?? 'N/A' }}</strong> is now overdue.
+                                This is an automated internal notification regarding the upcoming delivery deadline for Reference/PO Number <strong style="color:#111827;">{{ $delivery->po_number ?? 'N/A' }}</strong>.
                             </p>
 
                             {{-- Detail card --}}
@@ -68,26 +68,24 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td style="padding:4px 0; color:#6b7280; font-size:13px;">Original Expected Date</td>
+                                                <td style="padding:4px 0; color:#6b7280; font-size:13px;">Expected Delivery Date</td>
                                                 <td style="padding:4px 0; color:#111827; font-size:13px; font-weight:600;">{{ $delivery->due_date ? \Carbon\Carbon::parse($delivery->due_date)->format('F j, Y') : 'N/A' }}</td>
                                             </tr>
-                                            @if($delivery->due_date)
                                             <tr>
                                                 <td style="padding:4px 0; color:#6b7280; font-size:13px;">Status</td>
                                                 <td style="padding:4px 0;">
-                                                    <span style="display:inline-block; background-color:#fee2e2; color:#991b1b; font-size:12px; font-weight:600; padding:2px 10px; border-radius:9999px;">
-                                                        Overdue by {{ (int) \Carbon\Carbon::parse($delivery->due_date)->startOfDay()->diffInDays(now()->startOfDay()) }} day(s)
+                                                    <span style="display:inline-block; background-color:#dbeafe; color:#1e40af; font-size:12px; font-weight:600; padding:2px 10px; border-radius:9999px;">
+                                                        Upcoming Delivery
                                                     </span>
                                                 </td>
                                             </tr>
-                                            @endif
                                         </table>
                                     </td>
                                 </tr>
                             </table>
 
                             <p style="margin:0 0 24px; color:#374151; font-size:15px; line-height:1.6;">
-                                Please contact the supplier directly using the information provided above to request an updated delivery date or status immediately.
+                                Please review this upcoming delivery. You may contact the supplier directly using the information provided above to ensure that the items are delivered on or before the expected delivery date to avoid any operational delays. 
                             </p>
 
                             <p style="margin:0; color:#374151; font-size:15px; line-height:1.6;">

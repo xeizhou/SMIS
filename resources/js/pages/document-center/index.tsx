@@ -23,7 +23,15 @@ import {
     Clock,
     Settings,
     Save,
+    Send,
 } from 'lucide-react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 interface ItemOption {
     id: string | number;
@@ -437,11 +445,19 @@ function GalleryTab({
 function ScheduledTasksTab() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [sending, setSending] = useState(false);
+    
+    // Force Email States
+    const [forceEmailType, setForceEmailType] = useState('overdue');
+    const [forceEmailDays, setForceEmailDays] = useState('2');
+    const [forceEmailDate, setForceEmailDate] = useState('');
+
     const [settings, setSettings] = useState({
-        delivery_email_enabled: true,
+        delivery_email_enabled: false,
         delivery_email_schedule_time: '08:00',
     });
-    const [rawTasks, setRawTasks] = useState<{cron: string, command: string, next_due: string}[]>([]);
+    
+    const [rawTasks, setRawTasks] = useState<any[]>([]);
 
     useEffect(() => {
         fetch('/api/scheduled-tasks')
@@ -472,6 +488,43 @@ function ScheduledTasksTab() {
             })
             .catch(() => toast.error('Failed to save settings.'))
             .finally(() => setSaving(false));
+    };
+
+    const handleForceSend = () => {
+        setSending(true);
+        
+        let payload: any = { type: forceEmailType };
+        if (forceEmailType === 'reminder') {
+            if (forceEmailDays === 'custom') {
+                if (!forceEmailDate) {
+                    toast.error('Please select a specific date.');
+                    setSending(false);
+                    return;
+                }
+                payload.date = forceEmailDate;
+            } else {
+                payload.days = parseInt(forceEmailDays);
+            }
+        }
+
+        fetch('/api/scheduled-tasks/force-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': (document.head.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+            },
+            body: JSON.stringify(payload),
+        })
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok) {
+                    toast.success(data.message || 'Emails processed successfully!');
+                } else {
+                    toast.error(data.message || 'Failed to send emails.');
+                }
+            })
+            .catch(() => toast.error('An error occurred.'))
+            .finally(() => setSending(false));
     };
 
     if (loading) {
@@ -525,6 +578,75 @@ function ScheduledTasksTab() {
                     <Button onClick={handleSave} disabled={saving} className="gap-2">
                         {saving ? <Settings className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         Save Settings
+                    </Button>
+                </div>
+            </div>
+
+            {/* Manual Email Triggers */}
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden mt-6">
+                <div className="border-b p-4 sm:p-5 bg-muted/40 flex items-start gap-4">
+                    <div className="bg-primary/10 text-primary p-2.5 rounded-lg">
+                        <Send className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg">Force Send Delivery Emails</h3>
+                        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                            Manually trigger the email system right now to send notices for overdue deliveries or upcoming reminders.
+                        </p>
+                    </div>
+                </div>
+                
+                <div className="p-4 sm:p-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                            <Label>Email Type</Label>
+                            <Select value={forceEmailType} onValueChange={setForceEmailType}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select email type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="overdue">Overdue Notice (1 Day Past Due)</SelectItem>
+                                    <SelectItem value="reminder">Upcoming Delivery Reminder</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                Select what kind of message to send.
+                            </p>
+                        </div>
+
+                        {forceEmailType === 'reminder' && (
+                            <div className="space-y-3">
+                                <Label>Target Delivery Date</Label>
+                                <Select value={forceEmailDays} onValueChange={setForceEmailDays}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select criteria" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="2">Due in exactly 2 Days</SelectItem>
+                                        <SelectItem value="3">Due in exactly 3 Days</SelectItem>
+                                        <SelectItem value="5">Due in exactly 5 Days</SelectItem>
+                                        <SelectItem value="custom">Specific Custom Date</SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                {forceEmailDays === 'custom' && (
+                                    <div className="mt-2">
+                                        <Input 
+                                            type="date" 
+                                            value={forceEmailDate}
+                                            onChange={(e) => setForceEmailDate(e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="border-t p-4 bg-muted/20 flex justify-end">
+                    <Button onClick={handleForceSend} disabled={sending} className="gap-2">
+                        {sending ? <Settings className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        Force Send Now
                     </Button>
                 </div>
             </div>

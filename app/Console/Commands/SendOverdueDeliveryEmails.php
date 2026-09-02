@@ -38,12 +38,14 @@ class SendOverdueDeliveryEmails extends Command
                 ->where('notice_type', 'Auto Email')
                 ->exists();
 
-            if ($alreadySent || !$delivery->supplier || empty($delivery->supplier->email_address)) {
+            // We no longer skip if supplier email is missing, as we're sending internally.
+            if ($alreadySent || !$delivery->supplier) {
                 continue;
             }
 
             try {
-                Mail::to($delivery->supplier->email_address)->send(new DeliveryOverdueMail($delivery));
+                $notifEmail = env('MAIL_NOTIFICATIONS_ADDRESS', config('mail.from.address'));
+                Mail::to($notifEmail)->send(new DeliveryOverdueMail($delivery));
 
                 DeliveryFollowUp::create([
                     'delivery_id' => $delivery->delivery_id,
