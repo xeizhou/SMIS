@@ -1,13 +1,14 @@
+// resources/js/pages/Dashboard.tsx
 import { Head, usePage, router, useForm } from '@inertiajs/react';
 import { RefreshCw, ClipboardCheck, FileText, Truck, Bell, Tv, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckCircle2, MessageSquarePlus, Phone, Mail, Plus, X } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
+import { AnimatedKpiCard } from '@/components/animated-kpi-card';
+import { AnimatedChart } from '@/components/animated-chart';
 import { CalendarButton } from '@/calendar/components/calendar-button';
 import { DueDeliveries  } from '@/components/due-deliveries';
 import type {DueDelivery} from '@/components/due-deliveries';
 import { PoLettersStatusChart  } from '@/components/po-letter-status-chart';
 import type {POLetterStatusRow} from '@/components/po-letter-status-chart';
-// import { RecentActivity  } from '@/components/recent-activity';
-// import type {RecentActivityRow} from '@/components/recent-activity';
 import { StatCard } from '@/components/stat-card';
 import { ReportsMonitoringWidget } from '@/components/reports-monitoring-widget';
 import { PoPieChart } from '@/components/po-pie-chart';
@@ -263,34 +264,42 @@ export default function Dashboard() {
 
                 <div className="flex-1 grid gap-6 md:grid-cols-4 md:grid-rows-[auto_1fr_1fr] min-h-0">
                     <div className="md:col-span-3 grid gap-4 sm:grid-cols-3 md:row-start-1">
-                        <StatCard
+                        <AnimatedKpiCard
+                            icon={<Truck className="size-4" />}
                             label="Pending Deliveries"
                             value={pendingDeliveries ?? 0}
                             change={deliveriesLastWeek !== undefined ? `+ ${deliveriesLastWeek} this week` : ""}
-                            icon={Truck}
-                            iconClassName="bg-blue-100 text-blue-500"
                             onClick={() => setIsPendingModalOpen(true)}
+                            index={0}
+                            brandColor="#3b82f6"
                         />
-                        <StatCard
+                        <AnimatedKpiCard
+                            icon={<ClipboardCheck className="size-4" />}
                             label="Pending Inspection"
                             value={pendingInspections ?? 0}
                             change={inspectionsLastWeek !== undefined ? `+ ${inspectionsLastWeek} this week` : ""}
-                            icon={ClipboardCheck}
-                            iconClassName="bg-amber-100 text-amber-600"
                             onClick={() => setIsPendingInspectionsModalOpen(true)}
+                            index={1}
+                            brandColor="#d97706"
                         />
-                        <StatCard
+                        <AnimatedKpiCard
+                            icon={<FileText className="size-4" />}
                             label="Pending Issuance"
                             value={pendingClearances ?? 0}
                             change={clearancesLastWeek !== undefined ? `+ ${clearancesLastWeek} this week` : ""}
-                            icon={FileText}
-                            iconClassName="bg-rose-100 text-rose-500"
                             onClick={() => setIsPendingClearancesModalOpen(true)}
+                            index={2}
+                            brandColor="#f43f5e"
                         />
                     </div>
 
+                    {/* FIX: flex-1 min-h-0 flex flex-col so the wrapper actually
+                        fills the grid cell instead of collapsing to 0 height,
+                        which is what was hiding the chart. */}
                     <div className="md:col-span-3 md:row-start-2 min-h-0 flex flex-col">
-                        <PoLettersStatusChart data={poLettersStatus} />
+                        <AnimatedChart className="flex-1 min-h-0 flex flex-col">
+                            <PoLettersStatusChart data={poLettersStatus} />
+                        </AnimatedChart>
                     </div>
 
                     <div className="md:col-span-1 md:row-span-2 md:row-start-1 h-full min-h-0 flex flex-col">
@@ -309,9 +318,9 @@ export default function Dashboard() {
                     
                     <div className="md:col-span-1 md:row-start-3 h-full flex flex-col">
                         {poStats && (
-                            <div className="w-full h-full flex flex-col">
+                            <AnimatedChart className="w-full h-full flex flex-col">
                                 <PoPieChart stats={poStats} />
-                            </div>
+                            </AnimatedChart>
                         )}
                     </div>
                 </div>
