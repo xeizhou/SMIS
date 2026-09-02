@@ -45,7 +45,7 @@ class DeliveryFollowUpMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            markdown: 'emails.delivery-follow-up',
+            view: 'emails.delivery-follow-up',
         );
     }
 

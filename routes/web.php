@@ -635,6 +635,40 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         return response()->json(['message' => 'Settings model was removed. Changes are not persisted.']);
     })->name('api.scheduled-tasks.store');
 
+    Route::post('/api/scheduled-tasks/force-email', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'type' => 'required|in:overdue,reminder',
+            'days' => 'nullable|integer',
+            'date' => 'nullable|date',
+        ]);
+
+        $type = $request->input('type');
+        
+        try {
+            if ($type === 'overdue') {
+                \Illuminate\Support\Facades\Artisan::call('deliveries:send-overdue-emails');
+            } else {
+                if ($request->filled('date')) {
+                    \Illuminate\Support\Facades\Artisan::call('deliveries:send-reminders', ['--date' => $request->input('date')]);
+                } elseif ($request->filled('days')) {
+                    \Illuminate\Support\Facades\Artisan::call('deliveries:send-reminders', ['--days' => $request->input('days')]);
+                } else {
+                    return response()->json(['message' => 'Please provide either days or date for reminders.'], 422);
+                }
+            }
+            
+            $output = \Illuminate\Support\Facades\Artisan::output();
+            
+            // Extract the number from output "Successfully sent X overdue delivery emails."
+            preg_match('/Successfully sent (\d+)/i', $output, $matches);
+            $count = $matches[1] ?? 0;
+            
+            return response()->json(['message' => "Successfully processed and sent {$count} emails."]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
+        }
+    })->name('api.scheduled-tasks.force-email');
+
     Route::get('/api/messages/{message}/attachment', [\App\Http\Controllers\MessageController::class, 'attachment'])
     ->name('messages.attachment');   
 

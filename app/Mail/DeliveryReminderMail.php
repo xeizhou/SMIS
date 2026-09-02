@@ -5,12 +5,13 @@ namespace App\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Delivery;
 
-class DeliveryOverdueMail extends Mailable
+class DeliveryReminderMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -33,7 +34,7 @@ class DeliveryOverdueMail extends Mailable
         $refNo = $this->delivery->po_number ?? 'Unknown';
 
         return new Envelope(
-            subject: "Delivery Overdue: {$refNo} – {$supplierName}",
+            subject: "Upcoming Delivery Reminder: {$refNo} – {$supplierName}",
         );
     }
 
@@ -43,12 +44,14 @@ class DeliveryOverdueMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.delivery-overdue',
+            view: 'emails.delivery-reminder',
         );
     }
 
     /**
      * Get the attachments for the message.
+     *
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {
