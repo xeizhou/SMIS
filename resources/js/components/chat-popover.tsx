@@ -26,7 +26,8 @@ interface Props {
     onBack?: () => void;
 }
 
-const CLOSE_ANIM_MS = 200;
+// CHANGED: longer close window to match the bouncier entrance
+const CLOSE_ANIM_MS = 300;
 
 const EMOJIS = [
     '😀', '😂', '😅', '😊', '😍', '🤔', '😎', '😢',
@@ -352,18 +353,42 @@ export function ChatPopover(props: Props) {
 
     return (
         <>
+        {/* CHANGED: backdrop now blurs the page behind it too, not just dims —
+            reads much more like a real overlay opening/closing */}
         <div
+            onClick={function () { handleClose(onClose); }}
+            className={cn(
+                'fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ease-out',
+                'sm:hidden',
+                visible ? 'opacity-100' : 'opacity-0',
+                closing ? 'pointer-events-none' : '',
+            )}
+        />
+        <div
+            style={{ transformOrigin: 'bottom right' }}
             className={cn(
                 'fixed z-50 flex flex-col overflow-hidden border border-white/10 bg-[#2a0002] shadow-2xl',
-                'transition-all duration-200 ease-out',
+                // CHANGED: bouncy overshoot easing instead of a flat ease-out, so it
+                // pops past 100% and settles back — reads as a "spring" not a fade
+                'transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
                 'inset-0 rounded-none',
-                visible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0',
+                visible ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-6 scale-95 opacity-0',
                 'sm:inset-auto sm:bottom-4 sm:right-4 sm:h-[28rem] sm:w-80 sm:rounded-lg',
-                visible ? 'sm:translate-y-0 sm:scale-100 sm:opacity-100' : 'sm:translate-y-2 sm:scale-95 sm:opacity-0',
+                // CHANGED: bigger scale drop + origin pinned to the corner so it visibly
+                // grows out of the chat button instead of just fading in place
+                visible ? 'sm:translate-y-0 sm:scale-100 sm:opacity-100' : 'sm:translate-y-2 sm:scale-75 sm:opacity-0',
                 closing ? 'pointer-events-none' : '',
             )}
         >
-            <div className="flex items-center justify-between border-b border-white/10 px-3 py-3 sm:py-2.5">
+            {/* CHANGED: content fades/slides in ~80ms after the shell starts,
+                so the transition feels like two beats instead of one flat pop */}
+            <div
+                className={cn(
+                    'flex items-center justify-between border-b border-white/10 px-3 py-3 sm:py-2.5',
+                    'transition-all duration-200 ease-out delay-[80ms]',
+                    visible ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0',
+                )}
+            >
                 <div className="flex items-center gap-2 min-w-0">
                     {onBack ? (
                         <button
@@ -395,7 +420,13 @@ export function ChatPopover(props: Props) {
                     </Button>
                 </div>
             ) : (
-                <>
+                <div
+                    className={cn(
+                        'flex flex-1 flex-col overflow-hidden',
+                        'transition-all duration-200 ease-out delay-[120ms]',
+                        visible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
+                    )}
+                >
                     <div className="flex-1 space-y-1 overflow-y-auto px-3 py-2.5">
                         {!loaded ? (
                             <p className="text-xs text-white/40">Loading...</p>
@@ -576,7 +607,7 @@ export function ChatPopover(props: Props) {
                             </Button>
                         </div>
                     </div>
-                </>
+                </div>
             )}
         </div>
         {renderPreview()}
