@@ -8,6 +8,7 @@ import FundClusterEditForm from '@/components/fundclusters/fundclustereditform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import SortableTable, { ColumnDef } from '@/components/table/SortableTable';
+import { buildFilterUrl } from '@/lib/filterUrl';
 
 interface FundCluster {
     fund_cluster_id: string;
@@ -34,6 +35,7 @@ interface Filters {
     // Add sorting types
     sort_field?: string;
     sort_direction?: 'asc' | 'desc';
+    per_page?: number;
 }
 
 interface Props {
@@ -53,7 +55,7 @@ export default function Index({ fundClusters, filters }: Props) {
         e.preventDefault();
         router.get(
             '/fund-clusters',
-            { search, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
+            buildFilterUrl({ search, page: 1 }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -62,7 +64,7 @@ export default function Index({ fundClusters, filters }: Props) {
         setSearch('');
         router.get(
             '/fund-clusters',
-            {},
+            buildFilterUrl({ search: '', page: 1 }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };

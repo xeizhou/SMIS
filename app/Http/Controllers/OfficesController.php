@@ -53,6 +53,7 @@ public function index(Request $request)
                 // 4. Return the sorting state to the React frontend
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
+                'per_page' => $perPage,
             ],
         ]);
     }

@@ -8,6 +8,7 @@ import OfficeEditForm from '@/components/offices/officeeditform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import SortableTable, { ColumnDef } from '@/components/table/SortableTable'; 
+import { buildFilterUrl } from '@/lib/filterUrl';
 
 interface Office {
     office_code: string;
@@ -37,6 +38,7 @@ interface Filters {
     // Added these so the table can track sorting state
     sort_field?: string;
     sort_direction?: 'asc' | 'desc';
+    per_page?: number;
 }
 
 interface Props {
@@ -61,7 +63,7 @@ export default function Index({ offices, filters }: Props) {
         e.preventDefault();
         router.get(
             '/offices',
-            { search, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
+            buildFilterUrl({ search, page: 1 }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -70,7 +72,7 @@ export default function Index({ offices, filters }: Props) {
         setSearch('');
         router.get(
             '/offices',
-            {},
+            buildFilterUrl({ search: '', page: 1 }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -168,7 +170,7 @@ export default function Index({ offices, filters }: Props) {
                     sortField={filters.sort_field}
                     sortDirection={filters.sort_direction}
                     url="/offices"
-                    currentFilters={{ search }}
+                    currentFilters={{ search, per_page: filters.per_page }}
                     emptyMessage="No offices added yet."
                 />
 

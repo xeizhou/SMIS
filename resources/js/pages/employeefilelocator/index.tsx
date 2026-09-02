@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SortableTable, { ColumnDef } from '@/components/table/SortableTable';
+import { buildFilterUrl } from '@/lib/filterUrl';
 
 interface EmployeeFileRecord {
     efr_id: number;
@@ -58,7 +59,7 @@ export default function Index({ records, filters, statuses }: Props) {
         e.preventDefault();
         router.get(
             '/employee-file-locator',
-            { search, status, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
+            buildFilterUrl({ search, status, page: 1 }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -67,7 +68,7 @@ export default function Index({ records, filters, statuses }: Props) {
         setStatus(value);
         router.get(
             '/employee-file-locator',
-            { search, status: value, sort_field: filters.sort_field, sort_direction: filters.sort_direction },
+            buildFilterUrl({ search, status: value === 'all' ? '' : value, page: 1 }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -77,7 +78,7 @@ export default function Index({ records, filters, statuses }: Props) {
         setStatus('');
         router.get(
             '/employee-file-locator',
-            {},
+            buildFilterUrl({ search: '', status: '', page: 1 }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };

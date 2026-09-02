@@ -16,6 +16,7 @@ import {
     SelectContent,
     SelectItem,
 } from '@/components/ui/select';
+import { buildFilterUrl } from '@/lib/filterUrl';
 
 interface Unit {
     unitID: number;
@@ -86,6 +87,7 @@ interface Filters {
     date_to: string | null;
     sort_field?: string;
     sort_direction?: 'asc' | 'desc';
+    per_page?: number;
 }
 
 interface Props {
@@ -131,35 +133,25 @@ export default function Index({
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
 
-    const getFilterParams = (overrides = {}) => ({
-        search,
-        transaction_type: transactionType,
-        fund_cluster: fundClusterFilter, 
-        date_from: dateFrom,
-        date_to: dateTo,
-        sort_field: filters.sort_field,
-        sort_direction: filters.sort_direction,
-        ...overrides,
-    });
+    const getFilterParams = (overrides = {}) =>
+        buildFilterUrl({
+            search,
+            transaction_type: transactionType,
+            fund_cluster: fundClusterFilter,
+            date_from: dateFrom,
+            date_to: dateTo,
+            sort_field: filters.sort_field,
+            sort_direction: filters.sort_direction,
+            ...overrides,
+        });
 
     const handleSort = (field: string) => {
         const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
-        
+
         router.get(
             '/transaction-logs',
-            { 
-                search, 
-                transaction_type: transactionType, 
-                date_from: dateFrom, 
-                date_to: dateTo,     
-                sort_field: field, 
-                sort_direction: direction 
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            getFilterParams({ sort_field: field, sort_direction: direction }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
@@ -167,13 +159,8 @@ export default function Index({
         e.preventDefault();
         router.get(
             '/transaction-logs',
-            { search, transaction_type: transactionType, date_from: dateFrom, date_to: dateTo, 
-                sort_field: filters.sort_field, sort_direction: filters.sort_direction },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            getFilterParams({ page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
@@ -181,14 +168,15 @@ export default function Index({
         setSearch('');
         setTransactionType('all');
         setFundClusterFilter('all');
+        setDateFrom('');
+        setDateTo('');
         router.get(
             '/transaction-logs',
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            buildFilterUrl({
+                search: '', transaction_type: 'all', fund_cluster: 'all',
+                date_from: '', date_to: '', page: 1,
+            }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
@@ -240,14 +228,7 @@ export default function Index({
                                 setTransactionType(value);
                                 router.get(
                                     '/transaction-logs',
-                                    { 
-                                        search, 
-                                        transaction_type: value, 
-                                        date_from: dateFrom, // <-- ADD THIS
-                                        date_to: dateTo,     // <-- ADD THIS
-                                        sort_field: filters.sort_field, 
-                                        sort_direction: filters.sort_direction 
-                                    },
+                                    getFilterParams({ transaction_type: value, page: 1 }),
                                     { preserveState: true, preserveScroll: true, replace: true }
                                 );
                             }}
@@ -268,7 +249,7 @@ export default function Index({
                                 setFundClusterFilter(value);
                                 router.get(
                                     '/transaction-logs',
-                                    getFilterParams({ fund_cluster: value }),
+                                    getFilterParams({ fund_cluster: value, page: 1 }),
                                     { preserveState: true, preserveScroll: true, replace: true }
                                 );
                             }}

@@ -145,6 +145,7 @@ class StockItemsListController extends Controller
                 'fund_cluster_id' => $fundClusterId ?? 'all',
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
+                'per_page' => $perPage,
             ],
         ]);
     }

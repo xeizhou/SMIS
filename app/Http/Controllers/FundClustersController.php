@@ -45,6 +45,7 @@ public function index(Request $request)
                 // 4. Send sort state to frontend
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
+                'per_page' => $perPage, 
             ],
         ]);
     }
