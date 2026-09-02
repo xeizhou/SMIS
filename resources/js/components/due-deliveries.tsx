@@ -595,7 +595,7 @@ export function DueDeliveries({ deliveries }: Props) {
                             <Button type="button" variant="outline" onClick={() => setFollowUpModalOpen(false)}>
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={processing} className={formData.notice_type === 'Email' ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-red-700 hover:bg-red-800 text-white"}>
+                            <Button type="submit" disabled={processing || !formData.notice_type || !formData.follow_up_date} className={formData.notice_type === 'Email' ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-red-700 hover:bg-red-800 text-white"}>
                                 {processing ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

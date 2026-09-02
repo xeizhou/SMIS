@@ -1,6 +1,6 @@
 // resources/js/pages/Dashboard.tsx
 import { Head, usePage, router, useForm } from '@inertiajs/react';
-import { RefreshCw, ClipboardCheck, FileText, Truck, Bell, Tv, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckCircle2, MessageSquarePlus, Phone, Mail, Plus, X } from 'lucide-react';
+import { RefreshCw, ClipboardCheck, FileText, Truck, Bell, Tv, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckCircle2, MessageSquarePlus, Phone, Mail, Plus, X, Loader2 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { AnimatedKpiCard } from '@/components/animated-kpi-card';
 import { AnimatedChart } from '@/components/animated-chart';
@@ -677,8 +677,15 @@ export default function Dashboard() {
                             <Button type="button" variant="outline" onClick={() => setFollowUpModalOpen(false)}>
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={processingFollowUp} className={followUpData.notice_type === 'Email' ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-red-700 hover:bg-red-800 text-white"}>
-                                {followUpData.notice_type === 'Email' ? 'Send Email & Save' : 'Save Follow-up'}
+                            <Button type="submit" disabled={processingFollowUp || !followUpData.notice_type || !followUpData.follow_up_date} className={followUpData.notice_type === 'Email' ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-red-700 hover:bg-red-800 text-white"}>
+                                {processingFollowUp ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    followUpData.notice_type === 'Email' ? 'Send Email & Save' : 'Save Follow-up'
+                                )}
                             </Button>
                         </DialogFooter>
                     </form>
