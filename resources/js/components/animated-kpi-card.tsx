@@ -1,4 +1,3 @@
-// resources/js/components/animated-kpi-card.tsx
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -6,22 +5,18 @@ interface Props {
     icon: React.ReactNode;
     label: string;
     value: number;
+    change?: string;
     tone?: 'default' | 'warn' | 'danger';
     onClick?: () => void;
     index?: number;
     brandColor?: string;
 }
 
-/**
- * AnimatedKpiCard wraps a KPI stat card with:
- * - Scale-up + fade-in animation (scale from 0.8, fade from 0)
- * - Subtle bounce effect (spring animation)
- * - Animated number counter that counts up to the final value
- */
 export function AnimatedKpiCard({
     icon,
     label,
     value,
+    change,
     tone = 'default',
     onClick,
     index = 0,
@@ -35,7 +30,6 @@ export function AnimatedKpiCard({
         danger: 'text-red-600',
     }[tone];
 
-    // Count up animation
     useEffect(() => {
         if (value === 0) {
             setDisplayValue(0);
@@ -47,7 +41,7 @@ export function AnimatedKpiCard({
 
         const animate = (timestamp: number) => {
             if (!start) start = timestamp;
-            const progress = Math.min((timestamp - start) / 800, 1); // 800ms animation
+            const progress = Math.min((timestamp - start) / 800, 1);
             setDisplayValue(Math.floor(value * progress));
 
             if (progress < 1) {
@@ -78,6 +72,7 @@ export function AnimatedKpiCard({
                 {label}
             </div>
             <p className={`mt-2 text-2xl font-bold ${toneStyles}`}>{displayValue.toLocaleString()}</p>
+            {change && <p className="mt-1 text-xs text-muted-foreground">{change}</p>}
         </button>
     );
 }
