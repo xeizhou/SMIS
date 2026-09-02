@@ -40,10 +40,23 @@ interface PaginationProps {
 const MAROON = '#612A35';
 const MAROON_DARK = '#370001';
 
+// Scrolls to top whether the page scrolls on `window` or on an inner
+// scrollable container (e.g. a dashboard layout with overflow-y-auto).
+function scrollToTop() {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0; // Safari
+    document
+        .querySelectorAll<HTMLElement>('[data-scroll-container], main, .overflow-y-auto')
+        .forEach((el) => {
+            if (el.scrollTop > 0) el.scrollTop = 0;
+        });
+}
+
 export default function Pagination({
     meta,
     perPageOptions = [10, 25, 50, 100],
-    preserveScroll = true,
+    preserveScroll = false,
 }: PaginationProps) {
     const handlePerPageChange = (value: string) => {
         router.get(
@@ -53,7 +66,14 @@ export default function Pagination({
                 per_page: value,
                 page: 1, // reset to first page when page size changes
             },
-            { preserveState: true, preserveScroll, replace: true }
+            {
+                preserveState: true,
+                preserveScroll,
+                replace: true,
+                onSuccess: () => {
+                    if (!preserveScroll) scrollToTop();
+                },
+            }
         );
     };
 
@@ -65,26 +85,26 @@ export default function Pagination({
                 <span>
                     Showing {meta.from ?? 0}–{meta.to ?? 0} of {meta.total}
                 </span>
-                    <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                            Rows per page
-                        </p>
-                        <Select
-                            value={String(meta.per_page)}
-                            onValueChange={handlePerPageChange}
-                        >
-                            <SelectTrigger className="h-8 w-[74px]">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent side="top">
-                                {perPageOptions.map((opt) => (
-                                    <SelectItem key={opt} value={String(opt)}>
-                                        {opt}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                        Rows per page
+                    </p>
+                    <Select
+                        value={String(meta.per_page)}
+                        onValueChange={handlePerPageChange}
+                    >
+                        <SelectTrigger className="h-8 w-[74px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                            {perPageOptions.map((opt) => (
+                                <SelectItem key={opt} value={String(opt)}>
+                                    {opt}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             <ShadPagination className="mx-0 w-auto">
@@ -96,6 +116,9 @@ export default function Pagination({
                                 preserveScroll={preserveScroll}
                                 preserveState
                                 aria-disabled={!link.url}
+                                onSuccess={() => {
+                                    if (!preserveScroll) scrollToTop();
+                                }}
                                 className={cn(
                                     'flex h-9 min-w-9 items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors',
                                     link.active

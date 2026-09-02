@@ -417,6 +417,14 @@ export default function Index({ users }: IndexProps) {
         <>
             <Head title="Users" />
 
+            {/* Fade-in only (no scale/translate pop) for the user cards */}
+            <style>{`
+                @keyframes userCardFadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+            `}</style>
+
             <div className="p-4 space-y-6 sm:p-6">
                 {/* Header */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -464,11 +472,15 @@ export default function Index({ users }: IndexProps) {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {filteredUsers.map((user) => (
-                            <div
-                                key={user.id}
-                                className="group relative rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md"
-                            >
+                        {filteredUsers.map((user, index) => (
+                                <div
+                                    key={user.id}
+                                    className="group relative rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md"
+                                    style={{
+                                        opacity: 0,
+                                        animation: `userCardFadeIn 0.2s ease-out ${Math.min(index * 8, 80)}ms forwards`,
+                                    }}
+                                >
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
                                         <Avatar className="size-11 shrink-0">

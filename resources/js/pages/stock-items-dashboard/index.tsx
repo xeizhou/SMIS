@@ -1,5 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { usePoll } from '@inertiajs/react';
+import { AnimatedChart } from '@/components/animated-chart';
+import { AnimatedKpiCard } from '@/components/animated-kpi-card';
 import {
     AlertTriangle,
     PackageX,
@@ -201,41 +203,6 @@ function LastUpdated({ lastUpdated }: { lastUpdated: Date }) {
 // Pure presentational component — memoized so a poll-driven re-render of
 // <Index> doesn't force all 4 KPI cards to re-render when their own props
 // (icon/label/value/tone/onClick) haven't actually changed.
-const KpiCard = memo(function KpiCard({
-    icon,
-    label,
-    value,
-    tone = 'default',
-    onClick,
-}: {
-    icon: React.ReactNode;
-    label: string;
-    value: number;
-    tone?: 'default' | 'warn' | 'danger';
-    onClick?: () => void;
-}) {
-    const toneStyles = {
-        default: 'text-foreground',
-        warn: 'text-amber-600',
-        danger: 'text-red-600',
-    }[tone];
-
-    return (
-        <button
-            onClick={onClick}
-            className="group relative w-full rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/40"
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = `${BRAND}80`)}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = '')}
-        >
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {icon}
-                {label}
-            </div>
-            <p className={`mt-2 text-2xl font-bold ${toneStyles}`}>{value}</p>
-        </button>
-    );
-});
-
 function formatDate(value: string) {
     const d = new Date(value);
     return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -374,31 +341,39 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
 
                 {/* KPI strip */}
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                    <KpiCard
+                    <AnimatedKpiCard
                         icon={<Boxes className="size-4" />}
                         label="Total Stock Items"
                         value={kpis.total_items}
                         onClick={() => handleKpiClick('all')}
+                        index={0}
+                        brandColor={BRAND}
                     />
-                    <KpiCard
+                    <AnimatedKpiCard
                         icon={<Activity className="size-4" />}
                         label="Total Stock on Hand"
                         value={kpis.total_stock_on_hand}
                         onClick={() => handleKpiClick('all')}
+                        index={1}
+                        brandColor={BRAND}
                     />
-                    <KpiCard
+                    <AnimatedKpiCard
                         icon={<AlertTriangle className="size-4" />}
                         label="Low Stock Items"
                         value={kpis.low_stock_count}
                         tone={kpis.low_stock_count > 0 ? 'warn' : 'default'}
                         onClick={() => handleKpiClick('low')}
+                        index={2}
+                        brandColor={BRAND}
                     />
-                    <KpiCard
+                    <AnimatedKpiCard
                         icon={<PackageX className="size-4" />}
                         label="Out of Stock"
                         value={kpis.out_of_stock_count}
                         tone={kpis.out_of_stock_count > 0 ? 'danger' : 'default'}
                         onClick={() => handleKpiClick('out')}
+                        index={3}
+                        brandColor={BRAND}
                     />
                 </div>
 
@@ -438,7 +413,8 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
                             No transactions to chart for this period.
                         </div>
                     ) : chartType === 'grouped' ? (
-                        <ChartContainer config={movementChartConfig} className="h-[240px] w-full">
+                        <AnimatedChart>
+                            <ChartContainer config={movementChartConfig} className="h-[240px] w-full">
                             <BarChart data={movementData} barGap={4} barCategoryGap="20%">
                                 <defs>
                                     <linearGradient id="fillReceived" x1="0" y1="0" x2="0" y2="1">
@@ -467,9 +443,11 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
                                 <Bar dataKey="received" fill="url(#fillReceived)" radius={[4, 4, 0, 0]} maxBarSize={28} />
                                 <Bar dataKey="issued" fill="url(#fillIssued)" radius={[4, 4, 0, 0]} maxBarSize={28} />
                             </BarChart>
-                        </ChartContainer>
+                            </ChartContainer>
+                        </AnimatedChart>
                     ) : chartType === 'net' ? (
-                        <ChartContainer config={netChartConfig} className="h-[240px] w-full">
+                        <AnimatedChart>
+                            <ChartContainer config={netChartConfig} className="h-[240px] w-full">
                             <BarChart data={netMovementData} barCategoryGap="25%">
                                 <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
                                 <XAxis
@@ -492,9 +470,11 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
                                     ))}
                                 </Bar>
                             </BarChart>
-                        </ChartContainer>
+                            </ChartContainer>
+                        </AnimatedChart>
                     ) : chartType === 'area' ? (
-                        <ChartContainer config={movementChartConfig} className="h-[240px] w-full">
+                        <AnimatedChart>
+                            <ChartContainer config={movementChartConfig} className="h-[240px] w-full">
                             <AreaChart data={movementData}>
                                 <defs>
                                     <linearGradient id="areaReceived" x1="0" y1="0" x2="0" y2="1">
@@ -537,9 +517,11 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
                                     fill="url(#areaIssued)"
                                 />
                             </AreaChart>
-                        </ChartContainer>
+                            </ChartContainer>
+                        </AnimatedChart>
                     ) : (
-                        <ChartContainer config={cumulativeChartConfig} className="h-[240px] w-full">
+                        <AnimatedChart>
+                            <ChartContainer config={cumulativeChartConfig} className="h-[240px] w-full">
                             <LineChart data={cumulativeData}>
                                 <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
                                 <XAxis
@@ -565,7 +547,8 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
                                     activeDot={{ r: 5 }}
                                 />
                             </LineChart>
-                        </ChartContainer>
+                            </ChartContainer>
+                        </AnimatedChart>
                     )}
                 </div>
 

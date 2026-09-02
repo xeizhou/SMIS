@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2, Eye } from 'lucide-react';
@@ -195,10 +196,14 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                             {data.data.length > 0 ? (
-                                data.data.map((item) => (
-                                    <tr 
-                                        key={item.id} 
-                                        className={'transition-colors duration-1000 ' + 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'} data-search-0={item.property_no} data-search-1={item.transaction_no} data-record-id={item.id}
+                                data.data.map((item, index) => (
+                                    <AnimatedTableRow
+                                        key={item.id}
+                                        index={index}
+                                        className="border-b transition-colors hover:bg-muted/40 data-[state=selected]:bg-muted"
+                                        data-search-0={item.property_no}
+                                        data-search-1={item.transaction_no}
+                                        data-record-id={item.id}
                                     >
                                         <td className="px-4 py-3 font-medium">{item.transaction_no}</td>
                                         
@@ -217,7 +222,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                                 </button>
                                             </div>
                                         </td>
-                                    </tr>
+                                    </AnimatedTableRow>
                                 ))
                             ) : (
                                 <tr>

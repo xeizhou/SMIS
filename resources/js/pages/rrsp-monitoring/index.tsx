@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
@@ -313,13 +314,19 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                                     </tr>
                                 </tbody>
                                 ) : (
-                                    rrspMonitorings.data.map((rrsp) => {
+                                    rrspMonitorings.data.map((rrsp, i) => {
                                         const itemsCount = rrsp.items?.length || 1;
                                         const firstItem = rrsp.items && rrsp.items.length > 0 ? rrsp.items[0] : null;
                                         
                                         return (
                                             <tbody key={rrsp.id} className="group border-b border-border">
-                                                <tr className={'border-b border-border/50 transition-colors duration-1000 hover:bg-muted/40'} data-search-0={firstItem?.propertyNo} data-search-1={rrsp.rrspNo} data-record-id={rrsp.id}>
+                                                <AnimatedTableRow
+                                                    index={i}
+                                                    className="border-b border-border/50 transition-colors duration-1000 hover:bg-muted/40"
+                                                    data-search-0={firstItem?.propertyNo}
+                                                    data-search-1={rrsp.rrspNo}
+                                                    data-record-id={rrsp.id}
+                                                >
                                                     <td className="px-4 py-3 font-medium" rowSpan={itemsCount}>
                                                         {rrsp.rrspNo}
                                                     </td>
@@ -383,9 +390,9 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                                                             </button>
                                                         </div>
                                                     </td>
-                                                </tr>
+                                                </AnimatedTableRow>
                                                 {rrsp.items && rrsp.items.length > 1 && rrsp.items.slice(1).map((item) => (
-                                                    <tr key={item.id} className={'border-b border-border/50 transition-colors duration-1000 hover:bg-muted/40'} data-search-0={item.propertyNo} data-search-1={rrsp.rrspNo} data-record-id={rrsp.id}>
+                                                    <AnimatedTableRow key={item.id} index={i} className="border-b border-border/50 transition-colors duration-1000 hover:bg-muted/40" data-search-0={item.propertyNo} data-search-1={rrsp.rrspNo} data-record-id={rrsp.id}>
                                                         <td className="px-4 py-3">
                                                             {item.itemName ?? '—'}
                                                         </td>
@@ -401,7 +408,7 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                                                         <td className="px-4 py-3">
                                                             {item.status ? <StatusBadge status={item.status} /> : '—'}
                                                         </td>
-                                                    </tr>
+                                                    </AnimatedTableRow>
                                                 ))}
                                             </tbody>
                                         );

@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
@@ -193,11 +194,12 @@ export default function Index({ units, filters }: Props) {
                                     </td>
                                 </tr>
                             ) : (
-                                units.data.map((unit) => (
-                                    <tr
+                                units.data.map((unit, index) => (
+                                    <AnimatedTableRow
                                         key={unit.unitID}
-                                        className={'border-b transition-colors hover:bg-muted/40'} 
-                                        data-search-0={unit.unit_name} 
+                                        index={index}
+                                        className="border-b transition-colors hover:bg-muted/40"
+                                        data-search-0={unit.unit_name}
                                         data-record-id={unit.unitID}
                                     >
                                         <td className="px-4 py-3">{unit.unit_name}</td>
@@ -222,7 +224,7 @@ export default function Index({ units, filters }: Props) {
                                                 </button>
                                             </div>
                                         </td>
-                                    </tr>
+                                    </AnimatedTableRow>
                                 ))
                             )}
                         </tbody>
