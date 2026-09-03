@@ -45,19 +45,9 @@ class FortifyServiceProvider extends ServiceProvider
             $login = trim((string) $request->input(Fortify::username()));
             $password = $request->input('password');
 
-            \Log::info('CUSTOM AUTH CLOSURE HIT', [
-                'login' => $login,
-                'is_email' => filter_var($login, FILTER_VALIDATE_EMAIL) ? 'yes' : 'no',
-            ]);
-
             $user = filter_var($login, FILTER_VALIDATE_EMAIL)
-                ? User::where('email', Str::lower($login))->first()
+                ? User::whereRaw('LOWER(email) = ?', [Str::lower($login)])->first()
                 : User::whereRaw('LOWER(name) = ?', [Str::lower($login)])->first();
-            
-                \Log::info('CUSTOM AUTH CLOSURE RESULT', [
-                'user_found' => $user ? $user->id : null,
-                'password_match' => $user ? Hash::check($password, $user->password) : null,
-            ]);
 
             if (!$user || !Hash::check($password, $user->password)) {
                 return null;

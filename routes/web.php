@@ -590,6 +590,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/import/units', [ImportController::class, 'units'])->name('import.units');
     Route::post('/import/transactions', [ImportController::class, 'transactions'])->name('import.transactions');
     Route::post('/import/offices', [ImportController::class, 'offices'])->name('import.offices');
+    Route::post('/import/regspi', [ImportController::class, 'regspi'])->name('import.regspi');
+    Route::get('/import/regspi/{import}/status', [ImportController::class, 'regspiStatus'])->name('import.regspi.status');
 
     Route::get('/backup/folders', [BackupController::class, 'folders'])->name('backup.folders');
     Route::post('/backup/create', [BackupController::class, 'create'])->name('backup.create');

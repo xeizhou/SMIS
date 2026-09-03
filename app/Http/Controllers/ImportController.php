@@ -7,6 +7,10 @@ use App\Models\Transaction;
 use App\Models\Unit;
 use App\Models\Office;
 use App\Models\FundCluster;
+use App\Models\RegspiMonitoring;
+use App\Models\RrspMonitoring;
+use App\Models\Import;
+use App\Jobs\ProcessRegspiImport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +64,24 @@ class ImportController extends Controller
             'entity_name' => false,
             'office_head' => false,
             'email' => false,
+        ],
+        'regspi' => [
+            'month_year' => true,
+            'ics_no' => false,
+            'rrsp_no' => false,
+            'fund_cluster_id' => false,
+            'semi_expendable_property_no' => true,
+            'item_description' => true,
+            'estimated_useful_life' => false,
+            'issued_qty' => false,
+            'issued_office_officer' => false,
+            'returned_qty' => false,
+            'returned_office_officer' => false,
+            'reissued_qty' => false,
+            'reissued_office_officer' => false,
+            'disposed_qty' => false,
+            'amount' => true,
+            'remarks' => false,
         ],
     ];
 
@@ -277,6 +299,43 @@ class ImportController extends Controller
     }
 
     /**
+     * POST /import/regspi
+     */
+    public function regspi(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:51200',
+        ]);
+
+        $path = $validated['file']->store('imports/regspi');
+        $import = Import::create([
+            'user_id' => $request->user()->getKey(),
+            'file_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        ProcessRegspiImport::dispatch($import->getKey());
+
+        return back()->with('success', "RegSPI import started.|||import_id:{$import->getKey()}");
+    }
+
+    public function regspiStatus(Request $request, Import $import)
+    {
+        abort_unless($import->user_id === $request->user()->getKey(), 403);
+
+        return response()->json([
+            'id' => $import->getKey(),
+            'status' => $import->status,
+            'total_rows' => $import->total_rows,
+            'processed_rows' => $import->processed_rows,
+            'created_rows' => $import->created_rows,
+            'updated_rows' => $import->updated_rows,
+            'skipped_rows' => $import->skipped_rows,
+            'error_message' => $import->error_message,
+        ]);
+    }
+
+    /**
      * POST /import/transactions
      *
      * Transactions are always additive (there's no natural unique key to
@@ -464,6 +523,17 @@ class ImportController extends Controller
 
         $headers = array_keys(self::SCHEMAS[$type]);
 
+        if ($type === 'regspi') {
+            return response()->streamDownload(function () use ($headers) {
+                $handle = fopen('php://output', 'wb');
+                fputcsv($handle, $headers);
+                fputcsv($handle, $this->exampleRow('regspi'));
+                fclose($handle);
+            }, 'regspi_import_template.csv', [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
+        }
+
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->fromArray($headers, null, 'A1');
@@ -490,6 +560,7 @@ class ImportController extends Controller
             'units' => ['Ream', 'REAM'],
             'transactions' => ['RECEIVE', now()->format('Y-m-d'), 'STK-0001', 'Bond Paper A4', 'Substance 20', 'REAM', 'DR-0001', 50, 'OFC-01', '101'],
             'offices' => ['OFC-01', 'Supply Management Unit', 'University of Southeastern Philippines', 'Juan Dela Cruz', 'smu@usep.edu.ph'],
+            'regspi' => ['2026-01', 'ICS-0001', null, '101', 'SEP-0001', 'Laptop', 5, 1, 'Juan Dela Cruz', 0, null, 0, null, 0, 50000, null],
         };
     }
 
@@ -502,7 +573,7 @@ class ImportController extends Controller
     {
         $request->validate([
             'file' => 'required|file|max:20480',
-            'file_format' => 'required|in:xlsx,json',
+            'file_format' => 'required|in:xlsx,json,csv',
             'merge_existing' => 'nullable|boolean',
         ]);
 
@@ -510,9 +581,11 @@ class ImportController extends Controller
         $format = $request->input('file_format');
 
         try {
-            $rows = $format === 'json'
-                ? $this->parseJson($request->file('file'), $type)
-                : $this->parseXlsx($request->file('file'), $type);
+            $rows = match ($format) {
+                'json' => $this->parseJson($request->file('file'), $type),
+                'csv' => $this->parseCsv($request->file('file'), $type),
+                default => $this->parseXlsx($request->file('file'), $type),
+            };
         } catch (\Throwable $e) {
             return back()->withErrors(['file' => 'Could not read file: ' . $e->getMessage()]);
         }
@@ -602,6 +675,69 @@ class ImportController extends Controller
         }
 
         return array_map(fn ($row) => $this->coerceRow($row, $type), $list);
+    }
+
+    private function parseCsv($file, string $type): array
+    {
+        $handle = fopen($file->getRealPath(), 'rb');
+
+        if ($handle === false) {
+            throw new \RuntimeException('Could not open CSV file.');
+        }
+
+        $headers = fgetcsv($handle);
+        if ($headers === false) {
+            fclose($handle);
+            return [];
+        }
+
+        $firstLine = implode(',', $headers);
+        $delimiter = $this->detectCsvDelimiter($firstLine);
+        if ($delimiter !== ',') {
+            rewind($handle);
+            $headers = fgetcsv($handle, 0, $delimiter);
+        }
+
+        $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $headers[0]);
+        $headers = array_map(fn ($header) => trim((string) $header), $headers);
+        $rows = [];
+
+        while (($line = fgetcsv($handle, 0, $delimiter)) !== false) {
+            if (count(array_filter($line, fn ($value) => trim((string) $value) !== '')) === 0) {
+                continue;
+            }
+
+            $row = [];
+            foreach ($headers as $index => $key) {
+                if ($key !== '') {
+                    $value = trim((string) ($line[$index] ?? ''));
+                    $row[$key] = $value === '' ? null : $value;
+                }
+            }
+
+            $rows[] = $this->coerceRow($row, $type);
+        }
+
+        fclose($handle);
+
+        return $rows;
+    }
+
+    private function detectCsvDelimiter(string $line): string
+    {
+        $candidates = [',', ';', "\t", '|'];
+        $delimiter = ',';
+        $highestCount = 0;
+
+        foreach ($candidates as $candidate) {
+            $count = substr_count($line, $candidate);
+            if ($count > $highestCount) {
+                $delimiter = $candidate;
+                $highestCount = $count;
+            }
+        }
+
+        return $delimiter;
     }
 
     /**
