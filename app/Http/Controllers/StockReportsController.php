@@ -83,6 +83,7 @@ class StockReportsController extends Controller
             'filters' => [
                 'cutoff_date' => $cutoffDate,
                 'fund_cluster_id' => $fundClusterId ?? 'all',
+                'per_page' => $perPage,
             ],
         ]);
     }

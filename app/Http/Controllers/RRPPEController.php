@@ -46,6 +46,7 @@ class RRPPEController extends Controller
                     'items' => $rrppe->items->map(function ($i) {
                         return [
                             'id' => $i->id,
+                            'stockNo' => $i->stock_no,
                             'itemName' => $i->item_name,
                             'itemDescription' => $i->item_description,
                             'quantity' => $i->quantity,
@@ -67,11 +68,15 @@ class RRPPEController extends Controller
 
         $areas = \App\Models\Area::orderBy('name')->pluck('name');
 
+        $stockItems = \App\Models\StockItem::orderBy('item_name')
+            ->get(['stock_no', 'item_name', 'description']);
+
         return Inertia::render('rrppe-monitoring/index', [
             'data' => $data,
             'filters' => $request->only(['search', 'status']),
             'statuses' => $statuses,
             'areas' => $areas,
+            'stockItems' => $stockItems,
         ]);
     }
 
@@ -83,8 +88,7 @@ class RRPPEController extends Controller
             'endUserName' => 'nullable|string|max:100',
             'returnBy' => 'nullable|string|max:100',
             'items' => 'required|array|min:1',
-            'items.*.itemName' => 'required|string|max:255',
-            'items.*.itemDescription' => 'required|string',
+            'items.*.stockNo' => 'required|string|exists:stock_items,stock_no',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.propertyNo' => 'required|string|max:50',
             'items.*.cost' => 'nullable|numeric',
@@ -101,9 +105,12 @@ class RRPPEController extends Controller
         ]);
 
         foreach ($validated['items'] as $item) {
+            $stockItem = \App\Models\StockItem::findOrFail($item['stockNo']);
+
             $rrppe->items()->create([
-                'item_name' => $item['itemName'],
-                'item_description' => $item['itemDescription'],
+                'stock_no' => $stockItem->stock_no,
+                'item_name' => $stockItem->item_name,
+                'item_description' => $stockItem->description,
                 'quantity' => $item['quantity'],
                 'property_no' => $item['propertyNo'],
                 'cost' => $item['cost'] ?? null,
@@ -112,7 +119,6 @@ class RRPPEController extends Controller
                 'remarks' => $item['remarks'] ?? null,
             ]);
         }
-
         return redirect()->back()->with('success', 'RRPPE record added successfully.');
     }
 
@@ -126,8 +132,7 @@ class RRPPEController extends Controller
             'endUserName' => 'nullable|string|max:100',
             'returnBy' => 'nullable|string|max:100',
             'items' => 'required|array|min:1',
-            'items.*.itemName' => 'required|string|max:255',
-            'items.*.itemDescription' => 'required|string',
+            'items.*.stockNo' => 'required|string|exists:stock_items,stock_no',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.propertyNo' => 'required|string|max:50',
             'items.*.cost' => 'nullable|numeric',
@@ -146,10 +151,14 @@ class RRPPEController extends Controller
         foreach ($record->items as $item) {
             $item->delete();
         }
+
         foreach ($validated['items'] as $item) {
+            $stockItem = \App\Models\StockItem::findOrFail($item['stockNo']);
+
             $record->items()->create([
-                'item_name' => $item['itemName'],
-                'item_description' => $item['itemDescription'],
+                'stock_no' => $stockItem->stock_no,
+                'item_name' => $stockItem->item_name,
+                'item_description' => $stockItem->description,
                 'quantity' => $item['quantity'],
                 'property_no' => $item['propertyNo'],
                 'cost' => $item['cost'] ?? null,
@@ -164,7 +173,7 @@ class RRPPEController extends Controller
         return redirect()->back()->with('success', 'RRPPE record updated successfully.');
     }
 
-    public function destroy($id)
+        public function destroy($id)
     {
         $record = RRPPEMonitoring::findOrFail($id);
         foreach ($record->items as $item) {

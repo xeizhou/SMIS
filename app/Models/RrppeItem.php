@@ -11,6 +11,7 @@ class RrppeItem extends Model
 
     protected $fillable = [
         'rrppe_monitoring_id',
+        'stock_no',
         'item_name',
         'item_description',
         'quantity',
@@ -24,5 +25,10 @@ class RrppeItem extends Model
     public function rrppe()
     {
         return $this->belongsTo(RRPPEMonitoring::class, 'rrppe_monitoring_id');
+    }
+
+    public function stockItem()
+    {
+        return $this->belongsTo(StockItem::class, 'stock_no', 'stock_no');
     }
 }

@@ -23,6 +23,7 @@ import {
 
 export type RrppeItem = {
     id: number;
+    stockNo: string;
     itemName: string;
     itemDescription: string;
     quantity: number;
@@ -84,7 +85,7 @@ function formatDate(value: string | null | undefined) {
     });
 }
 
-export default function Index({ data, filters = {}, statuses, areas }: { data: PaginatedRRPPE, filters?: any, statuses: string[], areas: string[] }) {
+export default function Index({ data, filters = {}, statuses, areas, stockItems }: { data: PaginatedRRPPE, filters?: any, statuses: string[], areas: string[], stockItems: { stock_no: string; item_name: string; description: string | null }[] }) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -326,6 +327,7 @@ export default function Index({ data, filters = {}, statuses, areas }: { data: P
                 open={isAddModalOpen}
                 onOpenChange={setIsAddModalOpen}
                 areas={areas}
+                stockItems={stockItems}
             />
 
             <RrppeEditForm
@@ -333,6 +335,7 @@ export default function Index({ data, filters = {}, statuses, areas }: { data: P
                 onOpenChange={setIsEditModalOpen}
                 item={selectedItem}
                 areas={areas}
+                stockItems={stockItems}
             />
 
             <RrppeViewModal

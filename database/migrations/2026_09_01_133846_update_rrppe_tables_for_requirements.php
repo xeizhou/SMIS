@@ -15,6 +15,9 @@ return new class extends Migration
         Schema::create('rrppe_items', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('rrppe_monitoring_id');
+
+            $table->string('stock_no', 50)->nullable();
+
             $table->string('item_name')->nullable();
             $table->text('item_description')->nullable();
             $table->integer('quantity')->nullable();
@@ -29,6 +32,11 @@ return new class extends Migration
                   ->references('id')
                   ->on('rrppe_monitoring')
                   ->onDelete('cascade');
+
+            $table->foreign('stock_no')
+                  ->references('stock_no')
+                  ->on('stock_items')
+                  ->nullOnDelete();
         });
 
         // 2. Modify the main monitoring table
