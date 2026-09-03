@@ -177,9 +177,7 @@ export function ChatPopover(props: Props) {
     }
 
     function fetchMessages() {
-        const since = getTwoDayCutoffISO();
-
-        fetch('/api/messages/' + userId + '?since=' + encodeURIComponent(since), {
+        fetch('/api/messages/' + userId, {
             headers: { Accept: 'application/json' },
         })
             .then(function (res) {
@@ -191,17 +189,7 @@ export function ChatPopover(props: Props) {
             })
             .then(function (data) {
                 if (!data) return;
-
-                // Defensive client-side filter in case the backend
-                // hasn't been updated to honor `since` yet, or sends
-                // extra rows — never render anything older than
-                // yesterday from this component.
-                const cutoffTime = new Date(since).getTime();
-                const filtered = (data as ChatMessage[]).filter(function (m) {
-                    return new Date(m.created_at).getTime() >= cutoffTime;
-                });
-
-                setMessages(filtered);
+                setMessages(data as ChatMessage[]);
                 setLoaded(true);
             })
             .catch(function () {});
