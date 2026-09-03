@@ -102,6 +102,18 @@ function formatDayLabel(iso: string): string {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// Merges two message arrays into one, deduped by id (last write wins)
+// and sorted ascending by id. Used everywhere messages get combined —
+// polling, loading older pages, and optimistic-send cleanup — so an
+// overlapping/retried request can never leave a duplicate bubble in
+// the list, even if two fetches raced and returned the same rows.
+function mergeMessagesById(a: ChatMessage[], b: ChatMessage[]): ChatMessage[] {
+    const map = new Map<number, ChatMessage>();
+    a.forEach(function (m) { map.set(m.id, m); });
+    b.forEach(function (m) { map.set(m.id, m); });
+    return Array.from(map.values()).sort(function (x, y) { return x.id - y.id; });
+}
+
 export function ChatPopover(props: Props) {
     const userId = props.userId;
     const userName = props.userName;
@@ -141,6 +153,9 @@ export function ChatPopover(props: Props) {
     const hasScrolledInitially = useRef(false);
     const oldestIdRef = useRef<number | null>(null);
     const newestIdRef = useRef<number | null>(null);
+    const lastAutoScrolledIdRef = useRef<number | null>(null);
+    const isFetchingLatestRef = useRef(false);
+    const isPollingRef = useRef(false);
 
     useEffect(function () {
         const raf = requestAnimationFrame(function () {
@@ -189,6 +204,9 @@ export function ChatPopover(props: Props) {
     // Initial/reset load: replaces the whole list with the most recent
     // page. Used on mount, on conversation switch, and after sending.
     function fetchLatest() {
+        if (isFetchingLatestRef.current) return;
+        isFetchingLatestRef.current = true;
+
         fetch('/api/messages/' + userId + '?limit=' + PAGE_SIZE, {
             headers: { Accept: 'application/json' },
         })
@@ -206,18 +224,26 @@ export function ChatPopover(props: Props) {
                 setHasMore(list.length === PAGE_SIZE);
                 setLoaded(true);
             })
-            .catch(function () {});
+            .catch(function () {})
+            .finally(function () {
+                isFetchingLatestRef.current = false;
+            });
     }
 
     // Polling tick: only fetches messages newer than what we already
     // have, and appends them. Cheap, and never disturbs scroll position
-    // or the "hasMore" older-history state.
+    // or the "hasMore" older-history state. Guarded so a slow response
+    // can't overlap with the next interval tick and double-append.
     function pollNewMessages() {
+        if (isPollingRef.current) return;
+
         const after = newestIdRef.current;
         if (after == null) {
             fetchLatest();
             return;
         }
+
+        isPollingRef.current = true;
 
         fetch('/api/messages/' + userId + '?after=' + after, {
             headers: { Accept: 'application/json' },
@@ -233,9 +259,12 @@ export function ChatPopover(props: Props) {
                 if (!data) return;
                 const incoming = data as ChatMessage[];
                 if (incoming.length === 0) return;
-                setMessages(function (prev) { return prev.concat(incoming); });
+                setMessages(function (prev) { return mergeMessagesById(prev, incoming); });
             })
-            .catch(function () {});
+            .catch(function () {})
+            .finally(function () {
+                isPollingRef.current = false;
+            });
     }
 
     // Scroll-up pagination: fetches the page before the oldest message
@@ -266,7 +295,7 @@ export function ChatPopover(props: Props) {
                 if (older.length < PAGE_SIZE) setHasMore(false);
                 if (older.length === 0) return;
 
-                setMessages(function (prev) { return older.concat(prev); });
+                setMessages(function (prev) { return mergeMessagesById(older, prev); });
 
                 // Keep the viewport pinned to the same message instead
                 // of jumping to the top after older messages get
@@ -285,6 +314,7 @@ export function ChatPopover(props: Props) {
 
     useEffect(function () {
         hasScrolledInitially.current = false;
+        lastAutoScrolledIdRef.current = null;
         setLoaded(false);
         setHasMore(true);
         fetchLatest();
@@ -298,14 +328,22 @@ export function ChatPopover(props: Props) {
     }, [userId]);
 
     useEffect(function () {
-        // Don't yank the view to the bottom while we're prepending
-        // older history from a scroll-up load.
-        if (loadingOlder) return;
+        // Only auto-scroll when the *newest* message actually changed
+        // (initial load, a message you sent, or one that arrived via
+        // polling). Prepending older history from a scroll-up load
+        // never changes the newest id, so this stays put through that
+        // — including the moment loadingOlder flips back to false,
+        // which would otherwise re-fire this effect and yank the view
+        // back to the bottom right after you scrolled up.
+        const newestId = messages.length > 0 ? messages[messages.length - 1].id : null;
+        if (newestId === lastAutoScrolledIdRef.current) return;
+        lastAutoScrolledIdRef.current = newestId;
+
         if (bottomRef.current) {
             bottomRef.current.scrollIntoView({ behavior: hasScrolledInitially.current ? 'smooth' : 'auto' });
             hasScrolledInitially.current = true;
         }
-    }, [messages, loadingOlder]);
+    }, [messages]);
 
     useEffect(function () {
         return function () {
