@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\SerializesDatesWithoutTimezoneShift;
 
 class DeliveryDate extends Model
 {
+    use SerializesDatesWithoutTimezoneShift;
+
     protected $table = 'delivery_dates';
 
     protected $fillable = [

@@ -34,8 +34,15 @@ export function toDateInputValue(value: string | null | undefined): string {
  */
 export function daysBetween(startDate: string, endDate: string): number {
     if (!startDate || !endDate) return 0;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+
+    const startMatch = startDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const endMatch = endDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!startMatch || !endMatch) return 0;
+
+    const start = new Date(Number(startMatch[1]), Number(startMatch[2]) - 1, Number(startMatch[3]));
+    const end = new Date(Number(endMatch[1]), Number(endMatch[2]) - 1, Number(endMatch[3]));
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+
     const diff = end.getTime() - start.getTime();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
