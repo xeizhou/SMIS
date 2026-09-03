@@ -9,9 +9,10 @@ use App\Models\Delivery;
 use App\Models\DeliveryFollowUp;
 use App\Mail\DeliveryOverdueMail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-#[Signature('deliveries:send-overdue-emails')]
+#[Signature('deliveries:send-overdue-emails {--manual}')]
 #[Description('Sends automated overdue emails for deliveries that are exactly 1 day past due')]
 class SendOverdueDeliveryEmails extends Command
 {
@@ -22,38 +23,39 @@ class SendOverdueDeliveryEmails extends Command
     {
         $yesterday = Carbon::yesterday()->format('Y-m-d');
         
-        // Find deliveries that are not completed or cancelled
+        $driver = DB::connection()->getDriverName();
+        $dateCalculation = $driver === 'sqlite' 
+            ? "date(serve_po.po_received_date, '+' || serve_po.delivery_term || ' days')"
+            : "DATE_ADD(serve_po.po_received_date, INTERVAL serve_po.delivery_term DAY)";
+
+        // Find deliveries that are 1 day (or more) overdue and haven't received an auto email yet
         $deliveries = Delivery::with(['supplier', 'servePo'])
-            ->whereNotIn('status', ['COMPLETED', 'COMPLETE', 'CANCELLED'])
-            ->get()
-            ->filter(function ($delivery) use ($yesterday) {
-                // Use the computed due_date accessor which reflects live PO dates
-                return $delivery->due_date && $delivery->due_date->format('Y-m-d') === $yesterday;
-            });
+            ->join('serve_po', 'delivery.po_number', '=', 'serve_po.po_number')
+            ->whereNotIn('delivery.status', ['CANCELLED'])
+            ->whereRaw("{$dateCalculation} = ?", [$yesterday])
+            ->whereDoesntHave('deliveryFollowUps', function ($query) {
+                $query->where('notice_type', 'Auto Email');
+            })
+            ->whereHas('supplier')
+            ->select('delivery.*')
+            ->get();
 
         $count = 0;
         foreach ($deliveries as $delivery) {
-            // Check if we already sent an auto email for this delivery
-            $alreadySent = DeliveryFollowUp::where('delivery_id', $delivery->delivery_id)
-                ->where('notice_type', 'Auto Email')
-                ->exists();
-
-            // We no longer skip if supplier email is missing, as we're sending internally.
-            if ($alreadySent || !$delivery->supplier) {
-                continue;
-            }
 
             try {
                 $notifEmail = env('MAIL_NOTIFICATIONS_ADDRESS', config('mail.from.address'));
                 Mail::to($notifEmail)->send(new DeliveryOverdueMail($delivery));
 
-                DeliveryFollowUp::create([
-                    'delivery_id' => $delivery->delivery_id,
-                    'user_id' => null, // System
-                    'notice_type' => 'Auto Email',
-                    'follow_up_date' => now(),
-                    'remarks' => 'Automated overdue email sent to supplier.',
-                ]);
+                DeliveryFollowUp::withoutEvents(function () use ($delivery) {
+                    DeliveryFollowUp::create([
+                        'delivery_id' => $delivery->delivery_id,
+                        'user_id' => null, // System
+                        'notice_type' => 'Auto Email',
+                        'follow_up_date' => now(),
+                        'remarks' => 'Automated overdue email sent to supplier.',
+                    ]);
+                });
                 $count++;
             } catch (\Exception $e) {
                 $this->error("Failed to send email for Delivery #{$delivery->po_number}: " . $e->getMessage());
@@ -61,5 +63,36 @@ class SendOverdueDeliveryEmails extends Command
         }
 
         $this->info("Successfully sent {$count} overdue delivery emails.");
+
+        if ($count > 0) {
+            $isManual = $this->option('manual');
+            
+            if ($isManual && \Illuminate\Support\Facades\Auth::check()) {
+                $user = \Illuminate\Support\Facades\Auth::user();
+                \App\Models\AuditLog::create([
+                    'log_timestamp' => now(),
+                    'userID' => $user->id,
+                    'role' => $user->role ?? 'Staff',
+                    'action' => 'Used Force Send Delivery Emails command.',
+                    'target_url' => null,
+                ]);
+            }
+
+            $admins = \App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)
+                ->where('last_active_at', '>=', now()->subDays(14))
+                ->get();
+            
+            if ($isManual) {
+                $message = "Force Send Delivery Emails completed successfully. {$count} delivery email(s) were sent.";
+            } else {
+                if ($count === 1) {
+                    $message = "Overdue Delivery Auto-Emailer successfully sent an automatic email for Delivery #" . ($deliveries->first()?->po_number ?? '');
+                } else {
+                    $message = "Overdue Delivery Auto-Emailer completed successfully. {$count} overdue delivery email(s) were sent.";
+                }
+            }
+            
+            \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\ScheduledTaskCompleted($message));
+        }
     }
 }
