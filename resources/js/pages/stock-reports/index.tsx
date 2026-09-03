@@ -21,6 +21,7 @@ import { Printer, FileText, FileSpreadsheet, Upload, Archive } from 'lucide-reac
 import { useState } from 'react';
 import ImportDataModal from '@/components/stock-reports/ImportDataModal';
 import BackupModal from '@/components/stock-reports/BackupModal';
+import { buildFilterUrl } from '@/lib/filterUrl';
 
 interface FundCluster {
     fund_cluster_id: string;
@@ -53,6 +54,7 @@ interface PaginatedItems {
 interface Filters {
     cutoff_date: string | null;
     fund_cluster_id: string | null;
+    per_page?: number;
 }
 
 interface Props {
@@ -71,26 +73,22 @@ export default function Index({ items, fundClusters, filters }: Props) {
     const [backupOpen, setBackupOpen] = useState(false);
 
     const applyFilters = (
-        overrides: Partial<{ cutoff_date: string; fund_cluster_id: string }> = {}
+        overrides: Partial<{ cutoff_date: string; fund_cluster_id: string; page: number }> = {}
     ) => {
         router.get(
             '/stock-reports',
-            {
+            buildFilterUrl({
                 cutoff_date: cutoffDate,
                 fund_cluster_id: fundClusterId,
                 ...overrides,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
     const handleApply = (e: React.FormEvent) => {
         e.preventDefault();
-        applyFilters();
+        applyFilters({ page: 1 });
     };
 
     const handleClear = () => {
@@ -98,12 +96,8 @@ export default function Index({ items, fundClusters, filters }: Props) {
         setFundClusterId('all');
         router.get(
             '/stock-reports',
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
+            buildFilterUrl({ cutoff_date: '', fund_cluster_id: 'all', page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 

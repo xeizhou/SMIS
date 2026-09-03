@@ -1,8 +1,8 @@
+import { useState, useEffect } from 'react';
 import { useForm, router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -13,6 +13,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 import {
     Select,
     SelectContent,
@@ -23,14 +33,93 @@ import {
 
 import { RrppeItem, RRPPEMonitoring } from '@/pages/rrppe-monitoring/index';
 
+interface StockItem {
+    stock_no: string;
+    item_name: string;
+    description: string | null;
+}
+
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     item: RRPPEMonitoring | null;
     areas: string[];
+    stockItems: StockItem[];
 }
 
-export default function RrppeEditForm({ open, onOpenChange, item, areas }: Props) {
+// Same as RrppeAddForm — searches item name + description
+function SearchableSelect({
+    value,
+    onChange,
+    error,
+    placeholder = 'Search...',
+    options,
+}: {
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+}) {
+    const [open, setOpen] = useState(false);
+    const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    return (
+        <div className="w-full">
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal flex items-center',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        <span className="truncate flex-1 text-left mr-2">
+                            {selectedLabel || placeholder}
+                        </span>
+                        <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4 shrink-0',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        <span className="truncate">{opt.label}</span>
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+export default function RrppeEditForm({ open, onOpenChange, item, areas, stockItems }: Props) {
     const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
     const { data, setData, put, processing, errors, reset } = useForm({
         rrppeNo: '',
@@ -39,6 +128,7 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas }: Props
         returnBy: '',
         items: [
             {
+                stockNo: '',
                 itemName: '',
                 itemDescription: '',
                 quantity: '',
@@ -51,6 +141,11 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas }: Props
         ]
     });
 
+    const stockOptions = stockItems.map((s) => ({
+        value: s.stock_no,
+        label: s.description ? `${s.item_name} — ${s.description}` : s.item_name,
+    }));
+
     useEffect(() => {
         if (item) {
             setData({
@@ -58,7 +153,8 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas }: Props
                 dateReceived: item.dateReceived ?? '',
                 endUserName: item.endUserName ?? '',
                 returnBy: item.returnBy ?? '',
-                items: item.items && item.items.length > 0 ? item.items.map(i => ({
+                items: item.items && item.items.length > 0 ? item.items.map((i: any) => ({
+                    stockNo: i.stockNo ?? '',
                     itemName: i.itemName ?? '',
                     itemDescription: i.itemDescription ?? '',
                     quantity: i.quantity?.toString() ?? '',
@@ -68,6 +164,7 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas }: Props
                     area: i.area ?? '',
                     remarks: i.remarks ?? '',
                 })) : [{
+                    stockNo: '',
                     itemName: '',
                     itemDescription: '',
                     quantity: '',
@@ -86,6 +183,7 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas }: Props
         setData('items', [
             ...data.items,
             {
+                stockNo: '',
                 itemName: '',
                 itemDescription: '',
                 quantity: '',
@@ -107,6 +205,18 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas }: Props
     const updateItem = (index: number, field: string, value: any) => {
         const newItems = [...data.items];
         newItems[index] = { ...newItems[index], [field]: value };
+        setData('items', newItems);
+    };
+
+    const selectStockItem = (index: number, stockNo: string) => {
+        const match = stockItems.find((s) => s.stock_no === stockNo);
+        const newItems = [...data.items];
+        newItems[index] = {
+            ...newItems[index],
+            stockNo,
+            itemName: match?.item_name ?? '',
+            itemDescription: match?.description ?? '',
+        };
         setData('items', newItems);
     };
 
@@ -136,7 +246,6 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas }: Props
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="mt-6 space-y-8">
-                    {/* Section: General Information */}
                     <div>
                         <h3 className={sectionTitleClass}>General Information</h3>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -185,7 +294,6 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas }: Props
                         </div>
                     </div>
 
-                    {/* Section: Items */}
                     <div>
                         <div className="flex items-center justify-between border-b pb-2 mb-4">
                             <h3 className="text-sm font-semibold text-foreground">Items</h3>
@@ -193,7 +301,7 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas }: Props
                                 <Plus className="size-4" /> Add Item
                             </Button>
                         </div>
-                        
+
                         <div className="space-y-6">
                             {data.items.map((i, index) => (
                                 <div key={index} className="relative rounded-md border p-4 bg-muted/20">
@@ -211,28 +319,22 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas }: Props
                                     <h4 className="mb-3 text-sm font-medium">Item #{index + 1}</h4>
                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                                         <div className="space-y-1.5 md:col-span-2">
-                                            <Label htmlFor={`edit-item-${index}-name`}>Item Name <span className="text-destructive">*</span></Label>
-                                            <Input
-                                                id={`edit-item-${index}-name`}
-                                                required
-                                                value={i.itemName}
-                                                onChange={(e) => updateItem(index, 'itemName', e.target.value)}
+                                            <Label>Stock Item <span className="text-destructive">*</span></Label>
+                                            <SearchableSelect
+                                                value={i.stockNo}
+                                                onChange={(val) => selectStockItem(index, val)}
+                                                placeholder="Search item name or description..."
+                                                options={stockOptions}
+                                                error={(errors as any)[`items.${index}.stockNo`]}
                                             />
-                                            {(errors as any)[`items.${index}.itemName`] && (
-                                                <p className="text-sm text-destructive">{(errors as any)[`items.${index}.itemName`]}</p>
-                                            )}
                                         </div>
-                                        <div className="space-y-1.5 md:col-span-2">
-                                            <Label htmlFor={`edit-item-${index}-desc`}>Item Description <span className="text-destructive">*</span></Label>
-                                            <Input
-                                                id={`edit-item-${index}-desc`}
-                                                required
-                                                value={i.itemDescription}
-                                                onChange={(e) => updateItem(index, 'itemDescription', e.target.value)}
-                                            />
-                                            {(errors as any)[`items.${index}.itemDescription`] && (
-                                                <p className="text-sm text-destructive">{(errors as any)[`items.${index}.itemDescription`]}</p>
-                                            )}
+                                        <div className="space-y-1.5">
+                                            <Label>Item Name</Label>
+                                            <Input value={i.itemName} disabled readOnly />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label>Item Description</Label>
+                                            <Input value={i.itemDescription} disabled readOnly />
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label htmlFor={`edit-item-${index}-qty`}>Quantity <span className="text-destructive">*</span></Label>
