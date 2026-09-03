@@ -29,6 +29,9 @@ interface Props {
 // CHANGED: longer close window to match the bouncier entrance
 const CLOSE_ANIM_MS = 300;
 
+// How many messages to fetch per page (initial load and each "load older" call).
+const PAGE_SIZE = 30;
+
 const EMOJIS = [
     '😀', '😂', '😅', '😊', '😍', '🤔', '😎', '😢',
     '😡', '😴', '🥳', '😱', '🙌', '👍', '👎', '👏',
@@ -99,18 +102,6 @@ function formatDayLabel(iso: string): string {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-// Start of yesterday (local time), ISO string. Used as the `since`
-// cutoff so the popover only ever loads today + yesterday's messages
-// on the initial/poll fetch — older days are excluded to keep the
-// payload small on chats with long history. Not a "load earlier"
-// feature; older messages simply aren't fetched by this component.
-function getTwoDayCutoffISO(): string {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 1);
-    cutoff.setHours(0, 0, 0, 0);
-    return cutoff.toISOString();
-}
-
 export function ChatPopover(props: Props) {
     const userId = props.userId;
     const userName = props.userName;
@@ -133,6 +124,8 @@ export function ChatPopover(props: Props) {
     const [pendingPreview, setPendingPreview] = useState<string | null>(null);
     const [sending, setSending] = useState(false);
     const [revealedId, setRevealedId] = useState<number | null>(null);
+    const [loadingOlder, setLoadingOlder] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
     const [previewAttachment, setPreviewAttachment] = useState<{
         url: string;
         name: string | null;
@@ -144,7 +137,10 @@ export function ChatPopover(props: Props) {
     const inputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
     const hasScrolledInitially = useRef(false);
+    const oldestIdRef = useRef<number | null>(null);
+    const newestIdRef = useRef<number | null>(null);
 
     useEffect(function () {
         const raf = requestAnimationFrame(function () {
@@ -176,8 +172,24 @@ export function ChatPopover(props: Props) {
         setTimeout(fn, CLOSE_ANIM_MS);
     }
 
-    function fetchMessages() {
-        fetch('/api/messages/' + userId, {
+    // Keep the oldest/newest id cursors in sync any time the message
+    // list changes, so pollNewMessages()/loadOlderMessages() always
+    // page off the current edges without needing messages in state
+    // as a dependency (avoids stale closures in the interval).
+    useEffect(function () {
+        if (messages.length > 0) {
+            oldestIdRef.current = messages[0].id;
+            newestIdRef.current = messages[messages.length - 1].id;
+        } else {
+            oldestIdRef.current = null;
+            newestIdRef.current = null;
+        }
+    }, [messages]);
+
+    // Initial/reset load: replaces the whole list with the most recent
+    // page. Used on mount, on conversation switch, and after sending.
+    function fetchLatest() {
+        fetch('/api/messages/' + userId + '?limit=' + PAGE_SIZE, {
             headers: { Accept: 'application/json' },
         })
             .then(function (res) {
@@ -189,19 +201,96 @@ export function ChatPopover(props: Props) {
             })
             .then(function (data) {
                 if (!data) return;
-                setMessages(data as ChatMessage[]);
+                const list = data as ChatMessage[];
+                setMessages(list);
+                setHasMore(list.length === PAGE_SIZE);
                 setLoaded(true);
             })
             .catch(function () {});
     }
 
+    // Polling tick: only fetches messages newer than what we already
+    // have, and appends them. Cheap, and never disturbs scroll position
+    // or the "hasMore" older-history state.
+    function pollNewMessages() {
+        const after = newestIdRef.current;
+        if (after == null) {
+            fetchLatest();
+            return;
+        }
+
+        fetch('/api/messages/' + userId + '?after=' + after, {
+            headers: { Accept: 'application/json' },
+        })
+            .then(function (res) {
+                if (isSessionDead(res)) {
+                    setSessionExpired(true);
+                    return null;
+                }
+                return res.json();
+            })
+            .then(function (data) {
+                if (!data) return;
+                const incoming = data as ChatMessage[];
+                if (incoming.length === 0) return;
+                setMessages(function (prev) { return prev.concat(incoming); });
+            })
+            .catch(function () {});
+    }
+
+    // Scroll-up pagination: fetches the page before the oldest message
+    // currently loaded and prepends it, preserving scroll position so
+    // the view doesn't jump.
+    function loadOlderMessages() {
+        if (loadingOlder || !hasMore) return;
+        const before = oldestIdRef.current;
+        if (before == null) return;
+
+        setLoadingOlder(true);
+        const container = scrollContainerRef.current;
+        const prevScrollHeight = container ? container.scrollHeight : 0;
+
+        fetch('/api/messages/' + userId + '?before=' + before + '&limit=' + PAGE_SIZE, {
+            headers: { Accept: 'application/json' },
+        })
+            .then(function (res) {
+                if (isSessionDead(res)) {
+                    setSessionExpired(true);
+                    return null;
+                }
+                return res.json();
+            })
+            .then(function (data) {
+                if (!data) return;
+                const older = data as ChatMessage[];
+                if (older.length < PAGE_SIZE) setHasMore(false);
+                if (older.length === 0) return;
+
+                setMessages(function (prev) { return older.concat(prev); });
+
+                // Keep the viewport pinned to the same message instead
+                // of jumping to the top after older messages get
+                // prepended above it.
+                requestAnimationFrame(function () {
+                    if (container) {
+                        container.scrollTop = container.scrollHeight - prevScrollHeight;
+                    }
+                });
+            })
+            .catch(function () {})
+            .finally(function () {
+                setLoadingOlder(false);
+            });
+    }
+
     useEffect(function () {
         hasScrolledInitially.current = false;
         setLoaded(false);
-        fetchMessages();
+        setHasMore(true);
+        fetchLatest();
         const interval = setInterval(function () {
             if (document.hidden) return;
-            fetchMessages();
+            pollNewMessages();
         }, 3000);
         return function () {
             clearInterval(interval);
@@ -209,17 +298,26 @@ export function ChatPopover(props: Props) {
     }, [userId]);
 
     useEffect(function () {
+        // Don't yank the view to the bottom while we're prepending
+        // older history from a scroll-up load.
+        if (loadingOlder) return;
         if (bottomRef.current) {
             bottomRef.current.scrollIntoView({ behavior: hasScrolledInitially.current ? 'smooth' : 'auto' });
             hasScrolledInitially.current = true;
         }
-    }, [messages]);
+    }, [messages, loadingOlder]);
 
     useEffect(function () {
         return function () {
             if (pendingPreview) URL.revokeObjectURL(pendingPreview);
         };
     }, [pendingPreview]);
+
+    function handleScroll(e: React.UIEvent<HTMLDivElement>) {
+        if (e.currentTarget.scrollTop < 60) {
+            loadOlderMessages();
+        }
+    }
 
     function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files ? e.target.files[0] : null;
@@ -292,7 +390,7 @@ export function ChatPopover(props: Props) {
                 if (!res.ok) {
                     throw new Error('Send failed: ' + res.status);
                 }
-                return fetchMessages();
+                return fetchLatest();
             })
             .catch(function (err) {
                 console.error(err);
@@ -415,7 +513,17 @@ export function ChatPopover(props: Props) {
                         visible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
                     )}
                 >
-                    <div className="flex-1 space-y-1 overflow-y-auto px-3 py-2.5">
+                    <div
+                        ref={scrollContainerRef}
+                        onScroll={handleScroll}
+                        className="flex-1 space-y-1 overflow-y-auto px-3 py-2.5"
+                    >
+                        {loadingOlder ? (
+                            <p className="pb-2 text-center text-[10px] text-white/30">Loading older messages...</p>
+                        ) : null}
+                        {!hasMore && loaded && messages.length > 0 ? (
+                            <p className="pb-2 text-center text-[10px] text-white/30">Start of conversation</p>
+                        ) : null}
                         {!loaded ? (
                             <p className="text-xs text-white/40">Loading...</p>
                         ) : messages.length === 0 ? (
