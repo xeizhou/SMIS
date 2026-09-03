@@ -20,6 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { buildFilterUrl } from '@/lib/filterUrl';
 
 export type RrppeItem = {
     id: number;
@@ -110,16 +111,20 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
     const handleClear = () => {
         setSearchQuery('');
         setStatusFilter('all');
-        router.get('/rrppe-monitoring', {}, { preserveState: true, preserveScroll: true, replace: true });
+        router.get(
+            '/rrppe-monitoring',
+            buildFilterUrl({ search: '', status: 'all', page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get('/rrppe-monitoring', { search: searchQuery, status: statusFilter }, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
+        router.get(
+            '/rrppe-monitoring',
+            buildFilterUrl({ search: searchQuery, status: statusFilter, page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
     };
 
     const openViewModal = (item: RRPPEMonitoring) => {
@@ -187,11 +192,11 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                         </div>
                         <Select value={statusFilter} onValueChange={(val) => {
                             setStatusFilter(val);
-                            router.get('/rrppe-monitoring', { search: searchQuery, status: val }, {
-                                preserveState: true,
-                                preserveScroll: true,
-                                replace: true,
-                            });
+                            router.get(
+                                '/rrppe-monitoring',
+                                buildFilterUrl({ search: searchQuery, status: val, page: 1 }),
+                                { preserveState: true, preserveScroll: true, replace: true }
+                            );
                         }}>
                             <SelectTrigger className={`w-[200px] bg-white dark:bg-gray-900 ${statusFilter === 'all' ? 'text-muted-foreground' : ''}`}>
                                 <SelectValue placeholder="Filter by Statuses" />
@@ -226,7 +231,7 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                         <thead className="bg-[#3e0b0e] text-white/90">
                             <tr>
                                 <th className="px-4 py-3 font-medium">RRPPE No.</th>
-                                <th className="px-4 py-3 font-medium">Item Name</th>
+                                <th className="px-4 py-3 font-medium">Item Description</th>
                                 <th className="px-4 py-3 font-medium">Property No.</th>
                                 <th className="px-4 py-3 font-medium">End User</th>
                                 <th className="px-4 py-3 font-medium">Return By</th>
@@ -253,7 +258,16 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                                                 data-record-id={item.id}
                                             >
                                                 <td className="px-4 py-3 font-medium border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{item.rrppeNo}</td>
-                                                <td className="px-4 py-3">{firstItem?.itemName ?? '—'}</td>
+                                                <td className="px-4 py-3 max-w-[220px]">
+                                                    <span
+                                                        className="block truncate"
+                                                        title={firstItem ? `${firstItem.itemName}${firstItem.itemDescription ? ` - ${firstItem.itemDescription}` : ''}` : undefined}
+                                                    >
+                                                        {firstItem
+                                                            ? `${firstItem.itemName}${firstItem.itemDescription ? ` - ${firstItem.itemDescription}` : ''}`
+                                                            : '—'}
+                                                    </span>
+                                                </td>
                                                 <td className="px-4 py-3">{firstItem?.propertyNo ?? '—'}</td>
                                                 <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{item.endUserName ?? '—'}</td>
                                                 <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{item.returnBy ?? '—'}</td>
@@ -287,7 +301,16 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                                             </AnimatedTableRow>
                                             {item.items && item.items.length > 1 && item.items.slice(1).map((subItem) => (
                                                 <AnimatedTableRow key={subItem.id} index={i} className="transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50" data-search-0={subItem.propertyNo} data-search-1={item.rrppeNo} data-record-id={item.id}>
-                                                    <td className="px-4 py-3">{subItem.itemName ?? '—'}</td>
+                                                    <td className="px-4 py-3 max-w-[220px]">
+                                                        <span
+                                                            className="block truncate"
+                                                            title={subItem.itemName ? `${subItem.itemName}${subItem.itemDescription ? ` - ${subItem.itemDescription}` : ''}` : undefined}
+                                                        >
+                                                            {subItem.itemName
+                                                                ? `${subItem.itemName}${subItem.itemDescription ? ` - ${subItem.itemDescription}` : ''}`
+                                                                : '—'}
+                                                        </span>
+                                                    </td>
                                                     <td className="px-4 py-3">{subItem.propertyNo ?? '—'}</td>
                                                     <td className="px-4 py-3">{subItem.area ?? '—'}</td>
                                                     <td className="px-4 py-3 text-center">{subItem.quantity ?? '—'}</td>
