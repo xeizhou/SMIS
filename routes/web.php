@@ -58,7 +58,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             ->take(10)
             ->get()
             ->map(function ($delivery) {
-                $due = $delivery->due_date;
+                $due = $delivery->due_date ? \Carbon\Carbon::parse($delivery->due_date) : null;
                 $deliveryDate = $delivery->delivery_date;
                 $today = now()->startOfDay();
 
@@ -105,7 +105,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                 return $delivery->due_date;
             })
             ->map(function ($delivery) {
-                $due = $delivery->due_date;
+                $due = $delivery->due_date ? \Carbon\Carbon::parse($delivery->due_date) : null;
                 $deliveryDate = $delivery->delivery_date;
                 $today = now()->startOfDay();
 
@@ -158,7 +158,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                 return [
                     'delivery_id' => $delivery->delivery_id,
                     'po_number' => $delivery->po_number,
-                    'due_date' => $delivery->due_date ? $delivery->due_date->format('Y-m-d') : null,
+                    'due_date' => $delivery->due_date, // already a Y-m-d string now, no ->format() needed
                     'status' => $delivery->status,
                     'end_user' => $delivery->end_user,
                     'has_follow_up' => $delivery->delivery_follow_ups_exists ?? false,
