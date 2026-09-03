@@ -10,8 +10,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Traits\LogsActivity;
 use App\Traits\SerializesDatesWithoutTimezoneShift;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Carbon\Carbon;
 
-class Delivery extends Model    
+class Delivery extends Model
 {
     use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift;
 
@@ -75,6 +76,8 @@ class Delivery extends Model
         // go stale when the parent PO's dates change.
     ];
 
+
+
     public function servePo(): BelongsTo
     {
         return $this->belongsTo(ServePo::class, 'po_number', 'po_number');
@@ -97,11 +100,16 @@ class Delivery extends Model
 
     /**
      * Always reflects the linked PO's current po_received_date.
+     *
+     * Returns a plain Y-m-d string, not a Carbon instance — accessor
+     * values bypass serializeDate() entirely and get JSON serialized via
+     * Carbon's own jsonSerialize(), which converts to UTC and shifts the
+     * date back a day for PH (UTC+8). A plain string sidesteps that.
      */
     protected function poDateReceived(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->servePo?->po_received_date,
+            get: fn () => $this->servePo?->po_received_date?->format('Y-m-d'),
         );
     }
 
@@ -119,6 +127,9 @@ class Delivery extends Model
     /**
      * Computed from the linked PO's po_received_date + its delivery_term
      * (days). Null when either piece is missing.
+     *
+     * Returns a plain Y-m-d string, not a Carbon instance — see
+     * poDateReceived() above for why.
      */
     protected function dueDate(): Attribute
     {
@@ -131,7 +142,7 @@ class Delivery extends Model
                     return null;
                 }
 
-                return $received->copy()->addDays($term);
+                return $received->copy()->addDays($term)->format('Y-m-d');
             },
         );
     }
@@ -146,21 +157,21 @@ class Delivery extends Model
     {
         return Attribute::make(
             get: function () {
-                $delivered = $this->delivery_date;
-                $due = $this->due_date; // Delivery's own computed accessor now, not a PO column
+                $delivered = $this->delivery_date; // real cast column, still Carbon
+                $due = $this->due_date; // now a plain Y-m-d string — re-parse it
 
                 if (! $delivered || ! $due) {
                     return null;
                 }
 
-                if ($delivered->lessThanOrEqualTo($due)) {
+                $dueDate = Carbon::parse($due);
+
+                if ($delivered->lessThanOrEqualTo($dueDate)) {
                     return 0;
                 }
 
-                return $due->diffInDays($delivered);
+                return $dueDate->diffInDays($delivered);
             },
         );
     }
-
-
 }
