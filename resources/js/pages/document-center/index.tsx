@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ import {
     Save,
     Send,
     Database,
+    RefreshCw,
 } from 'lucide-react';
 import {
     Select,
@@ -448,6 +450,7 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [sending, setSending] = useState(false);
+    const [cleaning, setCleaning] = useState(false);
     
     // Force Email States
     const [forceEmailType, setForceEmailType] = useState('overdue');
@@ -486,11 +489,21 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
     }, [isOverdueDirty, isUpcomingDirty, isAuditDirty, onDirtyChange]);
     
     const [rawTasks, setRawTasks] = useState<any[]>([]);
+    const [refreshingTasks, setRefreshingTasks] = useState(false);
+
+    const refreshTasksList = () => {
+        setRefreshingTasks(true);
+        axios.get('/api/scheduled-tasks')
+            .then(res => {
+                setRawTasks(res.data.raw_tasks || []);
+            })
+            .finally(() => setRefreshingTasks(false));
+    };
 
     useEffect(() => {
-        fetch('/api/scheduled-tasks')
-            .then(res => res.json())
-            .then(data => {
+        axios.get('/api/scheduled-tasks')
+            .then(res => {
+                const data = res.data;
                 const newSettings = {
                     delivery_email_enabled: Boolean(data.delivery_email_enabled),
                     delivery_email_schedule_time: data.delivery_email_schedule_time || '08:00',
@@ -509,15 +522,7 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
     const handleSave = () => {
         setSaving(true);
         
-        fetch('/api/scheduled-tasks', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': (document.head.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
-            },
-            body: JSON.stringify(settings),
-        })
-            .then(res => res.json())
+        axios.post('/api/scheduled-tasks', settings)
             .then(() => {
                 setOriginalSettings(settings);
                 toast.success('Scheduled tasks settings saved successfully!');
@@ -543,24 +548,58 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
             }
         }
 
-        fetch('/api/scheduled-tasks/force-email', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': (document.head.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
-            },
-            body: JSON.stringify(payload),
-        })
-            .then(async res => {
-                const data = await res.json();
-                if (res.ok) {
-                    toast.success(data.message || 'Emails processed successfully!');
-                } else {
-                    toast.error(data.message || 'Failed to send emails.');
-                }
+        axios.post('/api/scheduled-tasks/force-email', payload)
+            .then(res => {
+                toast.success(res.data.message || 'Emails processed successfully!');
             })
-            .catch(() => toast.error('An error occurred.'))
+            .catch(err => {
+                toast.error(err.response?.data?.message || 'Failed to send emails.');
+            })
             .finally(() => setSending(false));
+    };
+
+    const handleForceCleanup = () => {
+        setCleaning(true);
+        axios.post('/api/scheduled-tasks/force-cleanup')
+            .then(res => {
+                toast.success(res.data.message || 'Cleanup completed successfully!');
+            })
+            .catch(err => {
+                toast.error(err.response?.data?.message || 'Failed to perform cleanup.');
+            })
+            .finally(() => setCleaning(false));
+    };
+
+    const [cleaningToday, setCleaningToday] = useState(false);
+    const [showCleanTodayModal, setShowCleanTodayModal] = useState(false);
+
+    const [clearingCache, setClearingCache] = useState(false);
+    const [showClearCacheModal, setShowClearCacheModal] = useState(false);
+
+    const handleClearCache = () => {
+        setClearingCache(true);
+        axios.post('/api/scheduled-tasks/clear-cache')
+            .then(res => {
+                toast.success(res.data.message || "Scheduler state reset successfully.");
+                setShowClearCacheModal(false);
+            })
+            .catch(err => {
+                toast.error(err.response?.data?.message || 'Failed to clear scheduler cache.');
+            })
+            .finally(() => setClearingCache(false));
+    };
+
+    const handleCleanToday = () => {
+        setCleaningToday(true);
+        axios.post('/api/scheduled-tasks/clean-today')
+            .then(res => {
+                toast.success(res.data.message || "Today's Audit Logs cleanup completed.");
+                setShowCleanTodayModal(false);
+            })
+            .catch(err => {
+                toast.error(err.response?.data?.message || 'Failed to perform cleanup.');
+            })
+            .finally(() => setCleaningToday(false));
     };
 
     if (loading) {
@@ -802,11 +841,16 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
 
             {/* Next Execution Status */}
             <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden mt-6">
-                <div className="border-b p-4 sm:p-5 bg-muted/40">
-                    <h3 className="font-semibold text-base">Upcoming Background Tasks</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Status of automated system tasks and their next scheduled execution time.
-                    </p>
+                <div className="border-b p-4 sm:p-5 bg-muted/40 flex items-start justify-between gap-4">
+                    <div>
+                        <h3 className="font-semibold text-base">Upcoming Background Tasks</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Status of automated system tasks and their next scheduled execution time.
+                        </p>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={refreshTasksList} disabled={refreshingTasks} className="shrink-0 rounded-full h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors" title="Refresh task list">
+                        <RefreshCw className={`h-4 w-4 ${refreshingTasks ? 'animate-spin text-primary' : ''}`} />
+                    </Button>
                 </div>
                 <div className="divide-y">
                     {rawTasks.map((task, i) => {
@@ -819,6 +863,9 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
                         } else if (task.command.includes('model:prune')) {
                             title = "System Audit Logs Cleanup";
                             description = `Automatically deletes background Audit Logs older than ${settings.audit_logs_cleanup_days} days to free up space. No other modules or data are affected.`;
+                        } else if (task.command.includes('Automatically deletes old notification records')) {
+                            title = "System Notifications Cleanup";
+                            description = task.command;
                         } else if (task.command.includes('send-reminders')) {
                             title = "Upcoming Delivery Reminders";
                             const match = task.command.match(/--days=(\d+)/);
@@ -832,13 +879,116 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
                                     <h3 className="font-semibold text-sm">{title}</h3>
                                     <p className="text-xs text-muted-foreground">{description}</p>
                                 </div>
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-500/10 text-green-700 dark:text-green-400 whitespace-nowrap">
-                                    <Clock className="w-3.5 h-3.5" />
-                                    {task.next_due}
+                                <div className="flex items-center gap-3">
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-500/10 text-green-700 dark:text-green-400 whitespace-nowrap">
+                                        <Clock className="w-3.5 h-3.5" />
+                                        {task.next_due}
+                                    </div>
+                                    {task.command.includes('model:prune') && (
+                                        <>
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                className="h-8 gap-2" 
+                                                onClick={handleForceCleanup} 
+                                                disabled={cleaning || cleaningToday}
+                                            >
+                                                {cleaning ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Database className="h-3.5 w-3.5" />}
+                                                Force Cleanup
+                                            </Button>
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                className="h-8 gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20" 
+                                                onClick={() => setShowCleanTodayModal(true)} 
+                                                disabled={cleaning || cleaningToday}
+                                            >
+                                                {cleaningToday ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Database className="h-3.5 w-3.5" />}
+                                                Clean Today's Logs
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         );
                     })}
+                </div>
+            </div>
+
+            {/* Clean Today Modal Overlay */}
+            {showCleanTodayModal && (
+                <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-card border text-card-foreground shadow-lg rounded-xl max-w-md w-full animate-in zoom-in-95 duration-200 overflow-hidden">
+                        <div className="p-6">
+                            <h3 className="font-semibold text-lg tracking-tight mb-2">Clean Today's Audit Logs?</h3>
+                            <p className="text-sm text-muted-foreground">
+                                This will permanently remove all audit logs created today. This action cannot be undone.
+                            </p>
+                        </div>
+                        <div className="flex items-center justify-end gap-3 p-4 bg-muted/40 border-t">
+                            <Button variant="ghost" onClick={() => setShowCleanTodayModal(false)} disabled={cleaningToday}>
+                                Cancel
+                            </Button>
+                            <Button variant="destructive" onClick={handleCleanToday} disabled={cleaningToday} className="gap-2">
+                                {cleaningToday && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                                Clean Today's Logs
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Clear Scheduler Cache Modal Overlay */}
+            {showClearCacheModal && (
+                <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-card border text-card-foreground shadow-lg rounded-xl max-w-md w-full animate-in zoom-in-95 duration-200 overflow-hidden">
+                        <div className="p-6">
+                            <h3 className="font-semibold text-lg tracking-tight mb-2 text-red-600 dark:text-red-400">Reset Scheduled Task State?</h3>
+                            <p className="text-sm text-muted-foreground">
+                                This will clear the scheduler's cached execution state. Scheduled tasks will run again on their next tick if they meet the schedule condition.
+                            </p>
+                        </div>
+                        <div className="flex items-center justify-end gap-3 p-4 bg-muted/40 border-t">
+                            <Button variant="ghost" onClick={() => setShowClearCacheModal(false)} disabled={clearingCache}>
+                                Cancel
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                onClick={handleClearCache} 
+                                disabled={clearingCache} 
+                                className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+                            >
+                                {clearingCache && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                                Reset State
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Clear Scheduler Cache */}
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden mt-6 border-red-200 dark:border-red-900/50">
+                <div className="border-b p-4 sm:p-5 bg-red-50/50 dark:bg-red-900/10 flex items-start gap-4">
+                    <div className="bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 p-2.5 rounded-lg">
+                        <RefreshCw className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg text-red-700 dark:text-red-400">Clear Scheduler Cache</h3>
+                        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                            Manually reset the scheduler's cached execution state. Use this when testing or if scheduled tasks are not running as expected after migrating.
+                        </p>
+                    </div>
+                </div>
+                <div className="border-t p-4 bg-muted/20 flex justify-end">
+                    <Button 
+                        variant="outline"
+                        className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+                        onClick={() => setShowClearCacheModal(true)}
+                        disabled={clearingCache}
+                    >
+                        {clearingCache ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                        Reset Scheduled Task State
+                    </Button>
                 </div>
             </div>
 

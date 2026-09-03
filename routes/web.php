@@ -607,7 +607,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/api/scheduled-tasks', function () {
         \Illuminate\Support\Facades\Artisan::call('schedule:list');
         $output = preg_replace('/\x1b\[[0-9;]*m/', '', \Illuminate\Support\Facades\Artisan::output());
-        
+         
         $lines = explode("\n", trim($output));
         $tasks = [];
         foreach ($lines as $line) {
@@ -676,12 +676,12 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         
         try {
             if ($type === 'overdue') {
-                \Illuminate\Support\Facades\Artisan::call('deliveries:send-overdue-emails');
+                \Illuminate\Support\Facades\Artisan::call('deliveries:send-overdue-emails', ['--manual' => true]);
             } else {
                 if ($request->filled('date')) {
-                    \Illuminate\Support\Facades\Artisan::call('deliveries:send-reminders', ['--date' => $request->input('date')]);
+                    \Illuminate\Support\Facades\Artisan::call('deliveries:send-reminders', ['--date' => $request->input('date'), '--manual' => true]);
                 } elseif ($request->filled('days')) {
-                    \Illuminate\Support\Facades\Artisan::call('deliveries:send-reminders', ['--days' => $request->input('days')]);
+                    \Illuminate\Support\Facades\Artisan::call('deliveries:send-reminders', ['--days' => $request->input('days'), '--manual' => true]);
                 } else {
                     return response()->json(['message' => 'Please provide either days or date for reminders.'], 422);
                 }
@@ -699,8 +699,109 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         }
     })->name('api.scheduled-tasks.force-email');
 
-    Route::get('/api/messages/{message}/attachment', [\App\Http\Controllers\MessageController::class, 'attachment'])
-    ->name('messages.attachment');   
+    Route::post('/api/scheduled-tasks/force-cleanup', function (Request $request) {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('model:prune', ['--model' => [\App\Models\AuditLog::class]]);
+            $output = \Illuminate\Support\Facades\Artisan::output();
+            
+            // Laravel 10 format: "X [App\Models\AuditLog] records have been pruned."
+            // Laravel 11 format: "App\Models\AuditLog .. X records"
+            if (preg_match('/(\d+) \[.*AuditLog.*\] records have been pruned/i', $output, $matches) || 
+                preg_match('/AuditLog\s*\.{2,}\s*(\d+)\s*records/i', $output, $matches)) {
+                $count = (int) ($matches[1] ?? 0);
+            } else {
+                $count = 0;
+            }
+            
+            $settingsPath = storage_path('app/scheduled_tasks_settings.json');
+            $days = 30;
+            if (file_exists($settingsPath)) {
+                $settings = json_decode(file_get_contents($settingsPath), true) ?? [];
+                if (isset($settings['audit_logs_cleanup_days'])) {
+                    $days = (int) $settings['audit_logs_cleanup_days'];
+                }
+            }
+
+            $user = \Illuminate\Support\Facades\Auth::user();
+            if ($user) {
+                \App\Models\AuditLog::create([
+                    'log_timestamp' => now(),
+                    'userID' => $user->id,
+                    'role' => $user->role ?? 'Staff',
+                    'action' => 'Used Force Cleanup command for System Audit Logs Cleanup.',
+                    'target_url' => null,
+                ]);
+            }
+            
+            $admins = \App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)->get();
+            if ($count > 0) {
+                $message = "Force Cleanup completed. {$count} audit logs older than {$days} days were removed.";
+            } else {
+                $message = "Force Cleanup completed. No audit logs older than {$days} days were found.";
+            }
+            \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\ScheduledTaskCompleted($message));
+            
+            return response()->json(['message' => $message]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
+        }
+    })->name('api.scheduled-tasks.force-cleanup');
+
+    Route::post('/api/scheduled-tasks/clean-today', function (Request $request) {
+        try {
+            $today = now()->startOfDay();
+            $count = \App\Models\AuditLog::where('log_timestamp', '>=', $today)->delete();
+            
+            $user = \Illuminate\Support\Facades\Auth::user();
+            if ($user) {
+                \App\Models\AuditLog::create([
+                    'log_timestamp' => now(),
+                    'userID' => $user->id,
+                    'role' => $user->role ?? 'Staff',
+                    'action' => 'Used Clean Today\'s Logs command for System Audit Logs Cleanup.',
+                    'target_url' => null,
+                ]);
+            }
+            
+            $admins = \App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)->get();
+            if ($count > 0) {
+                $message = "Today's Audit Logs cleanup completed. {$count} audit log(s) were removed.";
+            } else {
+                $message = "Today's Audit Logs cleanup completed. No audit logs from today were found.";
+            }
+            \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\ScheduledTaskCompleted($message));
+            
+            return response()->json(['message' => $message]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
+        }
+    })->name('api.scheduled-tasks.clean-today');
+
+    Route::post('/api/scheduled-tasks/clear-cache', function (\Illuminate\Http\Request $request) {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('schedule:clear-cache');
+            
+            $user = \Illuminate\Support\Facades\Auth::user();
+            if ($user) {
+                \App\Models\AuditLog::create([
+                    'log_timestamp' => now(),
+                    'userID' => $user->id,
+                    'role' => $user->role ?? 'Staff',
+                    'action' => 'Used Clear Scheduler Cache command.',
+                    'target_url' => null,
+                ]);
+            }
+            
+            $message = "Scheduler state reset successfully.";
+            
+            $admins = \App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)->get();
+            \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\ScheduledTaskCompleted($message));
+            
+            return response()->json(['message' => $message]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
+        }
+    })->name('api.scheduled-tasks.clear-cache');
 
     // ==========================================================
     // System/Administration (sidebar: "System/Administration")

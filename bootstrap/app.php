@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
             PreventBackHistory::class,
             ReleaseSessionOnLogout::class,
+            \App\Http\Middleware\UpdateLastActiveAt::class,
         ]);
 
         $middleware->alias([
