@@ -177,8 +177,6 @@ class TransactionLogsController extends Controller
 
         $transaction = Transaction::create($validated);
 
-        $this->logAudit("Created transaction #{$transaction->transactionID} ({$transaction->transaction_type}, {$transaction->item_name}, qty {$transaction->quantity}).");
-
         return redirect()->back()->with('success', 'Transaction added successfully.');
     }
 
@@ -239,12 +237,6 @@ class TransactionLogsController extends Controller
         ]);
 
         $transaction->update($validated);
-
-        $this->logAudit(sprintf(
-            'Updated transaction #%d (typo/correction, type unchanged): %s.',
-            $transaction->transactionID,
-            $this->diffSummary($before, $validated)
-        ));
 
         return redirect()->back()->with('success', 'Transaction updated successfully.');
     }
