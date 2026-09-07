@@ -17,6 +17,9 @@ class ForDisposalController extends Controller
         $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
         $source_type = $request->input('source_type');
+        $sortField = $request->string('sort_field')->toString();
+        $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
+        $sorts = ['transaction_no', 'pre_repair_no', 'property_no', 'description', 'location', 'amount', 'created_at'];
 
         $query = ForDisposalMonitoring::query();
 
@@ -33,13 +36,13 @@ class ForDisposalController extends Controller
             $query->where('source_type', $source_type);
         }
 
-        $data = $query->latest()->paginateWithHighlight($perPage)->withQueryString();
+        $data = $query->when(in_array($sortField, $sorts, true), fn ($q) => $q->orderBy($sortField, $sortDirection), fn ($q) => $q->latest())->paginateWithHighlight($perPage)->withQueryString();
 
         $preRepairs = PreRepairMonitoring::all();
 
         return Inertia::render('for-disposal-monitoring/index', [
             'data' => $data,
-            'filters' => $request->only(['search', 'source_type']),
+            'filters' => array_merge($request->only(['search', 'source_type']), ['sort_field' => $sortField ?: null, 'sort_direction' => $sortDirection]),
             'preRepairs' => $preRepairs,
         ]);
     }

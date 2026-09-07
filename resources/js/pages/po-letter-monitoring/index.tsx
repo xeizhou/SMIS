@@ -72,6 +72,8 @@ interface Filters {
     search: string | null;
     status: string | null;
     type: string | null;
+    sort_field?: string | null;
+    sort_direction?: 'asc' | 'desc' | null;
 }
 
 interface Props {
@@ -109,13 +111,15 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
     const [selectedPoLetter, setSelectedPoLetter] = useState<PoLetterRecord | null>(null);
     const [poLetterToDelete, setPoLetterToDelete] = useState<PoLetterRecord | null>(null);
 
-    const runSearch = (nextStatus?: string, nextType?: string) => {
+    const runSearch = (nextStatus?: string, nextType?: string, sortField = filters.sort_field, sortDirection = filters.sort_direction) => {
         router.get(
             '/po-letter-monitoring',
             {
                 search,
                 status: (nextStatus ?? status) === 'all' ? undefined : nextStatus ?? status,
                 type: (nextType ?? type) === 'all' ? undefined : nextType ?? type,
+                sort_field: sortField || undefined,
+                sort_direction: sortDirection || undefined,
             },
             {
                 preserveState: true,
@@ -123,6 +127,11 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
                 replace: true,
             }
         );
+    };
+
+    const handleSort = (field: string) => {
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        runSearch(undefined, undefined, field, direction);
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -231,13 +240,14 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
                 <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
                         <thead className="border-b" style={{ backgroundColor: '#370001' }}>
                             <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Reference No.</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Supplier</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">PO Number</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Type</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Status</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">PO Date</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Due Date</th>
+                                {[
+                                    ['Reference No.', 'reference_no'], ['Supplier', 'supplier'], ['PO Number', 'po_number'],
+                                    ['Type', 'type'], ['Status', 'status'], ['PO Date', 'po_date'], ['Due Date', 'due_date'],
+                                ].map(([label, field]) => (
+                                    <th key={field} className="p-0 text-left font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort(field)} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button>
+                                    </th>
+                                ))}
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>

@@ -20,13 +20,21 @@ class NoticeOfDeliveryReportController extends Controller
 
         $todayDate = Carbon::parse($todayInput)->startOfDay();
         $yesterdayDate = Carbon::parse($yesterdayInput)->startOfDay();
+        $sortField = $request->string('sort_field')->toString();
+        $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
+        $sorts = [
+            'po_number' => 'po_number',
+            'supplier' => 'supplier_id',
+            'status' => 'status',
+            'delivery_date' => 'delivery_date',
+        ];
 
         $getDeliveriesForDate = function (Carbon $date) {
             return Delivery::query()
                 ->with(['supplier:supplier_id,supplier_name', 'servePo:po_number,end_user,total_amount_po,item_description,due_date'])
                 ->whereDate('delivery_date', $date->format('Y-m-d'))    
                 ->whereIn('status', ['COMPLETE', 'PARTIAL'])
-                ->orderBy('po_number', 'asc')
+                ->when(isset($sorts[$sortField]), fn ($query) => $query->orderBy($sorts[$sortField], $sortDirection), fn ($query) => $query->orderBy('po_number', 'asc'))
                 ->get()
                 ->map(function ($delivery) {
                     return [
@@ -65,6 +73,8 @@ class NoticeOfDeliveryReportController extends Controller
             'yesterdayDeliveries' => $yesterdayDeliveries,
             'todayStats' => $getStats($todayDeliveries),
             'yesterdayStats' => $getStats($yesterdayDeliveries),
+            'sortField' => $sortField ?: 'po_number',
+            'sortDirection' => $sortDirection,
         ]);
     }
 }

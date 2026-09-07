@@ -75,6 +75,11 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
 
     const [selectedItem, setSelectedItem] = useState<ITRPTRMonitoring | null>(null);
 
+    const handleSort = (field: string) => {
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        router.get('/itr-ptr-monitoring', { search: searchQuery, condition_of_ppe: conditionFilter === 'all' ? undefined : conditionFilter, sort_field: field, sort_direction: direction }, { preserveState: true, preserveScroll: true, replace: true });
+    };
+
     
 
     const openAddModal = () => {
@@ -180,10 +185,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-[#3e0b0e] text-white/90">
                             <tr>
-                                <th className="px-4 py-3 font-medium">Transaction No.</th>
-                                
-                                <th className="px-4 py-3 font-medium">Description</th>
-                                <th className="px-4 py-3 font-medium">Claimed By</th>
+                                {['Transaction No.', 'Description', 'Claimed By'].map((label, index) => <th key={label} className="p-0 font-medium"><button type="button" onClick={() => handleSort(['transaction_no', 'description', 'claimed_by'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
                                 
                                 
                                 

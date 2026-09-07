@@ -23,6 +23,14 @@ class DeliveriesController extends Controller
         $search = $request->string('search')->toString() ?: null;
         $status = $request->string('status')->toString() ?: null;
         $poNumber = $request->string('po_number')->toString() ?: null;
+        $sortField = $request->string('sort_field')->toString();
+        $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
+        $sorts = [
+            'po_number' => 'po_number',
+            'supplier' => Supplier::select('supplier_name')->whereColumn('supplier_list.supplier_id', 'delivery.supplier_id'),
+            'delivery_date' => 'delivery_date',
+            'status' => 'status',
+        ];
 
         $deliveries = Delivery::query()
             ->with([
@@ -45,7 +53,7 @@ class DeliveriesController extends Controller
             })
             ->when($status, fn ($query, $status) => $query->where('status', $status))
             ->when($poNumber, fn ($query, $poNumber) => $query->where('po_number', $poNumber))
-            ->orderByDesc('data_entry_timestamp')
+            ->when(isset($sorts[$sortField]), fn ($query) => $query->orderBy($sorts[$sortField], $sortDirection), fn ($query) => $query->orderByDesc('data_entry_timestamp'))
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 
@@ -55,6 +63,8 @@ class DeliveriesController extends Controller
                 'search' => $search,
                 'status' => $status,
                 'po_number' => $poNumber,
+                'sort_field' => $sortField ?: null,
+                'sort_direction' => $sortDirection,
             ],
             'purchaseOrders' => ServePo::query()
                 ->select(['po_number', 'supplier_id', 'total_amount_po', 'end_user', 'delivery_term', 'po_received_date'])

@@ -12,6 +12,9 @@ class RRSPController extends Controller
     {
         $perPage = $request->integer('per_page', 10);
         $query = \App\Models\RrspMonitoring::with('items');
+        $sortField = $request->string('sort_field')->toString();
+        $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
+        $sorts = ['rrsp_no', 'date_received', 'end_user_name', 'return_by', 'created_at'];
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -33,7 +36,7 @@ class RRSPController extends Controller
         }
 
         $rrspMonitorings = $query
-            ->latest()
+            ->when(in_array($sortField, $sorts, true), fn ($q) => $q->orderBy($sortField, $sortDirection), fn ($q) => $q->latest())
             ->paginateWithHighlight($perPage)
             ->withQueryString()
             ->through(function ($rrsp) {
@@ -74,6 +77,8 @@ class RRSPController extends Controller
             'filters' => [
                 'search' => $request->search,
                 'status' => $request->status,
+                'sort_field' => $sortField ?: null,
+                'sort_direction' => $sortDirection,
             ],
             'statuses' => $statuses,
             'areas' => $areas,

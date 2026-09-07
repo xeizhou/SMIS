@@ -71,6 +71,11 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
     const [regspiToDelete, setRegspiToDelete] = useState<RegSPIRecord | null>(null);
     const [importOpen, setImportOpen] = useState(false);
 
+    const handleSort = (field: string) => {
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        router.get('/regspi-monitoring', { search, rrsp_no: rrspNo === 'all' ? undefined : rrspNo, fund_cluster_id: fundClusterId === 'all' ? undefined : fundClusterId, sort_field: field, sort_direction: direction }, { preserveState: true, preserveScroll: true, replace: true });
+    };
+
 
     const runSearch = (nextRrspNo?: string, nextFundClusterId?: string) => {
         router.get(
@@ -205,12 +210,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                 <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
                         <thead className="border-b" style={{ backgroundColor: '#370001' }}>
                             <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Property No.</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Item Description</th>
-                               
-                               
-                                <th className="px-4 py-3 text-left font-semibold text-white">Issued Qty</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Balance Qty</th>
+                                {['Property No.', 'Item Description', 'Issued Qty', 'Balance Qty'].map((label, index) => <th key={label} className="p-0 text-left font-semibold text-white"><button type="button" onClick={() => handleSort(['semi_expendable_property_no', 'item_description', 'issued_qty', 'balance_qty'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
                                
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>

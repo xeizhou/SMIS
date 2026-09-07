@@ -29,6 +29,21 @@ class PurchaseOrdersController extends Controller
         $fundCluster = $request->string('fund_cluster')->toString() ?: null;
         $office = $request->string('office')->toString() ?: null;
         $perPage = $request->integer('per_page', 10);
+        $sortField = $request->string('sort_field')->toString();
+        $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
+
+        $sorts = [
+            'po_number' => 'po_number',
+            'supplier' => Supplier::select('supplier_name')
+                ->whereColumn('supplier_list.supplier_id', 'serve_po.supplier_id'),
+            'office' => Office::select('office_name')
+                ->whereColumn('offices.office_code', 'serve_po.end_user'),
+            'fund_cluster' => 'fund_cluster_id',
+            'mode_of_procurement' => 'mode_of_procurement',
+            'po_date' => 'po_date',
+            'due_date' => 'due_date',
+            'total_amount_po' => 'total_amount_po',
+        ];
 
         $purchaseOrders = ServePo::query()
             ->with([
@@ -52,7 +67,9 @@ class PurchaseOrdersController extends Controller
             })
             ->when($fundCluster, fn ($query, $fundCluster) => $query->where('fund_cluster_id', $fundCluster))
             ->when($office, fn ($query, $office) => $query->where('end_user', $office))
-            ->latest()
+            ->when(isset($sorts[$sortField]), function ($query) use ($sorts, $sortField, $sortDirection) {
+                $query->orderBy($sorts[$sortField], $sortDirection);
+            }, fn ($query) => $query->latest())
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 
@@ -62,6 +79,8 @@ class PurchaseOrdersController extends Controller
                 'search' => $search,
                 'fund_cluster' => $fundCluster,
                 'office' => $office,
+                'sort_field' => $sortField ?: null,
+                'sort_direction' => $sortDirection,
             ],
             'suppliers' => Supplier::select('supplier_id', 'supplier_name')
                 ->orderByDesc('supplier_id')

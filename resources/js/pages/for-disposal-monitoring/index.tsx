@@ -76,6 +76,11 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
 
     const [selectedItem, setSelectedItem] = useState<ForDisposalMonitoring | null>(null);
 
+    const handleSort = (field: string) => {
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        router.get('/for-disposal-monitoring', { search: searchQuery, source_type: sourceTypeFilter === 'all' ? undefined : sourceTypeFilter, sort_field: field, sort_direction: direction }, { preserveState: true, preserveScroll: true, replace: true });
+    };
+
     const openEditModal = (item: ForDisposalMonitoring) => {
         setSelectedItem(item);
         setIsEditModalOpen(true);
@@ -171,11 +176,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-[#3e0b0e] text-white/90">
                             <tr>
-                                <th className="px-4 py-3 font-medium">Transaction No.</th>
-                                <th className="px-4 py-3 font-medium">Property No.</th>
-                                <th className="px-4 py-3 font-medium">Description</th>
-                                <th className="px-4 py-3 font-medium">Location</th>
-                                <th className="px-4 py-3 font-medium">Amount</th>
+                                {['Transaction No.', 'Property No.', 'Description', 'Location', 'Amount'].map((label, index) => <th key={label} className="p-0 font-medium"><button type="button" onClick={() => handleSort(['transaction_no', 'property_no', 'description', 'location', 'amount'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
                                 <th className="px-4 py-3 font-medium text-center">Actions</th>
                             </tr>
                         </thead>

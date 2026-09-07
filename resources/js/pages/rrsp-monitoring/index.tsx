@@ -61,6 +61,8 @@ interface PaginatedRrspMonitoring {
 interface Filters {
     search: string | null;
     status: string | null;
+    sort_field?: string;
+    sort_direction?: 'asc' | 'desc';
 }
 
 interface Props {
@@ -111,6 +113,11 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
     const [rrspToDelete, setRrspToDelete] = useState<RrspMonitoring | null>(
         null
     );
+
+    const handleSort = (field: string) => {
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        router.get('/rrsp-monitoring', { search, status: status === 'all' ? undefined : status, sort_field: field, sort_direction: direction }, { preserveState: true, preserveScroll: true, replace: true });
+    };
 
     const runSearch = (nextStatus?: string) => {
         router.get(
@@ -266,33 +273,7 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                                 style={{ backgroundColor: '#370001' }}
                             >
                                 <tr>
-                                    <th className="px-4 py-3 text-left font-semibold text-white">
-                                        RRSP No
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-semibold text-white">
-                                        Item Name
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-semibold text-white">
-                                        Property No
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-semibold text-white">
-                                        End User
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-semibold text-white">
-                                        Return By
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-semibold text-white">
-                                        Area
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-semibold text-white">
-                                        Date Received
-                                    </th>
-                                    <th className="px-4 py-3 text-center font-semibold text-white">
-                                        Qty
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-semibold text-white">
-                                        Status
-                                    </th>
+                                    {['RRSP No', 'Item Name', 'Property No', 'End User', 'Return By', 'Area', 'Date Received', 'Qty', 'Status'].map((label, index) => <th key={label} className="p-0 text-left font-semibold text-white"><button type="button" onClick={() => handleSort(['rrsp_no', 'rrsp_no', 'rrsp_no', 'end_user_name', 'return_by', 'rrsp_no', 'date_received', 'rrsp_no', 'rrsp_no'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
                                     <th className="px-4 py-3 text-center font-semibold text-white">
                                         Actions
                                     </th>

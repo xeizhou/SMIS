@@ -12,6 +12,9 @@ class RRPPEController extends Controller
     {
         $perPage = $request->integer('per_page', 10);
         $query = RRPPEMonitoring::with('items');
+        $sortField = $request->string('sort_field')->toString();
+        $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
+        $sorts = ['rrppe_no', 'date_received', 'end_user_name', 'return_by', 'created_at'];
 
         if ($request->filled('search')) {
             $search = $request->input('search');
@@ -31,7 +34,7 @@ class RRPPEController extends Controller
             });
         }
 
-        $data = $query->latest()
+        $data = $query->when(in_array($sortField, $sorts, true), fn ($q) => $q->orderBy($sortField, $sortDirection), fn ($q) => $q->latest())
             ->paginateWithHighlight($perPage)
             ->withQueryString()
             ->through(function ($rrppe) {
@@ -73,7 +76,7 @@ class RRPPEController extends Controller
 
         return Inertia::render('rrppe-monitoring/index', [
             'data' => $data,
-            'filters' => $request->only(['search', 'status']),
+            'filters' => array_merge($request->only(['search', 'status']), ['sort_field' => $sortField ?: null, 'sort_direction' => $sortDirection]),
             'statuses' => $statuses,
             'areas' => $areas,
             'stockItems' => $stockItems,

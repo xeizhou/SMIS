@@ -85,6 +85,8 @@ interface Filters {
     search: string | null;
     fund_cluster: string | null;
     office: string | null;
+    sort_field?: string | null;
+    sort_direction?: 'asc' | 'desc' | null;
 }
 
 interface Props {
@@ -144,17 +146,30 @@ export default function Index({
     const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
     const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
 
-    const runSearch = (nextFundCluster?: string, nextOffice?: string) => {
+    const runSearch = (
+        nextFundCluster?: string,
+        nextOffice?: string,
+        sortField = filters.sort_field,
+        sortDirection = filters.sort_direction,
+    ) => {
         router.get(
             '/purchase-orders',
             {
                 search,
                 fund_cluster: (nextFundCluster ?? fundCluster) === 'all' ? undefined : nextFundCluster ?? fundCluster,
                 office: (nextOffice ?? officeFilter) === 'all' ? undefined : nextOffice ?? officeFilter,
+                sort_field: sortField || undefined,
+                sort_direction: sortDirection || undefined,
             },
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
+
+    const handleSort = (field: string) => {
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        runSearch(undefined, undefined, field, direction);
+    };
+
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -175,7 +190,7 @@ export default function Index({
         setSearch('');
         setFundCluster('all');
         setOfficeFilter('all');
-            
+
         router.get(
             '/purchase-orders',
             {},
@@ -301,29 +316,45 @@ export default function Index({
                             style={{ backgroundColor: '#370001' }}
                         >
                             <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    PO Number
+                                <th className="p-0 font-semibold text-white">
+                                    <button type="button" onClick={() => handleSort('po_number')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
+                                        PO Number
+                                    </button>
                                 </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Supplier
+                                <th className="p-0 font-semibold text-white">
+                                    <button type="button" onClick={() => handleSort('supplier')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
+                                        Supplier
+                                    </button>
                                 </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    End User
+                                <th className="p-0 font-semibold text-white">
+                                    <button type="button" onClick={() => handleSort('office')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
+                                        End User
+                                    </button>
                                 </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Fund Cluster
+                                <th className="p-0 font-semibold text-white">
+                                    <button type="button" onClick={() => handleSort('fund_cluster')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
+                                        Fund Cluster
+                                    </button>
                                 </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Mode of Procurement
+                                <th className="p-0 font-semibold text-white">
+                                    <button type="button" onClick={() => handleSort('mode_of_procurement')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
+                                        Mode of Procurement
+                                    </button>
                                 </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    PO Date
+                                <th className="p-0 font-semibold text-white">
+                                    <button type="button" onClick={() => handleSort('po_date')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
+                                        PO Date
+                                    </button>
                                 </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Due Date
+                                <th className="p-0 font-semibold text-white">
+                                    <button type="button" onClick={() => handleSort('due_date')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
+                                        Due Date
+                                    </button>
                                 </th>
-                                <th className="px-4 py-3 text-right font-semibold text-white">
-                                    PO Amount
+                                <th className="p-0 font-semibold text-white">
+                                    <button type="button" onClick={() => handleSort('total_amount_po')} className="flex w-full items-center justify-end gap-2 px-4 py-3 text-right hover:bg-[#4C0002]">
+                                        PO Amount
+                                    </button>
                                 </th>
                                 <th className="px-4 py-3 text-center font-semibold text-white">
                                     Actions

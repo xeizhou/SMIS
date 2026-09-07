@@ -98,6 +98,11 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
     const [selectedItem, setSelectedItem] = useState<RRPPEMonitoring | null>(null);
 
+    const handleSort = (field: string) => {
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        router.get('/rrppe-monitoring', buildFilterUrl({ search: searchQuery, status: statusFilter, sort_field: field, sort_direction: direction }), { preserveState: true, preserveScroll: true, replace: true });
+    };
+
     const openAddModal = () => {
         setSelectedItem(null);
         setIsAddModalOpen(true);
@@ -230,15 +235,7 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-[#3e0b0e] text-white/90">
                             <tr>
-                                <th className="px-4 py-3 font-medium">RRPPE No.</th>
-                                <th className="px-4 py-3 font-medium">Item Description</th>
-                                <th className="px-4 py-3 font-medium">Property No.</th>
-                                <th className="px-4 py-3 font-medium">End User</th>
-                                <th className="px-4 py-3 font-medium">Return By</th>
-                                <th className="px-4 py-3 font-medium">Area</th>
-                                <th className="px-4 py-3 font-medium">Date Received</th>
-                                <th className="px-4 py-3 font-medium text-center">Qty</th>
-                                <th className="px-4 py-3 font-medium">Status</th>
+                                {['RRPPE No.', 'Item Description', 'Property No.', 'End User', 'Return By', 'Area', 'Date Received', 'Qty', 'Status'].map((label, index) => <th key={label} className="p-0 font-medium"><button type="button" onClick={() => handleSort(['rrppe_no', 'rrppe_no', 'rrppe_no', 'end_user_name', 'return_by', 'rrppe_no', 'date_received', 'rrppe_no', 'rrppe_no'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
                                 <th className="px-4 py-3 font-medium text-center">Actions</th>
                             </tr>
                         </thead>
