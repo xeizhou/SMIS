@@ -603,7 +603,17 @@ class ImportController extends Controller
             return back()->withErrors(['file' => 'No rows found in the uploaded file.']);
         }
 
-        [$created, $updated, $skipped] = $importer($rows, $merge);
+        $model = match ($type) {
+            'items' => StockItem::class,
+            'units' => Unit::class,
+            'offices' => Office::class,
+            'transactions' => Transaction::class,
+            default => null,
+        };
+
+        [$created, $updated, $skipped] = $model
+            ? $model::withoutActivityLogging(fn () => $importer($rows, $merge))
+            : $importer($rows, $merge);
 
         $this->logAudit(sprintf(
             'Imported %s: %d created, %d updated, %d skipped.',
