@@ -7,22 +7,45 @@ use Illuminate\Support\Facades\Auth;
 
 trait LogsActivity
 {
+    protected static bool $activityLoggingSuppressed = false;
+
     /**
      * Boot the trait and register Eloquent events.
      */
     public static function bootLogsActivity()
     {
         static::created(function ($model) {
-            $model->logActivity('Added a new ' . static::getModelName(), $model->getActivityUrl());
+            if (! static::$activityLoggingSuppressed) {
+                $model->logActivity('Added a new ' . static::getModelName(), $model->getActivityUrl());
+            }
         });
 
         static::updated(function ($model) {
-            $model->logActivity('Edited a record in ' . static::getModelName(), $model->getActivityUrl());
+            if (! static::$activityLoggingSuppressed) {
+                $model->logActivity('Edited a record in ' . static::getModelName(), $model->getActivityUrl());
+            }
         });
 
         static::deleted(function ($model) {
-            $model->logActivity('Deleted a record from ' . static::getModelName(), null); // Deletions have no URL
+            if (! static::$activityLoggingSuppressed) {
+                $model->logActivity('Deleted a record from ' . static::getModelName(), null); // Deletions have no URL
+            }
         });
+    }
+
+    /**
+     * Temporarily disable per-record activity logs for a bulk operation.
+     */
+    public static function withoutActivityLogging(callable $callback): mixed
+    {
+        $wasSuppressed = static::$activityLoggingSuppressed;
+        static::$activityLoggingSuppressed = true;
+
+        try {
+            return $callback();
+        } finally {
+            static::$activityLoggingSuppressed = $wasSuppressed;
+        }
     }
 
     /**
