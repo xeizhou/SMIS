@@ -247,6 +247,15 @@ class ImportController extends Controller
         });
     }
 
+    public function regspiCancel(Import $import)
+    {
+        if (in_array($import->status, ['pending', 'processing'], true)) {
+            $import->update(['status' => 'cancelled']);
+        }
+
+        return back();
+    }
+
     /**
      * POST /import/offices
      */

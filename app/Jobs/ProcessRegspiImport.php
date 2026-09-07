@@ -27,6 +27,12 @@ class ProcessRegspiImport implements ShouldQueue
     public function handle(): void
     {
         $import = Import::findOrFail($this->importId);
+
+        // Cancelled before the worker even picked it up.
+        if ($import->status === 'cancelled') {
+            return;
+        }
+
         $import->update(['status' => 'processing']);
 
         try {
@@ -96,6 +102,28 @@ class ProcessRegspiImport implements ShouldQueue
 
                 $processed = $created + $updated + $skipped + count($insertRows);
                 $this->incrementProgress($import, $skipped, $created, $updated, $processed);
+
+                // Check for cancellation every 200 rows, regardless of
+                // whether those rows were inserts, updates, or skips.
+                if ($processed % 200 === 0 && $import->fresh()->status === 'cancelled') {
+                    fclose($handle);
+
+                    // Don't drop rows that were already validated and
+                    // batched in memory — flush them before stopping.
+                    if ($insertRows !== []) {
+                        RegspiMonitoring::insert(array_values($insertRows));
+                        $created += count($insertRows);
+                    }
+
+                    $import->update([
+                        'processed_rows' => $created + $updated + $skipped,
+                        'created_rows' => $created,
+                        'updated_rows' => $updated,
+                        'skipped_rows' => $skipped,
+                    ]);
+
+                    return;
+                }
             }
 
             fclose($handle);
