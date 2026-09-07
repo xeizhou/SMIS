@@ -195,6 +195,22 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
         });
     };
 
+    const handleNotifyOffice = () => {
+        setProcessing(true);
+        router.post(`/purchase-orders/${purchaseOrder.po_number}/notify-office`, {
+            email: data.po_vpad_notified_via
+        }, {
+            onSuccess: () => {
+                setData((prev: any) => ({ ...prev, po_vpad_notified_date: new Date().toISOString().split('T')[0] }));
+                setProcessing(false);
+            },
+            onError: (errs) => {
+                setErrors(errs);
+                setProcessing(false);
+            }
+        });
+    };
+
     const isStepDone = (stepName: string) => {
         switch (stepName) {
             case 'PO From VPAD': return !!data.po_received_date;
@@ -394,7 +410,13 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             />
                                             <div className="flex flex-col justify-end">
                                                 <p className="text-xs text-muted-foreground font-medium uppercase mb-2">Email OVPAD</p>
-                                                <Button type="button" variant="outline" className="w-full gap-2 h-9 border-border text-foreground hover:bg-muted">
+                                                <Button 
+                                                    type="button" 
+                                                    variant="outline" 
+                                                    onClick={handleNotifyOffice}
+                                                    disabled={processing}
+                                                    className="w-full gap-2 h-9 border-border text-foreground hover:bg-muted"
+                                                >
                                                     <Mail className="h-4 w-4" />
                                                     Notify Office
                                                 </Button>

@@ -474,6 +474,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/purchase-orders', [PurchaseOrdersController::class, 'store'])->name('purchase-orders.store');
     Route::put('/purchase-orders/{servePo}', [PurchaseOrdersController::class, 'update'])->name('purchase-orders.update');
     Route::delete('/purchase-orders/{purchaseOrder}', [PurchaseOrdersController::class, 'destroy'])->name('purchase-orders.destroy');
+    Route::post('/purchase-orders/{purchaseOrder}/notify-office', [PurchaseOrdersController::class, 'notifyOffice'])
+        ->name('purchase-orders.notify-office');
     Route::post('/purchase-orders/{purchaseOrder}/attachments', [PurchaseOrdersController::class, 'uploadAttachments'])
         ->name('purchase-orders.attachments.upload');
 

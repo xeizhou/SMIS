@@ -442,4 +442,37 @@ class PurchaseOrdersController extends Controller
             }
         }
     }
+
+    /**
+     * Notify the office about the Purchase Order.
+     */
+    public function notifyOffice(Request $request, ServePo $purchaseOrder): RedirectResponse
+    {
+        $request->validate([
+            'email' => 'nullable|string'
+        ]);
+
+        $email = $request->input('email');
+        
+        if (!$email) {
+            $office = $purchaseOrder->office;
+            $email = $office ? $office->email : null;
+        }
+
+        if (!$email) {
+            return back()->with('error', 'No email address found for the office and none provided.');
+        }
+
+        // We check if the email is an actual email address (using string validation to allow phone numbers in the DB field, but only email here if it has an @)
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\OfficeNotificationMail($purchaseOrder));
+        }
+
+        $purchaseOrder->update([
+            'po_vpad_notified_date' => now(),
+            'po_vpad_notified_via' => $email,
+        ]);
+
+        return back()->with('success', 'Office notified successfully.');
+    }
 }
