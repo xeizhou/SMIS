@@ -1,13 +1,14 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import PurchaseOrderAddForm from '@/components/purchase-order/poaddform';
 import type { StockItemOption } from '@/components/purchase-order/item-multi-select';
 import PurchaseOrderDeleteModal from '@/components/purchase-order/podeletemodal';
 import PurchaseOrderEditForm from '@/components/purchase-order/poeditform';
 import PurchaseOrderViewForm from '@/components/purchase-order/poviewform';
+import PoWorkflowModal from '@/components/purchase-order/PoWorkflowModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -138,6 +139,7 @@ export default function Index({
     const [addDialogOpen, setAddDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
+    const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
     const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
@@ -193,6 +195,11 @@ export default function Index({
     const handleView = (po: PurchaseOrder) => {
         setSelectedPO(po);
         setViewDialogOpen(true);
+    };
+
+    const handleWorkflow = (po: PurchaseOrder) => {
+        setSelectedPO(po);
+        setWorkflowDialogOpen(true);
     };
 
     const handleDelete = (po: PurchaseOrder) => {
@@ -382,6 +389,14 @@ export default function Index({
                                                 </button>
                                                 <button
                                                     type="button"
+                                                    onClick={() => handleWorkflow(po)}
+                                                    className="text-blue-600 hover:text-blue-800"
+                                                    title="Workflow Steps"
+                                                >
+                                                    <Plus className="size-4" />
+                                                </button>
+                                                <button
+                                                    type="button"
                                                     onClick={() => handleDelete(po)}
                                                     className="text-red-600 hover:text-red-800"
                                                     title="Delete"
@@ -433,6 +448,12 @@ export default function Index({
             <PurchaseOrderViewForm
                 open={viewDialogOpen}
                 onOpenChange={setViewDialogOpen}
+                purchaseOrder={selectedPO}
+            />
+
+            <PoWorkflowModal
+                open={workflowDialogOpen}
+                onOpenChange={setWorkflowDialogOpen}
                 purchaseOrder={selectedPO}
             />
 

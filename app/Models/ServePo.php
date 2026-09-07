@@ -49,6 +49,44 @@ class ServePo extends Model
         'date_forwarded_to_smu',
         'coa_processed_date',
         'date_forwarded_frontdesk',
+        
+        // Workflow fields
+        'po_step',
+        'date_forwarded_to_end_user',
+        'end_user_forwarded_by',
+        'po_received_date',
+        'po_vpad_forwarded_by',
+        'date_forwarded_supplier',
+        'forwarded_by_supplier',
+        'claimed_by_supplier',
+        'supplier_signature_date',
+        'date_forwarded_coa',
+        'forwarded_by_coa',
+        'date_returned_from_coa',
+        'coa_date',
+        'claim_date',
+        'claimed_by_coa',
+        'date_received_by_supplier',
+        'receipt_receiving_date',
+        'receipt_claimed_by',
+        'items_receiving_date',
+        'items_claimed_by',
+        'payment_status',
+        'workflow_remarks',
+        'invoice_number',
+        'invoice_date',
+        'delivery_receipt',
+        'par_ics_number',
+        'ris_number',
+        'date_completed',
+        'date_forwarded_to_finance',
+        'finance_forwarded_by',
+        'po_vpad_notified_date',
+        'po_vpad_notified_via',
+        'coa_stamp_notified_date',
+        'coa_stamp_notified_via',
+        'receipt_claimed_notified_date',
+        'receipt_claimed_notified_via',
     ];
 
     protected $casts = [
@@ -59,6 +97,22 @@ class ServePo extends Model
         'date_forwarded_to_smu' => 'date',
         'coa_processed_date' => 'date',
         'date_forwarded_frontdesk' => 'date',
+        'date_forwarded_to_end_user' => 'date',
+        'date_forwarded_supplier' => 'date',
+        'supplier_signature_date' => 'date',
+        'date_forwarded_coa' => 'date',
+        'date_returned_from_coa' => 'date',
+        'coa_date' => 'date',
+        'claim_date' => 'date',
+        'date_received_by_supplier' => 'date',
+        'receipt_receiving_date' => 'date',
+        'items_receiving_date' => 'date',
+        'invoice_date' => 'date',
+        'date_completed' => 'date',
+        'date_forwarded_to_finance' => 'date',
+        'po_vpad_notified_date' => 'date',
+        'coa_stamp_notified_date' => 'date',
+        'receipt_claimed_notified_date' => 'date',
         'delivery_term' => 'integer',
         'total_amount_abc' => 'decimal:2',
         'total_amount_po' => 'decimal:2',
@@ -85,9 +139,9 @@ class ServePo extends Model
         return $this->hasMany(PoLetterMonitoring::class, 'po_number', 'po_number');
     }
 
-    public function pirMonitorings(): HasMany
+    public function inspectionEntries(): HasMany
     {
-        return $this->hasMany(PirMonitoring::class, 'po_number', 'po_number');
+        return $this->hasMany(PoInspectionEntry::class, 'po_number', 'po_number');
     }
 
     public function office(): BelongsTo

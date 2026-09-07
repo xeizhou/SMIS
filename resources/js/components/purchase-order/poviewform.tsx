@@ -78,6 +78,39 @@ interface PurchaseOrder {
     office: Office | null;
     attachments?: Attachment[];
     items?: StockItem[];
+    // Workflow tracking fields
+    po_step?: string | null;
+    po_vpad_forwarded_by?: string | null;
+    po_vpad_notified_date?: string | null;
+    po_vpad_notified_via?: string | null;
+    date_forwarded_to_end_user?: string | null;
+    end_user_forwarded_by?: string | null;
+    date_forwarded_supplier?: string | null;
+    forwarded_by_supplier?: string | null;
+    claimed_by_supplier?: string | null;
+    supplier_signature_date?: string | null;
+    date_forwarded_coa?: string | null;
+    forwarded_by_coa?: string | null;
+    date_returned_from_coa?: string | null;
+    coa_date?: string | null;
+    claim_date?: string | null;
+    claimed_by_coa?: string | null;
+    date_received_by_supplier?: string | null;
+    receipt_receiving_date?: string | null;
+    receipt_claimed_by?: string | null;
+    items_receiving_date?: string | null;
+    items_claimed_by?: string | null;
+    payment_status?: string | null;
+    workflow_remarks?: string | null;
+    invoice_number?: string | null;
+    invoice_date?: string | null;
+    delivery_receipt?: string | null;
+    par_ics_number?: string | null;
+    ris_number?: string | null;
+    date_completed?: string | null;
+    date_forwarded_to_finance?: string | null;
+    finance_forwarded_by?: string | null;
+    inspection_entries?: any[];
 }
 
 interface Props {
@@ -324,11 +357,102 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                         </section>
 
                         <section>
-                            <p className={sectionTitleClass}>Processing Trail</p>
-                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                                <Detail label="Date Forwarded to SMU" value={formatDate(po.date_forwarded_to_smu)} />
-                                <Detail label="COA Processed Date" value={formatDate(po.coa_processed_date)} />
-                                <Detail label="Date Forwarded to Frontdesk" value={formatDate(po.date_forwarded_frontdesk)} />
+                            <p className={sectionTitleClass}>Workflow Tracking & Progress</p>
+                            
+                            <div className="space-y-6">
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Current Status</h4>
+                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                        <Detail label="Current Step" value={po.po_step || 'PO From VPAD'} />
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">PO From VPAD</h4>
+                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                        <Detail label="Date Received" value={formatDate(po.po_received_date)} />
+                                        <Detail label="Forwarded By" value={po.po_vpad_forwarded_by ?? '—'} />
+                                        <Detail label="Notified Date" value={formatDate(po.po_vpad_notified_date)} />
+                                        <Detail label="Notified Via" value={po.po_vpad_notified_via ?? '—'} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">End User</h4>
+                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                        <Detail label="Date Forwarded" value={formatDate(po.date_forwarded_to_end_user)} />
+                                        <Detail label="Forwarded By" value={po.end_user_forwarded_by ?? '—'} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">For Supplier's Signature</h4>
+                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                        <Detail label="Date Forwarded" value={formatDate(po.date_forwarded_supplier)} />
+                                        <Detail label="Forwarded By" value={po.forwarded_by_supplier ?? '—'} />
+                                        <Detail label="Claimed By" value={po.claimed_by_supplier ?? '—'} />
+                                        <Detail label="Signature Date" value={formatDate(po.supplier_signature_date)} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">For COA Stamp</h4>
+                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                        <Detail label="Date Forwarded" value={formatDate(po.date_forwarded_coa)} />
+                                        <Detail label="Forwarded By" value={po.forwarded_by_coa ?? '—'} />
+                                        <Detail label="Date Returned" value={formatDate(po.date_returned_from_coa)} />
+                                        <Detail label="COA Date" value={formatDate(po.coa_date)} />
+                                        <Detail label="Claim Date" value={formatDate(po.claim_date)} />
+                                        <Detail label="Claimed By" value={po.claimed_by_coa ?? '—'} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">For Release</h4>
+                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                        <Detail label="Date Received by Supplier" value={formatDate(po.date_received_by_supplier)} />
+                                        <Detail label="Receipt Receiving Date" value={formatDate(po.receipt_receiving_date)} />
+                                        <Detail label="Receipt Claimed By" value={po.receipt_claimed_by ?? '—'} />
+                                        <Detail label="Items Receiving Date" value={formatDate(po.items_receiving_date)} />
+                                        <Detail label="Items Claimed By" value={po.items_claimed_by ?? '—'} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Payment Processing</h4>
+                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 mb-4">
+                                        <Detail label="Payment Status" value={po.payment_status ?? '—'} />
+                                        <Detail label="Invoice Number" value={po.invoice_number ?? '—'} />
+                                        <Detail label="Invoice Date" value={formatDate(po.invoice_date)} />
+                                        <Detail label="Delivery Receipt" value={po.delivery_receipt ?? '—'} />
+                                        <Detail label="PAR/ICS Number" value={po.par_ics_number ?? '—'} />
+                                        <Detail label="RIS Number" value={po.ris_number ?? '—'} />
+                                        <Detail label="Date Completed" value={formatDate(po.date_completed)} />
+                                    </div>
+                                    
+                                    {po.inspection_entries && po.inspection_entries.length > 0 && (
+                                        <div className="mt-4">
+                                            <p className={labelClass}>Inspection Details</p>
+                                            <div className="mt-2 space-y-2">
+                                                {po.inspection_entries.map((entry: any, idx: number) => (
+                                                    <div key={idx} className="bg-muted/30 p-2.5 rounded-md border border-border/50 grid grid-cols-3 gap-2">
+                                                        <Detail label="IAR Number" value={entry.iar_number || '—'} />
+                                                        <Detail label="Inspected By" value={entry.inspected_by || '—'} />
+                                                        <Detail label="Inspection Date" value={formatDate(entry.inspection_date)} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Forwarded to Finance</h4>
+                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                        <Detail label="Date Forwarded" value={formatDate(po.date_forwarded_to_finance)} />
+                                        <Detail label="Forwarded By" value={po.finance_forwarded_by ?? '—'} />
+                                    </div>
+                                </div>
                             </div>
                         </section>
 

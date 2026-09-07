@@ -8,7 +8,6 @@ use App\Http\Controllers\DeliveriesController;
 use App\Http\Controllers\EmployeeFileLocatorController;
 use App\Http\Controllers\ForDisposalController;
 use App\Http\Controllers\FundClustersController;
-use App\Http\Controllers\IARController;
 use App\Http\Controllers\ITRPTRController;
 use App\Http\Controllers\OfficesController;
 use App\Http\Controllers\POLetterMonitoringController;
@@ -501,14 +500,6 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::delete('/delivery-follow-ups/{id}', [\App\Http\Controllers\DeliveryFollowUpController::class, 'destroy'])->name('delivery-follow-ups.destroy');
     Route::get('/deliveries/{id}/recent-follow-ups', [\App\Http\Controllers\DeliveryFollowUpController::class, 'recentFollowUps'])->name('deliveries.recent-follow-ups');
     Route::post('/deliveries/{id}/send-follow-up', [\App\Http\Controllers\DeliveryFollowUpController::class, 'sendFollowUpEmail'])->name('deliveries.send-follow-up');
-
-    Route::get('/iar', [IARController::class, 'index'])->name('iar.index');
-    Route::post('/iar', [IARController::class, 'store'])->name('iar.store');
-    Route::put('/iar/{pirMonitoring}', [IARController::class, 'update'])->name('iar.update');
-    Route::delete('/iar/{pirMonitoring}', [IARController::class, 'destroy'])->name('iar.destroy');
-    Route::post('/iar/{pirMonitoring}/attachments', [IARController::class, 'storeAttachments'])
-        ->where('po_number', '[^/]+')
-        ->name('iar.attachments.upload');
 
     Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
     Route::post('/supplier', [SupplierController::class, 'store'])->name('supplier.store');

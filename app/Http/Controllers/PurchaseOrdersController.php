@@ -37,6 +37,7 @@ class PurchaseOrdersController extends Controller
                 'office:office_code,office_name',
                 'attachments',
                 'items:stock_no,item_name,description',
+                'inspectionEntries',
             ])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -107,6 +108,50 @@ class PurchaseOrdersController extends Controller
             'date_forwarded_to_smu' => ['nullable', 'date'],
             'coa_processed_date' => ['nullable', 'date'],
             'date_forwarded_frontdesk' => ['nullable', 'date'],
+            
+            // Workflow tracking fields
+            'po_step' => ['nullable', 'string'],
+            'date_forwarded_to_end_user' => ['nullable', 'date'],
+            'end_user_forwarded_by' => ['nullable', 'string', 'max:255'],
+            'date_forwarded_supplier' => ['nullable', 'date'],
+            'forwarded_by_supplier' => ['nullable', 'string', 'max:255'],
+            'claimed_by_supplier' => ['nullable', 'string', 'max:255'],
+            'supplier_signature_date' => ['nullable', 'date'],
+            'date_forwarded_coa' => ['nullable', 'date'],
+            'forwarded_by_coa' => ['nullable', 'string', 'max:255'],
+            'date_returned_from_coa' => ['nullable', 'date'],
+            'coa_date' => ['nullable', 'date'],
+            'claim_date' => ['nullable', 'date'],
+            'claimed_by_coa' => ['nullable', 'string', 'max:255'],
+            'date_received_by_supplier' => ['nullable', 'date'],
+            'receipt_receiving_date' => ['nullable', 'date'],
+            'receipt_claimed_by' => ['nullable', 'string', 'max:255'],
+            'items_receiving_date' => ['nullable', 'date'],
+            'items_claimed_by' => ['nullable', 'string', 'max:255'],
+            'payment_status' => ['nullable', 'string', 'max:100'],
+            'workflow_remarks' => ['nullable', 'string'],
+            'invoice_number' => ['nullable', 'string', 'max:100'],
+            'invoice_date' => ['nullable', 'date'],
+            'delivery_receipt' => ['nullable', 'string', 'max:100'],
+            'par_ics_number' => ['nullable', 'string', 'max:100'],
+            'ris_number' => ['nullable', 'string', 'max:100'],
+            'date_completed' => ['nullable', 'date'],
+            
+            // Inspection Entries array
+            'inspection_entries' => ['nullable', 'array'],
+            'inspection_entries.*.iar_number' => ['nullable', 'string', 'max:100'],
+            'inspection_entries.*.inspected_by' => ['nullable', 'string', 'max:255'],
+            'inspection_entries.*.inspection_date' => ['nullable', 'date'],
+            'date_forwarded_to_finance' => ['nullable', 'date'],
+            'finance_forwarded_by' => ['nullable', 'string', 'max:255'],
+            
+            // Notified fields
+            'po_vpad_notified_date' => ['nullable', 'date'],
+            'po_vpad_notified_via' => ['nullable', 'string', 'max:100'],
+            'coa_stamp_notified_date' => ['nullable', 'date'],
+            'coa_stamp_notified_via' => ['nullable', 'string', 'max:100'],
+            'receipt_claimed_notified_date' => ['nullable', 'date'],
+            'receipt_claimed_notified_via' => ['nullable', 'string', 'max:100'],
         ]);
 
         $itemStockNos = $validated['item_stock_nos'] ?? [];
@@ -116,8 +161,19 @@ class PurchaseOrdersController extends Controller
         $validated['total_amount_po'] ??= 0;
         $validated['total_amount_diff'] = $validated['total_amount_abc'] - $validated['total_amount_po'];
 
+        $this->updateForwardedByFields($validated);
+
+        $inspectionEntries = $validated['inspection_entries'] ?? [];
+        unset($validated['inspection_entries']);
+
         $po = ServePo::create($validated);
         $po->items()->sync($itemStockNos);
+        
+        foreach ($inspectionEntries as $entry) {
+            if ($entry['iar_number'] || $entry['inspected_by'] || $entry['inspection_date']) {
+                $po->inspectionEntries()->create($entry);
+            }
+        }
 
         return redirect()->back()->with('success', 'Purchase Order record added successfully.');
     }
@@ -134,6 +190,7 @@ class PurchaseOrdersController extends Controller
      */
     public function update(Request $request, ServePo $servePo): RedirectResponse
     {
+        \Log::info('Entering PurchaseOrdersController@update for PO: ' . $servePo->po_number);
         $validated = $request->validate([
             'po_number' => [
                 'required',
@@ -165,16 +222,69 @@ class PurchaseOrdersController extends Controller
             'date_forwarded_to_smu' => ['nullable', 'date'],
             'coa_processed_date' => ['nullable', 'date'],
             'date_forwarded_frontdesk' => ['nullable', 'date'],
-            'deleted_attachment_ids' => ['nullable', 'array'],
+            
+            // Workflow tracking fields
+            'po_step' => ['nullable', 'string'],
+            'po_received_date' => ['nullable', 'date'],
+            'po_vpad_forwarded_by' => ['nullable', 'string', 'max:255'],
+            'date_forwarded_to_end_user' => ['nullable', 'date'],
+            'end_user_forwarded_by' => ['nullable', 'string', 'max:255'],
+            'date_forwarded_supplier' => ['nullable', 'date'],
+            'forwarded_by_supplier' => ['nullable', 'string', 'max:255'],
+            'claimed_by_supplier' => ['nullable', 'string', 'max:255'],
+            'supplier_signature_date' => ['nullable', 'date'],
+            'date_forwarded_coa' => ['nullable', 'date'],
+            'forwarded_by_coa' => ['nullable', 'string', 'max:255'],
+            'date_returned_from_coa' => ['nullable', 'date'],
+            'coa_date' => ['nullable', 'date'],
+            'claim_date' => ['nullable', 'date'],
+            'claimed_by_coa' => ['nullable', 'string', 'max:255'],
+            'date_received_by_supplier' => ['nullable', 'date'],
+            'receipt_receiving_date' => ['nullable', 'date'],
+            'receipt_claimed_by' => ['nullable', 'string', 'max:255'],
+            'items_receiving_date' => ['nullable', 'date'],
+            'items_claimed_by' => ['nullable', 'string', 'max:255'],
+            'payment_status' => ['nullable', 'string', 'max:100'],
+            'workflow_remarks' => ['nullable', 'string'],
+            'invoice_number' => ['nullable', 'string', 'max:100'],
+            'invoice_date' => ['nullable', 'date'],
+            'delivery_receipt' => ['nullable', 'string', 'max:100'],
+            'par_ics_number' => ['nullable', 'string', 'max:100'],
+            'ris_number' => ['nullable', 'string', 'max:100'],
+            'date_completed' => ['nullable', 'date'],
+            
+            // Inspection Entries array
+            'inspection_entries' => ['nullable', 'array'],
+            'inspection_entries.*.iar_number' => ['nullable', 'string', 'max:100'],
+            'inspection_entries.*.inspected_by' => ['nullable', 'string', 'max:255'],
+            'inspection_entries.*.inspection_date' => ['nullable', 'date'],
+            'date_forwarded_to_finance' => ['nullable', 'date'],
+            'finance_forwarded_by' => ['nullable', 'string', 'max:255'],
+            
+            // Notified fields
+            'po_vpad_notified_date' => ['nullable', 'date'],
+            'po_vpad_notified_via' => ['nullable', 'string', 'max:100'],
+            'coa_stamp_notified_date' => ['nullable', 'date'],
+            'coa_stamp_notified_via' => ['nullable', 'string', 'max:100'],
+            'receipt_claimed_notified_date' => ['nullable', 'date'],
+            'receipt_claimed_notified_via' => ['nullable', 'string', 'max:100'],
+
             'deleted_attachment_ids.*' => ['integer'],
         ]);
 
-        $itemStockNos = $validated['item_stock_nos'] ?? [];
+        \Log::info('Validation passed for PO: ' . $servePo->po_number);
+
+        $itemStockNos = $request->has('item_stock_nos') ? ($validated['item_stock_nos'] ?? []) : null;
         unset($validated['item_stock_nos']);
 
-        $validated['total_amount_abc'] ??= 0;
-        $validated['total_amount_po'] ??= 0;
-        $validated['total_amount_diff'] = $validated['total_amount_abc'] - $validated['total_amount_po'];
+        $inspectionEntries = $request->has('inspection_entries') ? ($validated['inspection_entries'] ?? []) : null;
+        unset($validated['inspection_entries']);
+
+        if ($request->has('total_amount_abc') || $request->has('total_amount_po')) {
+            $validated['total_amount_abc'] ??= 0;
+            $validated['total_amount_po'] ??= 0;
+            $validated['total_amount_diff'] = $validated['total_amount_abc'] - $validated['total_amount_po'];
+        }
 
     // ... rest unchanged (attachment deletion, transaction, etc.)
 
@@ -201,13 +311,14 @@ class PurchaseOrdersController extends Controller
         $newPoNumber = $validated['po_number'];
         $poNumberChanged = $oldPoNumber !== $newPoNumber;
 
-        DB::transaction(function () use ($servePo, $validated, $itemStockNos, $oldPoNumber, $newPoNumber, $poNumberChanged) {
+        $this->updateForwardedByFields($validated);
+
+        DB::transaction(function () use ($servePo, $validated, $itemStockNos, $inspectionEntries, $oldPoNumber, $newPoNumber, $poNumberChanged) {
             if ($poNumberChanged) {
                 DB::statement('PRAGMA defer_foreign_keys = ON');
 
                 Delivery::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
                 PoLetterMonitoring::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
-                PirMonitoring::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
 
                 Attachment::where('attachable_type', ServePo::class)
                     ->where('attachable_id', $oldPoNumber)
@@ -215,7 +326,27 @@ class PurchaseOrdersController extends Controller
             }
 
             $servePo->update($validated);
-            $servePo->items()->sync($itemStockNos);
+            
+            if (is_array($itemStockNos)) {
+                $servePo->items()->sync($itemStockNos);
+            }
+            
+            if (is_array($inspectionEntries)) {
+                $servePo->inspectionEntries()->delete();
+                foreach ($inspectionEntries as $entry) {
+                    if (($entry['iar_number'] ?? null) || ($entry['inspected_by'] ?? null) || ($entry['inspection_date'] ?? null)) {
+                        $servePo->inspectionEntries()->create($entry);
+                    }
+                }
+            }
+            
+            // If the workflow step reached "For Release" or beyond, set related deliveries to PENDING
+            $releaseSteps = ['For Release', 'Payment Processing', 'Forwarded to Finance'];
+            if (in_array($validated['po_step'] ?? '', $releaseSteps) && $servePo->coa_date) {
+                Delivery::where('po_number', $servePo->po_number)
+                    ->whereNull('status')
+                    ->update(['status' => 'PENDING']);
+            }
         });
 
         return redirect()->back()->with('success', 'Purchase Order record updated successfully.');
@@ -228,18 +359,14 @@ class PurchaseOrdersController extends Controller
     {
         $deliveryCount = $purchaseOrder->deliveries()->count();
         $letterCount = $purchaseOrder->letterMonitorings()->count();
-        $pirCount = $purchaseOrder->pirMonitorings()->count();
 
-        if ($deliveryCount > 0 || $letterCount > 0 || $pirCount > 0) {
+        if ($deliveryCount > 0 || $letterCount > 0) {
             $parts = [];
             if ($deliveryCount > 0) {
                 $parts[] = "{$deliveryCount} linked delivery record" . ($deliveryCount > 1 ? 's' : '');
             }
             if ($letterCount > 0) {
                 $parts[] = "{$letterCount} linked letter record" . ($letterCount > 1 ? 's' : '');
-            }
-            if ($pirCount > 0) {
-                $parts[] = "{$pirCount} linked PIR record" . ($pirCount > 1 ? 's' : '');
             }
 
             return redirect()->back()->with('error',
@@ -291,5 +418,28 @@ class PurchaseOrdersController extends Controller
         $attachment->delete();
 
         return back()->with('success', 'Attachment deleted successfully.');
+    }
+
+    /**
+     * Automatically populate _by fields with the authenticated user's name
+     * if the corresponding date is present and the _by field is not yet filled.
+     */
+    private function updateForwardedByFields(array &$validated): void
+    {
+        $userName = auth()->user()->name ?? 'System';
+
+        $fieldMap = [
+            'po_received_date' => 'po_vpad_forwarded_by',
+            'date_forwarded_to_end_user' => 'end_user_forwarded_by',
+            'date_forwarded_supplier' => 'forwarded_by_supplier',
+            'date_forwarded_coa' => 'forwarded_by_coa',
+            'date_forwarded_to_finance' => 'finance_forwarded_by',
+        ];
+
+        foreach ($fieldMap as $dateField => $byField) {
+            if (!empty($validated[$dateField]) && empty($validated[$byField])) {
+                $validated[$byField] = $userName;
+            }
+        }
     }
 }
