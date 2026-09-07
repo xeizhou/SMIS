@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown, RefreshCw } from 'lucide-react';
+import { Check, ChevronsUpDown, RefreshCw, PackageCheck, PackageX, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -522,14 +522,29 @@ export default function TransactionAddForm({
                                             required
                                         />
                                         {data.transaction_type === 'ISSUE' && availableStock !== null && (
-                                            <p
+                                            <div
                                                 className={cn(
-                                                    'mt-1 text-xs',
-                                                    isOverStock ? 'text-red-500 font-medium' : 'text-muted-foreground'
+                                                    'mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
+                                                    isOverStock
+                                                        ? 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
+                                                        : availableStock === 0
+                                                        ? 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
+                                                        : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
                                                 )}
                                             >
-                                                Available stock: {availableStock}
-                                            </p>
+                                                {isOverStock ? (
+                                                    <PackageX className="size-3.5" />
+                                                ) : availableStock === 0 ? (
+                                                    <AlertTriangle className="size-3.5" />
+                                                ) : (
+                                                    <PackageCheck className="size-3.5" />
+                                                )}
+                                                <span>
+                                                    {isOverStock
+                                                        ? `Exceeds available stock (${availableStock})`
+                                                        : `Available stock: ${availableStock}`}
+                                                </span>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
