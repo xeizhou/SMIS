@@ -236,8 +236,9 @@ class StockItemsListController extends Controller
     private function buildStockCardsData(Request $request): array
     {
         $search = $request->input('search');
-        $isUnissued = $request->boolean('unissued'); // Passed as true/false from the print buttons
+        $isUnissued = $request->boolean('unissued');
         $fundClusterId = $request->input('fund_cluster');
+        $stockNo = $request->input('stock_no'); // <-- ADD THIS: new exact-match param
 
         // 1. Fetch the filtered items using the exact same logic as index()
         $query = DB::table('stock_items as i')
@@ -248,19 +249,22 @@ class StockItemsListController extends Controller
             ->join('units as u', 'u.unitID', '=', 'siu.unitID')
             ->leftJoin('transactions as t', 't.stock_no', '=', 'i.stock_no')
             ->select(
-                'i.*', // Grabs stock_no, item_name, description, reorder_point (if exists)
+                'i.*',
                 'u.unit_name',
                 'u.unit_short_name',
                 DB::raw("GROUP_CONCAT(DISTINCT t.fund_cluster) as fund_cluster_ids")
             )
-            ->when($search && $search !== 'None', function ($q) use ($search) {
+            ->when($stockNo, function ($q) use ($stockNo) {          // <-- ADD THIS BLOCK
+                $q->where('i.stock_no', $stockNo);                    // exact match, skips search/fund_cluster filters
+            })
+            ->when(!$stockNo && $search && $search !== 'None', function ($q) use ($search) {   // <-- guard so it's skipped when stockNo is set
                 $q->where(function ($sub) use ($search) {
                     $sub->where('i.item_name', 'like', "%{$search}%")
                         ->orWhere('i.description', 'like', "%{$search}%")
                         ->orWhere('i.stock_no', 'like', "%{$search}%");
                 });
             })
-            ->when($fundClusterId && $fundClusterId !== 'None', function ($q) use ($fundClusterId) {
+            ->when(!$stockNo && $fundClusterId && $fundClusterId !== 'None', function ($q) use ($fundClusterId) {  // <-- also guard this one
                 $q->whereExists(function ($sub) use ($fundClusterId) {
                     $sub->select(DB::raw(1))
                         ->from('transactions as t2')
