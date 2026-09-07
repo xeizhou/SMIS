@@ -299,10 +299,10 @@ export default function Index({ items, fundClusters, filters }: Props) {
                         : ''
                 }
                 pdfUrl={
-                    itemToPrint
-                        ? `/stock-items/print-cards?search=${encodeURIComponent(itemToPrint.stock_no)}`
-                        : ''
-                }
+                itemToPrint
+                    ? `/stock-items/print-cards?stock_no=${encodeURIComponent(itemToPrint.stock_no)}`
+                    : ''
+            }
                 filename={
                     itemToPrint
                         ? `Stock_Card_${itemToPrint.stock_no.replace(/\s+/g, '_')}.pdf`
