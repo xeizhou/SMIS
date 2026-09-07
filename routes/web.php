@@ -592,6 +592,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/import/offices', [ImportController::class, 'offices'])->name('import.offices');
     Route::post('/import/regspi', [ImportController::class, 'regspi'])->name('import.regspi');
     Route::get('/import/regspi/{import}/status', [ImportController::class, 'regspiStatus'])->name('import.regspi.status');
+    Route::post('/import/regspi/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.regspi.cancel');
 
     Route::get('/backup/folders', [BackupController::class, 'folders'])->name('backup.folders');
     Route::post('/backup/create', [BackupController::class, 'create'])->name('backup.create');
