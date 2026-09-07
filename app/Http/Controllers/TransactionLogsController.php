@@ -177,13 +177,13 @@ class TransactionLogsController extends Controller
 
         $transaction = Transaction::create($validated);
 
-        $this->logAudit("Created transaction #{$transaction->transactionID} ({$transaction->transaction_type}, {$transaction->item_name}, qty {$transaction->quantity}).");
+        $this->logAudit("Added transaction #{$transaction->transactionID}.");
 
         return redirect()->back()->with('success', 'Transaction added successfully.');
     }
 
     /**
-     * Update the specified transaction.
+     * Update the specified transaction.    
      */
     public function update(Request $request, Transaction $transaction)
     {
@@ -200,8 +200,15 @@ class TransactionLogsController extends Controller
             'office_code' => 'required|string|exists:offices,office_code',
         ]);
 
+        $isTypeChanged = $request->boolean('is_type_changed')
+            && $validated['transaction_type'] !== $transaction->transaction_type;
+
         if ($validated['transaction_type'] === 'ISSUE' && $validated['stock_no']) {
-            $available = $this->getAvailableStock($validated['stock_no'], $transaction->transactionID);
+            // Only exclude the original row when it's being overwritten in place.
+            // When the type changed, the original stays in the ledger untouched,
+            // so it must still count toward available stock.
+            $excludeId = $isTypeChanged ? null : $transaction->transactionID;
+            $available = $this->getAvailableStock($validated['stock_no'], $excludeId);
 
             if ($validated['quantity'] > $available) {
                 return back()->withErrors([
@@ -210,41 +217,13 @@ class TransactionLogsController extends Controller
             }
         }
 
-        $isTypeChanged = $request->boolean('is_type_changed')
-            && $validated['transaction_type'] !== $transaction->transaction_type;
-
         if ($isTypeChanged) {
-            $original = $transaction->only([
-                'transactionID', 'transaction_type', 'item_name', 'quantity', 'reference',
-            ]);
-
-            $new = Transaction::create($validated);
-
-            $this->logAudit(sprintf(
-                'Txn #%d corrected (%s -> %s) -> new txn #%d.',
-                $original['transactionID'],
-                $original['transaction_type'],
-                $validated['transaction_type'],
-                $new->transactionID,
-                $validated['item_name'],
-                $validated['quantity'],
-                $validated['reference']
-            ));
+            Transaction::create($validated);
 
             return redirect()->back()->with('success', 'Transaction corrected and converted successfully.');
         }
 
-        $before = $transaction->only([
-            'transaction_type', 'item_name', 'quantity', 'reference', 'transaction_date',
-        ]);
-
         $transaction->update($validated);
-
-        $this->logAudit(sprintf(
-            'Updated transaction #%d (typo/correction, type unchanged): %s.',
-            $transaction->transactionID,
-            $this->diffSummary($before, $validated)
-        ));
 
         return redirect()->back()->with('success', 'Transaction updated successfully.');
     }
@@ -279,23 +258,5 @@ class TransactionLogsController extends Controller
             'role' => Auth::user()->role ?? 'user',
             'action' => $action,
         ]);
-    }
-
-    /**
-     * Build a short "field: old -> new" summary for fields that actually
-     * changed, for the audit log entry.
-     */
-    private function diffSummary(array $before, array $after): string
-    {
-        $parts = [];
-
-        foreach ($before as $key => $oldValue) {
-            $newValue = $after[$key] ?? null;
-            if ((string) $oldValue !== (string) $newValue) {
-                $parts[] = "{$key}: \"{$oldValue}\" -> \"{$newValue}\"";
-            }
-        }
-
-        return $parts ? implode(', ', $parts) : 'no field changes detected';
     }
 }

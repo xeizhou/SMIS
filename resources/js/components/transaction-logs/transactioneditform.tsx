@@ -397,14 +397,23 @@ export default function TransactionEditForm({
     const rawAvailableStock = selectedItem?.available_stock ?? null;
 
     const isSameStockItem = selectedStockNo === (transaction?.stock_no ?? '');
+
+    // When the type is being changed, the backend leaves the ORIGINAL
+    // transaction untouched and creates a new correcting one instead of
+    // overwriting it — so available_stock already correctly reflects the
+    // original's effect and needs no adjustment here.
+    //
+    // When it's an in-place edit (same type), the backend WILL overwrite
+    // the original record, so we must "add back" its original effect
+    // before re-checking, since available_stock still includes it.
     const adjustedAvailableStock =
         rawAvailableStock === null
             ? null
-            : isSameStockItem
-              ? rawAvailableStock +
+            : isSameStockItem && !isTypeChanged
+            ? rawAvailableStock +
                 (originalType === 'ISSUE' ? originalQuantity : 0) -
                 (originalType === 'RECEIVE' ? originalQuantity : 0)
-              : rawAvailableStock;
+            : rawAvailableStock;
 
     const isOverStock =
         data.transaction_type === 'ISSUE' &&
