@@ -208,91 +208,88 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             'This Year' => $getPoLettersStatusByPeriod('This Year'),
         ];
 
-        $pendingInspectionsCount = \App\Models\PirMonitoring::whereNull('inspection_date')
-            ->whereDoesntHave('inspectionEntries', function($query) {
+        $pendingInspectionsCount = \App\Models\ServePo::whereDoesntHave('inspectionEntries', function($query) {
                 $query->whereNotNull('inspection_date');
             })
             ->where(function($query) {
-                $query->whereNull('status')
-                      ->orWhere('status', '!=', 'CANCELLED');
+                $query->whereNull('po_step')
+                      ->orWhere('po_step', '!=', 'CANCELLED');
             })
             ->count();
 
-        $inspectionsLastWeek = \App\Models\PirMonitoring::whereNull('inspection_date')
-            ->whereDoesntHave('inspectionEntries', function($query) {
+        $inspectionsLastWeek = \App\Models\ServePo::whereDoesntHave('inspectionEntries', function($query) {
                 $query->whereNotNull('inspection_date');
             })
             ->where(function($query) {
-                $query->whereNull('status')
-                      ->orWhere('status', '!=', 'CANCELLED');
+                $query->whereNull('po_step')
+                      ->orWhere('po_step', '!=', 'CANCELLED');
             })
             ->where('created_at', '>=', now()->startOfWeek())
             ->count();
 
-        $allPendingInspections = \App\Models\PirMonitoring::with('supplier')
-            ->whereNull('inspection_date')
+        $allPendingInspections = \App\Models\ServePo::with(['supplier', 'inspectionEntries'])
             ->whereDoesntHave('inspectionEntries', function($query) {
                 $query->whereNotNull('inspection_date');
             })
             ->where(function($query) {
-                $query->whereNull('status')
-                      ->orWhere('status', '!=', 'CANCELLED');
+                $query->whereNull('po_step')
+                      ->orWhere('po_step', '!=', 'CANCELLED');
             })
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($inspection) {
+            ->map(function ($po) {
                 return [
-                    'pir_id' => $inspection->pir_id,
-                    'po_number' => $inspection->po_number,
-                    'iar_number' => $inspection->iar_number,
-                    'invoice_number' => $inspection->invoice_number,
-                    'supplier' => $inspection->supplier ? [
-                        'supplier_name' => $inspection->supplier->supplier_name,
+                    'pir_id' => $po->po_number,
+                    'po_number' => $po->po_number,
+                    'iar_number' => $po->inspectionEntries->first()?->iar_number,
+                    'invoice_number' => $po->invoice_number,
+                    'supplier' => $po->supplier ? [
+                        'supplier_name' => $po->supplier->supplier_name,
                     ] : null,
                 ];
             })
             ->values();
 
-        $pendingClearancesCount = \App\Models\PirMonitoring::where(function($query) {
+        $pendingClearancesCount = \App\Models\ServePo::where(function($query) {
                 $query->whereNull('receipt_claimed_by')
                       ->whereNull('items_claimed_by');
             })
             ->where(function($query) {
-                $query->whereNull('status')
-                      ->orWhere('status', '!=', 'CANCELLED');
+                $query->whereNull('po_step')
+                      ->orWhere('po_step', '!=', 'CANCELLED');
             })
             ->count();
 
-        $clearancesLastWeek = \App\Models\PirMonitoring::where(function($query) {
+        $clearancesLastWeek = \App\Models\ServePo::where(function($query) {
                 $query->whereNull('receipt_claimed_by')
                       ->whereNull('items_claimed_by');
             })
             ->where(function($query) {
-                $query->whereNull('status')
-                      ->orWhere('status', '!=', 'CANCELLED');
+                $query->whereNull('po_step')
+                      ->orWhere('po_step', '!=', 'CANCELLED');
             })
             ->where('created_at', '>=', now()->startOfWeek())
             ->count();
 
-        $allPendingClearances = \App\Models\PirMonitoring::with('supplier')
+        $allPendingClearances = \App\Models\ServePo::with(['supplier', 'inspectionEntries'])
             ->where(function($query) {
                 $query->whereNull('receipt_claimed_by')
                       ->whereNull('items_claimed_by');
             })
             ->where(function($query) {
-                $query->whereNull('status')
-                      ->orWhere('status', '!=', 'CANCELLED');
+                $query->whereNull('po_step')
+                      ->orWhere('po_step', '!=', 'CANCELLED');
             })
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($issuance) {
+            ->map(function ($po) {
                 return [
-                    'pir_id' => $issuance->pir_id,
-                    'po_number' => $issuance->po_number,
-                    'iar_number' => $issuance->iar_number,
-                    'invoice_number' => $issuance->invoice_number,
-                    'supplier' => $issuance->supplier ? [
-                        'supplier_name' => $issuance->supplier->supplier_name,
+                    'pir_id' => $po->po_number,
+                    'po_number' => $po->po_number,
+                    'iar_number' => $po->inspectionEntries->first()?->iar_number,
+                    'invoice_number' => $po->invoice_number,
+                    'supplier' => $po->supplier ? [
+                        'supplier_name' => $po->supplier->supplier_name,
                     ] : null,
                 ];
             })
@@ -303,17 +300,17 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         $startMonth = ($reportsQuarter - 1) * 3 + 1;
         $endMonth = $startMonth + 2;
 
-        $reportsQuery = \App\Models\PirMonitoring::whereYear('created_at', $reportsYear)
+        $reportsQuery = \App\Models\ServePo::whereYear('created_at', $reportsYear)
             ->whereMonth('created_at', '>=', $startMonth)
             ->whereMonth('created_at', '<=', $endMonth);
 
         $reportsStats = [
-            'COMPLETED' => (clone $reportsQuery)->where('status', 'COMPLETED')->count(),
-            'CANCELLED' => (clone $reportsQuery)->where('status', 'CANCELLED')->count(),
+            'COMPLETED' => (clone $reportsQuery)->where('po_step', 'COMPLETED')->count(),
+            'CANCELLED' => (clone $reportsQuery)->where('po_step', 'CANCELLED')->count(),
             'ONGOING' => (clone $reportsQuery)->where(function($q) {
-                $q->where('status', 'ONGOING')
-                  ->orWhereNull('status')
-                  ->orWhere('status', '');
+                $q->where('po_step', 'ONGOING')
+                  ->orWhereNull('po_step')
+                  ->orWhereNotIn('po_step', ['COMPLETED', 'CANCELLED']);
             })->count(),
         ];
 
