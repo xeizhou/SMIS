@@ -6,11 +6,13 @@ use App\Models\FundCluster;
 use App\Models\Import;
 use App\Models\RegspiMonitoring;
 use App\Models\RrspMonitoring;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -30,6 +32,7 @@ class ProcessRegspiImport implements ShouldQueue
 
         // Cancelled before the worker even picked it up.
         if ($import->status === 'cancelled') {
+            $this->logAudit($import, 'RegSPI import cancelled before it started processing.');
             return;
         }
 
@@ -122,6 +125,13 @@ class ProcessRegspiImport implements ShouldQueue
                         'skipped_rows' => $skipped,
                     ]);
 
+                    $this->logAudit($import, sprintf(
+                        'Cancelled RegSPI import: %d created, %d updated, %d skipped before stopping.',
+                        $created,
+                        $updated,
+                        $skipped
+                    ));
+
                     return;
                 }
             }
@@ -140,11 +150,21 @@ class ProcessRegspiImport implements ShouldQueue
                 'updated_rows' => $updated,
                 'skipped_rows' => $skipped,
             ]);
+
+            $this->logAudit($import, sprintf(
+                'Imported RegSPI: %d created, %d updated, %d skipped.',
+                $created,
+                $updated,
+                $skipped
+            ));
         } catch (\Throwable $exception) {
             $import->update([
                 'status' => 'failed',
                 'error_message' => $exception->getMessage(),
             ]);
+
+            $this->logAudit($import, 'RegSPI import failed: ' . $exception->getMessage());
+
             throw $exception;
         }
     }
@@ -267,6 +287,25 @@ class ProcessRegspiImport implements ShouldQueue
             'created_rows' => $created,
             'updated_rows' => $updated,
             'skipped_rows' => $skipped,
+        ]);
+    }
+
+    /**
+     * Writes an audit log entry attributed to the user who started this
+     * import. Can't use Auth::id()/Auth::user() here like
+     * ImportController::logAudit() does — this runs in a queue worker
+     * process with no authenticated request, so the acting user has to
+     * come from the import row itself instead.
+     */
+    private function logAudit(Import $import, string $action): void
+    {
+        $user = User::find($import->user_id);
+
+        DB::table('audit_logs')->insert([
+            'log_timestamp' => now(),
+            'userID' => $import->user_id,
+            'role' => $user->role ?? 'user',
+            'action' => $action,
         ]);
     }
 }
