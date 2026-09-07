@@ -40,7 +40,7 @@ class SendDeliveryReminders extends Command
             ->get()
             ->filter(function ($delivery) use ($targetDate) {
                 // Use the computed due_date accessor which reflects live PO dates
-                return $delivery->due_date && $delivery->due_date->format('Y-m-d') === $targetDate;
+                return $delivery->due_date && $delivery->due_date === $targetDate;
             });
 
         $count = 0;
