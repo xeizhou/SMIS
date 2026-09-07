@@ -365,13 +365,13 @@ export default function Dashboard() {
                         {sortedPendingDeliveries && sortedPendingDeliveries.length > 0 ? (
                             <div className="grid gap-3 mt-4">
                                 {sortedPendingDeliveries.map((delivery) => (
-                                    <div key={delivery.delivery_id} className="flex items-center rounded-lg border border-l-4 border-l-blue-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-blue-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+                                    <div key={delivery.delivery_id} className="relative group flex items-center rounded-lg border border-l-4 border-l-blue-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-blue-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
                                                 <Link 
                                                     href={`/deliveries?highlight_id=${delivery.delivery_id}`} 
                                                     onClick={() => notificationsHighlight(String(delivery.delivery_id), '/deliveries')}
-                                                    className="hover:underline"
+                                                    className="before:absolute before:inset-0 hover:underline"
                                                 >
                                                     {delivery.po_number}
                                                 </Link>
@@ -394,7 +394,7 @@ export default function Dashboard() {
                                             </div>
                                         </div>
                                         
-                                        <div className="shrink-0 ml-4">
+                                        <div className="shrink-0 ml-4 relative z-10">
                                             <Button 
                                                 variant="outline" 
                                                 size="default"
@@ -441,13 +441,13 @@ export default function Dashboard() {
                         {allPendingInspections && allPendingInspections.length > 0 ? (
                             <div className="grid gap-3 mt-4">
                                 {allPendingInspections.map((inspection) => (
-                                    <div key={inspection.pir_id} className="flex items-center rounded-lg border border-l-4 border-l-amber-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-amber-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+                                    <div key={inspection.pir_id} className="relative group flex items-center rounded-lg border border-l-4 border-l-amber-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-amber-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
                                                 <Link 
-                                                    href={`/iar?highlight_search=${inspection.po_number}`} 
-                                                    onClick={() => notificationsHighlight(inspection.po_number, '/iar')}
-                                                    className="hover:underline"
+                                                    href={`/purchase-orders?highlight_id=${inspection.po_number}`} 
+                                                    onClick={() => notificationsHighlight(inspection.po_number, '/purchase-orders')}
+                                                    className="before:absolute before:inset-0 hover:underline"
                                                 >
                                                     {inspection.po_number}
                                                 </Link>
@@ -499,13 +499,13 @@ export default function Dashboard() {
                         {allPendingClearances && allPendingClearances.length > 0 ? (
                             <div className="grid gap-3 mt-4">
                                 {allPendingClearances.map((issuance) => (
-                                    <div key={issuance.pir_id} className="flex items-center rounded-lg border border-l-4 border-l-rose-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-rose-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+                                    <div key={issuance.pir_id} className="relative group flex items-center rounded-lg border border-l-4 border-l-rose-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-rose-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
                                                 <Link 
-                                                    href={`/iar?highlight_search=${issuance.po_number}`} 
-                                                    onClick={() => notificationsHighlight(issuance.po_number, '/iar')}
-                                                    className="hover:underline"
+                                                    href={`/purchase-orders?highlight_id=${issuance.po_number}`} 
+                                                    onClick={() => notificationsHighlight(issuance.po_number, '/purchase-orders')}
+                                                    className="before:absolute before:inset-0 hover:underline"
                                                 >
                                                     {issuance.po_number}
                                                 </Link>
