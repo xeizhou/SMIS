@@ -40,6 +40,8 @@ type Props = {
     filters: {
         search?: string;
         notice_type?: string;
+        sort_field?: string;
+        sort_direction?: 'asc' | 'desc';
     };
 };
 
@@ -47,6 +49,16 @@ export default function DeliveryFollowUpsIndex({ followUps, filters }: Props) {
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [noticeType, setNoticeType] = useState(filters.notice_type || 'all');
+
+    const handleSort = (field: string) => {
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        router.get('/delivery-follow-ups', {
+            search: searchQuery,
+            notice_type: noticeType === 'all' ? undefined : noticeType,
+            sort_field: field,
+            sort_direction: direction,
+        }, { preserveState: true, replace: true });
+    };
 
     const handleSearch = () => {
         router.get('/delivery-follow-ups', {
@@ -133,12 +145,14 @@ export default function DeliveryFollowUpsIndex({ followUps, filters }: Props) {
                     <table className="w-full text-sm">
                         <thead className="border-b" style={{ backgroundColor: '#370001' }}>
                             <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">PO Number</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Supplier</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Notice Type</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Remarks</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Followed By</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Follow-up Date</th>
+                                {[
+                                    ['PO Number', 'po_number'], ['Supplier', 'supplier'], ['Notice Type', 'notice_type'],
+                                    ['Remarks', 'remarks'], ['Followed By', 'user_name'], ['Follow-up Date', 'follow_up_date'],
+                                ].map(([label, field]) => (
+                                    <th key={field} className="p-0 text-left font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort(field)} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button>
+                                    </th>
+                                ))}
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>

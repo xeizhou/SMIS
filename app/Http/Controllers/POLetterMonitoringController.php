@@ -23,6 +23,17 @@ class POLetterMonitoringController extends Controller
         $search = $request->string('search')->toString() ?: null;
         $status = $request->string('status')->toString() ?: null;
         $type = $request->string('type')->toString() ?: null;
+        $sortField = $request->string('sort_field')->toString();
+        $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
+        $sorts = [
+            'reference_no' => 'reference_no',
+            'supplier' => Supplier::select('supplier_name')->whereColumn('supplier_list.supplier_id', 'po_letter_monitoring.supplier_id'),
+            'po_number' => 'po_number',
+            'type' => 'type_of_letter',
+            'status' => 'status_of_the_letter',
+            'po_date' => 'po_date',
+            'due_date' => 'due_date',
+        ];
 
         $poLetters = PoLetterMonitoring::query()
         ->with([
@@ -50,7 +61,7 @@ class POLetterMonitoringController extends Controller
         })
         ->when($status, fn ($query, $status) => $query->where('status_of_the_letter', $status))
         ->when($type, fn ($query, $type) => $query->where('type_of_letter', $type))
-        ->orderByDesc('created_at')
+        ->when(isset($sorts[$sortField]), fn ($query) => $query->orderBy($sorts[$sortField], $sortDirection), fn ($query) => $query->orderByDesc('created_at'))
         ->paginateWithHighlight($perPage)
         ->withQueryString();
 
@@ -60,6 +71,8 @@ class POLetterMonitoringController extends Controller
                 'search' => $search,
                 'status' => $status,
                 'type' => $type,
+                'sort_field' => $sortField ?: null,
+                'sort_direction' => $sortDirection,
             ],
             'suppliers' => Supplier::select('supplier_id', 'supplier_name')
                 ->orderByDesc('supplier_id')

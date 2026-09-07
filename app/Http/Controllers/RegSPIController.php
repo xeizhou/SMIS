@@ -21,6 +21,9 @@ class RegSPIController extends Controller
         $search = $request->string('search')->toString() ?: null;
         $rrspNo = $request->string('rrsp_no')->toString() ?: null;
         $fundClusterId = $request->string('fund_cluster_id')->toString() ?: null;
+        $sortField = $request->string('sort_field')->toString();
+        $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
+        $sorts = ['semi_expendable_property_no', 'item_description', 'issued_qty', 'balance_qty', 'created_at'];
 
         $regspis = RegspiMonitoring::query()
             ->with(['rrspMonitoring:rrsp_no,item_description', 'fundCluster:fund_cluster_id,fund_description'])
@@ -36,7 +39,7 @@ class RegSPIController extends Controller
             })
             ->when($rrspNo, fn ($query, $rrspNo) => $query->where('rrsp_no', $rrspNo))
             ->when($fundClusterId, fn ($query, $fundClusterId) => $query->where('fund_cluster_id', $fundClusterId))
-            ->orderByDesc('created_at')
+            ->when(in_array($sortField, $sorts, true), fn ($q) => $q->orderBy($sortField, $sortDirection), fn ($q) => $q->orderByDesc('created_at'))
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 
@@ -46,6 +49,8 @@ class RegSPIController extends Controller
                 'search' => $search,
                 'rrsp_no' => $rrspNo,
                 'fund_cluster_id' => $fundClusterId,
+                'sort_field' => $sortField ?: null,
+                'sort_direction' => $sortDirection,
             ],
             'rrsps' => RrspMonitoring::select('id', 'rrsp_no')
                 ->with('items')

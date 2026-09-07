@@ -20,6 +20,9 @@ class ITRPTRController extends Controller
         $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
         $condition_of_ppe = $request->input('condition_of_ppe');
+        $sortField = $request->string('sort_field')->toString();
+        $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
+        $sorts = ['transaction_no', 'property_no', 'description', 'claimed_by', 'amount', 'created_at'];
 
         $query = ItrPtrMonitoring::query();
 
@@ -36,11 +39,11 @@ class ITRPTRController extends Controller
             $query->where('condition_of_ppe', $condition_of_ppe);
         }
 
-        $data = $query->latest()->paginateWithHighlight($perPage)->withQueryString();
+        $data = $query->when(in_array($sortField, $sorts, true), fn ($q) => $q->orderBy($sortField, $sortDirection), fn ($q) => $q->latest())->paginateWithHighlight($perPage)->withQueryString();
 
         return Inertia::render('itr-ptr-monitoring/index', [
             'data' => $data,
-            'filters' => $request->only(['search', 'condition_of_ppe']),
+            'filters' => array_merge($request->only(['search', 'condition_of_ppe']), ['sort_field' => $sortField ?: null, 'sort_direction' => $sortDirection]),
         ]);
     }
 

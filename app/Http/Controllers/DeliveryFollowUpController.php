@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 
 use App\Models\DeliveryFollowUp;
 use App\Models\Delivery;
+use App\Models\User;
 use App\Mail\DeliveryFollowUpMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
@@ -32,7 +33,21 @@ class DeliveryFollowUpController extends Controller
             $query->where('notice_type', $request->input('notice_type'));
         }
 
-        $followUps = $query->latest('follow_up_date')
+        $sortField = $request->string('sort_field')->toString();
+        $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
+        $sorts = [
+            'po_number' => Delivery::select('po_number')->whereColumn('delivery.delivery_id', 'delivery_follow_ups.delivery_id'),
+            'supplier' => Delivery::select('supplier_list.supplier_name')
+                ->join('supplier_list', 'supplier_list.supplier_id', '=', 'delivery.supplier_id')
+                ->whereColumn('delivery.delivery_id', 'delivery_follow_ups.delivery_id'),
+            'notice_type' => 'notice_type',
+            'remarks' => 'remarks',
+            'user_name' => User::select('name')->whereColumn('users.id', 'delivery_follow_ups.user_id'),
+            'follow_up_date' => 'follow_up_date',
+            'created_at' => 'created_at',
+        ];
+
+        $followUps = $query->when(isset($sorts[$sortField]), fn ($query) => $query->orderBy($sorts[$sortField], $sortDirection), fn ($query) => $query->latest('follow_up_date'))
             ->get()
             ->map(function ($followUp) {
                 return [
@@ -53,6 +68,8 @@ class DeliveryFollowUpController extends Controller
             'filters' => [
                 'search' => $search,
                 'notice_type' => $request->input('notice_type'),
+                'sort_field' => $sortField ?: null,
+                'sort_direction' => $sortDirection,
             ],
         ]);
     }

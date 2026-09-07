@@ -82,6 +82,8 @@ interface Filters {
     search: string | null;
     status: string | null;
     po_number: string | null;
+    sort_field?: string | null;
+    sort_direction?: 'asc' | 'desc' | null;
 }
 
 interface Props {
@@ -141,13 +143,15 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
 
     
 
-    const runSearch = (nextStatus?: string, nextPoNumber?: string) => {
+    const runSearch = (nextStatus?: string, nextPoNumber?: string, sortField = filters.sort_field, sortDirection = filters.sort_direction) => {
         router.get(
             '/deliveries',
             {
                 search,
                 status: (nextStatus ?? status) === 'all' ? undefined : nextStatus ?? status,
                 po_number: (nextPoNumber ?? poNumber) === 'all' ? undefined : nextPoNumber ?? poNumber,
+                sort_field: sortField || undefined,
+                sort_direction: sortDirection || undefined,
             },
             {
                 preserveState: true,
@@ -155,6 +159,11 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                 replace: true,
             }
         );
+    };
+
+    const handleSort = (field: string) => {
+        const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
+        runSearch(undefined, undefined, field, direction);
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -264,10 +273,14 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                 <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
                         <thead className="border-b" style={{ backgroundColor: '#370001' }}>
                             <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">PO Number</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Supplier</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Date of Delivery</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Status</th>
+                                {[
+                                    ['PO Number', 'po_number'], ['Supplier', 'supplier'],
+                                    ['Date of Delivery', 'delivery_date'], ['Status', 'status'],
+                                ].map(([label, field]) => (
+                                    <th key={field} className="p-0 text-left font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort(field)} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button>
+                                    </th>
+                                ))}
                                 <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
                             </tr>
                         </thead>

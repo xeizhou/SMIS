@@ -53,6 +53,8 @@ interface Props {
     yesterdayDeliveries: DeliveryItem[];
     todayStats: Stats;
     yesterdayStats: Stats;
+    sortField: string;
+    sortDirection: 'asc' | 'desc';
 }
 
 // ---------------------------------------------------------------------------
@@ -126,6 +128,8 @@ export default function NoticeOfDeliveryReport({
         total_count: 0,
         total_delivered_amount: 0,
     },
+    sortField,
+    sortDirection,
 }: Props) {
     const [selectedTodayDate, setSelectedTodayDate] = useState(todayDate);
     const [selectedYesterdayDate, setSelectedYesterdayDate] = useState(yesterdayDate);
@@ -133,6 +137,8 @@ export default function NoticeOfDeliveryReport({
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [lastUpdated, setLastUpdated] = useState(new Date());
     const [flashedIds, setFlashedIds] = useState<Set<string>>(new Set());
+    const [activeSortField, setActiveSortField] = useState(sortField);
+    const [activeSortDirection, setActiveSortDirection] = useState(sortDirection);
     const containerRef = useRef<HTMLDivElement>(null);
     const prevStatuses = useRef<Map<string, string>>(
         new Map([...todayDeliveries, ...yesterdayDeliveries].map((d) => [d.delivery_id, d.status]))
@@ -176,9 +182,26 @@ export default function NoticeOfDeliveryReport({
 
         router.get(
             '/notice-of-delivery',
-            { today_date: tDate, yesterday_date: yDate },
+            {
+                today_date: tDate,
+                yesterday_date: yDate,
+                sort_field: activeSortField,
+                sort_direction: activeSortDirection,
+            },
             { preserveState: true, preserveScroll: true }
         );
+    };
+
+    const handleSort = (field: string) => {
+        const direction = activeSortField === field && activeSortDirection === 'asc' ? 'desc' : 'asc';
+        setActiveSortField(field);
+        setActiveSortDirection(direction);
+        router.get('/notice-of-delivery', {
+            today_date: selectedTodayDate,
+            yesterday_date: selectedYesterdayDate,
+            sort_field: field,
+            sort_direction: direction,
+        }, { preserveState: true, preserveScroll: true });
     };
 
     const handleManualRefresh = () => {
@@ -254,9 +277,9 @@ export default function NoticeOfDeliveryReport({
                 <table className={`w-full table-fixed text-left ${isFullscreen ? 'text-base md:text-lg lg:text-xl' : 'text-xs md:text-sm'}`}>
                     <thead className="sticky top-0 z-10 bg-neutral-100/95 font-black uppercase tracking-wider text-black backdrop-blur-md dark:bg-neutral-800/95 dark:text-neutral-100 border-b-2 border-neutral-300 dark:border-neutral-600">
                         <tr>
-                            <th className={`pl-8 pr-4 w-[30%] whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}>P.O. NUMBER</th>
-                            <th className={`px-4 w-[50%] whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}>SUPPLIER'S NAME</th>
-                            <th className={`pl-4 pr-8 w-[20%] text-center whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}>STATUS</th>
+                            <th className={`pl-8 pr-4 w-[30%] whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}><button type="button" onClick={() => handleSort('po_number')}>P.O. NUMBER</button></th>
+                            <th className={`px-4 w-[50%] whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}><button type="button" onClick={() => handleSort('supplier')}>SUPPLIER'S NAME</button></th>
+                            <th className={`pl-4 pr-8 w-[20%] text-center whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}><button type="button" onClick={() => handleSort('status')}>STATUS</button></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-200/70 dark:divide-neutral-800/60">

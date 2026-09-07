@@ -78,7 +78,11 @@ export default function SortableTable<T>({
                         </tr>
                     ) : (
                         data.map((item, rowIndex) => (
-                            <AnimatedTableRow key={rowIndex} index={rowIndex} className="border-b transition-colors hover:bg-muted/40">
+                            <AnimatedTableRow
+                                key={`${sortField ?? 'default'}-${sortDirection ?? 'default'}-${rowIndex}`}
+                                index={rowIndex}
+                                className="border-b transition-colors hover:bg-muted/40"
+                            >
                                 {columns.map((col) => (
                                     <td key={col.key} className="px-4 py-3 truncate">
                                         {col.render ? col.render(item) : (item as any)[col.key] || '—'}
