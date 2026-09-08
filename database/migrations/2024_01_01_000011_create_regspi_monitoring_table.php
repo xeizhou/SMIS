@@ -35,6 +35,11 @@ return new class extends Migration
             $table->foreign('rrsp_no', 'fk_regspi_rrsp_no')
                 ->references('rrsp_no')->on('rrsp_monitoring')
                 ->nullOnDelete();
+
+            // Required for ProcessRegspiImport's upsert() — SQLite needs a
+            // real unique constraint on these two columns to know what
+            // counts as a "conflict" when upserting.
+            $table->unique(['month_year', 'semi_expendable_property_no'], 'regspi_month_property_unique');
         });
     }
 
