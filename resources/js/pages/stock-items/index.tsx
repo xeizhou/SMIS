@@ -41,6 +41,7 @@ interface StockItem {
     fund_cluster_id?: string | null;
     fund_cluster?: FundCluster; 
     units?: Unit[];
+    is_pending_setup?: boolean;
 }
 
 interface PaginatedStockItems {
@@ -64,6 +65,7 @@ interface Filters {
     sort_field?: string;
     sort_direction?: 'asc' | 'desc';
     per_page?: number;
+    needs_attention?: boolean;
 }
 
 interface Props {
@@ -81,6 +83,7 @@ export default function Index({
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [fundClusterFilter, setFundClusterFilter] = useState(filters.fund_cluster_id ?? '');
+    const [needsAttention, setNeedsAttention] = useState(filters.needs_attention ?? false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [viewOpen, setViewOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -93,7 +96,7 @@ export default function Index({
 
         router.get(
             '/stock-items',
-            buildFilterUrl({ search, fund_cluster_id: fundClusterFilter, sort_field: field, sort_direction: direction }),
+            buildFilterUrl({ search, fund_cluster_id: fundClusterFilter, needs_attention: needsAttention, sort_field: field, sort_direction: direction }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -102,7 +105,7 @@ export default function Index({
         e.preventDefault();
         router.get(
             '/stock-items',
-            buildFilterUrl({ search, fund_cluster_id: fundClusterFilter, page: 1 }),
+            buildFilterUrl({ search, fund_cluster_id: fundClusterFilter, needs_attention: needsAttention, page: 1 }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -110,9 +113,20 @@ export default function Index({
     const handleClear = () => {
         setSearch('');
         setFundClusterFilter('');
+        setNeedsAttention(false);
         router.get(
             '/stock-items',
-            buildFilterUrl({ search: '', fund_cluster_id: '', page: 1 }),
+            buildFilterUrl({ search: '', fund_cluster_id: '', needs_attention: false, page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
+    };
+
+    const handleToggleNeedsAttention = () => {
+        const next = !needsAttention;
+        setNeedsAttention(next);
+        router.get(
+            '/stock-items',
+            buildFilterUrl({ search, fund_cluster_id: fundClusterFilter, needs_attention: next, page: 1 }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -172,7 +186,7 @@ export default function Index({
 
                                 router.get(
                                     '/stock-items',
-                                    buildFilterUrl({ search, fund_cluster_id: newValue, page: 1 }),
+                                    buildFilterUrl({ search, fund_cluster_id: newValue, needs_attention: needsAttention, page: 1 }),
                                     { preserveState: true, preserveScroll: true, replace: true }
                                 );
                             }}
@@ -192,6 +206,15 @@ export default function Index({
                                 ))}
                             </SelectContent>
                         </Select>
+
+                        <Button
+                            type="button"
+                            variant={needsAttention ? 'default' : 'outline'}
+                            onClick={handleToggleNeedsAttention}
+                            className={needsAttention ? 'bg-amber-600 hover:bg-amber-600/90 text-white' : ''}
+                        >
+                            Needs Setup Only
+                        </Button>
 
                         <Button type="submit" variant="secondary">
                             Search
@@ -279,20 +302,37 @@ export default function Index({
                                         <AnimatedTableRow
                                             key={stock.stock_no}
                                             index={i}
-                                            className="border-b transition-colors hover:bg-muted/40"
+                                            className={`border-b transition-colors hover:bg-muted/40 ${
+                                                stock.is_pending_setup ? 'bg-amber-50' : ''
+                                            }`}
                                             data-search-0={stock.item_name}
                                             data-record-id={stock.stock_no}
                                         >
-                                            <td className="px-4 py-3 font-medium truncate">{stock.stock_no}</td>
+                                            <td className="px-4 py-3 font-medium truncate">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="truncate">{stock.stock_no}</span>
+                                                    {stock.is_pending_setup && (
+                                                        <span
+                                                            className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+                                                            title="Temporary stock number and/or units still need to be set"
+                                                        >
+                                                            Needs setup
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="px-4 py-3 truncate">{stock.item_name}</td>
                                             <td className="px-4 py-3 truncate">
                                                 {stock.description || '—'}
                                             </td>
                                             <td className="px-4 py-3">
-                                                {stock.units && stock.units.length > 0 
-                                                    ? stock.units.map(u => u.unit_short_name).join(', ') 
-                                                    : '—'
-                                                }
+                                                {stock.units && stock.units.length > 0 ? (
+                                                    stock.units.map(u => u.unit_short_name).join(', ')
+                                                ) : (
+                                                    <span className="text-amber-700 text-xs font-medium">
+                                                        Unassigned
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-4 py-3 text-center">
                                                 <div className="flex items-center justify-center gap-3">

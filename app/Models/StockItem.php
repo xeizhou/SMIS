@@ -35,6 +35,11 @@ class StockItem extends Model
         'description',
         'unitID',
         'fund_cluster_id',
+        'is_pending_setup',
+    ];
+
+    protected $casts = [
+        'is_pending_setup' => 'boolean',
     ];
 
     public function unit(): BelongsTo

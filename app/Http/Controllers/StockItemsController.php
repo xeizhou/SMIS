@@ -15,7 +15,8 @@ class StockItemsController extends Controller
         $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
         $fundClusterId = $request->input('fund_cluster_id');
-        
+        $needsAttention = $request->boolean('needs_attention');
+
         // 1. Get the sorting parameters (defaulting to created_at descending if none provided)
         $sortField = $request->input('sort_field', 'created_at');
         $sortDirection = $request->input('sort_direction', 'desc');
@@ -29,8 +30,6 @@ class StockItemsController extends Controller
         // Validate the sort direction
         $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
-        $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
-
         $query = StockItem::with(['units', 'fundCluster'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
@@ -39,9 +38,11 @@ class StockItemsController extends Controller
                         ->orWhere('description', 'like', "%{$search}%");
                 });
             })
-
             ->when($fundClusterId, function ($q) use ($fundClusterId) {
                 $q->where('fund_cluster_id', $fundClusterId);
+            })
+            ->when($needsAttention, function ($q) {
+                $q->where('is_pending_setup', true);
             });
 
         // 3. Apply the dynamic sorting
@@ -59,6 +60,7 @@ class StockItemsController extends Controller
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
                 'per_page' => $perPage,
+                'needs_attention' => $needsAttention,
             ],
         ]);
     }
@@ -78,7 +80,9 @@ class StockItemsController extends Controller
             'units.*.is_default' => 'required|boolean',
         ]);
 
-        $stockItem = StockItem::create($request->except('units'));
+        $stockItem = StockItem::create($request->except('units') + [
+            'is_pending_setup' => false,
+        ]);
 
         // Prepare data for the pivot table
         $syncData = [];
@@ -106,7 +110,15 @@ class StockItemsController extends Controller
                 'units.*.is_default' => 'required|boolean',
             ]);
 
-            $stockItem->update($request->except('units'));
+            // units is already validated as required|array|min:1 above, so by this
+            // point we know units are set. The only remaining thing that decides
+            // whether this item is still "pending setup" is whether the stock
+            // number has been changed away from the auto-generated TEMP- prefix.
+            $isStillTemp = str_starts_with($validated['stock_no'], 'TEMP-');
+
+            $stockItem->update($request->except('units') + [
+                'is_pending_setup' => $isStillTemp,
+            ]);
 
             // Sync updates the pivot table
             $syncData = [];
@@ -148,6 +160,7 @@ class StockItemsController extends Controller
                 'stock_no' => $stockNo,
                 'item_name' => $validated['item_name'],
                 'description' => $validated['description'] ?? null,
+                'is_pending_setup' => true,
             ]);
 
             // No unit assigned yet — units() pivot stays empty until edited
