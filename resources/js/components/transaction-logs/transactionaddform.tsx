@@ -563,7 +563,7 @@ export default function TransactionAddForm({
                                         placeholder="-- Select Fund Cluster --"
                                         options={fundClusters.map((fc) => ({
                                             value: fc.fund_cluster_id,
-                                            label: `${fc.fund_cluster_id} - ${fc.fund_description}`,
+                                            label: `${fc.fund_cluster_id}`,
                                         }))}
                                     />
                                     <SearchableSelect

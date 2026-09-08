@@ -222,10 +222,12 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
     const prevBalances = useRef<Map<string, number>>(new Map(stockItems.map((i) => [i.stock_no, i.balance])));
     const listRef = useRef<HTMLDivElement>(null);
 
+    const [isFiltering, setIsFiltering] = useState(false);
+
     usePoll(5000, {
         only: ['kpis', 'stockItems', 'transactions', 'movement'],
         onSuccess: () => setLastUpdated(new Date()),
-    });
+    }, { autoStart: !isFiltering });
 
     useEffect(() => {
         const changed = new Set<string>();

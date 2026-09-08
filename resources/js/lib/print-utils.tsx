@@ -46,3 +46,37 @@ export const printComponent = (component: React.ReactNode) => {
         }, 1000);
     }, 500);
 };
+
+export const printUrl = async (url: string) => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    iframe.src = blobUrl;
+    document.body.appendChild(iframe);
+
+    const cleanup = () => {
+        if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+        }
+        URL.revokeObjectURL(blobUrl);
+        window.removeEventListener('focus', cleanup);
+    };
+
+    iframe.onload = () => {
+        // Give the browser's PDF viewer time to actually render before printing
+        setTimeout(() => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+
+            // Clean up once the user returns focus to the main window
+            // (i.e. after closing/completing the print dialog)
+            window.addEventListener('focus', cleanup);
+        }, 800);
+    };
+};

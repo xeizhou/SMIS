@@ -22,6 +22,7 @@ import { useState } from 'react';
 import ImportDataModal from '@/components/stock-reports/ImportDataModal';
 import BackupModal from '@/components/stock-reports/BackupModal';
 import { buildFilterUrl } from '@/lib/filterUrl';
+import { printUrl } from '@/lib/print-utils';
 
 interface FundCluster {
     fund_cluster_id: string;
@@ -63,7 +64,7 @@ interface Props {
     filters: Filters;
 }
 
-type ConfirmAction = 'print' | 'pdf' | 'excel' | null;
+type ConfirmAction = 'pdf' | 'excel' | null;
 
 export default function Index({ items, fundClusters, filters }: Props) {
     const [cutoffDate, setCutoffDate] = useState(filters.cutoff_date ?? '');
@@ -110,14 +111,16 @@ export default function Index({ items, fundClusters, filters }: Props) {
         return `${path}?${params.toString()}`;
     };
 
+    const handlePrint = () => {
+        printUrl(buildExportUrl('/stock-reports/print'));
+    };
+
     const requestConfirm = (action: Exclude<ConfirmAction, null>) => {
         setConfirmAction(action);
     };
 
     const executeConfirmedAction = () => {
-        if (confirmAction === 'print') {
-            window.open(buildExportUrl('/stock-reports/print'), '_blank');
-        } else if (confirmAction === 'pdf') {
+        if (confirmAction === 'pdf') {
             window.location.href = buildExportUrl('/stock-reports/print', { download: '1' });
         } else if (confirmAction === 'excel') {
             window.location.href = buildExportUrl('/stock-reports/export-excel');
@@ -126,11 +129,6 @@ export default function Index({ items, fundClusters, filters }: Props) {
     };
 
     const confirmLabels: Record<Exclude<ConfirmAction, null>, { title: string; description: string; icon: React.ReactNode }> = {
-        print: {
-            title: 'Print Report',
-            description: 'Open the Report of Physical Count Inventories for printing?',
-            icon: <Printer className="size-5 text-[#612A35]" />,
-        },
         pdf: {
             title: 'Export as PDF',
             description: 'Download the Report of Physical Count Inventories as a PDF file?',
@@ -153,99 +151,104 @@ export default function Index({ items, fundClusters, filters }: Props) {
             <Head title="Data & Reports" />
             <div className="p-4 space-y-6 sm:p-6">
                 {/* Header */}
-                <div className="relative sticky top-16 group-has-data-[collapsible=icon]/sidebar-wrapper:top-12 transition-[all] ease-linear z-30 -mx-4 -mt-4 mb-6 bg-background/95 backdrop-blur px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">
-                            Data & Reports
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            View and export physical count inventory, or import/backup data.
-                        </p>
-                    </div>
-
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={() => setImportOpen(true)}
-                        >
-                            <Upload className="size-4" />
-                            Import Data
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => setBackupOpen(true)}
-                        >
-                            <Archive className="size-4" />
-                            Backup Data
-                        </Button>
-                        <Button
-                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
-                            onClick={() => requestConfirm('print')}
-                        >
-                            <Printer className="size-4" />
-                            Print
-                        </Button>
-                        <Button
-                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
-                            onClick={() => requestConfirm('pdf')}
-                        >
-                            <FileText className="size-4" />
-                            Export PDF
-                        </Button>
-                        <Button
-                            className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
-                            onClick={() => requestConfirm('excel')}
-                        >
-                            <FileSpreadsheet className="size-4" />
-                            Export Excel
-                        </Button>
-                    </div>
-                    {/* Horizontal fading border */}
-                    <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
+            <div className="relative sticky top-16 group-has-data-[collapsible=icon]/sidebar-wrapper:top-12 transition-[all] ease-linear z-30 -mx-4 -mt-4 mb-6 bg-background/95 backdrop-blur px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-foreground">
+                        Data & Reports
+                    </h1>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        View and export physical count inventory, or import/backup data.
+                    </p>
                 </div>
 
-                {/* Filters */}
-                <form
-                    onSubmit={handleApply}
-                    className="flex flex-col gap-3 lg:flex-row lg:items-center"
-                >
-                    <div className="flex flex-wrap items-center gap-2">
-                        <label className="text-sm font-medium text-foreground">
-                            Cut-off Date:
-                        </label>
-                        <Input
-                            type="date"
-                            value={cutoffDate}
-                            onChange={(e) => setCutoffDate(e.target.value)}
-                            className="w-[180px]"
-                        />
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => setImportOpen(true)}
+                    >
+                        <Upload className="size-4" />
+                        Import Data
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => setBackupOpen(true)}
+                    >
+                        <Archive className="size-4" />
+                        Backup Data
+                    </Button>
+                </div>
+                {/* Horizontal fading border */}
+                <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
+            </div>
 
-                        <Select
-                            value={fundClusterId}
-                            onValueChange={(value) => setFundClusterId(value)}
-                        >
-                            <SelectTrigger className="w-[200px]">
-                                <SelectValue placeholder="All Fund Clusters" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Fund Clusters</SelectItem>
-                                {fundClusters.map((fc) => (
-                                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
-                                        {fc.fund_cluster_id}
-                                        {fc.fund_description ? ` - ${fc.fund_description}` : ''}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+            {/* Filters */}
+            <form
+                onSubmit={handleApply}
+                className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+            >
+                <div className="flex flex-wrap items-center gap-2">
+                    <label className="text-sm font-medium text-foreground">
+                        Cut-off Date:
+                    </label>
+                    <Input
+                        type="date"
+                        value={cutoffDate}
+                        onChange={(e) => setCutoffDate(e.target.value)}
+                        className="w-[180px]"
+                    />
 
-                        <Button type="submit" variant="secondary">
-                            Apply
-                        </Button>
-                        <Button type="button" variant="ghost" onClick={handleClear}>
-                            Clear
-                        </Button>
-                    </div>
-                </form>
+                    <Select
+                        value={fundClusterId}
+                        onValueChange={(value) => setFundClusterId(value)}
+                    >
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="All Fund Clusters" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Fund Clusters</SelectItem>
+                            {fundClusters.map((fc) => (
+                                <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
+                                    {fc.fund_cluster_id}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Button type="submit" variant="secondary">
+                        Apply
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={handleClear}>
+                        Clear
+                    </Button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        type="button"
+                        className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
+                        onClick={handlePrint}
+                    >
+                        <Printer className="size-4" />
+                        Print
+                    </Button>
+                    <Button
+                        type="button"
+                        className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
+                        onClick={() => requestConfirm('pdf')}
+                    >
+                        <FileText className="size-4" />
+                        Export PDF
+                    </Button>
+                    <Button
+                        type="button"
+                        className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
+                        onClick={() => requestConfirm('excel')}
+                    >
+                        <FileSpreadsheet className="size-4" />
+                        Export Excel
+                    </Button>
+                </div>
+            </form>
 
                 {/* Report Body */}
                 <div className="rounded-xl border border-border bg-card p-6">
