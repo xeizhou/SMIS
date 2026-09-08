@@ -43,7 +43,7 @@ interface Props {
 
 export default function Areas({ areas, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
-    
+
     // Modal state
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -173,7 +173,6 @@ export default function Areas({ areas, filters }: Props) {
                     <table className="w-full text-sm">
                         <thead className="border-b" style={{ backgroundColor: '#370001' }}>
                             <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">ID</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Area Name</th>
                                 <th className="px-4 py-3 text-center font-semibold text-white w-32">Actions</th>
                             </tr>
@@ -189,8 +188,7 @@ export default function Areas({ areas, filters }: Props) {
                         ) : (
                             <tbody>
                                 {areas.data.map((area) => (
-                                    <tr key={area.id} className="border-b border-border/50 hover:bg-muted/40 transition-colors">
-                                        <td className="px-4 py-3">{area.id}</td>
+                                    <tr data-record-id={area.id} data-search-0={area.name} className="border-b border-border/50 hover:bg-muted/40 transition-colors">
                                         <td className="px-4 py-3 font-medium">{area.name}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">
