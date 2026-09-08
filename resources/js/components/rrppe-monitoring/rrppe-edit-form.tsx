@@ -86,7 +86,13 @@ function SearchableSelect({
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
-                    <Command>
+                    <Command
+                        filter={(value, search) => {
+                            const words = search.toLowerCase().split(/\s+/).filter(Boolean);
+                            const target = value.toLowerCase();
+                            return words.every((w) => target.includes(w)) ? 1 : 0;
+                        }}
+                    >
                         <CommandInput placeholder={placeholder} />
                         <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
                             <CommandEmpty>No item found.</CommandEmpty>
