@@ -160,6 +160,7 @@ export default function Index({ fundClusters, filters }: Props) {
                     url="/fund-clusters"
                     currentFilters={{ search }}
                     emptyMessage="No fund clusters added yet."
+                    getRowId={(fc) => fc.fund_cluster_id}
                 />
 
                 {fundClusters.data.length > 0 && (

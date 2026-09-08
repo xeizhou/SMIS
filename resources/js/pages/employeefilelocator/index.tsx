@@ -209,6 +209,7 @@ export default function Index({ records, filters, statuses }: Props) {
                     // Pass current search and status so sorting doesn't reset them!
                     currentFilters={{ search, status: status === 'all' ? '' : status }}
                     emptyMessage="No employee file records added yet."
+                    getRowId={(record) => record.efr_id}
                 />
 
                 {records.data.length > 0 && (

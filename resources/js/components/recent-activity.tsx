@@ -9,6 +9,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
 
 export type RecentActivityRow = {
     log_id: number;
@@ -141,7 +142,24 @@ export function RecentActivity({ data }: Props) {
                                 </td>
                                 <td className="whitespace-nowrap px-6 py-4 text-neutral-500 dark:text-neutral-400">
                                     {row.target_url ? (
-                                        <Link href={row.target_url} className="font-bold text-neutral-900 underline hover:text-blue-600 dark:text-neutral-50 dark:hover:text-blue-400">
+                                        <Link 
+                                            href={row.target_url} 
+                                            onClick={() => {
+                                                try {
+                                                    const url = new URL(row.target_url!, window.location.origin);
+                                                    const highlightId = url.searchParams.get('highlight_id');
+                                                    const highlightSearch = url.searchParams.get('highlight_search');
+                                                    if (highlightId) {
+                                                        auditLogsHighlight(highlightId, url.pathname);
+                                                    } else if (highlightSearch) {
+                                                        auditLogsHighlight(highlightSearch, url.pathname);
+                                                    }
+                                                } catch (e) {
+                                                    console.error("Failed to parse URL for highlight", e);
+                                                }
+                                            }}
+                                            className="font-bold text-neutral-900 underline hover:text-blue-600 dark:text-neutral-50 dark:hover:text-blue-400"
+                                        >
                                             {row.action}
                                         </Link>
                                     ) : (

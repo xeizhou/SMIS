@@ -16,7 +16,7 @@ import { dashboard } from '@/routes';
 import { Link } from '@inertiajs/react';
 import { NotificationPanel } from '@/components/notification-panel';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { notificationsHighlight } from './notificationsHighlight';
+import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
 import {
     Dialog,
     DialogContent,
@@ -370,7 +370,7 @@ export default function Dashboard() {
                                             <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
                                                 <Link 
                                                     href={`/deliveries?highlight_id=${delivery.delivery_id}`} 
-                                                    onClick={() => notificationsHighlight(String(delivery.delivery_id), '/deliveries')}
+                                                    onClick={() => auditLogsHighlight(String(delivery.delivery_id), '/deliveries')}
                                                     className="before:absolute before:inset-0 hover:underline"
                                                 >
                                                     {delivery.po_number}
@@ -445,8 +445,8 @@ export default function Dashboard() {
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
                                                 <Link 
-                                                    href={`/purchase-orders?highlight_id=${inspection.po_number}`} 
-                                                    onClick={() => notificationsHighlight(inspection.po_number, '/purchase-orders')}
+                                                    href={`/iar?highlight_search=${inspection.po_number}`} 
+                                                    onClick={() => auditLogsHighlight(inspection.po_number, '/iar')}
                                                     className="before:absolute before:inset-0 hover:underline"
                                                 >
                                                     {inspection.po_number}
@@ -503,8 +503,8 @@ export default function Dashboard() {
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
                                                 <Link 
-                                                    href={`/purchase-orders?highlight_id=${issuance.po_number}`} 
-                                                    onClick={() => notificationsHighlight(issuance.po_number, '/purchase-orders')}
+                                                    href={`/iar?highlight_search=${issuance.po_number}`} 
+                                                    onClick={() => auditLogsHighlight(issuance.po_number, '/iar')}
                                                     className="before:absolute before:inset-0 hover:underline"
                                                 >
                                                     {issuance.po_number}

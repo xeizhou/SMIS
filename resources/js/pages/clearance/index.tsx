@@ -261,6 +261,7 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
                         form_attribute: typeFilter === 'all' ? '' : typeFilter
                     }}
                     emptyMessage="No clearance records added yet."
+                    getRowId={(record) => record.clearance_id}
                 />
 
                 {records.data.length > 0 && (

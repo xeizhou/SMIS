@@ -20,6 +20,8 @@ interface AuditLog {
     user: string;
     avatar_url: string | null;
     role: string;
+    module: string;
+    reference: string | null;
     action: string;
     target_url: string | null;
 }
@@ -101,19 +103,16 @@ export default function Index({ logs, filters }: Props) {
                         </div>
                         <Select value={roleFilter} onValueChange={setRoleFilter}>
                             <SelectTrigger className={`w-full sm:w-[180px] ${roleFilter === 'All' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Role" />
+                                <SelectValue placeholder="All Roles" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="All">Filter by Role</SelectItem>
+                                <SelectItem value="All">All Roles</SelectItem>
                                 <SelectItem value="Admin">Admin</SelectItem>
                                 <SelectItem value="Staff">Staff</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button type="button" variant="secondary">
-                            Search
-                        </Button>
                         <Button type="button" variant="ghost" onClick={handleClear}>
-                            Clear
+                            Clear Filters
                         </Button>
                     </div>
                 </div>
@@ -126,11 +125,12 @@ export default function Index({ logs, filters }: Props) {
                             style={{ backgroundColor: '#370001' }}
                         >
                             <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Log ID</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Timestamp</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Date & Time</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">User</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Role</th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Action</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Module</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Reference</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Action Description</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -142,10 +142,9 @@ export default function Index({ logs, filters }: Props) {
                                         data-record-id={row.log_id}
                                         className="transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
                                     >
-                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                            {row.log_id}
+                                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                            {row.timestamp}
                                         </td>
-                                        <td className="px-4 py-3">{row.timestamp}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-2">
                                                 {row.avatar_url ? (
@@ -163,6 +162,10 @@ export default function Index({ logs, filters }: Props) {
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">{row.role}</td>
+                                        <td className="px-4 py-3">{row.module}</td>
+                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+                                            {row.reference || '-'}
+                                        </td>
                                         <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                                             {row.target_url ? (
                                                 <Link

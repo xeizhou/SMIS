@@ -24,7 +24,7 @@ import {
     HoverCardContent,
     HoverCardTrigger,
 } from '@/components/ui/hover-card';
-import { dueDeliveriesHighlight } from '@/components/dueDeliveriesHighlight';
+import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
 
 interface DeliveryItem {
     delivery_id: string;
@@ -296,7 +296,7 @@ export default function NoticeOfDeliveryReport({
                                             <HoverCardTrigger asChild>
                                                 <Link
                                                     href={`/deliveries?highlight_id=${item.delivery_id}`}
-                                                    onClick={() => dueDeliveriesHighlight(item.delivery_id.toString(), '/deliveries')}
+                                                    onClick={() => auditLogsHighlight(item.delivery_id.toString(), '/deliveries')}
                                                     className="-ml-2 inline-flex items-center gap-1.5 max-w-full truncate rounded-md px-2 py-0.5 text-neutral-900 dark:text-neutral-100 font-medium hover:text-red-700 dark:hover:text-red-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
                                                 >
                                                     {item.po_number}
@@ -346,7 +346,7 @@ export default function NoticeOfDeliveryReport({
                                                         <Button variant="default" size="sm" asChild className="gap-2 bg-red-700 hover:bg-red-800 text-white rounded-xl font-medium shadow-sm">
                                                             <Link 
                                                                 href={`/deliveries?highlight_id=${item.delivery_id}`}
-                                                                onClick={() => dueDeliveriesHighlight(item.delivery_id.toString(), '/deliveries')}
+                                                                onClick={() => auditLogsHighlight(item.delivery_id.toString(), '/deliveries')}
                                                             >
                                                                 Go to <ArrowRight className="size-4" />
                                                             </Link>

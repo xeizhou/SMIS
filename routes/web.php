@@ -373,6 +373,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         ]);
     })->name('dashboard');
 
+    Route::get('/my-activity', [\App\Http\Controllers\MyActivityController::class, 'index'])->name('my-activity.index');
+
     Route::get('/api/online-users', function () {
             return \App\Models\User::query()
                 ->select('id', 'name', 'email', 'role', 'avatar_path', 'current_session_id')

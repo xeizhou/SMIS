@@ -1,6 +1,6 @@
 import { router, Link, useForm } from '@inertiajs/react';
 import { RefreshCw, User, CalendarDays, ClipboardList, Package, ArrowRight, MessageSquarePlus, Phone, Mail, Loader2, CheckCircle2, Filter, ArrowDownWideNarrow, ArrowUpNarrowWide, Check, Plus, X } from 'lucide-react';
-import { dueDeliveriesHighlight } from './dueDeliveriesHighlight';
+import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import {
@@ -331,7 +331,7 @@ export function DueDeliveries({ deliveries }: Props) {
                                     <div className="flex justify-end pt-2">
                                         <Link 
                                             href={`/deliveries?highlight_id=${item.delivery_id}`}
-                                            onClick={() => dueDeliveriesHighlight(item.delivery_id.toString(), '/deliveries')}
+                                            onClick={() => auditLogsHighlight(item.delivery_id.toString(), '/deliveries')}
                                             className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 hover:bg-red-800 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors focus-visible:outline-none"
                                         >
                                             Go to <ArrowRight className="size-4" />
