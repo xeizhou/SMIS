@@ -1,14 +1,14 @@
-import { AnimatedTableRow } from '@/components/animated-table-row';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
 import { buildFilterUrl } from '@/lib/filterUrl';
+import { cn } from '@/lib/utils';
 
 export interface ColumnDef<T> {
     key: string;
     label: string;
     sortable?: boolean;
     width?: string;
-    render?: (item: T) => React.ReactNode; 
+    render?: (item: T) => React.ReactNode;
 }
 
 interface SortableTableProps<T> {
@@ -16,28 +16,34 @@ interface SortableTableProps<T> {
     columns: ColumnDef<T>[];
     sortField?: string;
     sortDirection?: 'asc' | 'desc';
-    url: string; 
+    url: string;
     currentFilters?: Record<string, any>;
     emptyMessage?: string;
+    /**
+     * Return a stable, unique string/number ID for a row.
+     * When provided, the rendered <tr> gets a `data-record-id` attribute so
+     * auditLogsHighlight can find and yellow-flash it after navigation.
+     */
+    getRowId?: (item: T) => string | number;
 }
 
-export default function SortableTable<T>({ 
-    data, 
-    columns, 
-    sortField, 
-    sortDirection, 
-    url, 
+export default function SortableTable<T>({
+    data,
+    columns,
+    sortField,
+    sortDirection,
+    url,
     currentFilters = {},
-    emptyMessage = "No records found."
+    emptyMessage = 'No records found.',
+    getRowId,
 }: SortableTableProps<T>) {
 
     const handleSort = (field: string) => {
         const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
-
         router.get(
             url,
             buildFilterUrl({ ...currentFilters, sort_field: field, sort_direction: direction }),
-            { preserveState: true, preserveScroll: true, replace: true }
+            { preserveState: true, preserveScroll: true, replace: true },
         );
     };
 
@@ -60,7 +66,6 @@ export default function SortableTable<T>({
                                         onClick={() => handleSort(col.key)}
                                     >
                                         {col.label}
-                                        {/* ALL ARROWS HAVE BEEN REMOVED HERE */}
                                     </button>
                                 ) : (
                                     <div className="px-4 py-3 text-left">{col.label}</div>
@@ -78,17 +83,18 @@ export default function SortableTable<T>({
                         </tr>
                     ) : (
                         data.map((item, rowIndex) => (
-                            <AnimatedTableRow
+                            <tr
                                 key={`${sortField ?? 'default'}-${sortDirection ?? 'default'}-${rowIndex}`}
-                                index={rowIndex}
-                                className="border-b transition-colors hover:bg-muted/40"
+                                className={cn('border-b transition-colors hover:bg-muted/40 animate-row-in')}
+                                style={{ animationDelay: `${rowIndex * 30}ms` }}
+                                {...(getRowId ? { 'data-record-id': String(getRowId(item)) } : {})}
                             >
                                 {columns.map((col) => (
                                     <td key={col.key} className="px-4 py-3 truncate">
                                         {col.render ? col.render(item) : (item as any)[col.key] || '—'}
                                     </td>
                                 ))}
-                            </AnimatedTableRow>
+                            </tr>
                         ))
                     )}
                 </tbody>

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from '@/components/ui/button';
-import { notificationsHighlight } from '../pages/notificationsHighlight';
+import { auditLogsHighlight } from '../pages/audit-logs/auditLogsHighlight';
 
 export type NotificationPanelProps = {
     userNotifications?: any[];
@@ -312,9 +312,9 @@ export function NotificationPanel({ userNotifications, deliveries, recentDeliver
                                             const highlightId = url.searchParams.get('highlight_id');
                                             const highlightSearch = url.searchParams.get('highlight_search');
                                             if (highlightId) {
-                                                notificationsHighlight(highlightId, url.pathname);
+                                                auditLogsHighlight(highlightId, url.pathname);
                                             } else if (highlightSearch) {
-                                                notificationsHighlight(highlightSearch, url.pathname);
+                                                auditLogsHighlight(highlightSearch, url.pathname);
                                             }
                                         } catch (e) {
                                             console.error("Failed to parse notification URL for highlight", e);

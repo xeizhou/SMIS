@@ -172,6 +172,7 @@ export default function Index({ offices, filters }: Props) {
                     url="/offices"
                     currentFilters={{ search, per_page: filters.per_page }}
                     emptyMessage="No offices added yet."
+                    getRowId={(office) => office.office_code}
                 />
 
                 {/* Pagination */}

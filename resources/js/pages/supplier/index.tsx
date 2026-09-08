@@ -223,6 +223,7 @@ export default function Index({ suppliers, filters }: Props) {
                     url="/supplier"
                     currentFilters={{ search, status }}
                     emptyMessage="No suppliers added yet."
+                    getRowId={(supplier) => supplier.supplier_id}
                 />
 
                 {suppliers.data.length > 0 && (

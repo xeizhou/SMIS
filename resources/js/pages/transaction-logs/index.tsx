@@ -39,6 +39,8 @@ interface StockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
+    fund_cluster_id: string | null;
+    available_stock?: number;
     units?: {
         unitID: number;
         pivot?: {
@@ -385,6 +387,7 @@ export default function Index({
                                     <AnimatedTableRow
                                         key={tx.transactionID}
                                         index={index}
+                                        data-record-id={tx.transactionID}
                                         className="border-b transition-colors hover:bg-muted/40"
                                     >
                                         <td className="px-4 py-3 truncate">

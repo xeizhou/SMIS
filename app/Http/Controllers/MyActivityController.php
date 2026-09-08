@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
-class AuditLogsController extends Controller
+class MyActivityController extends Controller
 {
     private function resolveReference($module, $action, $targetUrl)
     {
@@ -55,37 +56,89 @@ class AuditLogsController extends Controller
             return $id;
         }
     }
-    /**
-     * Display the Audit Logs page.
-     */
     public function index(Request $request)
     {
         $perPage = $request->integer('per_page', 10);
         $search = $request->input('search');
-        $role = $request->input('role');
+        $moduleFilter = $request->input('module');
+        $actionFilter = $request->input('action');
+        $dateRange = $request->input('date_range'); // 'today', '7days', '30days', 'all'
+        
+        $userId = Auth::id();
 
-        $query = AuditLog::with('user')
+        // Get distinct actions for this user for the dropdown
+        $userActions = AuditLog::where('userID', $userId)
+            ->select('action')
+            ->distinct()
+            ->pluck('action')
+            ->unique()
+            ->filter()
+            ->values();
+
+        $query = AuditLog::where('userID', $userId)
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('action', 'like', "%{$search}%")
-                        ->orWhere('auditLogID', 'like', "%{$search}%")
-                        ->orWhereHas('user', function ($uq) use ($search) {
-                            $uq->where('name', 'like', "%{$search}%");
-                        });
+                      ->orWhere('auditLogID', 'like', "%{$search}%");
                 });
             })
-            ->when($role && $role !== 'All', function ($query, $role) {
-                $query->where('role', $role);
+            ->when($moduleFilter && $moduleFilter !== 'All', function ($query, $module) {
+                $mappedAction = match ($module) {
+                    'Delivery Monitoring', 'Delivery' => 'Delivery',
+                    'RRSP' => 'RRSP',
+                    'RRPPE' => 'RRPPE',
+                    'RegSPI' => 'RegSPI',
+                    'ITRPTR' => 'ITRPTR',
+                    'For Disposal' => 'For Disposal',
+                    'Bona Vida' => 'Bona Vida',
+                    'Purchase Orders' => 'Purchase Orders',
+                    'PO Letter' => 'PO Letter',
+                    'Suppliers' => 'Supplier',
+                    'FundClusters' => 'Fund Clusters',
+                    'EmployeeFileLocator' => 'Employee File Locator',
+                    'Offices' => 'Offices',
+                    'Clearance' => 'Clearance',
+                    'StockItems' => 'Stock Items',
+                    'Units' => 'Units',
+                    'Transactions' => 'Transactions',
+                    default => null,
+                };
+
+                if ($mappedAction) {
+                    $query->where('action', 'like', "%{$mappedAction}%");
+                } elseif ($module === 'System Audit Logs') {
+                    $query->where(function ($q) {
+                        $q->where('action', 'like', '%Audit Log%')
+                          ->orWhere('action', 'like', '%Force Cleanup%');
+                    });
+                } elseif ($module === 'Notifications') {
+                    $query->where(function ($q) {
+                        $q->where('action', 'like', '%Notification%')
+                          ->orWhere('action', 'like', '%Force Send%');
+                    });
+                } else {
+                    $query->where('action', 'like', "%{$module}%");
+                }
+            })
+            ->when($actionFilter && $actionFilter !== 'All', function ($query, $action) {
+                $query->where('action', 'like', "{$action}%");
+            })
+            ->when($dateRange && $dateRange !== 'All', function ($query, $date) {
+                match ($date) {
+                    'Today' => $query->whereDate('log_timestamp', today()),
+                    'Last 7 Days' => $query->where('log_timestamp', '>=', now()->subDays(7)),
+                    'Last 30 Days' => $query->where('log_timestamp', '>=', now()->subDays(30)),
+                    default => null,
+                };
             })
             ->orderBy('log_timestamp', 'desc');
 
         $logs = $query->paginateWithHighlight($perPage)->withQueryString();
 
-
-        // Map the items to a more frontend-friendly format
         $logs->getCollection()->transform(function ($log) {
             $actionLower = strtolower($log->action);
             
+            // Try to extract module from action
             $module = match (true) {
                 str_contains($actionLower, 'delivery') => 'Delivery Monitoring',
                 str_contains($actionLower, 'rrsp') => 'RRSP',
@@ -109,26 +162,29 @@ class AuditLogsController extends Controller
                 default => 'Other',
             };
             
+            // Try to extract reference
             $reference = $this->resolveReference($module, $log->action, $log->target_url);
 
             return [
                 'log_id' => $log->auditLogID,
                 'timestamp' => $log->log_timestamp->format('M d, Y h:i A'),
-                'user' => $log->user ? $log->user->name : 'Unknown',
-                'avatar_url' => $log->user ? $log->user->avatar_url : null,
-                'role' => $log->role,
                 'module' => $module,
-                'reference' => $reference,
                 'action' => $log->action,
+                'reference' => $reference,
+                'description' => $log->action,
                 'target_url' => $log->target_url ? str_replace('search=', 'highlight_search=', $log->target_url) : null,
             ];
         });
 
-        return Inertia::render('audit-logs/index', [
+        return Inertia::render('my-activity/index', [
             'logs' => $logs,
+            'userActions' => $userActions,
             'filters' => [
                 'search' => $search ?? '',
-                'role' => $role ?? 'All',
+                'module' => $moduleFilter ?? 'All',
+                'action' => $actionFilter ?? 'All',
+                'date_range' => $dateRange ?? 'All Time',
+                'per_page' => $perPage,
             ],
         ]);
     }

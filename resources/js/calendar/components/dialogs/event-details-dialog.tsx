@@ -6,7 +6,7 @@ import type { IEvent } from "@/calendar/interfaces";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Link } from "@inertiajs/react";
-import { calendarHighlight } from "../../../pages/calendar/calendarHighlight";
+import { auditLogsHighlight } from "@/pages/audit-logs/auditLogsHighlight";
 
 import { formatDate } from "@/lib/date-formats";
 import { getDateLocale } from "@/lib/date-locale";
@@ -76,7 +76,7 @@ export function EventDetailsDialog({ event, children }: IProps) {
           <DialogFooter className="pt-2">
             <Link 
                 href={`/deliveries?highlight_id=${event.id}`}
-                onClick={() => calendarHighlight(event.id.toString(), '/deliveries')}
+                onClick={() => auditLogsHighlight(event.id.toString(), '/deliveries')}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 hover:bg-red-800 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors focus-visible:outline-none w-full sm:w-auto"
             >
                 Go to <ArrowRight className="size-4" />

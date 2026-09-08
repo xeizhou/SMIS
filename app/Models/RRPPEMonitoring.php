@@ -26,6 +26,10 @@ class RRPPEMonitoring extends Model
         return $this->hasMany(RrppeItem::class, 'rrppe_monitoring_id');
     }
 
+    protected $casts = [
+        'date_received' => 'date',
+    ];
+
     public function getActivityUrl()
     {
         return route('rrppe-monitoring.index') . '?highlight_id=' . $this->getKey();

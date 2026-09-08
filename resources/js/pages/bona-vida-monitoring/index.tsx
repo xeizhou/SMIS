@@ -254,6 +254,7 @@ export default function Index({ records, filters, offices }: Props) {
                     url="/bona-vida-monitoring"
                     currentFilters={{ search, office_code: officeCode === 'all' ? '' : officeCode }}
                     emptyMessage="No Bona Vida records added yet."
+                    getRowId={(record) => record.bvm_id}
                 />
 
                 {records.data.length > 0 && (

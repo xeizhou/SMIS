@@ -287,6 +287,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                         <AnimatedTableRow
                                             key={item.stock_no ?? `${item.item_name}-${index}`}
                                             index={index}
+                                            data-record-id={item.stock_no}
                                             className="border-b"
                                         >
                                             <td className="px-4 py-3">
