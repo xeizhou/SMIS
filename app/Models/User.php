@@ -53,9 +53,15 @@ class User extends Authenticatable implements PasskeyUser
         ];
     }
 
-    public function getAvatarUrlAttribute()
+    public function getAvatarUrlAttribute(): ?string
     {
-        return $this->avatar_path ? route('avatar.show', $this->id) : null;
+        if (! $this->avatar_path || ! Storage::disk('public')->exists($this->avatar_path)) {
+            return null;
+        }
+
+        $lastModified = Storage::disk('public')->lastModified($this->avatar_path);
+
+        return route('avatar.show', $this->id) . '?v=' . $lastModified;
     }
 
     public function isAdmin(): bool
