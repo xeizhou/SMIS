@@ -17,7 +17,7 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Printer, FileText, FileSpreadsheet, Upload, Archive } from 'lucide-react';
+import { Printer, FileText, FileSpreadsheet, Upload, Archive, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import ImportDataModal from '@/components/stock-reports/ImportDataModal';
 import BackupModal from '@/components/stock-reports/BackupModal';
@@ -111,8 +111,13 @@ export default function Index({ items, fundClusters, filters }: Props) {
         return `${path}?${params.toString()}`;
     };
 
+    const [isPrinting, setIsPrinting] = useState(false);
+
     const handlePrint = () => {
-        printUrl(buildExportUrl('/stock-reports/print'));
+        printUrl(buildExportUrl('/stock-reports/print'), {
+            onStart: () => setIsPrinting(true),
+            onEnd: () => setIsPrinting(false),
+        });
     };
 
     const requestConfirm = (action: Exclude<ConfirmAction, null>) => {
@@ -227,9 +232,14 @@ export default function Index({ items, fundClusters, filters }: Props) {
                         type="button"
                         className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
                         onClick={handlePrint}
+                        disabled={isPrinting}
                     >
-                        <Printer className="size-4" />
-                        Print
+                        {isPrinting ? (
+                            <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                            <Printer className="size-4" />
+                        )}
+                        {isPrinting ? 'Preparing...' : 'Print'}
                     </Button>
                     <Button
                         type="button"
@@ -249,7 +259,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                     </Button>
                 </div>
             </form>
-
+            
                 {/* Report Body */}
                 <div className="rounded-xl border border-border bg-card p-6">
                     <h2 className="text-center text-lg font-bold uppercase text-foreground">
