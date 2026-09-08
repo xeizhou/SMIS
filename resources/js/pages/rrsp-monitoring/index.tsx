@@ -185,93 +185,95 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
         <>
             <Head title="RRSP Monitoring" />
 
-            <div className="p-4 space-y-6 sm:p-6">
-                {/* Header */}
-                <div className="relative sticky top-16 group-has-data-[collapsible=icon]/sidebar-wrapper:top-12 transition-[all] ease-linear z-30 -mx-4 -mt-4 mb-6 bg-background/95 backdrop-blur px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">
-                            RRSP Monitoring
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Manage and track all Report of Receipts of Semi-Expendable Property
-                        </p>
+            <div className="flex flex-col h-[calc(100vh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
+                {/* Sticky Header & Search */}
+                <div className="shrink-0 relative z-30 -mx-4 -mt-4 bg-background/95 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-4">
+                    {/* Header */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">
+                                RRSP Monitoring
+                            </h1>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Manage and track all Report of Receipts of Semi-Expendable Property
+                            </p>
+                        </div>
+                        <div className="bg-muted/50 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
+                            <Link
+                                href="/rrsp-monitoring"
+                                preserveState
+                                className="bg-background text-foreground shadow-sm inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                            >
+                                RRSP Records
+                            </Link>
+                            <Link
+                                href="/rrsp-monitoring/areas"
+                                className="text-muted-foreground hover:text-foreground inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                            >
+                                Area Records
+                            </Link>
+                        </div>
                     </div>
-                    <div className="bg-muted/50 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
-                        <Link
-                            href="/rrsp-monitoring"
-                            preserveState
-                            className="bg-background text-foreground shadow-sm inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+
+                    {/* Search & Actions */}
+                    <form
+                        onSubmit={handleSearch}
+                        className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+                    >
+                        <div className="flex flex-wrap gap-2 flex-1">
+                            <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
+                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search RRSP No, item, property no"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9"
+                                />
+                            </div>
+
+                            <Select value={status} onValueChange={handleStatusChange}>
+                                <SelectTrigger className={`w-[200px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
+                                    <SelectValue placeholder="Filter by Statuses" />
+                                </SelectTrigger>
+
+                                <SelectContent>
+                                    <SelectItem value="all">Filter by Statuses</SelectItem>
+                                    {STATUS_OPTIONS.map((s) => (
+                                        <SelectItem key={s} value={s}>
+                                            {s}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Button type="submit" variant="secondary">
+                                Search
+                            </Button>
+
+                            <Button type="button" variant="ghost" onClick={handleClear}>
+                                Clear
+                            </Button>
+                        </div>
+
+                        <Button
+                            type="button"
+                            onClick={() => setAddDialogOpen(true)}
+                            className="w-full lg:w-auto"
+                            style={{ backgroundColor: '#612A35' }}
                         >
-                            RRSP Records
-                        </Link>
-                        <Link
-                            href="/rrsp-monitoring/areas"
-                            className="text-muted-foreground hover:text-foreground inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
-                        >
-                            Area Records
-                        </Link>
-                    </div>
+                            Add RRSP
+                        </Button>
+                    </form>
+
                     {/* Horizontal fading border */}
                     <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
                 </div>
 
-                {/* Search & Actions */}
-                <form
-                    onSubmit={handleSearch}
-                    className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
-                >
-                    <div className="flex flex-wrap gap-2 flex-1">
-                        <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search RRSP No, item, property no"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
-                            />
-                        </div>
-
-                        <Select value={status} onValueChange={handleStatusChange}>
-                            <SelectTrigger className={`w-[200px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Statuses" />
-                            </SelectTrigger>
-
-                            <SelectContent>
-                                <SelectItem value="all">Filter by Statuses</SelectItem>
-                                {STATUS_OPTIONS.map((s) => (
-                                    <SelectItem key={s} value={s}>
-                                        {s}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        <Button type="submit" variant="secondary">
-                            Search
-                        </Button>
-
-                        <Button type="button" variant="ghost" onClick={handleClear}>
-                            Clear
-                        </Button>
-                    </div>
-
-                    <Button
-                        type="button"
-                        onClick={() => setAddDialogOpen(true)}
-                        className="w-full lg:w-auto"
-                        style={{ backgroundColor: '#612A35' }}
-                    >
-                        Add RRSP
-                    </Button>
-                </form>
-
                     {/* Table */}
-                    <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden">
-                        <table className="w-full text-sm">
-                            <thead
-                                className="border-b"
-                                style={{ backgroundColor: '#370001' }}
-                            >
+                    <div className="flex-1 min-h-0 flex flex-col gap-6">
+                    <div className="flex-initial min-h-0 overflow-x-auto overflow-y-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                                 <tr>
                                     {['RRSP No', 'Item Name', 'Property No', 'End User', 'Return By', 'Area', 'Date Received', 'Qty', 'Status'].map((label, index) => <th key={label} className="p-0 text-left font-semibold text-white"><button type="button" onClick={() => handleSort(['rrsp_no', 'rrsp_no', 'rrsp_no', 'end_user_name', 'return_by', 'rrsp_no', 'date_received', 'rrsp_no', 'rrsp_no'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
                                     <th className="px-4 py-3 text-center font-semibold text-white">
@@ -396,14 +398,14 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                                     })
                                 )}
                         </table>
-                        <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-
-                {rrspMonitorings.data.length > 0 && (
-                    <div className="p-4">
-                        <Pagination meta={rrspMonitorings} />
                     </div>
-                )}
+
+                    {rrspMonitorings.data.length > 0 && (
+                        <div className="shrink-0">
+                            <Pagination meta={rrspMonitorings} />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <RrspAddForm

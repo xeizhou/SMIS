@@ -115,104 +115,110 @@ export default function Areas({ areas, filters }: Props) {
         <>
             <Head title="RRSP Area Records" />
 
-            <div className="p-4 space-y-6 sm:p-6">
-                {/* Header */}
-                <div className="relative sticky top-16 group-has-data-[collapsible=icon]/sidebar-wrapper:top-12 transition-[all] ease-linear z-30 -mx-4 -mt-4 mb-6 bg-background/95 backdrop-blur px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">
-                            Area Settings
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Manage the list of areas available for RRSP Records.
-                        </p>
+            <div className="flex flex-col h-[calc(100vh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
+                {/* Sticky Header & Search */}
+                <div className="shrink-0 relative z-30 -mx-4 -mt-4 bg-background/95 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-4">
+                    {/* Header */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">
+                                Area Settings
+                            </h1>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Manage the list of areas available for RRSP Records.
+                            </p>
+                        </div>
+                        <div className="bg-muted/50 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
+                            <Link
+                                href="/rrsp-monitoring"
+                                className="text-muted-foreground hover:text-foreground inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                            >
+                                RRSP Records
+                            </Link>
+                            <Link
+                                href="/rrsp-monitoring/areas"
+                                preserveState
+                                className="bg-background text-foreground shadow-sm inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                            >
+                                Area Settings
+                            </Link>
+                        </div>
                     </div>
-                    <div className="bg-muted/50 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
-                        <Link
-                            href="/rrsp-monitoring"
-                            className="text-muted-foreground hover:text-foreground inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
-                        >
-                            RRSP Records
-                        </Link>
-                        <Link
-                            href="/rrsp-monitoring/areas"
-                            preserveState
-                            className="bg-background text-foreground shadow-sm inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
-                        >
-                            Area Settings
-                        </Link>
+
+                    {/* Search & Actions */}
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <form onSubmit={handleSearch} className="flex flex-wrap gap-2 flex-1">
+                            <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
+                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search Area"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9"
+                                />
+                            </div>
+                            <Button type="submit" variant="secondary">Search</Button>
+                            {search && (
+                                <Button type="button" variant="ghost" onClick={() => { setSearch(''); router.get('/rrsp-monitoring/areas'); }}>
+                                    Clear
+                                </Button>
+                            )}
+                        </form>
+                        <Button onClick={openAddModal} style={{ backgroundColor: '#612A35' }}>
+                            + Add Area
+                        </Button>
                     </div>
+
                     <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
                 </div>
 
-                {/* Search & Actions */}
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <form onSubmit={handleSearch} className="flex flex-wrap gap-2 flex-1">
-                        <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search Area"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
-                            />
-                        </div>
-                        <Button type="submit" variant="secondary">Search</Button>
-                        {search && (
-                            <Button type="button" variant="ghost" onClick={() => { setSearch(''); router.get('/rrsp-monitoring/areas'); }}>
-                                Clear
-                            </Button>
-                        )}
-                    </form>
-                    <Button onClick={openAddModal} style={{ backgroundColor: '#612A35' }}>
-                        + Add Area
-                    </Button>
-                </div>
-
                 {/* Table */}
-                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden">
-                    <table className="w-full text-sm">
-                        <thead className="border-b" style={{ backgroundColor: '#370001' }}>
-                            <tr>
-                                <th className="px-4 py-3 text-left font-semibold text-white">Area Name</th>
-                                <th className="px-4 py-3 text-center font-semibold text-white w-32">Actions</th>
-                            </tr>
-                        </thead>
-                        {areas.data.length === 0 ? (
-                            <tbody>
+                <div className="flex-1 min-h-0 flex flex-col gap-6">
+                    <div className="flex-initial min-h-0 overflow-x-auto overflow-y-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+                        <table className="w-full text-sm whitespace-nowrap">
+                            <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                                 <tr>
-                                    <td colSpan={3} className="px-6 py-16 text-center text-muted-foreground">
-                                        No area records found.
-                                    </td>
+                                    <th className="px-4 py-3 text-left font-semibold text-white">Area Name</th>
+                                    <th className="px-4 py-3 text-center font-semibold text-white w-32">Actions</th>
                                 </tr>
-                            </tbody>
-                        ) : (
-                            <tbody>
-                                {areas.data.map((area) => (
-                                    <tr data-record-id={area.id} data-search-0={area.name} className="border-b border-border/50 hover:bg-muted/40 transition-colors">
-                                        <td className="px-4 py-3 font-medium">{area.name}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <button onClick={() => openEditModal(area)} className="text-blue-600 hover:text-blue-800">
-                                                    <Pencil className="size-4" />
-                                                </button>
-                                                <button onClick={() => openDeleteModal(area)} className="text-red-600 hover:text-red-800">
-                                                    <Trash2 className="size-4" />
-                                                </button>
-                                            </div>
+                            </thead>
+                            {areas.data.length === 0 ? (
+                                <tbody>
+                                    <tr>
+                                        <td colSpan={3} className="px-6 py-16 text-center text-muted-foreground">
+                                            No area records found.
                                         </td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        )}
-                    </table>
-                    <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-
-                {areas.data.length > 0 && (
-                    <div className="p-4">
-                        <Pagination meta={areas} />
+                                </tbody>
+                            ) : (
+                                <tbody>
+                                    {areas.data.map((area) => (
+                                        <tr key={area.id} data-record-id={area.id} data-search-0={area.name} className="border-b border-border/50 hover:bg-muted/40 transition-colors">
+                                            <td className="px-4 py-3 font-medium">{area.name}</td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center justify-center gap-3">
+                                                    <button onClick={() => openEditModal(area)} className="text-blue-600 hover:text-blue-800">
+                                                        <Pencil className="size-4" />
+                                                    </button>
+                                                    <button onClick={() => openDeleteModal(area)} className="text-red-600 hover:text-red-800">
+                                                        <Trash2 className="size-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            )}
+                        </table>
                     </div>
-                )}
+
+                    {areas.data.length > 0 && (
+                        <div className="shrink-0">
+                            <Pagination meta={areas} />
+                        </div>
+                    )}
+                </div>
+
             </div>
 
             {/* Add Modal */}

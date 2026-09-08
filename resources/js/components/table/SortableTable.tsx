@@ -1,4 +1,4 @@
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+
 import { router } from '@inertiajs/react';
 import { buildFilterUrl } from '@/lib/filterUrl';
 import { cn } from '@/lib/utils';
@@ -48,14 +48,14 @@ export default function SortableTable<T>({
     };
 
     return (
-        <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden">
+        <div className="flex-initial min-h-0 overflow-x-auto overflow-y-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
             <table className="w-full text-sm table-fixed">
                 <colgroup>
                     {columns.map((col, idx) => (
                         <col key={idx} className={col.width} />
                     ))}
                 </colgroup>
-                <thead className="border-b">
+                <thead className="border-b sticky top-0 z-20">
                     <tr>
                         {columns.map((col) => (
                             <th key={col.key} className="p-0 font-semibold text-white bg-[#370001]">
@@ -99,7 +99,6 @@ export default function SortableTable<T>({
                     )}
                 </tbody>
             </table>
-            <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
     );
 }
