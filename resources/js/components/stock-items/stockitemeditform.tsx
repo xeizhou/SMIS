@@ -19,6 +19,13 @@ import {
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 interface Unit {
@@ -328,17 +335,27 @@ export default function StockItemEditForm({
                                     
                                     {/* Add the Fund Cluster Select Field */}
                                     <div className="md:col-span-1">
-                                        <SearchableSelect
-                                            label="Fund Cluster"
+                                        <label className={labelClass}>
+                                            Fund Cluster
+                                        </label>
+                                        <Select
                                             value={data.fund_cluster_id}
-                                            onChange={(val) => setData({ ...data, fund_cluster_id: val })}
-                                            placeholder="Select Fund Cluster..."
-                                            options={fundClusters.map((fc) => ({
-                                                value: fc.fund_cluster_id,
-                                                label: `${fc.fund_cluster_id} - ${fc.fund_description}`,
-                                            }))}
-                                            error={errors.fund_cluster_id}
-                                        />
+                                            onValueChange={(val) => setData({ ...data, fund_cluster_id: val })}
+                                        >
+                                            <SelectTrigger className={cn('w-full', errors.fund_cluster_id && 'border-red-500')}>
+                                                <SelectValue placeholder="Select Fund Cluster..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {fundClusters.map((fc) => (
+                                                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
+                                                        {fc.fund_cluster_id}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {errors.fund_cluster_id && (
+                                            <p className="mt-1 text-xs text-red-500">{errors.fund_cluster_id}</p>
+                                        )}
                                     </div>
                                     
                                     <div className="md:col-span-1">

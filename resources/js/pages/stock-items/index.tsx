@@ -201,7 +201,7 @@ export default function Index({
                                 </SelectItem>
                                 {fundClusters.map((fc) => (
                                     <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
-                                        {fc.fund_cluster_id} - {fc.fund_description}
+                                        {fc.fund_cluster_id}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
