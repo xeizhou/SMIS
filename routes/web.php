@@ -573,6 +573,9 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/stock-reports/export-excel', [StockReportsController::class, 'exportExcel'])->name('stock-reports.export-excel');
     Route::get('/stock-items/print-cards-html', [StockItemsListController::class, 'printCardsView'])->name('stock-items.print-cards-html');
 
+    Route::get('/import/{import}/status', [ImportController::class, 'status'])->name('import.status');
+    Route::post('/import/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.cancel');
+
     Route::get('/import/template/{type}', [ImportController::class, 'template'])->name('import.template');
     Route::post('/import/items', [ImportController::class, 'items'])->name('import.items');
     Route::post('/import/units', [ImportController::class, 'units'])->name('import.units');
