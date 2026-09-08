@@ -398,47 +398,28 @@ class StockItemDashboardController extends Controller
         ]);
 
         $low = 0;
-
         $out = 0;
 
         foreach ($items as $item) {
-            $balance = $balances
-                ->get($item->stock_no)
-                ->balance ?? 0;
+            $balance = $balances->get($item->stock_no)->balance ?? 0;
 
             if ($balance <= 0) {
                 $out++;
-            } elseif (
-                $balance < ($item->reorder_point ?? 10)
-            ) {
+            } elseif ($balance < ($item->reorder_point ?? 10)) {
                 $low++;
             }
         }
 
         return [
             'total_items' => $items->count(),
-
-            'total_stock_on_hand' => (int) $balances->sum(
-                'balance'
-            ),
-
+            'total_stock_on_hand' => (int) $balances->sum('balance'),
             'low_stock_count' => $low,
-
             'out_of_stock_count' => $out,
-
-            'transactions_today' => Transaction::whereDate(
-                'transaction_date',
-                today()
-            )->count(),
-
-            'transactions_this_week' => Transaction::where(
-                'transaction_date',
-                '>=',
-                now()->startOfWeek()
-            )->count(),
+            'pending_setup_count' => StockItem::where('is_pending_setup', true)->count(), // NEW
+            'transactions_today' => Transaction::whereDate('transaction_date', today())->count(),
+            'transactions_this_week' => Transaction::where('transaction_date', '>=', now()->startOfWeek())->count(),
         ];
     }
-
     /**
      * Calculate balances grouped by stock_no.
      *

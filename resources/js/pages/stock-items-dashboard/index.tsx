@@ -17,6 +17,7 @@ import {
     TrendingUp,
     AreaChart as AreaChartIcon,
     GitCompareArrows,
+    ClipboardList,
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
@@ -78,6 +79,7 @@ type Kpis = {
     total_stock_on_hand: number;
     low_stock_count: number;
     out_of_stock_count: number;
+    pending_setup_count: number;
     transactions_today: number;
     transactions_this_week: number;
 };
@@ -340,7 +342,7 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
                 </div>
 
                 {/* KPI strip */}
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
                     <AnimatedKpiCard
                         icon={<Boxes className="size-4" />}
                         label="Total Stock Items"
@@ -373,6 +375,15 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
                         tone={kpis.out_of_stock_count > 0 ? 'danger' : 'default'}
                         onClick={() => handleKpiClick('out')}
                         index={3}
+                        brandColor={BRAND}
+                    />
+                    <AnimatedKpiCard
+                        icon={<ClipboardList className="size-4" />}
+                        label="Pending Setup"
+                        value={kpis.pending_setup_count}
+                        tone={kpis.pending_setup_count > 0 ? 'warn' : 'default'}
+                        onClick={() => router.visit('/stock-items?needs_attention=1')}
+                        index={4}
                         brandColor={BRAND}
                     />
                 </div>
