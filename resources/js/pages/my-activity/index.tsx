@@ -9,7 +9,10 @@ import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
+    SelectSeparator,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -120,17 +123,50 @@ export default function Index({ logs, userActions, filters }: Props) {
                         </div>
 
                         <Select value={moduleFilter} onValueChange={setModuleFilter}>
-                            <SelectTrigger className={`w-full sm:w-[180px] ${moduleFilter === 'All' ? 'text-muted-foreground' : ''}`}>
+                            <SelectTrigger className={`w-full sm:w-[220px] ${moduleFilter === 'All' ? 'text-muted-foreground' : ''}`}>
                                 <SelectValue placeholder="Module" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="All">All Modules</SelectItem>
-                                <SelectItem value="Delivery Monitoring">Delivery Monitoring</SelectItem>
-                                <SelectItem value="RRSP">RRSP</SelectItem>
-                                <SelectItem value="RRPPE">RRPPE</SelectItem>
-                                <SelectItem value="System Audit Logs">System Audit Logs</SelectItem>
-                                <SelectItem value="Notifications">Notifications</SelectItem>
-                                <SelectItem value="Transaction Logs">Transaction Logs</SelectItem>
+                                <SelectSeparator />
+                                <SelectGroup>
+                                    <SelectLabel>ASSETS</SelectLabel>
+                                    <SelectItem value="RRPPE Monitoring">RRPPE Monitoring</SelectItem>
+                                    <SelectItem value="RRSP Monitoring">RRSP Monitoring</SelectItem>
+                                    <SelectItem value="RegSPI Monitoring">RegSPI Monitoring</SelectItem>
+                                    <SelectItem value="ITR PTR">ITR PTR</SelectItem>
+                                    <SelectItem value="For Disposal">For Disposal</SelectItem>
+                                    <SelectItem value="Bona Vida">Bona Vida</SelectItem>
+                                </SelectGroup>
+                                <SelectSeparator />
+                                <SelectGroup>
+                                    <SelectLabel>PROCUREMENT</SelectLabel>
+                                    <SelectItem value="Purchase Order">Purchase Order</SelectItem>
+                                    <SelectItem value="PO Letter Monitoring">PO Letter Monitoring</SelectItem>
+                                    <SelectItem value="Delivery">Delivery</SelectItem>
+                                    <SelectItem value="Supplier List">Supplier List</SelectItem>
+                                    <SelectItem value="Fund Clusters">Fund Clusters</SelectItem>
+                                </SelectGroup>
+                                <SelectSeparator />
+                                <SelectGroup>
+                                    <SelectLabel>PERSONNEL FILES</SelectLabel>
+                                    <SelectItem value="Employee File Locator">Employee File Locator</SelectItem>
+                                    <SelectItem value="Offices">Offices</SelectItem>
+                                    <SelectItem value="Clearance">Clearance</SelectItem>
+                                </SelectGroup>
+                                <SelectSeparator />
+                                <SelectGroup>
+                                    <SelectLabel>STOCK CARDS</SelectLabel>
+                                    <SelectItem value="Stock Items">Stock Items</SelectItem>
+                                    <SelectItem value="Units">Units</SelectItem>
+                                    <SelectItem value="Transactions">Transactions</SelectItem>
+                                </SelectGroup>
+                                <SelectSeparator />
+                                <SelectGroup>
+                                    <SelectLabel>SYSTEM</SelectLabel>
+                                    <SelectItem value="System Audit Logs">System Audit Logs</SelectItem>
+                                    <SelectItem value="Notifications">Notifications</SelectItem>
+                                </SelectGroup>
                             </SelectContent>
                         </Select>
 

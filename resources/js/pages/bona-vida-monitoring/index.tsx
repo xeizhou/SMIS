@@ -60,13 +60,13 @@ interface Props {
 export default function Index({ records, filters, offices }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [officeCode, setOfficeCode] = useState(filters.office_code ?? 'all');
-    
+
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isViewOpen, setIsViewOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
-    
+
     const [selectedRecord, setSelectedRecord] = useState<BonaVidaRecord | null>(null);
 
     const updateFilters = (newSearch: string, newOfficeCode: string) => {
@@ -187,81 +187,90 @@ export default function Index({ records, filters, offices }: Props) {
         <>
             <Head title="Bona Vida Monitoring" />
 
-            <div className="p-4 space-y-6 sm:p-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">Bona Vida Monitoring</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">Manage Bona Vida monitoring records.</p>
+            <div className="flex flex-col h-[calc(100vh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
+                {/* Header & Search */}
+                <div className="shrink-0 relative z-30 -mx-4 -mt-4 bg-background/95 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-4">
+                    {/* Header */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">Bona Vida Monitoring</h1>
+                            <p className="mt-1 text-sm text-muted-foreground">Manage Bona Vida monitoring records.</p>
+                        </div>
                     </div>
-                </div>
 
-                <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex flex-wrap gap-2 flex-1">
-                        <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search by invoice no or remarks"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
-                            />
+                    {/* Search & Actions */}
+                    <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex flex-wrap gap-2 flex-1">
+                            <div className="relative w-full max-w-sm">
+                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search by invoice no or remarks"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9"
+                                />
+                            </div>
+
+                            <Select value={officeCode} onValueChange={handleOfficeChange}>
+                                <SelectTrigger className={`w-[180px] ${officeCode === 'all' ? 'text-muted-foreground' : ''}`}>
+                                    <SelectValue placeholder="All Offices" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Offices</SelectItem>
+                                    {offices.map((office) => (
+                                        <SelectItem key={office.office_code} value={office.office_code}>
+                                            {office.office_name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Button type="submit" variant="secondary">Search</Button>
+                            <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
                         </div>
 
-                        <Select value={officeCode} onValueChange={handleOfficeChange}>
-                            <SelectTrigger className={`w-[180px] ${officeCode === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="All Offices" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Offices</SelectItem>
-                                {offices.map((office) => (
-                                    <SelectItem key={office.office_code} value={office.office_code}>
-                                        {office.office_name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-col gap-2 w-full lg:w-auto lg:flex-row">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => setIsSummaryOpen(true)}
+                                className="w-full lg:w-auto"
+                            >
+                                Summary
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => setIsAddOpen(true)}
+                                className="w-full lg:w-auto"
+                                style={{ backgroundColor: '#612A35' }}
+                            >
+                                Add Bona Vida Record
+                            </Button>
+                        </div>
+                    </form>
 
-                        <Button type="submit" variant="secondary">Search</Button>
-                        <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
-                    </div>
+                    {/* Horizontal fading border */}
+                    <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
+                </div>
 
-                    <div className="flex flex-col gap-2 w-full lg:w-auto lg:flex-row">
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() => setIsSummaryOpen(true)}
-                            className="w-full lg:w-auto"
-                        >
-                            Summary
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={() => setIsAddOpen(true)}
-                            className="w-full lg:w-auto"
-                            style={{ backgroundColor: '#612A35' }}
-                        >
-                            Add Bona Vida Record
-                        </Button>
-                    </div>
-                </form>
+                <div className="flex-1 min-h-0 flex flex-col gap-6">
+                    <SortableTable
+                        data={records.data}
+                        columns={columns}
+                        sortField={filters.sort_field}
+                        sortDirection={filters.sort_direction}
+                        url="/bona-vida-monitoring"
+                        currentFilters={{ search, office_code: officeCode === 'all' ? '' : officeCode }}
+                        emptyMessage="No Bona Vida records added yet."
+                        getRowId={(record) => record.bvm_id}
+                    />
 
-                {/* 3. Reusable Table Component */}
-                <SortableTable
-                    data={records.data}
-                    columns={columns}
-                    sortField={filters.sort_field}
-                    sortDirection={filters.sort_direction}
-                    url="/bona-vida-monitoring"
-                    currentFilters={{ search, office_code: officeCode === 'all' ? '' : officeCode }}
-                    emptyMessage="No Bona Vida records added yet."
-                    getRowId={(record) => record.bvm_id}
-                />
-
-                {records.data.length > 0 && (
-                    <div className="p-4">
-                        <Pagination meta={records} />
-                    </div>
-                )}
+                    {records.data.length > 0 && (
+                        <div className="shrink-0">
+                            <Pagination meta={records} />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <BonaVidaAddForm open={isAddOpen} onOpenChange={setIsAddOpen} offices={offices} />

@@ -55,6 +55,8 @@ export interface Filters {
     search: string | null;
     rrsp_no: string | null;
     fund_cluster_id: string | null;
+    sort_field?: string;
+    sort_direction?: 'asc' | 'desc';
 }
 
 export interface FundClusterOption {

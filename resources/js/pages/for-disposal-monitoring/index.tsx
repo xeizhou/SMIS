@@ -118,63 +118,74 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
         <>
             <Head title="For Disposal Monitoring" />
 
-            <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                        For Disposal Monitoring
-                    </h1>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Track and manage equipment and properties marked for disposal.
-                    </p>
+            <div className="flex flex-col h-[calc(100vh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
+                {/* Sticky Header & Search */}
+                <div className="shrink-0 relative z-30 -mx-4 -mt-4 bg-background/95 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-4">
+                    {/* Header */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">
+                                For Disposal Monitoring
+                            </h1>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Track and manage equipment and properties marked for disposal.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Search & Actions */}
+                    <form
+                        onSubmit={handleSearch}
+                        className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+                    >
+                        <div className="flex flex-wrap gap-2 flex-1">
+                            <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
+                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    type="text"
+                                    placeholder="Search..."
+                                    className="pl-9 bg-white dark:bg-gray-900 w-full"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <Select value={sourceTypeFilter} onValueChange={(val) => {
+                                setSourceTypeFilter(val);
+                                router.get(
+                                    window.location.pathname,
+                                    {
+                                        search: searchQuery,
+                                        source_type: val === 'all' ? undefined : val
+                                    },
+                                    { preserveState: true, preserveScroll: true, replace: true }
+                                );
+                            }}>
+                                <SelectTrigger className={`w-full sm:w-[150px] ${sourceTypeFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                                    <SelectValue placeholder="Source" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Source</SelectItem>
+                                    <SelectItem value="rrppe_item">RRPPE</SelectItem>
+                                    <SelectItem value="rrsp_item">RRSP</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button type="submit" variant="secondary">
+                                Search
+                            </Button>
+                            <Button type="button" variant="ghost" onClick={handleClear}>
+                                Clear
+                            </Button>
+                        </div>
+                    </form>
+
+                    {/* Horizontal fading border */}
+                    <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
                 </div>
 
-                <form
-                    onSubmit={handleSearch}
-                    className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
-                >
-                    <div className="flex flex-wrap gap-2 flex-1">
-                        <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                type="text"
-                                placeholder="Search..."
-                                className="pl-9 bg-white dark:bg-gray-900 w-full"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <Select value={sourceTypeFilter} onValueChange={(val) => {
-                            setSourceTypeFilter(val);
-                            router.get(
-                                window.location.pathname,
-                                {
-                                    search: searchQuery,
-                                    source_type: val === 'all' ? undefined : val
-                                },
-                                { preserveState: true, preserveScroll: true, replace: true }
-                            );
-                        }}>
-                            <SelectTrigger className={`w-full sm:w-[150px] ${sourceTypeFilter === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Source" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Source</SelectItem>
-                                <SelectItem value="rrppe_item">RRPPE</SelectItem>
-                                <SelectItem value="rrsp_item">RRSP</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Button type="submit" variant="secondary">
-                            Search
-                        </Button>
-                        <Button type="button" variant="ghost" onClick={handleClear}>
-                            Clear
-                        </Button>
-                    </div>
-                </form>
-
-                <div className="overflow-x-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+                <div className="flex-1 min-h-0 flex flex-col gap-6">
+                    <div className="flex-initial min-h-0 overflow-x-auto overflow-y-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
                     <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-[#3e0b0e] text-white/90">
+                        <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                             <tr>
                                 {['Transaction No.', 'Property No.', 'Description', 'Location', 'Amount'].map((label, index) => <th key={label} className="p-0 font-medium"><button type="button" onClick={() => handleSort(['transaction_no', 'property_no', 'description', 'location', 'amount'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
                                 <th className="px-4 py-3 font-medium text-center">Actions</th>
@@ -228,11 +239,12 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                     </table>
                 </div>
 
-                {data.data.length > 0 && (
-                    <div className="p-4">
-                        <Pagination meta={data} />
-                    </div>
-                )}
+                    {data.data.length > 0 && (
+                        <div className="shrink-0">
+                            <Pagination meta={data} />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <ForDisposalViewModal

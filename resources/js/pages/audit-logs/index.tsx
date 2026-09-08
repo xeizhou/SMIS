@@ -9,7 +9,10 @@ import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
+    SelectSeparator,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -48,31 +51,55 @@ interface Props {
     filters: {
         search: string;
         role: string;
+        module: string;
+        action: string;
+        date_range: string;
+        per_page: number;
     };
+    userActions: string[];
 }
 
-export default function Index({ logs, filters }: Props) {
+export default function Index({ logs, filters, userActions }: Props) {
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [roleFilter, setRoleFilter] = useState(filters.role || 'All');
+    const [moduleFilter, setModuleFilter] = useState(filters.module || 'All');
+    const [actionFilter, setActionFilter] = useState(filters.action || 'All');
+    const [dateFilter, setDateFilter] = useState(filters.date_range || 'All Time');
 
     // Handle search debounce
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (searchQuery !== filters.search || roleFilter !== filters.role) {
+            if (
+                searchQuery !== filters.search ||
+                roleFilter !== filters.role ||
+                moduleFilter !== filters.module ||
+                actionFilter !== filters.action ||
+                dateFilter !== filters.date_range
+            ) {
                 router.get(
                     '/audit-logs',
-                    { search: searchQuery, role: roleFilter },
+                    { 
+                        search: searchQuery, 
+                        role: roleFilter,
+                        module: moduleFilter,
+                        action: actionFilter,
+                        date_range: dateFilter,
+                        per_page: filters.per_page,
+                    },
                     { preserveState: true, replace: true }
                 );
             }
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [searchQuery, roleFilter, filters.search, filters.role]);
+    }, [searchQuery, roleFilter, moduleFilter, actionFilter, dateFilter, filters]);
 
     const handleClear = () => {
         setSearchQuery('');
         setRoleFilter('All');
+        setModuleFilter('All');
+        setActionFilter('All');
+        setDateFilter('All Time');
     };
 
     return (
@@ -102,13 +129,84 @@ export default function Index({ logs, filters }: Props) {
                             />
                         </div>
                         <Select value={roleFilter} onValueChange={setRoleFilter}>
-                            <SelectTrigger className={`w-full sm:w-[180px] ${roleFilter === 'All' ? 'text-muted-foreground' : ''}`}>
+                            <SelectTrigger className={`w-full sm:w-[150px] ${roleFilter === 'All' ? 'text-muted-foreground' : ''}`}>
                                 <SelectValue placeholder="All Roles" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="All">All Roles</SelectItem>
                                 <SelectItem value="Admin">Admin</SelectItem>
                                 <SelectItem value="Staff">Staff</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select value={moduleFilter} onValueChange={setModuleFilter}>
+                            <SelectTrigger className={`w-full sm:w-[220px] ${moduleFilter === 'All' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Module" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="All">All Modules</SelectItem>
+                                <SelectSeparator />
+                                <SelectGroup>
+                                    <SelectLabel>ASSETS</SelectLabel>
+                                    <SelectItem value="RRPPE Monitoring">RRPPE Monitoring</SelectItem>
+                                    <SelectItem value="RRSP Monitoring">RRSP Monitoring</SelectItem>
+                                    <SelectItem value="RegSPI Monitoring">RegSPI Monitoring</SelectItem>
+                                    <SelectItem value="ITR PTR">ITR PTR</SelectItem>
+                                    <SelectItem value="For Disposal">For Disposal</SelectItem>
+                                    <SelectItem value="Bona Vida">Bona Vida</SelectItem>
+                                </SelectGroup>
+                                <SelectSeparator />
+                                <SelectGroup>
+                                    <SelectLabel>PROCUREMENT</SelectLabel>
+                                    <SelectItem value="Purchase Order">Purchase Order</SelectItem>
+                                    <SelectItem value="PO Letter Monitoring">PO Letter Monitoring</SelectItem>
+                                    <SelectItem value="Delivery">Delivery</SelectItem>
+                                    <SelectItem value="Supplier List">Supplier List</SelectItem>
+                                    <SelectItem value="Fund Clusters">Fund Clusters</SelectItem>
+                                </SelectGroup>
+                                <SelectSeparator />
+                                <SelectGroup>
+                                    <SelectLabel>PERSONNEL FILES</SelectLabel>
+                                    <SelectItem value="Employee File Locator">Employee File Locator</SelectItem>
+                                    <SelectItem value="Offices">Offices</SelectItem>
+                                    <SelectItem value="Clearance">Clearance</SelectItem>
+                                </SelectGroup>
+                                <SelectSeparator />
+                                <SelectGroup>
+                                    <SelectLabel>STOCK CARDS</SelectLabel>
+                                    <SelectItem value="Stock Items">Stock Items</SelectItem>
+                                    <SelectItem value="Units">Units</SelectItem>
+                                    <SelectItem value="Transactions">Transactions</SelectItem>
+                                </SelectGroup>
+                                <SelectSeparator />
+                                <SelectGroup>
+                                    <SelectLabel>SYSTEM</SelectLabel>
+                                    <SelectItem value="System Audit Logs">System Audit Logs</SelectItem>
+                                    <SelectItem value="Notifications">Notifications</SelectItem>
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={actionFilter} onValueChange={setActionFilter}>
+                            <SelectTrigger className={`w-full sm:w-[220px] ${actionFilter === 'All' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Action" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="All">All Actions</SelectItem>
+                                {userActions?.map((action, i) => (
+                                    <SelectItem key={i} value={action}>{action}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={dateFilter} onValueChange={setDateFilter}>
+                            <SelectTrigger className={`w-full sm:w-[180px] ${dateFilter === 'All Time' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Date Range" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="All Time">All Time</SelectItem>
+                                <SelectItem value="Today">Today</SelectItem>
+                                <SelectItem value="Last 7 Days">Last 7 Days</SelectItem>
+                                <SelectItem value="Last 30 Days">Last 30 Days</SelectItem>
                             </SelectContent>
                         </Select>
                         <Button type="button" variant="ghost" onClick={handleClear}>
@@ -189,9 +287,11 @@ export default function Index({ logs, filters }: Props) {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-16 text-center">
+                                    <td colSpan={6} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
-                                            No audit logs found.
+                                            {(moduleFilter !== 'All' || actionFilter !== 'All' || dateFilter !== 'All Time' || roleFilter !== 'All' || searchQuery) 
+                                                ? 'No audit logs found matching your filters.' 
+                                                : 'No audit logs found.'}
                                         </p>
                                     </td>
                                 </tr>

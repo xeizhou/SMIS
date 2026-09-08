@@ -184,131 +184,143 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
         <>
             <Head title="PO Letter Monitoring" />
 
-            <div className="p-4 space-y-6 sm:p-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">PO Letter Monitoring</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">Manage and track all PO letters</p>
-                    </div>
-                </div>
-
-                <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex flex-wrap gap-2 flex-1">
-                        <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search PO letters"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
-                            />
+            <div className="flex flex-col h-[calc(100vh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
+                <div className="flex-1 min-h-0 flex flex-col gap-6">
+                    {/* Sticky Header & Search */}
+                    <div className="shrink-0 relative z-30 bg-background/95 flex flex-col gap-4">
+                        {/* Header */}
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h1 className="text-2xl font-bold text-foreground">PO Letter Monitoring</h1>
+                                <p className="mt-1 text-sm text-muted-foreground">Manage and track all PO letters</p>
+                            </div>
                         </div>
 
-                        <Select value={status} onValueChange={handleStatusChange}>
-                            <SelectTrigger className={`w-[200px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Filter by Status</SelectItem>
-                                <SelectItem value="APPROVED">APPROVED</SelectItem>
-                                <SelectItem value="DISAPPROVED">DISAPPROVED</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        {/* Search & Actions */}
+                        <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="flex flex-wrap gap-2 flex-1">
+                                <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
+                                    <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search PO letters"
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        className="pl-9"
+                                    />
+                                </div>
 
-                        <Select value={type} onValueChange={handleTypeChange}>
-                            <SelectTrigger className={`w-[220px] ${type === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Filter by Type</SelectItem>
-                                <SelectItem value="EXTENSION">EXTENSION</SelectItem>
-                                <SelectItem value="WAIVER">WAIVER</SelectItem>
-                                <SelectItem value="CANCELLATION">CANCELLATION</SelectItem>
-                                <SelectItem value="REPLACEMENT/ALTERNATIVE OFFER">REPLACEMENT/ALTERNATIVE OFFER</SelectItem>
-                            </SelectContent>
-                        </Select>
+                                <Select value={status} onValueChange={handleStatusChange}>
+                                    <SelectTrigger className={`w-[200px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
+                                        <SelectValue placeholder="Filter by Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Filter by Status</SelectItem>
+                                        <SelectItem value="APPROVED">APPROVED</SelectItem>
+                                        <SelectItem value="DISAPPROVED">DISAPPROVED</SelectItem>
+                                    </SelectContent>
+                                </Select>
 
-                        <Button type="submit" variant="secondary">Search</Button>
-                        <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
+                                <Select value={type} onValueChange={handleTypeChange}>
+                                    <SelectTrigger className={`w-[220px] ${type === 'all' ? 'text-muted-foreground' : ''}`}>
+                                        <SelectValue placeholder="Filter by Type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Filter by Type</SelectItem>
+                                        <SelectItem value="EXTENSION">EXTENSION</SelectItem>
+                                        <SelectItem value="WAIVER">WAIVER</SelectItem>
+                                        <SelectItem value="CANCELLATION">CANCELLATION</SelectItem>
+                                        <SelectItem value="REPLACEMENT/ALTERNATIVE OFFER">REPLACEMENT/ALTERNATIVE OFFER</SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                <Button type="submit" variant="secondary">Search</Button>
+                                <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
+                            </div>
+
+                            <Button type="button" onClick={() => setAddDialogOpen(true)} className="w-full lg:w-auto" style={{ backgroundColor: '#612A35' }}>
+                                Add PO Letter
+                            </Button>
+                        </form>
                     </div>
 
-                    <Button type="button" onClick={() => setAddDialogOpen(true)} className="w-full lg:w-auto" style={{ backgroundColor: '#612A35' }}>
-                        Add PO Letter
-                    </Button>
-                </form>
-
-                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
-                        <thead className="border-b" style={{ backgroundColor: '#370001' }}>
-                            <tr>
-                                {[
-                                    ['Reference No.', 'reference_no'], ['Supplier', 'supplier'], ['PO Number', 'po_number'],
-                                    ['Type', 'type'], ['Status', 'status'], ['PO Date', 'po_date'], ['Due Date', 'due_date'],
-                                ].map(([label, field]) => (
-                                    <th key={field} className="p-0 text-left font-semibold text-white">
-                                        <button type="button" onClick={() => handleSort(field)} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button>
-                                    </th>
-                                ))}
-                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {poLetters.data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="px-6 py-16 text-center">
-                                        <p className="text-base font-medium text-muted-foreground">No PO letters added yet.</p>
-                                        <p className="mt-1 text-sm text-muted-foreground">Click <strong>&quot;Add PO Letter&quot;</strong> to create your first entry.</p>
-                                    </td>
-                                </tr>
-                            ) : (
-                                poLetters.data.map((record, index) => (
-                                    <AnimatedTableRow
-                                        key={record.id}
-                                        index={index}
-                                        className="border-b transition-colors hover:bg-muted/40"
-                                        data-search-0={record.reference_no}
-                                        data-search-1={record.po_number}
-                                        data-record-id={record.id}
-                                    >
-                                        <td className="px-4 py-3 font-medium">{record.reference_no ?? '—'}</td>
-                                        <td className="px-4 py-3">{record.supplier?.supplier_name ?? '—'}</td>
-                                        <td className="px-4 py-3">{record.po_number}</td>
-                                        <td className="px-4 py-3">{record.type_of_letter}</td>
-                                       <td className="px-4 py-3">
-                                            <span
-                                                className={
-                                                    'px-2 py-1 rounded-full text-xs font-semibold ' +
-                                                    (statusColors[record.status_of_the_letter] ?? 'bg-muted text-muted-foreground')
-                                                }
+                    <div className="flex-initial min-h-0 overflow-hidden rounded-md border border-border bg-card">
+                        <ScrollArea className="h-full w-full">
+                            <table className="w-full text-sm">
+                                <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
+                                    <tr>
+                                        {[
+                                            ['Reference No.', 'reference_no'], ['Supplier', 'supplier'], ['PO Number', 'po_number'],
+                                            ['Type', 'type'], ['Status', 'status'], ['PO Date', 'po_date'], ['Due Date', 'due_date'],
+                                        ].map(([label, field]) => (
+                                            <th key={field} className="p-0 text-left font-semibold text-white">
+                                                <button type="button" onClick={() => handleSort(field)} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button>
+                                            </th>
+                                        ))}
+                                        <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {poLetters.data.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={8} className="px-6 py-16 text-center">
+                                                <p className="text-base font-medium text-muted-foreground">No PO letters added yet.</p>
+                                                <p className="mt-1 text-sm text-muted-foreground">Click <strong>&quot;Add PO Letter&quot;</strong> to create your first entry.</p>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        poLetters.data.map((record, index) => (
+                                            <AnimatedTableRow
+                                                key={record.id}
+                                                index={index}
+                                                className="border-b transition-colors hover:bg-muted/40"
+                                                data-search-0={record.reference_no}
+                                                data-search-1={record.po_number}
+                                                data-record-id={record.id}
                                             >
-                                                {record.status_of_the_letter}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3">{formatDate(record.po_date)}</td>
-                                        <td className="px-4 py-3">{formatDate(record.due_date)}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <button type="button" onClick={() => handleEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
-                                                    <Pencil className="size-4" />
-                                                </button>
-                                                <button type="button" onClick={() => handleDelete(record)} className="text-red-600 hover:text-red-800" title="Delete">
-                                                    <Trash2 className="size-4" />
-                                                </button>
-                                                <button type="button" onClick={() => handleView(record)} className="text-foreground hover:text-muted-foreground" title="View">
-                                                    <Eye className="size-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </AnimatedTableRow>
-                                ))
-                            )}
-                        </tbody>
-                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
-
-                {poLetters.data.length > 0 && (
-                    <div className="p-4">
-                        <Pagination meta={poLetters} />
+                                                <td className="px-4 py-3 font-medium">{record.reference_no ?? '—'}</td>
+                                                <td className="px-4 py-3">{record.supplier?.supplier_name ?? '—'}</td>
+                                                <td className="px-4 py-3">{record.po_number}</td>
+                                                <td className="px-4 py-3">{record.type_of_letter}</td>
+                                               <td className="px-4 py-3">
+                                                    <span
+                                                        className={
+                                                            'px-2 py-1 rounded-full text-xs font-semibold ' +
+                                                            (statusColors[record.status_of_the_letter] ?? 'bg-muted text-muted-foreground')
+                                                        }
+                                                    >
+                                                        {record.status_of_the_letter}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3">{formatDate(record.po_date)}</td>
+                                                <td className="px-4 py-3">{formatDate(record.due_date)}</td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center justify-center gap-3">
+                                                        <button type="button" onClick={() => handleEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
+                                                            <Pencil className="size-4" />
+                                                        </button>
+                                                        <button type="button" onClick={() => handleDelete(record)} className="text-red-600 hover:text-red-800" title="Delete">
+                                                            <Trash2 className="size-4" />
+                                                        </button>
+                                                        <button type="button" onClick={() => handleView(record)} className="text-foreground hover:text-muted-foreground" title="View">
+                                                            <Eye className="size-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </AnimatedTableRow>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                            <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
                     </div>
-                )}
+
+                    {poLetters.data.length > 0 && (
+                        <div className="shrink-0">
+                            <Pagination meta={poLetters} />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <PoLetterAddForm open={addDialogOpen} onOpenChange={setAddDialogOpen} suppliers={suppliers} poNumbers={poNumbers} />
