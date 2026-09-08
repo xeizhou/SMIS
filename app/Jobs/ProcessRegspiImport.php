@@ -22,6 +22,20 @@ class ProcessRegspiImport implements ShouldQueue
 
     public int $timeout = 3600;
 
+    /**
+     * How often (in rows) we touch the `imports` row with progress and
+     * check for cancellation. Doing this every single row was the
+     * biggest cost in the old implementation — on SQLite in particular,
+     * each ->update() is a full synchronous write. Every 200 rows keeps
+     * the progress bar feeling live without the per-row overhead.
+     */
+    private const PROGRESS_EVERY = 200;
+
+    /**
+     * Batch size for both inserts and upserts.
+     */
+    private const BATCH_SIZE = 500;
+
     public function __construct(public int $importId)
     {
     }
@@ -40,20 +54,43 @@ class ProcessRegspiImport implements ShouldQueue
 
         try {
             $path = Storage::path($import->file_path);
-            [$headerLine, $fundClusterId] = $this->findHeader($path);
-            $totalRows = $this->countDataRows($path, $headerLine);
+
+            // Single pass: find the header line, grab the fund cluster
+            // id, AND count total data rows, all at once. Previously
+            // this was findHeader() + countDataRows() as two separate
+            // full-file scans before the main loop even started — for
+            // a big CSV that's 3x the I/O it actually needs.
+            [$headerLine, $fundClusterId, $totalRows] = $this->findHeaderAndCount($path);
             $import->update(['total_rows' => $totalRows]);
 
             $rrspNos = RrspMonitoring::query()->pluck('rrsp_no')->flip();
             $fundClusterIds = FundCluster::query()->pluck('fund_cluster_id')->flip();
-            $existing = RegspiMonitoring::query()
-                ->get(['regspi_id', 'month_year', 'semi_expendable_property_no'])
-                ->keyBy(fn ($row) => "{$row->month_year}|{$row->semi_expendable_property_no}");
+
+            // Just the two key columns, not full model rows — we only
+            // need to know which (month_year, property_no) pairs already
+            // exist so we can count created vs. updated. The actual
+            // write is a single upsert() per batch below, so we never
+            // need the existing rows' other fields or their PKs here.
+            $existingKeys = RegspiMonitoring::query()
+                ->get(['month_year', 'semi_expendable_property_no'])
+                ->reduce(function (array $keys, $row) {
+                    $keys["{$row->month_year}|{$row->semi_expendable_property_no}"] = true;
+                    return $keys;
+                }, []);
+            $existingKeys = collect($existingKeys);
 
             $created = 0;
             $updated = 0;
             $skipped = 0;
-            $insertRows = [];
+            $processed = 0;
+
+            // Rows accumulate here and get flushed via upsert() in
+            // batches. upsert() replaces the old two-path logic
+            // (per-row ->update() for existing rows, buffered insert()
+            // for new ones) with a single SQL statement per batch that
+            // handles both inserts and updates at once.
+            $batchRows = [];
+
             $handle = $this->openCsv($path);
             $this->skipToHeader($handle, $headerLine);
             fgetcsv($handle);
@@ -85,41 +122,66 @@ class ProcessRegspiImport implements ShouldQueue
 
                 if ($validator->fails() || (! empty($row['rrsp_no']) && ! $rrspNos->has($row['rrsp_no']))) {
                     $skipped++;
-                    $this->incrementProgress($import, $skipped, $created, $updated);
+                    $processed++;
+
+                    if ($this->maybeReportProgress($import, $processed, $skipped, $created, $updated)) {
+                        fclose($handle);
+
+                        if ($batchRows !== []) {
+                            $this->flushBatch($batchRows);
+                        }
+
+                        $import->update([
+                            'processed_rows' => $processed,
+                            'created_rows' => $created,
+                            'updated_rows' => $updated,
+                            'skipped_rows' => $skipped,
+                        ]);
+
+                        $this->logAudit($import, sprintf(
+                            'Cancelled RegSPI import: %d created, %d updated, %d skipped before stopping.',
+                            $created,
+                            $updated,
+                            $skipped
+                        ));
+
+                        return;
+                    }
+
                     continue;
                 }
 
                 $key = "{$row['month_year']}|{$row['semi_expendable_property_no']}";
-                if ($existing->has($key)) {
-                    $existing->get($key)->update($row);
+
+                if ($existingKeys->has($key)) {
                     $updated++;
                 } else {
-                    $insertRows[$key] = $row;
+                    $created++;
+                    $existingKeys->put($key, true);
                 }
 
-                if (count($insertRows) >= 500) {
-                    RegspiMonitoring::insert(array_values($insertRows));
-                    $created += count($insertRows);
-                    $insertRows = [];
+                $batchRows[$key] = $row;
+
+                if (count($batchRows) >= self::BATCH_SIZE) {
+                    $this->flushBatch($batchRows);
+                    $batchRows = [];
                 }
 
-                $processed = $created + $updated + $skipped + count($insertRows);
-                $this->incrementProgress($import, $skipped, $created, $updated, $processed);
+                $processed++;
 
-                // Check for cancellation every 200 rows, regardless of
-                // whether those rows were inserts, updates, or skips.
-                if ($processed % 200 === 0 && $import->fresh()->status === 'cancelled') {
+                $stopped = $this->maybeReportProgress($import, $processed, $skipped, $created, $updated);
+
+                if ($stopped) {
                     fclose($handle);
 
                     // Don't drop rows that were already validated and
                     // batched in memory — flush them before stopping.
-                    if ($insertRows !== []) {
-                        RegspiMonitoring::insert(array_values($insertRows));
-                        $created += count($insertRows);
+                    if ($batchRows !== []) {
+                        $this->flushBatch($batchRows);
                     }
 
                     $import->update([
-                        'processed_rows' => $created + $updated + $skipped,
+                        'processed_rows' => $processed,
                         'created_rows' => $created,
                         'updated_rows' => $updated,
                         'skipped_rows' => $skipped,
@@ -138,9 +200,8 @@ class ProcessRegspiImport implements ShouldQueue
 
             fclose($handle);
 
-            if ($insertRows !== []) {
-                RegspiMonitoring::insert(array_values($insertRows));
-                $created += count($insertRows);
+            if ($batchRows !== []) {
+                $this->flushBatch($batchRows);
             }
 
             $import->update([
@@ -169,45 +230,102 @@ class ProcessRegspiImport implements ShouldQueue
         }
     }
 
-    private function findHeader(string $path): array
+    /**
+     * Flush a batch of rows as a single upsert statement. Handles both
+     * new rows and updates to existing rows in one query, keyed on
+     * (month_year, semi_expendable_property_no).
+     */
+    private function flushBatch(array $batchRows): void
+    {
+        RegspiMonitoring::upsert(
+            array_values($batchRows),
+            ['month_year', 'semi_expendable_property_no'],
+            [
+                'ics_no',
+                'rrsp_no',
+                'fund_cluster_id',
+                'item_description',
+                'estimated_useful_life',
+                'issued_qty',
+                'issued_office_officer',
+                'returned_qty',
+                'returned_office_officer',
+                'reissued_qty',
+                'reissued_office_officer',
+                'disposed_qty',
+                'balance_qty',
+                'amount',
+                'remarks',
+                'updated_at',
+            ]
+        );
+    }
+
+    /**
+     * Report progress and check for cancellation, but only every
+     * PROGRESS_EVERY rows instead of on every single row. Returns true
+     * if the import has been cancelled and the caller should stop.
+     */
+    private function maybeReportProgress(Import $import, int $processed, int $skipped, int $created, int $updated): bool
+    {
+        if ($processed % self::PROGRESS_EVERY !== 0) {
+            return false;
+        }
+
+        $import->update([
+            'processed_rows' => $processed,
+            'created_rows' => $created,
+            'updated_rows' => $updated,
+            'skipped_rows' => $skipped,
+        ]);
+
+        return $import->fresh()->status === 'cancelled';
+    }
+
+    /**
+     * Single-pass replacement for the old findHeader() + countDataRows().
+     * Scans the file once, locates the MONTH/YR header row and the fund
+     * cluster id above it, then keeps counting valid data rows for the
+     * rest of the same pass instead of re-opening the file for a second
+     * scan.
+     */
+    private function findHeaderAndCount(string $path): array
     {
         $handle = $this->openCsv($path);
         $lineNumber = 0;
         $fundClusterId = null;
+        $headerLine = null;
 
         while (($line = fgetcsv($handle)) !== false) {
             $lineNumber++;
-            foreach ($line as $index => $value) {
-                if (strtolower(trim((string) $value)) === 'fund cluster:') {
-                    $fundClusterId = trim((string) ($line[$index + 1] ?? '')) ?: null;
+
+            if ($headerLine === null) {
+                foreach ($line as $index => $value) {
+                    if (strtolower(trim((string) $value)) === 'fund cluster:') {
+                        $fundClusterId = trim((string) ($line[$index + 1] ?? '')) ?: null;
+                    }
                 }
+
+                if (strtolower(trim((string) ($line[0] ?? ''))) === 'month/yr') {
+                    $headerLine = $lineNumber;
+                }
+
+                continue;
             }
 
-            if (strtolower(trim((string) ($line[0] ?? ''))) === 'month/yr') {
-                fclose($handle);
-                return [$lineNumber, $fundClusterId];
-            }
-        }
-
-        fclose($handle);
-        throw new \RuntimeException('Could not find the MONTH/YR header row.');
-    }
-
-    private function countDataRows(string $path, int $headerLine): int
-    {
-        $handle = $this->openCsv($path);
-        $this->skipToHeader($handle, $headerLine);
-        fgetcsv($handle);
-        $count = 0;
-
-        while (($line = fgetcsv($handle)) !== false) {
+            // We're past the header row now — count data rows.
             if (trim((string) ($line[4] ?? '')) !== '') {
-                $count++;
+                $totalRows = ($totalRows ?? 0) + 1;
             }
         }
 
         fclose($handle);
-        return $count;
+
+        if ($headerLine === null) {
+            throw new \RuntimeException('Could not find the MONTH/YR header row.');
+        }
+
+        return [$headerLine, $fundClusterId, $totalRows ?? 0];
     }
 
     private function mapReportRow(array $line, ?string $fundClusterId, $fundClusterIds): ?array
@@ -278,16 +396,6 @@ class ProcessRegspiImport implements ShouldQueue
     {
         $value = str_replace(',', '', trim((string) $value));
         return $value === '' || ! is_numeric($value) ? 0 : (float) $value;
-    }
-
-    private function incrementProgress(Import $import, int $skipped, int $created, int $updated, ?int $processed = null): void
-    {
-        $import->update([
-            'processed_rows' => $processed ?? $import->processed_rows,
-            'created_rows' => $created,
-            'updated_rows' => $updated,
-            'skipped_rows' => $skipped,
-        ]);
     }
 
     /**
