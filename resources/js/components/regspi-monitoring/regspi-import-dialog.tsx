@@ -451,6 +451,8 @@ export default function RegSPIImportDialog({
             });
 
             setSubmitting(false);
+
+            router.reload({ only: ['regspis'] });
         }
 
         if (importStatus.status === 'failed') {
@@ -466,6 +468,8 @@ export default function RegSPIImportDialog({
             setError(null);
             setSummary(null);
             setSubmitting(false);
+
+            router.reload({ only: ['regspis'] });
         }
     }, [importStatus]);
 
