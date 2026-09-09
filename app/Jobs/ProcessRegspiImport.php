@@ -36,8 +36,17 @@ class ProcessRegspiImport implements ShouldQueue
      */
     private const BATCH_SIZE = 500;
 
-    public function __construct(public int $importId)
-    {
+    /**
+     * $fundClusterId is user-selected in the import dialog (these CSVs
+     * don't carry a "Fund Cluster:" line, unlike other report types),
+     * so it's passed straight in here rather than persisted on the
+     * `imports` row or parsed out of the file. It rides along in the
+     * queue payload via SerializesModels/Queueable.
+     */
+    public function __construct(
+        public int $importId,
+        public string $fundClusterId,
+    ) {
     }
 
     public function handle(): void
@@ -55,16 +64,20 @@ class ProcessRegspiImport implements ShouldQueue
         try {
             $path = Storage::path($import->file_path);
 
-            // Single pass: find the header line, grab the fund cluster
-            // id, AND count total data rows, all at once. Previously
-            // this was findHeader() + countDataRows() as two separate
-            // full-file scans before the main loop even started — for
-            // a big CSV that's 3x the I/O it actually needs.
-            [$headerLine, $fundClusterId, $totalRows] = $this->findHeaderAndCount($path);
+            // Single pass: find the header line AND count total data
+            // rows, all at once. No longer looks for a "Fund Cluster:"
+            // line — the fund cluster is user-selected and comes in
+            // via the constructor instead.
+            [$headerLine, $totalRows] = $this->findHeaderAndCount($path);
             $import->update(['total_rows' => $totalRows]);
 
-            $rrspNos = RrspMonitoring::query()->pluck('rrsp_no')->flip();
             $fundClusterIds = FundCluster::query()->pluck('fund_cluster_id')->flip();
+
+            if (! $fundClusterIds->has($this->fundClusterId)) {
+                throw new \RuntimeException('Selected fund cluster does not exist.');
+            }
+
+            $rrspNos = RrspMonitoring::query()->pluck('rrsp_no')->flip();
 
             // Just the two key columns, not full model rows — we only
             // need to know which (month_year, property_no) pairs already
@@ -96,7 +109,7 @@ class ProcessRegspiImport implements ShouldQueue
             fgetcsv($handle);
 
             while (($line = fgetcsv($handle)) !== false) {
-                $row = $this->mapReportRow($line, $fundClusterId, $fundClusterIds);
+                $row = $this->mapReportRow($line, $this->fundClusterId, $fundClusterIds);
                 if ($row === null) {
                     continue;
                 }
@@ -283,29 +296,23 @@ class ProcessRegspiImport implements ShouldQueue
     }
 
     /**
-     * Single-pass replacement for the old findHeader() + countDataRows().
-     * Scans the file once, locates the MONTH/YR header row and the fund
-     * cluster id above it, then keeps counting valid data rows for the
-     * rest of the same pass instead of re-opening the file for a second
-     * scan.
+     * Scans the file once to locate the MONTH/YR header row and count
+     * valid data rows for the rest of the same pass, instead of
+     * re-opening the file for a second scan. No longer looks for a
+     * "Fund Cluster:" line — the fund cluster is supplied by the user
+     * via $this->fundClusterId, since these CSVs don't carry one.
      */
     private function findHeaderAndCount(string $path): array
     {
         $handle = $this->openCsv($path);
         $lineNumber = 0;
-        $fundClusterId = null;
         $headerLine = null;
+        $totalRows = 0;
 
         while (($line = fgetcsv($handle)) !== false) {
             $lineNumber++;
 
             if ($headerLine === null) {
-                foreach ($line as $index => $value) {
-                    if (strtolower(trim((string) $value)) === 'fund cluster:') {
-                        $fundClusterId = trim((string) ($line[$index + 1] ?? '')) ?: null;
-                    }
-                }
-
                 if (strtolower(trim((string) ($line[0] ?? ''))) === 'month/yr') {
                     $headerLine = $lineNumber;
                 }
@@ -315,7 +322,7 @@ class ProcessRegspiImport implements ShouldQueue
 
             // We're past the header row now — count data rows.
             if (trim((string) ($line[4] ?? '')) !== '') {
-                $totalRows = ($totalRows ?? 0) + 1;
+                $totalRows++;
             }
         }
 
@@ -325,7 +332,7 @@ class ProcessRegspiImport implements ShouldQueue
             throw new \RuntimeException('Could not find the MONTH/YR header row.');
         }
 
-        return [$headerLine, $fundClusterId, $totalRows ?? 0];
+        return [$headerLine, $totalRows];
     }
 
     private function mapReportRow(array $line, ?string $fundClusterId, $fundClusterIds): ?array

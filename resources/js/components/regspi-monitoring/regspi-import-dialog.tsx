@@ -20,10 +20,19 @@ import {
 } from '@/components/ui/dialog';
 
 import { Button } from '@/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { FundClusterOption } from '@/types/regspi';
 
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    fundClusters: FundClusterOption[];
 }
 
 interface ImportStatus {
@@ -40,7 +49,9 @@ interface ImportStatus {
 export default function RegSPIImportDialog({
     open,
     onOpenChange,
+    fundClusters = [],
 }: Props) {
+    const [fundClusterId, setFundClusterId] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [cancelling, setCancelling] = useState(false);
@@ -66,6 +77,7 @@ export default function RegSPIImportDialog({
     */
 
     function reset() {
+        setFundClusterId('');
         setFile(null);
         setSubmitting(false);
         setCancelling(false);
@@ -298,6 +310,11 @@ export default function RegSPIImportDialog({
     function submit(event: FormEvent) {
         event.preventDefault();
 
+        if (!fundClusterId) {
+            setError('Select a fund cluster first.');
+            return;
+        }
+
         if (!file) {
             setError('Choose a CSV file first.');
             return;
@@ -312,6 +329,7 @@ export default function RegSPIImportDialog({
 
         data.append('file', file);
         data.append('file_format', 'csv');
+        data.append('fund_cluster_id', fundClusterId);
 
         router.post('/import/regspi', data, {
             forceFormData: true,
@@ -526,6 +544,47 @@ export default function RegSPIImportDialog({
                     onSubmit={submit}
                     className="space-y-5"
                 >
+                    {/* -------------------------------------------------
+                        Fund Cluster
+                    -------------------------------------------------- */}
+
+                    <div>
+                        <label className="mb-1.5 block text-sm font-medium">
+                            Fund Cluster
+                        </label>
+
+                        <Select
+                            value={fundClusterId}
+                            onValueChange={setFundClusterId}
+                            disabled={submitting || isImporting}
+                        >
+                            <SelectTrigger
+                                className={`w-full ${
+                                    !fundClusterId
+                                        ? 'text-muted-foreground'
+                                        : ''
+                                }`}
+                            >
+                                <SelectValue placeholder="Select a fund cluster..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {fundClusters.map((fc) => (
+                                    <SelectItem
+                                        key={fc.fund_cluster_id}
+                                        value={fc.fund_cluster_id}
+                                    >
+                                        {fc.fund_cluster_id} — {fc.fund_description}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <p className="mt-1.5 text-[11px] text-muted-foreground">
+                            This CSV doesn't carry its own fund cluster,
+                            so pick the one this file belongs to.
+                        </p>
+                    </div>
+
                     {/* -------------------------------------------------
                         File Upload
                     -------------------------------------------------- */}
@@ -894,7 +953,8 @@ export default function RegSPIImportDialog({
                                 disabled={
                                     submitting ||
                                     isImporting ||
-                                    !file
+                                    !file ||
+                                    !fundClusterId
                                 }
                                 className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
                             >
