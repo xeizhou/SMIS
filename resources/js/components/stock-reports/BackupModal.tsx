@@ -195,15 +195,15 @@ export default function BackupModal({
                                     <div className="space-y-2">
                                         <Label className="text-sm">Backup Type</Label>
                                         <Select value={backupType} onValueChange={(v) => setBackupType(v as BackupType)}>
-                                            <SelectTrigger>
+                                            <SelectTrigger className="w-full">
                                                 <SelectValue />
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent className="w-[--radix-select-trigger-width]">
                                                 {BACKUP_TYPE_OPTIONS.map((opt) => (
                                                     <SelectItem key={opt.value} value={opt.value}>
-                                                        <span className="flex items-center gap-2">
+                                                        <span className="flex items-center gap-2 min-w-0">
                                                             {opt.icon}
-                                                            <span>
+                                                            <span className="min-w-0 truncate">
                                                                 {opt.label}{' '}
                                                                 <span className="text-xs text-muted-foreground">— {opt.hint}</span>
                                                             </span>
