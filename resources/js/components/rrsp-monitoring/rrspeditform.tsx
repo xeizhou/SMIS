@@ -300,17 +300,20 @@ return;
                                         const availableItems = selectedPo?.items || [];
                                         
                                         if (availableItems.length > 0) {
-                                            const newItems = availableItems.map((ai: any) => ({
-                                                itemName: '',
-                                                itemDescription: ai.description ? `${ai.item_name} - ${ai.description}` : ai.item_name,
-                                                quantity: '',
-                                                propertyNo: '',
-                                                kindOfSemiExpendable: '',
-                                                status: '',
-                                                area: '',
-                                                cost: '',
-                                                remarks: '',
-                                            }));
+                                            const newItems = availableItems.map((ai: any) => {
+                                                const desc = ai.description ? `${ai.item_name} - ${ai.description}` : ai.item_name;
+                                                return {
+                                                    itemName: ai.item_name,
+                                                    itemDescription: desc,
+                                                    quantity: '',
+                                                    propertyNo: '',
+                                                    kindOfSemiExpendable: '',
+                                                    status: '',
+                                                    area: '',
+                                                    cost: '',
+                                                    remarks: '',
+                                                };
+                                            });
                                             setData('items', newItems);
                                         } else {
                                             setData('items', [
@@ -400,9 +403,10 @@ return;
                                             <Input
                                                 id={`edit-item-${index}-name`}
                                                 required
-                                                placeholder="Enter item name..."
+                                                readOnly
+                                                className="bg-muted text-muted-foreground"
+                                                placeholder="Auto-filled from P.O."
                                                 value={item.itemName}
-                                                onChange={(e) => updateItem(index, 'itemName', e.target.value)}
                                             />
                                             {(errors as any)[`items.${index}.itemName`] && (
                                                 <p className="text-sm text-destructive">{(errors as any)[`items.${index}.itemName`]}</p>

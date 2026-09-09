@@ -17,7 +17,7 @@ return new class extends Migration
             $table->integer('qty');
             $table->decimal('price', 10, 2);
             $table->decimal('total_amount', 12, 2);
-            $table->integer('invoice_no');
+            $table->string('invoice_no');
             $table->date('invoice_date');
             $table->string('remarks', 255)->nullable();
             $table->timestamps();
