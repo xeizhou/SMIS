@@ -3,7 +3,7 @@ import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import RrspAddForm from '@/components/rrsp-monitoring/rrspaddform';
 import RrspDeleteModal from '@/components/rrsp-monitoring/rrspdeletemodal';
 import RrspEditForm from '@/components/rrsp-monitoring/rrspeditform';
@@ -36,6 +36,7 @@ interface RrspItem {
 interface RrspMonitoring {
     id: string;
     rrspNo: string;
+    poNumber: string | null;
     dateReceived: string;
     endUserName: string | null;
     returnBy: string | null;
@@ -114,53 +115,49 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
     const [rrspToDelete, setRrspToDelete] = useState<RrspMonitoring | null>(
         null
     );
+    const isFirstRender = useRef(true);
+
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            router.get(
+                '/rrsp-monitoring',
+                {
+                    search,
+                    status: status === 'all' ? undefined : status,
+                },
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                }
+            );
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [search, status]);
 
     const handleSort = (field: string) => {
         const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
         router.get('/rrsp-monitoring', { search, status: status === 'all' ? undefined : status, sort_field: field, sort_direction: direction }, { preserveState: true, preserveScroll: true, replace: true });
     };
 
-    const runSearch = (nextStatus?: string) => {
-        router.get(
-            '/rrsp-monitoring',
-            {
-                search,
-                status:
-                    (nextStatus ?? status) === 'all'
-                        ? undefined
-                        : nextStatus ?? status,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
-        );
-    };
-
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        runSearch();
+        // Handled by useEffect
     };
 
     const handleStatusChange = (value: string) => {
         setStatus(value);
-        runSearch(value);
     };
 
     const handleClear = () => {
         setSearch('');
         setStatus('all');
-
-        router.get(
-            '/rrsp-monitoring',
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            }
-        );
     };
 
     const handleEdit = (rrsp: RrspMonitoring) => {
@@ -276,7 +273,7 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                                 <tr>
-                                {['RRSP No', 'Item Name', 'Property No', 'End User', 'Return By', 'Area', 'Date Received', 'Qty', 'Cost', 'Status'].map((label, index) => <th key={label} className="p-0 text-left font-semibold text-white"><button type="button" onClick={() => handleSort(['rrsp_no', 'rrsp_no', 'rrsp_no', 'end_user_name', 'return_by', 'rrsp_no', 'date_received', 'rrsp_no', 'rrsp_no', 'rrsp_no'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
+                                {['RRSP No', 'P.O Number', 'Item Name', 'Property No', 'End User', 'Return By', 'Area', 'Date Received', 'Qty', 'Cost', 'Status'].map((label, index) => <th key={label} className="p-0 text-left font-semibold text-white"><button type="button" onClick={() => handleSort(['rrsp_no', 'rrsp_no', 'rrsp_no', 'end_user_name', 'return_by', 'rrsp_no', 'date_received', 'rrsp_no', 'rrsp_no', 'rrsp_no'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
                                 <th className="px-4 py-3 text-center font-semibold text-white">
                                     Actions
                                 </th>
@@ -313,6 +310,9 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                                                 >
                                                     <td className="px-4 py-3 font-medium" rowSpan={itemsCount}>
                                                         {rrsp.rrspNo}
+                                                    </td>
+                                                    <td className="px-4 py-3 font-medium" rowSpan={itemsCount}>
+                                                        {rrsp.poNumber}
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         {firstItem?.itemName ?? '—'}

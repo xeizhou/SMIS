@@ -1,8 +1,18 @@
 import { useForm, router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
 import {
     Dialog,
     DialogContent,
@@ -20,6 +30,87 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+    const selectedLabel = options.find((o) => o.value === value)?.label;
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-destructive"> *</span>}
+                </label>
+            </div>
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal',
+                            !selectedLabel && 'text-muted-foreground',
+                            error && 'border-destructive'
+                        )}
+                    >
+                        {selectedLabel || placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                    <Command>
+                        <CommandInput placeholder={placeholder} />
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>No item found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {opt.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+            {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+        </div>
+    );
+}
 
 interface RrspItem {
     id: number;
@@ -40,6 +131,7 @@ interface RrspMonitoring {
     dateReceived: string;
     endUserName: string | null;
     returnBy: string | null;
+    poNumber?: string | null;
     items?: RrspItem[];
 }
 
@@ -52,8 +144,29 @@ interface Props {
 
 export default function RrspEditForm({ open, onOpenChange, rrsp, areas }: Props) {
     const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
+
+    const [pos, setPos] = useState<any[]>([]);
+    const [loadingPos, setLoadingPos] = useState(false);
+
+    useEffect(() => {
+        if (open) {
+            setLoadingPos(true);
+            fetch('/api/rrsp-monitoring/purchase-orders')
+                .then(res => res.json())
+                .then(data => {
+                    setPos(data);
+                    setLoadingPos(false);
+                })
+                .catch(err => {
+                    console.error('Failed to fetch POs', err);
+                    setLoadingPos(false);
+                });
+        }
+    }, [open]);
+
     const { data, setData, put, processing, errors, reset } = useForm({
         rrspNo: '',
+        poNumber: '',
         dateReceived: '',
         endUserName: '',
         returnBy: '',
@@ -76,6 +189,7 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas }: Props)
         if (rrsp) {
             setData({
                 rrspNo: rrsp.rrspNo ?? '',
+                poNumber: rrsp.poNumber ?? '',
                 dateReceived: rrsp.dateReceived ?? '',
                 endUserName: rrsp.endUserName ?? '',
                 returnBy: rrsp.returnBy ?? '',
@@ -177,6 +291,50 @@ return;
                                 )}
                             </div>
                             <div className="space-y-1.5">
+                                <SearchableSelect
+                                    label="Purchase Order (P.O.)"
+                                    value={data.poNumber}
+                                    onChange={(value) => {
+                                        setData('poNumber', value);
+                                        const selectedPo = pos.find(p => p.po_number === value);
+                                        const availableItems = selectedPo?.items || [];
+                                        
+                                        if (availableItems.length > 0) {
+                                            const newItems = availableItems.map((ai: any) => ({
+                                                itemName: '',
+                                                itemDescription: ai.description ? `${ai.item_name} - ${ai.description}` : ai.item_name,
+                                                quantity: '',
+                                                propertyNo: '',
+                                                kindOfSemiExpendable: '',
+                                                status: '',
+                                                area: '',
+                                                cost: '',
+                                                remarks: '',
+                                            }));
+                                            setData('items', newItems);
+                                        } else {
+                                            setData('items', [
+                                                {
+                                                    itemName: '',
+                                                    itemDescription: '',
+                                                    quantity: '',
+                                                    propertyNo: '',
+                                                    kindOfSemiExpendable: '',
+                                                    status: '',
+                                                    area: '',
+                                                    cost: '',
+                                                    remarks: '',
+                                                }
+                                            ]);
+                                        }
+                                    }}
+                                    error={errors.poNumber}
+                                    required={true}
+                                    placeholder={loadingPos ? "Loading..." : "Search P.O."}
+                                    options={pos.map(po => ({ value: po.po_number, label: po.po_number }))}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
                                 <Label htmlFor="edit-dateReceived">Date Received</Label>
                                 <Input
                                     id="edit-dateReceived"
@@ -218,7 +376,11 @@ return;
                         </div>
                         
                         <div className="space-y-6">
-                            {data.items.map((item, index) => (
+                            {data.items.map((item, index) => {
+                                const selectedPo = pos.find(p => p.po_number === data.poNumber);
+                                const availableItems = selectedPo?.items || [];
+                                
+                                return (
                                 <div key={index} className="relative rounded-md border p-4 bg-muted/20">
                                     {data.items.length > 1 && (
                                         <Button
@@ -238,6 +400,7 @@ return;
                                             <Input
                                                 id={`edit-item-${index}-name`}
                                                 required
+                                                placeholder="Enter item name..."
                                                 value={item.itemName}
                                                 onChange={(e) => updateItem(index, 'itemName', e.target.value)}
                                             />
@@ -246,12 +409,14 @@ return;
                                             )}
                                         </div>
                                         <div className="space-y-1.5 md:col-span-2">
-                                            <Label htmlFor={`edit-item-${index}-desc`}>Item Description <span className="text-destructive">*</span></Label>
+                                            <Label htmlFor={`item-${index}-desc`}>Item Description (from P.O.) <span className="text-destructive">*</span></Label>
                                             <Input
-                                                id={`edit-item-${index}-desc`}
+                                                id={`item-${index}-desc`}
                                                 required
+                                                readOnly
+                                                className="bg-muted text-muted-foreground"
+                                                placeholder="Auto-filled from P.O."
                                                 value={item.itemDescription}
-                                                onChange={(e) => updateItem(index, 'itemDescription', e.target.value)}
                                             />
                                             {(errors as any)[`items.${index}.itemDescription`] && (
                                                 <p className="text-sm text-destructive">{(errors as any)[`items.${index}.itemDescription`]}</p>
@@ -363,7 +528,8 @@ return;
                                         )}
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
 

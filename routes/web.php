@@ -432,6 +432,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::delete('/rrppe-monitoring/areas/{area}', [App\Http\Controllers\RrppeAreaController::class, 'destroy'])->name('rrppe-monitoring.areas.destroy');
 
     Route::get('/rrsp-monitoring', [RRSPController::class, 'index'])->name('rrsp-monitoring.index');
+    Route::get('/api/rrsp-monitoring/purchase-orders', [RRSPController::class, 'getPurchaseOrders'])->name('api.rrsp-monitoring.purchase-orders');
     Route::get('/rrsp-monitoring/areas', [App\Http\Controllers\AreaController::class, 'index'])->name('rrsp-monitoring.areas.index');
     Route::post('/rrsp-monitoring/areas', [App\Http\Controllers\AreaController::class, 'store'])->name('rrsp-monitoring.areas.store');
     Route::put('/rrsp-monitoring/areas/{area}', [App\Http\Controllers\AreaController::class, 'update'])->name('rrsp-monitoring.areas.update');
