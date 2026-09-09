@@ -229,10 +229,18 @@ class ImportController extends Controller
      * POST /import/regspi
      * Unchanged.
      */
+    /**
+     * POST /import/regspi
+     * Now requires a user-selected fund_cluster_id, since these CSVs
+     * don't carry a "Fund Cluster:" line the way other report types
+     * do. Passed straight through to the job rather than stored on
+     * the Import row.
+     */
     public function regspi(Request $request)
     {
         $validated = $request->validate([
             'file' => 'required|file|mimes:csv,txt|max:51200',
+            'fund_cluster_id' => 'required|string|exists:fund_clusters,fund_cluster_id',
         ]);
 
         $path = $validated['file']->store('imports/regspi');
@@ -242,7 +250,7 @@ class ImportController extends Controller
             'status' => 'pending',
         ]);
 
-        ProcessRegspiImport::dispatch($import->getKey());
+        ProcessRegspiImport::dispatch($import->getKey(), $validated['fund_cluster_id']);
 
         return back()->with('success', "RegSPI import started.|||import_id:{$import->getKey()}");
     }

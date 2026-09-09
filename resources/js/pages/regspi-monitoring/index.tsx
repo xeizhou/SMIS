@@ -270,8 +270,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
             <RegSPIEditForm open={editDialogOpen} onOpenChange={setEditDialogOpen} regspi={selectedRegSPI} rrsps={rrsps} fundClusters={fundClusters} />
             <RegSPIViewForm open={viewDialogOpen} onOpenChange={setViewDialogOpen} regspi={selectedRegSPI} />
             <RegSPIDeleteModal open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} regspiId={regspiToDelete?.regspi_id ?? null} propertyNo={regspiToDelete?.semi_expendable_property_no ?? null} />
-            <RegSPIImportDialog open={importOpen} onOpenChange={setImportOpen} />
-        </>
+            <RegSPIImportDialog open={importOpen} onOpenChange={setImportOpen} fundClusters={fundClusters} />        </>
     );
 }
 
