@@ -25,6 +25,7 @@ class RrspMonitoring extends Model
 
     protected $fillable = [
         'rrsp_no',
+        'po_number',
         'date_received',
         'end_user_name',
         'return_by',
@@ -42,5 +43,10 @@ class RrspMonitoring extends Model
     public function items(): HasMany
     {
         return $this->hasMany(RrspItem::class, 'rrsp_monitoring_id');
+    }
+
+    public function purchaseOrder(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(ServePo::class, 'po_number', 'po_number');
     }
 }

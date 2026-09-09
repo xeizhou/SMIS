@@ -43,6 +43,7 @@ class RRSPController extends Controller
                 return [
                     'id' => $rrsp->id,
                     'rrspNo' => $rrsp->rrsp_no,
+                    'poNumber' => $rrsp->po_number,
                     'dateReceived' => optional($rrsp->date_received)->toDateString(),
                     'endUserName' => $rrsp->end_user_name,
                     'returnBy' => $rrsp->return_by,
@@ -90,6 +91,7 @@ class RRSPController extends Controller
     {
         $validated = $request->validate([
             'rrspNo' => 'required|string|max:255|unique:rrsp_monitoring,rrsp_no',
+            'poNumber' => 'required|string|exists:serve_po,po_number',
             'dateReceived' => 'nullable|date',
             'endUserName' => 'nullable|string|max:255',
             'returnBy' => 'nullable|string|max:255',
@@ -105,8 +107,20 @@ class RRSPController extends Controller
             'items.*.remarks' => 'nullable|string',
         ]);
 
+        $po = \App\Models\ServePo::with('items')->where('po_number', $validated['poNumber'])->firstOrFail();
+        $poItemDescriptions = $po->items->map(function ($i) {
+            return $i->description ? "{$i->item_name} - {$i->description}" : $i->item_name;
+        })->toArray();
+        
+        foreach ($validated['items'] as $item) {
+            if (!in_array($item['itemDescription'], $poItemDescriptions)) {
+                return back()->withErrors(['items' => 'One or more items do not belong to the selected Purchase Order.'])->withInput();
+            }
+        }
+
         $rrsp = RrspMonitoring::create([
             'rrsp_no' => $validated['rrspNo'],
+            'po_number' => $validated['poNumber'],
             'date_received' => $validated['dateReceived'],
             'end_user_name' => $validated['endUserName'],
             'return_by' => $validated['returnBy'],
@@ -133,6 +147,7 @@ class RRSPController extends Controller
     {
         $validated = $request->validate([
             'rrspNo' => 'required|string|max:255|unique:rrsp_monitoring,rrsp_no,'.$rrsp->id,
+            'poNumber' => 'required|string|exists:serve_po,po_number',
             'dateReceived' => 'nullable|date',
             'endUserName' => 'nullable|string|max:255',
             'returnBy' => 'nullable|string|max:255',
@@ -148,8 +163,20 @@ class RRSPController extends Controller
             'items.*.remarks' => 'nullable|string',
         ]);
 
+        $po = \App\Models\ServePo::with('items')->where('po_number', $validated['poNumber'])->firstOrFail();
+        $poItemDescriptions = $po->items->map(function ($i) {
+            return $i->description ? "{$i->item_name} - {$i->description}" : $i->item_name;
+        })->toArray();
+        
+        foreach ($validated['items'] as $item) {
+            if (!in_array($item['itemDescription'], $poItemDescriptions)) {
+                return back()->withErrors(['items' => 'One or more items do not belong to the selected Purchase Order.'])->withInput();
+            }
+        }
+
         $rrsp->update([
             'rrsp_no' => $validated['rrspNo'],
+            'po_number' => $validated['poNumber'],
             'date_received' => $validated['dateReceived'],
             'end_user_name' => $validated['endUserName'],
             'return_by' => $validated['returnBy'],
@@ -243,4 +270,12 @@ class RRSPController extends Controller
         ]);
     }
 
+    public function getPurchaseOrders()
+    {
+        $pos = \App\Models\ServePo::with(['items' => function($query) {
+            $query->select('stock_items.stock_no', 'stock_items.item_name', 'stock_items.description');
+        }])->select('po_number')->get();
+
+        return response()->json($pos);
+    }
 }

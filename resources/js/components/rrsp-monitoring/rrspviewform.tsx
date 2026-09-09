@@ -23,6 +23,7 @@ interface RrspItem {
 interface RrspMonitoring {
     id: string;
     rrspNo: string;
+    poNumber: string | null;
     dateReceived: string | null;
     endUserName: string | null;
     returnBy: string | null;
@@ -110,6 +111,7 @@ return (
                     <p className={sectionTitleClass}>General Information</p>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                         <Detail label="RRSP No." value={rrsp.rrspNo} />
+                        <Detail label="PO No." value={rrsp.poNumber} />
                         <Detail label="Date Received" value={formatDate(rrsp.dateReceived)} />
                         <Detail label="End User" value={rrsp.endUserName ?? '—'} />
                         <Detail label="Return By" value={rrsp.returnBy ?? '—'} />
