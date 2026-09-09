@@ -1,0 +1,431 @@
+﻿commit 5a4057ec1679c81ab256cf4c00af37faca6c4b98
+Author: xeizhou <cedricgalay@gmail.com>
+Date:   Mon Sep 7 15:38:58 2026 +0800
+
+    Fixed widget issue + added button functionality
+
+diff --git a/resources/js/components/purchase-order/poeditform.tsx b/resources/js/components/purchase-order/poeditform.tsx
+index e129e50..6bfdc27 100644
+--- a/resources/js/components/purchase-order/poeditform.tsx
++++ b/resources/js/components/purchase-order/poeditform.tsx
+@@ -435,6 +435,7 @@ const emptyForm = {
+     date_forwarded_to_smu: '',
+     coa_processed_date: '',
+     date_forwarded_frontdesk: '',
++    inspection_entries: [] as any[],
+ };
+ 
+ function toDateInputValue(value: string | null): string {
+@@ -505,6 +506,13 @@ function toFormData(po: PurchaseOrder | null): typeof emptyForm {
+         date_forwarded_to_smu: toDateInputValue(po.date_forwarded_to_smu),
+         coa_processed_date: toDateInputValue(po.coa_processed_date),
+         date_forwarded_frontdesk: toDateInputValue(po.date_forwarded_frontdesk),
++        inspection_entries: po.inspection_entries?.length 
++            ? po.inspection_entries.map((entry: any) => ({
++                iar_number: entry.iar_number || '',
++                inspected_by: entry.inspected_by || '',
++                inspection_date: toDateInputValue(entry.inspection_date),
++            })) 
++            : [{ iar_number: '', inspected_by: '', inspection_date: '' }],
+     };
+ }
+ 
+@@ -671,6 +679,28 @@ export default function PurchaseOrderEditForm({
+         });
+     };
+ 
++    const handleInspectionEntryChange = (index: number, field: string, value: string) => {
++        setData((prev: any) => {
++            const newEntries = [...prev.inspection_entries];
++            newEntries[index] = { ...newEntries[index], [field]: value };
++            return { ...prev, inspection_entries: newEntries };
++        });
++    };
++
++    const addInspectionEntry = () => {
++        setData((prev: any) => ({
++            ...prev,
++            inspection_entries: [...prev.inspection_entries, { iar_number: '', inspected_by: '', inspection_date: '' }],
++        }));
++    };
++
++    const removeInspectionEntry = (index: number) => {
++        setData((prev: any) => {
++            const newEntries = prev.inspection_entries.filter((_: any, i: number) => i !== index);
++            return { ...prev, inspection_entries: newEntries };
++        });
++    };
++
+     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+         if (!e.target.files) return;
+         const selectedFiles = Array.from(e.target.files).map((file) => ({
+@@ -1066,6 +1096,66 @@ export default function PurchaseOrderEditForm({
+                             </div>
+                         </div>
+ 
++                        {/* Section: Inspection Details */}
++                        <div>
++                            <div className="flex items-center justify-between border-b border-border pb-2 mb-4">
++                                <h3 className="text-sm font-semibold text-foreground">Inspection Details</h3>
++                                <Button
++                                    type="button"
++                                    variant="outline"
++                                    size="sm"
++                                    onClick={addInspectionEntry}
++                                    className="h-8 gap-1"
++                                >
++                                    <Plus className="h-4 w-4" />
++                                    Add Entry
++                                </Button>
++                            </div>
++                            <div className="space-y-4">
++                                {data.inspection_entries?.map((entry: any, index: number) => (
++                                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start bg-muted/30 p-3 rounded-lg border border-border/50 relative group">
++                                        <div className="md:col-span-4">
++                                            <Field
++                                                label="IAR Number"
++                                                name={`inspection_entries.${index}.iar_number`}
++                                                value={entry.iar_number}
++                                                onChange={(e) => handleInspectionEntryChange(index, 'iar_number', e.target.value)}
++                                                error={errors[`inspection_entries.${index}.iar_number`]}
++                                            />
++                                        </div>
++                                        <div className="md:col-span-4">
++                                            <Field
++                                                label="Inspected By"
++                                                name={`inspection_entries.${index}.inspected_by`}
++                                                value={entry.inspected_by}
++                                                onChange={(e) => handleInspectionEntryChange(index, 'inspected_by', e.target.value)}
++                                                error={errors[`inspection_entries.${index}.inspected_by`]}
++                                            />
++                                        </div>
++                                        <div className="md:col-span-3">
++                                            <Field
++                                                label="Inspection Date"
++                                                name={`inspection_entries.${index}.inspection_date`}
++                                                type="date"
++                                                value={entry.inspection_date}
++                                                onChange={(e) => handleInspectionEntryChange(index, 'inspection_date', e.target.value)}
++                                                error={errors[`inspection_entries.${index}.inspection_date`]}
++                                            />
++                                        </div>
++                                        <div className="md:col-span-1 flex justify-end pt-8">
++                                            <button
++                                                type="button"
++                                                onClick={() => removeInspectionEntry(index)}
++                                                className="h-9 w-9 text-red-600 hover:text-red-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
++                                            >
++                                                <X className="h-4 w-4" />
++                                            </button>
++                                        </div>
++                                    </div>
++                                ))}
++                            </div>
++                        </div>
++
+                         {/* Section: Attachments */}
+                         <div>
+                             <h3 className={sectionTitleClass}>Attachments</h3>
+
+commit 06ce406cbcc7ce375014eb4d10d2bde7170ae06c
+Author: desciii <angelopanungcat@gmail.com>
+Date:   Thu Aug 27 09:18:22 2026 +0800
+
+    fixed attachment with line breaking on forms.
+
+diff --git a/resources/js/components/purchase-order/poeditform.tsx b/resources/js/components/purchase-order/poeditform.tsx
+index a876b5b..e129e50 100644
+--- a/resources/js/components/purchase-order/poeditform.tsx
++++ b/resources/js/components/purchase-order/poeditform.tsx
+@@ -1106,9 +1106,9 @@ export default function PurchaseOrderEditForm({
+                                                                     openExistingAttachmentPreview(att);
+                                                                 }
+                                                             }}
+-                                                            className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer"
++                                                            className="flex items-center gap-2 rounded-md border px-2 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer sm:gap-2.5 sm:px-2.5"
+                                                         >
+-                                                            <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
++                                                            <div className="h-7 w-7 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden sm:h-8 sm:w-8">
+                                                                 {type === 'image' ? (
+                                                                     <img
+                                                                         src={`/storage/${att.file_path}`}
+@@ -1120,16 +1120,16 @@ export default function PurchaseOrderEditForm({
+                                                                 )}
+                                                             </div>
+                                                             <div className="min-w-0 flex-1">
+-                                                                <p className="truncate text-sm">{att.original_name}</p>
+-                                                                <p className="text-[11px] text-muted-foreground">{formatBytes(att.file_size)}</p>
++                                                                <p className="truncate text-xs sm:text-sm">{att.original_name}</p>
++                                                                <p className="hidden text-[11px] text-muted-foreground sm:block">{formatBytes(att.file_size)}</p>
+                                                             </div>
+-                                                            <Badge variant="outline" className="text-[10px] h-5">
++                                                            <Badge variant="outline" className="hidden text-[10px] h-5 sm:inline-flex">
+                                                                 {getExtension(att.original_name).toUpperCase()}
+                                                             </Badge>
+                                                             <Button
+                                                                 variant="ghost"
+                                                                 size="icon"
+-                                                                className="h-7 w-7 text-red-500 hover:text-red-600"
++                                                                className="h-6 w-6 shrink-0 text-red-500 hover:text-red-600 sm:h-7 sm:w-7"
+                                                                 onClick={(e) => {
+                                                                     e.stopPropagation();
+                                                                     removeExistingAttachment(att.id);
+@@ -1158,9 +1158,9 @@ export default function PurchaseOrderEditForm({
+                                                         <button
+                                                             type="button"
+                                                             onClick={() => openNewFilePreview(staged)}
+-                                                            className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/50 transition-colors cursor-pointer"
++                                                            className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/50 transition-colors cursor-pointer sm:gap-3 sm:px-3 sm:py-2"
+                                                         >
+-                                                            <div className="h-9 w-9 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
++                                                            <div className="h-7 w-7 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden sm:h-9 sm:w-9">
+                                                                 {staged.previewUrl ? (
+                                                                     <img
+                                                                         src={staged.previewUrl}
+@@ -1171,10 +1171,10 @@ export default function PurchaseOrderEditForm({
+                                                                     <FileIcon type={type} />
+                                                                 )}
+                                                             </div>
+-                                                            <span className="min-w-0 flex-1 truncate text-sm">
++                                                            <span className="min-w-0 flex-1 truncate text-xs sm:text-sm">
+                                                                 {file.name}
+                                                             </span>
+-                                                            <span className="shrink-0 text-xs text-muted-foreground">
++                                                            <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                                                                 {formatBytes(file.size)}
+                                                             </span>
+                                                             <span
+@@ -1193,10 +1193,10 @@ export default function PurchaseOrderEditForm({
+                                                                 className="shrink-0 text-red-600 hover:text-red-800"
+                                                                 title="Remove"
+                                                             >
+-                                                                <X className="size-4" />
++                                                                <X className="size-3.5 sm:size-4" />
+                                                             </span>
+                                                         </button>
+-                                                    </li>
++                                                    </li>   
+                                                 );
+                                             })}
+                                         </ul>
+
+commit deb2013521705e00e006175c3da9c3c90af5bf7e
+Author: desciii <angelopanungcat@gmail.com>
+Date:   Tue Aug 25 13:48:09 2026 +0800
+
+    edited profile and po
+
+diff --git a/resources/js/components/purchase-order/poeditform.tsx b/resources/js/components/purchase-order/poeditform.tsx
+index 2c8dbfb..a876b5b 100644
+--- a/resources/js/components/purchase-order/poeditform.tsx
++++ b/resources/js/components/purchase-order/poeditform.tsx
+@@ -39,6 +39,8 @@ import {
+     ChevronsUpDown,
+ } from "lucide-react";
+ import SupplierQuickAddModal from '@/components/suppliers/supplier-quick-add-modal';
++import ItemMultiSelect, { type StockItemOption } from '@/components/purchase-order/item-multi-select';
++import StockItemQuickAddModal from '@/components/purchase-order/stock-item-quick-add-modal';
+ 
+ interface Supplier {
+     supplier_id: number;
+@@ -88,6 +90,7 @@ interface PurchaseOrder {
+     coa_processed_date: string | null;
+     date_forwarded_frontdesk: string | null;
+     attachments?: Attachment[];
++    items?: { stock_no: string }[];
+ }
+ 
+ interface Props {
+@@ -97,6 +100,7 @@ interface Props {
+     suppliers: Supplier[];
+     fundClusters: FundCluster[];
+     offices: Office[];
++    stockItems: StockItemOption[];
+ }
+ 
+ interface FieldProps {
+@@ -576,12 +580,14 @@ export default function PurchaseOrderEditForm({
+     suppliers,
+     fundClusters,
+     offices,
++    stockItems,
+ }: Props) {
+     const [data, setData] = useState(emptyForm);
+     const [errors, setErrors] = useState<Record<string, string>>({});
+     const [processing, setProcessing] = useState(false);
+     const [showConfirmModal, setShowConfirmModal] = useState(false);
+     const [newFiles, setNewFiles] = useState<StagedFile[]>([]);
++    const [itemStockNos, setItemStockNos] = useState<string[]>([]);
+     const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
+     const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<number[]>([]);
+     const [refreshingField, setRefreshingField] = useState<string | null>(null);
+@@ -592,12 +598,21 @@ export default function PurchaseOrderEditForm({
+     const [quickAddOpen, setQuickAddOpen] = useState(false);
+     const [quickAddQuery, setQuickAddQuery] = useState('');
+ 
++    // Stock item quick-add state ΓÇö same pattern as PurchaseOrderAddForm
++    const [stockItemOptions, setStockItemOptions] = useState<StockItemOption[]>(stockItems);
++    const [itemQuickAddOpen, setItemQuickAddOpen] = useState(false);
++    const [itemQuickAddQuery, setItemQuickAddQuery] = useState('');
++
+     // Keep local supplier list in sync if the parent passes a fresh
+     // `suppliers` prop (e.g. after a manual refresh).
+     useEffect(() => {
+         setSupplierOptions(suppliers);
+     }, [suppliers]);
+ 
++    useEffect(() => {
++        setStockItemOptions(stockItems);
++    }, [stockItems]);
++
+     const handleRefreshData = (field: string) => {
+         setRefreshingField(field);
+         router.reload({
+@@ -621,6 +636,7 @@ export default function PurchaseOrderEditForm({
+             setExistingAttachments(purchaseOrder?.attachments ?? []);
+             setDeletedAttachmentIds([]);
+             setPreviewTarget(null);
++            setItemStockNos(purchaseOrder?.items?.map((i) => i.stock_no) ?? []); // add this
+         }
+         // eslint-disable-next-line react-hooks/exhaustive-deps
+     }, [open, purchaseOrder]);
+@@ -714,6 +730,7 @@ export default function PurchaseOrderEditForm({
+             `/purchase-orders/${encodeURIComponent(purchaseOrder.po_number)}`,
+             {
+                 ...data,
++                item_stock_nos: itemStockNos, // add this
+                 total_amount_diff: diff,
+                 responsibility_center: responsibilityCenter,
+                 deleted_attachment_ids: deletedAttachmentIds,
+@@ -894,22 +911,18 @@ export default function PurchaseOrderEditForm({
+                                         error={errors.inclusive_date}
+                                         placeholder="e.g. Jan 1 - Jan 15, 2026"
+                                     />
+-                                )}
+-                                
++                                )}                 
+                                 <div className="md:col-span-2">
+-                                    <label className={labelClass}>Item Description</label>
+-                                    <textarea
+-                                        name="item_description"
+-                                        value={data.item_description}
+-                                        onChange={(e) =>
+-                                            setData({ ...data, item_description: e.target.value })
+-                                        }
+-                                        rows={4}
+-                                        className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
++                                    <ItemMultiSelect
++                                        value={itemStockNos}
++                                        onChange={setItemStockNos}
++                                        options={stockItemOptions}
++                                        error={errors.item_stock_nos}
++                                        onAddNew={(query) => {
++                                            setItemQuickAddQuery(query);
++                                            setItemQuickAddOpen(true);
++                                        }}
+                                     />
+-                                    {errors.item_description && (
+-                                        <p className="mt-1 text-xs text-red-500">{errors.item_description}</p>
+-                                    )}
+                                 </div>
+                             </div>
+                         </div>
+@@ -1292,6 +1305,16 @@ export default function PurchaseOrderEditForm({
+                     handleSelectChange('supplier_id')(String(created.supplier_id));
+                 }}
+             />
++
++            <StockItemQuickAddModal
++                open={itemQuickAddOpen}
++                onOpenChange={setItemQuickAddOpen}
++                initialName={itemQuickAddQuery}
++                onCreated={(created) => {
++                    setStockItemOptions((prev) => [...prev, created]);
++                    setItemStockNos((prev) => [...prev, created.stock_no]);
++                }}
++            />
+         </>
+     );
+ }
+\ No newline at end of file
+
+commit 8891f74876e1792ab7505b6bbd4503dc60a56cd9
+Author: desciii <angelopanungcat@gmail.com>
+Date:   Tue Aug 25 08:41:38 2026 +0800
+
+    fixed purchase order supplier ui
+
+diff --git a/resources/js/components/purchase-order/poeditform.tsx b/resources/js/components/purchase-order/poeditform.tsx
+index 4805fe9..2c8dbfb 100644
+--- a/resources/js/components/purchase-order/poeditform.tsx
++++ b/resources/js/components/purchase-order/poeditform.tsx
+@@ -254,7 +254,9 @@ function SelectField({
+     );
+ }
+ 
+-// Custom Searchable Dropdown
++// Custom Searchable Dropdown ΓÇö "Add new" row is always visible in the
++// list (not just tucked inside CommandEmpty), so it's there whether or
++// not the search currently has matches.
+ interface SearchableSelectProps {
+     label: string;
+     value: string;
+@@ -287,6 +289,15 @@ function SearchableSelect({
+ 
+     const selectedLabel = options.find((o) => o.value === value)?.label;
+ 
++    const trimmedQuery = query.trim();
++    const hasExactMatch = options.some(
++        (o) => o.label.trim().toLowerCase() === trimmedQuery.toLowerCase()
++    );
++    // Always show "Add new" once onAddNew is provided ΓÇö pre-filled with
++    // the current query if there's no exact match, otherwise just opens
++    // the modal blank (or with the query, if they want to add a near-dup).
++    const showAddNew = !!onAddNew && !hasExactMatch;
++
+     return (
+         <div>
+             <div className="flex items-center justify-between mb-1">
+@@ -334,23 +345,27 @@ function SearchableSelect({
+                         />
+                         <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                             <CommandEmpty>
+-                                <div className="px-2 py-3 text-center text-sm text-muted-foreground">
++                                <p className="px-2 py-3 text-center text-sm text-muted-foreground">
+                                     No item found.
+-                                    {onAddNew && (
+-                                        <button
+-                                            type="button"
+-                                            onClick={() => {
+-                                                onAddNew(query);
+-                                                setOpen(false);
+-                                            }}
+-                                            className="mt-2 flex w-full items-center justify-center gap-1 rounded-md border border-dashed px-2 py-1.5 text-sm font-medium text-primary hover:bg-muted"
+-                                        >
+-                                            <Plus className="size-3.5" />
+-                                            Add {query ? `"${query}"` : addNewLabel}
+-                                        </button>
+-                                    )}
+-                                </div>
++                                </p>
+                             </CommandEmpty>
++
++                            {showAddNew && (
++                                <CommandGroup>
++                                    <CommandItem
++                                        value={`__add_new__${trimmedQuery}`}
++                                        onSelect={() => {
++                                            onAddNew(trimmedQuery);
++                                            setOpen(false);
++                                        }}
++                                        className="text-primary"
++                                    >
++                                        <Plus className="mr-2 h-4 w-4" />
++                                        {trimmedQuery ? `Add "${trimmedQuery}" as ${addNewLabel}` : `Add ${addNewLabel}`}
++                                    </CommandItem>
++                                </CommandGroup>
++                            )}
++
+                             <CommandGroup>
+                                 {options.map((opt) => (
+                                     <CommandItem
