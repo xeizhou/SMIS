@@ -30,6 +30,7 @@ interface RrspItem {
     kindOfSemiExpendable: string | null;
     status: string | null;
     area: string | null;
+    cost: number | null;
 }
 
 interface RrspMonitoring {
@@ -275,17 +276,17 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                                 <tr>
-                                    {['RRSP No', 'Item Name', 'Property No', 'End User', 'Return By', 'Area', 'Date Received', 'Qty', 'Status'].map((label, index) => <th key={label} className="p-0 text-left font-semibold text-white"><button type="button" onClick={() => handleSort(['rrsp_no', 'rrsp_no', 'rrsp_no', 'end_user_name', 'return_by', 'rrsp_no', 'date_received', 'rrsp_no', 'rrsp_no'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
-                                    <th className="px-4 py-3 text-center font-semibold text-white">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
-    
-                            {rrspMonitorings.data.length === 0 ? (
-                                <tbody>
-                                    <tr>
-                                        <td colSpan={10} className="px-6 py-16 text-center">
+                                {['RRSP No', 'Item Name', 'Property No', 'End User', 'Return By', 'Area', 'Date Received', 'Qty', 'Cost', 'Status'].map((label, index) => <th key={label} className="p-0 text-left font-semibold text-white"><button type="button" onClick={() => handleSort(['rrsp_no', 'rrsp_no', 'rrsp_no', 'end_user_name', 'return_by', 'rrsp_no', 'date_received', 'rrsp_no', 'rrsp_no', 'rrsp_no'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
+                                <th className="px-4 py-3 text-center font-semibold text-white">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+
+                        {rrspMonitorings.data.length === 0 ? (
+                            <tbody>
+                                <tr>
+                                    <td colSpan={11} className="px-6 py-16 text-center">
                                             <p className="text-base font-medium text-muted-foreground">
                                                 No RRSP records added yet.
                                             </p>
@@ -331,12 +332,15 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                                                     <td className="px-4 py-3" rowSpan={itemsCount}>
                                                         {formatDate(rrsp.dateReceived)}
                                                     </td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        {firstItem?.quantity ?? '—'}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        {firstItem?.status ? <StatusBadge status={firstItem.status} /> : '—'}
-                                                    </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    {firstItem?.quantity ?? '—'}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {firstItem?.cost ? `₱${Number(firstItem.cost).toLocaleString('en-US', {minimumFractionDigits: 2})}` : '—'}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {firstItem?.status ? <StatusBadge status={firstItem.status} /> : '—'}
+                                                </td>
                                                     <td className="px-4 py-3" rowSpan={itemsCount}>
                                                         <div className="flex items-center justify-center gap-3">
                                                             <button
@@ -385,12 +389,15 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                                                         <td className="px-4 py-3">
                                                             {item.area ?? '—'}
                                                         </td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            {item.quantity ?? '—'}
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            {item.status ? <StatusBadge status={item.status} /> : '—'}
-                                                        </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        {item.quantity ?? '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        {item.cost ? `₱${Number(item.cost).toLocaleString('en-US', {minimumFractionDigits: 2})}` : '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        {item.status ? <StatusBadge status={item.status} /> : '—'}
+                                                    </td>
                                                     </AnimatedTableRow>
                                                 ))}
                                             </tbody>

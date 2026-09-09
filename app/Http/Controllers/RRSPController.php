@@ -58,6 +58,7 @@ class RRSPController extends Controller
                             'status' => $i->status,
                             'kindOfSemiExpendable' => $i->kind_of_semi_expendable,
                             'area' => $i->area,
+                            'cost' => $i->cost,
                             'remarks' => $i->remarks,
                         ];
                     }),
@@ -100,6 +101,7 @@ class RRSPController extends Controller
             'items.*.kindOfSemiExpendable' => 'nullable|string|max:255',
             'items.*.status' => 'nullable|string|max:100',
             'items.*.area' => 'nullable|string|max:255',
+            'items.*.cost' => 'nullable|numeric',
             'items.*.remarks' => 'nullable|string',
         ]);
 
@@ -119,6 +121,7 @@ class RRSPController extends Controller
                 'kind_of_semi_expendable' => $item['kindOfSemiExpendable'],
                 'status' => $item['status'],
                 'area' => $item['area'],
+                'cost' => $item['cost'] ?? null,
                 'remarks' => $item['remarks'] ?? null,
             ]);
         }
@@ -141,6 +144,7 @@ class RRSPController extends Controller
             'items.*.kindOfSemiExpendable' => 'nullable|string|max:255',
             'items.*.status' => 'nullable|string|max:100',
             'items.*.area' => 'nullable|string|max:255',
+            'items.*.cost' => 'nullable|numeric',
             'items.*.remarks' => 'nullable|string',
         ]);
 
@@ -161,6 +165,7 @@ class RRSPController extends Controller
                 'kind_of_semi_expendable' => $item['kindOfSemiExpendable'],
                 'status' => $item['status'],
                 'area' => $item['area'],
+                'cost' => $item['cost'] ?? null,
                 'remarks' => $item['remarks'] ?? null,
             ]);
         }
@@ -217,6 +222,7 @@ class RRSPController extends Controller
                     'quantity' => $i->quantity,
                     'property_no' => $i->property_no,
                     'area' => $i->area,
+                    'cost' => $i->cost,
                     'status' => $i->status,
                 ];
             });
