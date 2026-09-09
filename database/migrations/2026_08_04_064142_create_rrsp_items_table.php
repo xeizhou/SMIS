@@ -14,11 +14,13 @@ return new class extends Migration
         Schema::create('rrsp_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('rrsp_monitoring_id')->constrained('rrsp_monitoring')->onDelete('cascade');
+            $table->string('item_name')->nullable();
             $table->text('item_description');
             $table->integer('quantity');
             $table->string('property_no', 50)->nullable();
             $table->decimal('cost', 15, 2)->nullable();
             $table->string('status', 50)->nullable();
+            $table->text('remarks')->nullable();
             $table->string('kind_of_semi_expendable', 50)->nullable();
             $table->string('area', 100)->nullable();
             $table->timestamps();

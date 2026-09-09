@@ -16,6 +16,7 @@ return new class extends Migration
             // FK is nullable in source data (empty-string values were fixed to NULL
             // in the seed data since '' is not a valid match for a nullable FK).
             $table->string('rrsp_no', 50)->nullable();
+            $table->string('fund_cluster_id', 20)->nullable();
 
             $table->string('semi_expendable_property_no', 100);
             $table->string('item_description', 255);
@@ -34,6 +35,10 @@ return new class extends Migration
 
             $table->foreign('rrsp_no', 'fk_regspi_rrsp_no')
                 ->references('rrsp_no')->on('rrsp_monitoring')
+                ->nullOnDelete();
+
+            $table->foreign('fund_cluster_id', 'fk_regspi_fund_cluster')
+                ->references('fund_cluster_id')->on('fund_clusters')
                 ->nullOnDelete();
 
             // Required for ProcessRegspiImport's upsert() — SQLite needs a

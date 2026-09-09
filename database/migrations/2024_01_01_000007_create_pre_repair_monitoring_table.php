@@ -30,15 +30,12 @@ return new class extends Migration
             $table->text('description');
             $table->decimal('amount', 15, 2);
             $table->string('condition_of_ppe', 50);
+            $table->text('remarks')->nullable();
             $table->string('location', 100);
             $table->timestamps();
 
             $table->unique(['transaction_no', 'pre_repair_no'], 'uq_pre_repair_pk');
             $table->unique(['pre_repair_no', 'transaction_no', 'property_no'], 'uq_pre_repair_full');
-
-            $table->foreign(['transaction_no', 'property_no'], 'fk_pre_repair_transaction')
-                ->references(['transaction_no', 'property_no'])
-                ->on('itr_ptr_monitoring');
         });
     }
 

@@ -30,10 +30,11 @@ return new class extends Migration
             $table->string('claimed_by', 100);
             $table->string('from_accountable_officer', 100);
             $table->string('to_accountable_officer', 100);
-            $table->string('property_no', 50);
+            $table->string('property_no', 50)->nullable();
             $table->text('description');
             $table->decimal('amount', 15, 2);
             $table->string('condition_of_ppe', 50);
+            $table->text('remarks')->nullable();
             $table->string('location', 100);
             $table->date('date_received');
             $table->timestamps();
