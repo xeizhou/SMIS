@@ -10,7 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
-import { Plus, Trash2, Mail, Lock } from 'lucide-react';
+import { Plus, Trash2, Mail, Lock, X } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -20,6 +20,47 @@ import {
 } from '@/components/ui/select';
 
 // Utility functions
+type InspectionGroup = {
+    iar_number: string;
+    inspectors: string[];
+    inspection_dates: string[];
+};
+
+const createInspectionGroup = (): InspectionGroup => ({
+    iar_number: '',
+    inspectors: [''],
+    inspection_dates: [''],
+});
+
+function groupInspectionEntries(entries: any[] | undefined): InspectionGroup[] {
+    if (!entries || entries.length === 0) {
+        return [createInspectionGroup()];
+    }
+
+    const grouped = new Map<string, { inspectors: Set<string>; dates: Set<string> }>();
+
+    entries.forEach(entry => {
+        const iar = entry.iar_number || '';
+        if (!grouped.has(iar)) {
+            grouped.set(iar, { inspectors: new Set(), dates: new Set() });
+        }
+        const g = grouped.get(iar)!;
+        if (entry.inspected_by) g.inspectors.add(entry.inspected_by);
+        if (entry.inspection_date) g.dates.add(toDateInputValue(entry.inspection_date));
+    });
+
+    const result: InspectionGroup[] = [];
+    grouped.forEach((data, iar) => {
+        result.push({
+            iar_number: iar,
+            inspectors: data.inspectors.size > 0 ? Array.from(data.inspectors) : [''],
+            inspection_dates: data.dates.size > 0 ? Array.from(data.dates) : [''],
+        });
+    });
+
+    return result.length > 0 ? result : [createInspectionGroup()];
+}
+
 function toDateInputValue(value: string | null): string {
     if (!value) return '';
     try {
@@ -131,13 +172,7 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                 ris_number: purchaseOrder.ris_number || '',
                 date_completed: toDateInputValue(purchaseOrder.date_completed),
                 date_forwarded_to_finance: toDateInputValue(purchaseOrder.date_forwarded_to_finance),
-                inspection_entries: purchaseOrder.inspection_entries?.length 
-                    ? purchaseOrder.inspection_entries.map((entry: any) => ({
-                        iar_number: entry.iar_number || '',
-                        inspected_by: entry.inspected_by || '',
-                        inspection_date: toDateInputValue(entry.inspection_date),
-                    })) 
-                    : [{ iar_number: '', inspected_by: '', inspection_date: '' }],
+                inspection_groups: groupInspectionEntries(purchaseOrder.inspection_entries),
             });
             setActiveTab(purchaseOrder.po_step || 'PO From VPAD');
             setErrors({});
@@ -150,26 +185,109 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
         setData((prev: any) => ({ ...prev, [name]: value }));
     };
 
-    const handleInspectionEntryChange = (index: number, field: string, value: string) => {
-        setData((prev: any) => {
-            const newEntries = [...prev.inspection_entries];
-            newEntries[index] = { ...newEntries[index], [field]: value };
-            return { ...prev, inspection_entries: newEntries };
-        });
-    };
-
-    const addInspectionEntry = () => {
+    const updateInspectionGroup = (groupIndex: number, value: string) => {
         setData((prev: any) => ({
             ...prev,
-            inspection_entries: [...prev.inspection_entries, { iar_number: '', inspected_by: '', inspection_date: '' }],
+            inspection_groups: prev.inspection_groups.map((group: any, index: number) =>
+                index === groupIndex ? { ...group, iar_number: value } : group
+            ),
         }));
     };
 
-    const removeInspectionEntry = (index: number) => {
-        setData((prev: any) => {
-            const newEntries = prev.inspection_entries.filter((_: any, i: number) => i !== index);
-            return { ...prev, inspection_entries: newEntries.length ? newEntries : [{ iar_number: '', inspected_by: '', inspection_date: '' }] };
-        });
+    const updateInspectionInspector = (groupIndex: number, inspectorIndex: number, value: string) => {
+        setData((prev: any) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.map((group: any, index: number) =>
+                index === groupIndex
+                    ? {
+                        ...group,
+                        inspectors: group.inspectors.map((item: string, currentIndex: number) =>
+                            currentIndex === inspectorIndex ? value : item
+                        ),
+                    }
+                    : group
+            ),
+        }));
+    };
+
+    const updateInspectionDate = (groupIndex: number, dateIndex: number, value: string) => {
+        setData((prev: any) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.map((group: any, index: number) =>
+                index === groupIndex
+                    ? {
+                        ...group,
+                        inspection_dates: group.inspection_dates.map((item: string, currentIndex: number) =>
+                            currentIndex === dateIndex ? value : item
+                        ),
+                    }
+                    : group
+            ),
+        }));
+    };
+
+    const addInspectionGroup = () => {
+        setData((prev: any) => ({
+            ...prev,
+            inspection_groups: [...prev.inspection_groups, createInspectionGroup()],
+        }));
+    };
+
+    const removeInspectionGroup = (groupIndex: number) => {
+        setData((prev: any) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.filter((_: any, index: number) => index !== groupIndex),
+        }));
+    };
+
+    const addInspectionInspector = (groupIndex: number) => {
+        setData((prev: any) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.map((group: any, index: number) =>
+                index === groupIndex
+                    ? { ...group, inspectors: [...group.inspectors, ''] }
+                    : group
+            ),
+        }));
+    };
+
+    const addInspectionDate = (groupIndex: number) => {
+        setData((prev: any) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.map((group: any, index: number) =>
+                index === groupIndex
+                    ? { ...group, inspection_dates: [...group.inspection_dates, ''] }
+                    : group
+            ),
+        }));
+    };
+
+    const removeInspectionInspector = (groupIndex: number, inspectorIndex: number) => {
+        setData((prev: any) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.map((group: any, index: number) =>
+                index === groupIndex && group.inspectors.length > 1
+                    ? {
+                        ...group,
+                        inspectors: group.inspectors.filter((_: any, currentIndex: number) => currentIndex !== inspectorIndex),
+                    }
+                    : group
+            ),
+        }));
+    };
+
+    const removeInspectionDate = (groupIndex: number, dateIndex: number) => {
+        setData((prev: any) => ({
+            ...prev,
+            inspection_groups: prev.inspection_groups.map((group: any, index: number) =>
+                index === groupIndex && group.inspection_dates.length > 1
+                    ? {
+                        ...group,
+                        inspection_dates: group.inspection_dates.filter((_: any, currentIndex: number) => currentIndex !== dateIndex),
+                    }
+                    : group
+            ),
+        }));
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
@@ -180,7 +298,52 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
         e.preventDefault();
         setProcessing(true);
 
-        router.put(`/purchase-orders/${purchaseOrder.po_number}`, data, {
+        const payload = {
+            ...data,
+            inspection_entries: data.inspection_groups.flatMap((group: any) => {
+                const inspectors = group.inspectors.filter((value: string) => value.trim() !== '');
+                const dates = group.inspection_dates.filter((value: string) => value.trim() !== '');
+
+                if (inspectors.length > 0 && dates.length > 0) {
+                    return inspectors.flatMap((inspector: string) =>
+                        dates.map((date: string) => ({
+                            iar_number: group.iar_number,
+                            inspected_by: inspector,
+                            inspection_date: date,
+                        }))
+                    );
+                }
+
+                if (inspectors.length > 0) {
+                    return inspectors.map((inspector: string) => ({
+                        iar_number: group.iar_number,
+                        inspected_by: inspector,
+                        inspection_date: '',
+                    }));
+                }
+
+                if (dates.length > 0) {
+                    return dates.map((date: string) => ({
+                        iar_number: group.iar_number,
+                        inspected_by: '',
+                        inspection_date: date,
+                    }));
+                }
+
+                if (group.iar_number.trim() !== '') {
+                    return [{
+                        iar_number: group.iar_number,
+                        inspected_by: '',
+                        inspection_date: '',
+                    }];
+                }
+
+                return [];
+            }),
+        };
+        delete (payload as any).inspection_groups;
+
+        router.put(`/purchase-orders/${purchaseOrder.po_number}`, payload, {
             onSuccess: () => {
                 setProcessing(false);
                 onOpenChange(false);
@@ -622,63 +785,144 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                         />
 
                                         <div className="col-span-1 md:col-span-2 mt-4 space-y-4">
-                                            <div className="flex items-center justify-between border-b border-border pb-2">
-                                                <h4 className="text-sm font-semibold text-foreground">Inspection Details</h4>
+                                            <div className="flex items-center justify-between border-b border-border pb-2 mb-2">
+                                                <h4 className="text-sm font-semibold text-foreground">
+                                                    Inspection Details
+                                                    {data.inspection_groups.length > 0 && (
+                                                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                                            {data.inspection_groups.length} IAR{data.inspection_groups.length > 1 ? 's' : ''}
+                                                        </span>
+                                                    )}
+                                                </h4>
                                                 <Button
                                                     type="button"
                                                     variant="outline"
                                                     size="sm"
-                                                    onClick={addInspectionEntry}
+                                                    onClick={addInspectionGroup}
                                                     disabled={isStepLocked('Payment Processing')}
-                                                    className="h-8 gap-1"
                                                 >
-                                                    <Plus className="h-4 w-4" />
-                                                    Add Entry
+                                                    <Plus className="mr-1 h-3.5 w-3.5" />
+                                                    Add IAR
                                                 </Button>
                                             </div>
                                             
                                             <div className="space-y-4">
-                                                {data.inspection_entries?.map((entry: any, index: number) => (
-                                                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start bg-muted/30 p-3 rounded-lg border border-border/50 relative group">
-                                                        <div className="md:col-span-4">
-                                                            <Field
-                                                                label="IAR Number"
-                                                                name={`inspection_entries.${index}.iar_number`}
-                                                                value={entry.iar_number}
-                                                                onChange={(e) => handleInspectionEntryChange(index, 'iar_number', e.target.value)}
-                                                                error={errors[`inspection_entries.${index}.iar_number`]}
-                                                            />
-                                                        </div>
-                                                        <div className="md:col-span-4">
-                                                            <Field
-                                                                label="Inspected By"
-                                                                name={`inspection_entries.${index}.inspected_by`}
-                                                                value={entry.inspected_by}
-                                                                onChange={(e) => handleInspectionEntryChange(index, 'inspected_by', e.target.value)}
-                                                                error={errors[`inspection_entries.${index}.inspected_by`]}
-                                                            />
-                                                        </div>
-                                                        <div className="md:col-span-3">
-                                                            <Field
-                                                                label="Inspection Date"
-                                                                name={`inspection_entries.${index}.inspection_date`}
-                                                                type="date"
-                                                                value={entry.inspection_date}
-                                                                onChange={(e) => handleInspectionEntryChange(index, 'inspection_date', e.target.value)}
-                                                                error={errors[`inspection_entries.${index}.inspection_date`]}
-                                                            />
-                                                        </div>
-                                                        <div className="md:col-span-1 flex justify-end pt-8">
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => removeInspectionEntry(index)}
-                                                                disabled={isStepLocked('Payment Processing')}
-                                                                className="h-9 w-9 text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
+                                                {data.inspection_groups.map((group: any, groupIndex: number) => (
+                                                    <div
+                                                        key={groupIndex}
+                                                        className="rounded-md border p-3 bg-muted/30 relative"
+                                                    >
+                                                        <div className="flex flex-wrap items-start gap-4 md:flex-nowrap">
+                                                            {/* IAR Number */}
+                                                            <div className="min-w-0 w-full md:w-1/4">
+                                                                <Field
+                                                                    label="IAR Number"
+                                                                    name={`inspection_groups.${groupIndex}.iar_number`}
+                                                                    value={group.iar_number}
+                                                                    onChange={(e) => updateInspectionGroup(groupIndex, e.target.value)}
+                                                                    error={errors[`inspection_entries.${groupIndex}.iar_number`]}
+                                                                    readOnly={isStepLocked('Payment Processing')}
+                                                                />
+                                                            </div>
+
+                                                            {/* Inspectors */}
+                                                            <div className="min-w-0 flex-1 w-full md:w-auto">
+                                                                <label className="mb-1 block text-xs text-muted-foreground">
+                                                                    Inspected By
+                                                                </label>
+                                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                                    {group.inspectors.map((inspector: string, inspectorIndex: number) => (
+                                                                        <div
+                                                                            key={`inspector-${groupIndex}-${inspectorIndex}`}
+                                                                            className="flex items-center gap-1"
+                                                                        >
+                                                                            <Input
+                                                                                value={inspector}
+                                                                                onChange={(e) => updateInspectionInspector(groupIndex, inspectorIndex, e.target.value)}
+                                                                                readOnly={isStepLocked('Payment Processing')}
+                                                                                placeholder="Name"
+                                                                                className={cn("h-9 w-36", isStepLocked('Payment Processing') && "bg-muted text-muted-foreground cursor-not-allowed")}
+                                                                            />
+                                                                            {group.inspectors.length > 1 && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => removeInspectionInspector(groupIndex, inspectorIndex)}
+                                                                                    disabled={isStepLocked('Payment Processing')}
+                                                                                    className="text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                                    title="Remove inspector"
+                                                                                >
+                                                                                    <X className="h-3.5 w-3.5" />
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => addInspectionInspector(groupIndex)}
+                                                                        disabled={isStepLocked('Payment Processing')}
+                                                                        className="flex h-9 w-9 items-center justify-center rounded-md border border-dashed text-muted-foreground hover:bg-muted/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                        title="Add inspector"
+                                                                    >
+                                                                        <Plus className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Dates */}
+                                                            <div className="min-w-0 flex-1 w-full md:w-auto">
+                                                                <label className="mb-1 block text-xs text-muted-foreground">
+                                                                    Inspection Date
+                                                                </label>
+                                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                                    {group.inspection_dates.map((date: string, dateIndex: number) => (
+                                                                        <div
+                                                                            key={`date-${groupIndex}-${dateIndex}`}
+                                                                            className="flex items-center gap-1"
+                                                                        >
+                                                                            <Input
+                                                                                type="date"
+                                                                                value={date}
+                                                                                onChange={(e) => updateInspectionDate(groupIndex, dateIndex, e.target.value)}
+                                                                                readOnly={isStepLocked('Payment Processing')}
+                                                                                className={cn("h-9 w-[150px]", isStepLocked('Payment Processing') && "bg-muted text-muted-foreground cursor-not-allowed")}
+                                                                            />
+                                                                            {group.inspection_dates.length > 1 && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => removeInspectionDate(groupIndex, dateIndex)}
+                                                                                    disabled={isStepLocked('Payment Processing')}
+                                                                                    className="text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                                    title="Remove date"
+                                                                                >
+                                                                                    <X className="h-3.5 w-3.5" />
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => addInspectionDate(groupIndex)}
+                                                                        disabled={isStepLocked('Payment Processing')}
+                                                                        className="flex h-9 w-9 items-center justify-center rounded-md border border-dashed text-muted-foreground hover:bg-muted/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                        title="Add date"
+                                                                    >
+                                                                        <Plus className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Remove whole IAR row */}
+                                                            <div className="flex items-center pt-5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeInspectionGroup(groupIndex)}
+                                                                    disabled={data.inspection_groups.length === 1 || isStepLocked('Payment Processing')}
+                                                                    className="h-9 w-9 text-muted-foreground hover:text-red-600 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                                                    title="Remove IAR row"
+                                                                >
+                                                                    <X className="h-4 w-4" />
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}

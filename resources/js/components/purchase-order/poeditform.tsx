@@ -679,27 +679,7 @@ export default function PurchaseOrderEditForm({
         });
     };
 
-    const handleInspectionEntryChange = (index: number, field: string, value: string) => {
-        setData((prev: any) => {
-            const newEntries = [...prev.inspection_entries];
-            newEntries[index] = { ...newEntries[index], [field]: value };
-            return { ...prev, inspection_entries: newEntries };
-        });
-    };
 
-    const addInspectionEntry = () => {
-        setData((prev: any) => ({
-            ...prev,
-            inspection_entries: [...prev.inspection_entries, { iar_number: '', inspected_by: '', inspection_date: '' }],
-        }));
-    };
-
-    const removeInspectionEntry = (index: number) => {
-        setData((prev: any) => {
-            const newEntries = prev.inspection_entries.filter((_: any, i: number) => i !== index);
-            return { ...prev, inspection_entries: newEntries };
-        });
-    };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) return;
@@ -1096,65 +1076,7 @@ export default function PurchaseOrderEditForm({
                             </div>
                         </div>
 
-                        {/* Section: Inspection Details */}
-                        <div>
-                            <div className="flex items-center justify-between border-b border-border pb-2 mb-4">
-                                <h3 className="text-sm font-semibold text-foreground">Inspection Details</h3>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={addInspectionEntry}
-                                    className="h-8 gap-1"
-                                >
-                                    <Plus className="h-4 w-4" />
-                                    Add Entry
-                                </Button>
-                            </div>
-                            <div className="space-y-4">
-                                {data.inspection_entries?.map((entry: any, index: number) => (
-                                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start bg-muted/30 p-3 rounded-lg border border-border/50 relative group">
-                                        <div className="md:col-span-4">
-                                            <Field
-                                                label="IAR Number"
-                                                name={`inspection_entries.${index}.iar_number`}
-                                                value={entry.iar_number}
-                                                onChange={(e) => handleInspectionEntryChange(index, 'iar_number', e.target.value)}
-                                                error={errors[`inspection_entries.${index}.iar_number`]}
-                                            />
-                                        </div>
-                                        <div className="md:col-span-4">
-                                            <Field
-                                                label="Inspected By"
-                                                name={`inspection_entries.${index}.inspected_by`}
-                                                value={entry.inspected_by}
-                                                onChange={(e) => handleInspectionEntryChange(index, 'inspected_by', e.target.value)}
-                                                error={errors[`inspection_entries.${index}.inspected_by`]}
-                                            />
-                                        </div>
-                                        <div className="md:col-span-3">
-                                            <Field
-                                                label="Inspection Date"
-                                                name={`inspection_entries.${index}.inspection_date`}
-                                                type="date"
-                                                value={entry.inspection_date}
-                                                onChange={(e) => handleInspectionEntryChange(index, 'inspection_date', e.target.value)}
-                                                error={errors[`inspection_entries.${index}.inspection_date`]}
-                                            />
-                                        </div>
-                                        <div className="md:col-span-1 flex justify-end pt-8">
-                                            <button
-                                                type="button"
-                                                onClick={() => removeInspectionEntry(index)}
-                                                className="h-9 w-9 text-red-600 hover:text-red-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+
 
                         {/* Section: Attachments */}
                         <div>
