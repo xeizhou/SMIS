@@ -16,6 +16,7 @@ interface RrspItem {
     kindOfSemiExpendable: string | null;
     status: string | null;
     area: string | null;
+    cost?: number | null;
     remarks?: string | null;
 }
 
@@ -131,6 +132,7 @@ return (
                                     <Detail label="Quantity" value={item.quantity?.toString() ?? '—'} />
                                     <Detail label="Property No." value={item.propertyNo ?? '—'} />
                                     <Detail label="Kind of Semi-Expendable" value={item.kindOfSemiExpendable ?? '—'} />
+                                    <Detail label="Cost" value={formatCurrency(item.cost)} />
                                     <Detail label="Area" value={item.area ?? '—'} />
                                     <Detail label="Status" value={<StatusBadge status={item.status} />} />
                                     {item.status === 'UNSERVICEABLE' && (

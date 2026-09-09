@@ -30,6 +30,7 @@ interface RrspItem {
     kindOfSemiExpendable: string | null;
     status: string | null;
     area: string | null;
+    cost?: number | null;
     remarks?: string | null;
 }
 
@@ -65,6 +66,7 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas }: Props)
                 kindOfSemiExpendable: '',
                 status: '',
                 area: '',
+                cost: '',
                 remarks: '',
             }
         ]
@@ -85,6 +87,7 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas }: Props)
                     kindOfSemiExpendable: item.kindOfSemiExpendable ?? '',
                     status: item.status ?? '',
                     area: item.area ?? '',
+                    cost: item.cost?.toString() ?? '',
                     remarks: item.remarks ?? '',
                 })) : [{
                     itemName: '',
@@ -94,6 +97,7 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas }: Props)
                     kindOfSemiExpendable: '',
                     status: '',
                     area: '',
+                    cost: '',
                     remarks: '',
                 }],
             });
@@ -112,6 +116,7 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas }: Props)
                 kindOfSemiExpendable: '',
                 status: '',
                 area: '',
+                cost: '',
                 remarks: '',
             }
         ]);
@@ -288,6 +293,21 @@ return;
                                                     <SelectItem value="High Value">High Value</SelectItem>
                                                 </SelectContent>
                                             </Select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor={`edit-item-${index}-cost`}>Cost</Label>
+                                            <Input
+                                                id={`edit-item-${index}-cost`}
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                placeholder="e.g. 1500.00"
+                                                value={item.cost}
+                                                onChange={(e) => updateItem(index, 'cost', e.target.value)}
+                                            />
+                                            {(errors as any)[`items.${index}.cost`] && (
+                                                <p className="text-sm text-destructive">{(errors as any)[`items.${index}.cost`]}</p>
+                                            )}
                                         </div>
                                         <div className="space-y-1.5">
                                             <div className="flex items-center justify-between">
