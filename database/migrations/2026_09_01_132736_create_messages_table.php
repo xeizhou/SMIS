@@ -12,7 +12,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('sender_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('receiver_id')->constrained('users')->cascadeOnDelete();
-            $table->text('body');
+            $table->text('body')->nullable();
+            $table->string('attachment_path')->nullable();
+            $table->string('attachment_name')->nullable();
+            $table->string('attachment_type')->nullable(); // mime type
+            $table->unsignedBigInteger('attachment_size')->nullable(); // bytes
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
 
