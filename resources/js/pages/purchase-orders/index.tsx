@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
@@ -135,7 +135,10 @@ export default function Index({
     offices,
     stockItems,
 }: Props) {
-        const [search, setSearch] = useState(filters.search ?? '');
+    const { auth } = usePage().props as any;
+    const isStaff = auth?.user?.role === 'staff';
+
+    const [search, setSearch] = useState(filters.search ?? '');
     const [fundCluster, setFundCluster] = useState(filters.fund_cluster ?? 'all');
     const [officeFilter, setOfficeFilter] = useState(filters.office ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -410,14 +413,16 @@ export default function Index({
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleEdit(po)}
-                                                    className="text-blue-600 hover:text-blue-800"
-                                                    title="Edit"
-                                                >
-                                                    <Pencil className="size-4" />
-                                                </button>
+                                                {!isStaff && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleEdit(po)}
+                                                        className="text-blue-600 hover:text-blue-800"
+                                                        title="Edit"
+                                                    >
+                                                        <Pencil className="size-4" />
+                                                    </button>
+                                                )}
                                                 <button
                                                     type="button"
                                                     onClick={() => handleWorkflow(po)}
@@ -426,14 +431,16 @@ export default function Index({
                                                 >
                                                     <Plus className="size-4" />
                                                 </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDelete(po)}
-                                                    className="text-red-600 hover:text-red-800"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                </button>
+                                                {!isStaff && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDelete(po)}
+                                                        className="text-red-600 hover:text-red-800"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="size-4" />
+                                                    </button>
+                                                )}
                                                 <button
                                                     type="button"
                                                     onClick={() => handleView(po)}

@@ -210,6 +210,9 @@ class PurchaseOrdersController extends Controller
     public function update(Request $request, ServePo $servePo): RedirectResponse
     {
         \Log::info('Entering PurchaseOrdersController@update for PO: ' . $servePo->po_number);
+        
+        abort_if($request->user() && $request->user()->isStaff(), 403, 'Staff users are not allowed to edit Purchase Orders.');
+
         $validated = $request->validate([
             'po_number' => [
                 'required',

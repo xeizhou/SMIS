@@ -1,27 +1,96 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Purchase Order Notification</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-    <h2>Purchase Order Notification</h2>
-    
-    <p>Good day,</p>
+<body style="margin:0; padding:0; background-color:#f4f4f5; font-family: Arial, Helvetica, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5; padding:32px 16px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
 
-    <p>Please be informed that a Purchase Order (<strong>{{ $servePo->po_number }}</strong>) for your office is now ready for your review and action.</p>
+                    {{-- Header --}}
+                    <tr>
+                        <td style="background-color:#612A35; padding:24px 32px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td>
+                                        <p style="margin:0; color:#ffffff; font-size:12px; letter-spacing:0.5px; text-transform:uppercase; opacity:0.85;">
+                                            Supply Management Unit
+                                        </p>
+                                        <p style="margin:4px 0 0; color:#ffffff; font-size:20px; font-weight:600;">
+                                            Purchase Order Notification
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-    <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <h3 style="margin-top: 0;">Purchase Order Details:</h3>
-        <ul style="list-style-type: none; padding-left: 0;">
-            <li><strong>PO Number:</strong> {{ $servePo->po_number }}</li>
-            <li><strong>Supplier:</strong> {{ $servePo->supplier->supplier_name ?? 'N/A' }}</li>
-            <li><strong>Description:</strong> {{ $servePo->item_description ?? 'N/A' }}</li>
-        </ul>
-    </div>
+                    {{-- Body --}}
+                    <tr>
+                        <td style="padding:32px;">
+                            <p style="margin:0 0 16px; color:#1f2937; font-size:15px; line-height:1.6;">
+                                Good day,
+                            </p>
 
-    <p>Kindly coordinate with the procurement office for further steps regarding this Purchase Order.</p>
+                            <p style="margin:0 0 16px; color:#374151; font-size:15px; line-height:1.6;">
+                                Please be informed that a Purchase Order (<strong style="color:#111827;">{{ $servePo->po_number }}</strong>) for your office is now ready for your review and action.
+                            </p>
 
-    <p>Best regards,<br>
-    SMIS System</p>
+                            {{-- Detail card --}}
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:24px;">
+                                <tr>
+                                    <td style="padding:16px 20px;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td style="padding:4px 0; color:#6b7280; font-size:13px; width:140px;">Purchase Order No.</td>
+                                                <td style="padding:4px 0; color:#111827; font-size:13px; font-weight:600;">{{ $servePo->po_number }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:4px 0; color:#6b7280; font-size:13px;">Supplier</td>
+                                                <td style="padding:4px 0; color:#111827; font-size:13px; font-weight:600;">{{ $servePo->supplier->supplier_name ?? 'N/A' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:4px 0; color:#6b7280; font-size:13px; vertical-align:top;">Description</td>
+                                                <td style="padding:4px 0; color:#111827; font-size:13px; font-weight:600;">{{ $servePo->item_description ?? 'N/A' }}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin:0 0 24px; color:#374151; font-size:15px; line-height:1.6;">
+                                Kindly coordinate with the procurement office for further steps regarding this Purchase Order.
+                            </p>
+
+                            <p style="margin:0; color:#374151; font-size:15px; line-height:1.6;">
+                                Best regards,<br>
+                                SMIS System
+                            </p>
+                        </td>
+                    </tr>
+
+                    {{-- Footer --}}
+                    <tr>
+                        <td style="padding:20px 32px; background-color:#f9fafb; border-top:1px solid #e5e7eb;">
+                            <p style="margin:0 0 4px; color:#111827; font-size:13px; font-weight:600;">
+                                Supply Management Unit
+                            </p>
+                            <p style="margin:0 0 12px; color:#6b7280; font-size:13px;">
+                                University of Southeastern Philippines
+                            </p>
+                            <p style="margin:0; color:#9ca3af; font-size:11px; line-height:1.5;">
+                                This is a system-generated email. Please do not reply directly to this message.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
