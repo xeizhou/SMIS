@@ -642,6 +642,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             'reminder_email_schedule_time' => '08:00',
             'reminder_email_days' => ['3'],
             'audit_logs_cleanup_days' => 30,
+            'database_backup_enabled' => false,
             'raw_tasks' => $tasks,
         ], $settings, ['raw_tasks' => $tasks]));
     })->name('api.scheduled-tasks.index');
@@ -655,6 +656,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             'reminder_email_days' => 'required|array',
             'reminder_email_days.*' => 'string',
             'audit_logs_cleanup_days' => 'sometimes|integer|min:1',
+            'database_backup_enabled' => 'sometimes|boolean',
         ]);
 
         $settings = $request->only([
@@ -664,6 +666,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             'reminder_email_schedule_time',
             'reminder_email_days',
             'audit_logs_cleanup_days',
+            'database_backup_enabled',
         ]);
 
         $settingsPath = storage_path('app/scheduled_tasks_settings.json');
@@ -809,6 +812,116 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
         }
     })->name('api.scheduled-tasks.clear-cache');
+
+    // Database Backups
+    Route::post('/api/scheduled-tasks/force-backup', function () {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('backup:database');
+            $output = trim(\Illuminate\Support\Facades\Artisan::output());
+
+            $user = \Illuminate\Support\Facades\Auth::user();
+            if ($user) {
+                \App\Models\AuditLog::create([
+                    'log_timestamp' => now(),
+                    'userID' => $user->id,
+                    'role' => $user->role ?? 'Staff',
+                    'action' => 'Triggered a manual database backup.',
+                    'target_url' => null,
+                ]);
+            }
+
+            return response()->json(['message' => $output ?: 'Backup completed successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
+        }
+    })->name('api.scheduled-tasks.force-backup');
+
+    Route::get('/api/scheduled-tasks/backups', function () {
+        $dir = storage_path('app/database-backups');
+        if (! is_dir($dir)) {
+            return response()->json([]);
+        }
+
+        return response()->json(
+            collect(scandir($dir))
+                ->reject(fn ($f) => in_array($f, ['.', '..']))
+                ->filter(fn ($f) => is_file($dir . DIRECTORY_SEPARATOR . $f))
+                ->map(fn ($f) => [
+                    'name' => $f,
+                    'size' => filesize($dir . DIRECTORY_SEPARATOR . $f),
+                    'created_at' => date('Y-m-d H:i:s', filemtime($dir . DIRECTORY_SEPARATOR . $f)),
+                ])
+                ->sortByDesc('created_at')
+                ->values()
+        );
+    })->name('api.scheduled-tasks.backups');
+
+    Route::get('/api/scheduled-tasks/backups/{filename}/download', function ($filename) {
+        $path = storage_path('app/database-backups/' . basename($filename));
+        abort_unless(file_exists($path), 404);
+        return response()->download($path);
+    })->name('api.scheduled-tasks.backups.download');
+
+    Route::post('/api/scheduled-tasks/backups/{filename}/restore', function (\Illuminate\Http\Request $request, $filename) {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = \Illuminate\Support\Facades\Auth::user();
+
+        if (! $user || ! \Illuminate\Support\Facades\Hash::check($request->input('password'), $user->password)) {
+            return response()->json(['message' => 'Incorrect password.'], 403);
+        }
+
+        try {
+            $safeFilename = basename($filename);
+
+            \Illuminate\Support\Facades\Artisan::call('backup:restore', ['filename' => $safeFilename]);
+            $output = trim(\Illuminate\Support\Facades\Artisan::output());
+
+            \App\Models\AuditLog::create([
+                'log_timestamp' => now(),
+                'userID' => $user->id,
+                'role' => $user->role ?? 'Staff',
+                'action' => "Restored the database from backup: {$safeFilename}.",
+                'target_url' => null,
+            ]);
+
+            return response()->json(['message' => $output ?: 'Database restored successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
+        }
+    })->name('api.scheduled-tasks.backups.restore');
+
+    Route::delete('/api/scheduled-tasks/backups/{filename}', function (\Illuminate\Http\Request $request, $filename) {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = \Illuminate\Support\Facades\Auth::user();
+
+        if (! $user || ! \Illuminate\Support\Facades\Hash::check($request->input('password'), $user->password)) {
+            return response()->json(['message' => 'Incorrect password.'], 403);
+        }
+
+        $path = storage_path('app/database-backups/' . basename($filename));
+
+        if (! file_exists($path)) {
+            return response()->json(['message' => 'Backup file not found.'], 404);
+        }
+
+        unlink($path);
+
+        \App\Models\AuditLog::create([
+            'log_timestamp' => now(),
+            'userID' => $user->id,
+            'role' => $user->role ?? 'Staff',
+            'action' => 'Deleted database backup: ' . basename($filename) . '.',
+            'target_url' => null,
+        ]);
+
+        return response()->json(['message' => 'Backup deleted successfully.']);
+    })->name('api.scheduled-tasks.backups.destroy');
 
     // ==========================================================
     // System/Administration (sidebar: "System/Administration")
