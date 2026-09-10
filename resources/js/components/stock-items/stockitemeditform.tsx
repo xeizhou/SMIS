@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Trash2, Check, ChevronsUpDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -219,6 +219,16 @@ export default function StockItemEditForm({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isProcessing, setIsProcessing] = useState(false);
 
+    const [refreshingField, setRefreshingField] = useState<string | null>(null);
+
+    const handleRefreshData = (field: string) => {
+        setRefreshingField(field);
+        router.reload({
+            only: ['fundClusters'],
+            onFinish: () => setRefreshingField(null),
+        });
+    };
+
     useEffect(() => {
         if (stock) {
             // Transform the Eloquent relation array into our form's format
@@ -336,9 +346,20 @@ export default function StockItemEditForm({
                                     
                                     {/* Add the Fund Cluster Select Field */}
                                     <div className="md:col-span-1">
-                                        <label className={labelClass}>
-                                            Fund Cluster
-                                        </label>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="text-sm font-medium text-foreground">
+                                                Fund Cluster
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRefreshData('fundClusters')}
+                                                disabled={refreshingField === 'fundClusters'}
+                                                className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${refreshingField === 'fundClusters' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                title="Refresh Fund Cluster list"
+                                            >
+                                                <RefreshCw className={`size-3.5 ${refreshingField === 'fundClusters' ? 'animate-spin' : ''}`} />
+                                            </button>
+                                        </div>
                                         <Select
                                             value={data.fund_cluster_id}
                                             onValueChange={(val) => setData({ ...data, fund_cluster_id: val })}
