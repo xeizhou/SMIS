@@ -435,7 +435,7 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-h-[95vh] overflow-hidden p-0" style={{ maxWidth: '1200px' }}>
+            <DialogContent className="max-w-[1000px] w-[95vw] max-h-[90vh] overflow-hidden p-0">
                 <ScrollArea className="max-h-[95vh] w-full">
                     <div className="p-6">
                         <DialogHeader>
@@ -446,7 +446,7 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                             {/* Section: General Information */}
                             <div>
                                 <h3 className={sectionTitleClass}>General Information</h3>
-                                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-2">
                                     <Field
                                         label="Month / Year"
                                         name="month_year"
@@ -456,21 +456,13 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                         required
                                         placeholder="e.g. 2025-01"
                                     />
-                                    <Field
-                                        label="ICS No."
-                                        name="ics_no"
-                                        value={data.ics_no}
-                                        onChange={handleChange}
-                                        error={errors.ics_no}
-                                        placeholder="ICS-001"
-                                    />
                                     
                                     <SearchableSelect
                                         label="RRSP No."
                                         value={data.rrsp_no}
                                         onChange={handleRrspChange}
                                         error={errors.rrsp_no}
-                                        required
+                                        
                                         placeholder="Search or select RRSP..."
                                         options={rrsps.map((rrsp) => ({
                                             value: rrsp.rrsp_no,
@@ -479,26 +471,17 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                         onRefresh={() => handleRefreshData('rrsps')}
                                         isRefreshing={refreshingField === 'rrsps'}
                                     />
+                                </div>
+                            </div>
 
-                                    {(() => {
-                                        const selectedRrsp = rrsps.find((r) => r.rrsp_no === data.rrsp_no);
-                                        if (selectedRrsp && selectedRrsp.items && selectedRrsp.items.length > 1) {
-                                            return (
-                                                <SelectField
-                                                    label="Select Item from RRSP"
-                                                    value={selectedItem}
-                                                    onChange={handleItemChange}
-                                                    placeholder="Select item..."
-                                                    options={selectedRrsp.items.map((item) => ({
-                                                        value: String(item.id),
-                                                        label: item.item_description || 'Unknown Item'
-                                                    }))}
-                                                />
-                                            );
-                                        }
-                                        return null;
-                                    })()}
+                            <div className="border rounded-md p-5 bg-card space-y-6">
+                                <div className="flex justify-between items-center border-b pb-2">
+                                    <h3 className="text-sm font-semibold text-foreground">
+                                        Item Details: {data.item_description || 'Unknown'}
+                                    </h3>
+                                </div>
 
+                                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
                                     <SelectField
                                         label="Fund Cluster"
                                         value={data.fund_cluster_id}
@@ -513,14 +496,22 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                         isRefreshing={refreshingField === 'fundClusters'}
                                     />
                                     <Field
+                                        label="ICS No."
+                                        name="ics_no"
+                                        value={data.ics_no}
+                                        onChange={handleChange}
+                                        error={errors.ics_no}
+                                        placeholder="ICS-001"
+                                    />
+                                    <Field
                                         label="Semi-Expendable Property No."
                                         name="semi_expendable_property_no"
                                         value={data.semi_expendable_property_no}
                                         onChange={handleChange}
                                         error={errors.semi_expendable_property_no}
                                         required
-                                        readOnly
-                                        placeholder="Auto-filled from RRSP"
+                                        readOnly={!!data.rrsp_no}
+                                        placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Property No."}
                                     />
                                     <Field
                                         label="Item Description"
@@ -528,110 +519,129 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                         value={data.item_description}
                                         onChange={handleChange}
                                         error={errors.item_description}
-                                        readOnly
-                                        placeholder="Auto-filled from RRSP"
+                                        readOnly={!!data.rrsp_no}
+                                        placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Item Description"}
                                     />
                                 </div>
-                            </div>
 
-                            {/* Section: Quantities & Offices */}
-                            <div>
-                                <h3 className={sectionTitleClass}>Quantities & Offices</h3>
-                                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-                                    <Field
-                                        label="Issued Qty"
-                                        name="issued_qty"
-                                        type="number"
-                                        value={data.issued_qty}
-                                        onChange={handleChange}
-                                        error={errors.issued_qty}
-                                    />
-                                    <Field
-                                        label="Issued Office / Officer"
-                                        name="issued_office_officer"
-                                        value={data.issued_office_officer}
-                                        onChange={handleChange}
-                                        error={errors.issued_office_officer}
-                                    />
-                                    <Field
-                                        label="Returned Qty"
-                                        name="returned_qty"
-                                        type="number"
-                                        value={data.returned_qty}
-                                        onChange={handleChange}
-                                        error={errors.returned_qty}
-                                    />
-                                    <Field
-                                        label="Returned Office / Officer"
-                                        name="returned_office_officer"
-                                        value={data.returned_office_officer}
-                                        onChange={handleChange}
-                                        error={errors.returned_office_officer}
-                                    />
-                                    <Field
-                                        label="Reissued Qty"
-                                        name="reissued_qty"
-                                        type="number"
-                                        value={data.reissued_qty}
-                                        onChange={handleChange}
-                                        error={errors.reissued_qty}
-                                    />
-                                    <Field
-                                        label="Reissued Office / Officer"
-                                        name="reissued_office_officer"
-                                        value={data.reissued_office_officer}
-                                        onChange={handleChange}
-                                        error={errors.reissued_office_officer}
-                                    />
-                                    <Field
-                                        label="Disposed Qty"
-                                        name="disposed_qty"
-                                        type="number"
-                                        value={data.disposed_qty}
-                                        onChange={handleChange}
-                                        error={errors.disposed_qty}
-                                    />
-                                    <div>
-                                        <label className={labelClass}>Balance Qty</label>
-                                        <Input
-                                            value={calculateBalance(data)}
-                                            disabled
-                                            className="bg-muted text-muted-foreground"
+                                {(() => {
+                                    const selectedRrsp = rrsps.find((r) => r.rrsp_no === data.rrsp_no);
+                                    if (selectedRrsp && selectedRrsp.items && selectedRrsp.items.length > 1) {
+                                        return (
+                                            <SelectField
+                                                label="Select Item from RRSP to Autofill"
+                                                value={selectedItem}
+                                                onChange={handleItemChange}
+                                                placeholder="Select item..."
+                                                options={selectedRrsp.items.map((item) => ({
+                                                    value: String(item.id),
+                                                    label: item.item_description || 'Unknown Item'
+                                                }))}
+                                            />
+                                        );
+                                    }
+                                    return null;
+                                })()}
+
+                                <div>
+                                    <h4 className="text-sm font-medium text-muted-foreground mb-3">Quantities & Offices</h4>
+                                    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                                        <Field
+                                            label="Issued Qty"
+                                            name="issued_qty"
+                                            type="number"
+                                            value={data.issued_qty}
+                                            onChange={handleChange}
+                                            error={errors.issued_qty}
                                         />
+                                        <Field
+                                            label="Issued Office / Officer"
+                                            name="issued_office_officer"
+                                            value={data.issued_office_officer}
+                                            onChange={handleChange}
+                                            error={errors.issued_office_officer}
+                                            readOnly={!!data.rrsp_no}
+                                            placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Issued Office/Officer"}
+                                        />
+                                        <Field
+                                            label="Returned Qty"
+                                            name="returned_qty"
+                                            type="number"
+                                            value={data.returned_qty}
+                                            onChange={handleChange}
+                                            error={errors.returned_qty}
+                                        />
+                                        <Field
+                                            label="Returned Office / Officer"
+                                            name="returned_office_officer"
+                                            value={data.returned_office_officer}
+                                            onChange={handleChange}
+                                            error={errors.returned_office_officer}
+                                        />
+                                        <Field
+                                            label="Reissued Qty"
+                                            name="reissued_qty"
+                                            type="number"
+                                            value={data.reissued_qty}
+                                            onChange={handleChange}
+                                            error={errors.reissued_qty}
+                                        />
+                                        <Field
+                                            label="Reissued Office / Officer"
+                                            name="reissued_office_officer"
+                                            value={data.reissued_office_officer}
+                                            onChange={handleChange}
+                                            error={errors.reissued_office_officer}
+                                        />
+                                        <Field
+                                            label="Disposed Qty"
+                                            name="disposed_qty"
+                                            type="number"
+                                            value={data.disposed_qty}
+                                            onChange={handleChange}
+                                            error={errors.disposed_qty}
+                                        />
+                                        <div>
+                                            <label className={labelClass}>Balance Qty</label>
+                                            <Input
+                                                value={calculateBalance(data)}
+                                                disabled
+                                                className="bg-muted text-muted-foreground"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Section: Financial & Remarks */}
-                            <div>
-                                <h3 className={sectionTitleClass}>Financial & Remarks</h3>
-                                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                                    <Field
-                                        label="Estimated Useful Life"
-                                        name="estimated_useful_life"
-                                        type="number"
-                                        value={data.estimated_useful_life}
-                                        onChange={handleChange}
-                                        error={errors.estimated_useful_life}
-                                    />
-                                    <Field
-                                        label="Amount"
-                                        name="amount"
-                                        type="number"
-                                        value={data.amount}
-                                        onChange={handleChange}
-                                        error={errors.amount}
-                                        required
-                                        readOnly
-                                        placeholder="Auto-filled from RRSP"
-                                    />
-                                    <Field
-                                        label="Remarks"
-                                        name="remarks"
-                                        value={data.remarks}
-                                        onChange={handleChange}
-                                        error={errors.remarks}
-                                    />
+                                <div>
+                                    <h4 className="text-sm font-medium text-muted-foreground mb-3">Financial & Remarks</h4>
+                                    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                                        <Field
+                                            label="Estimated Useful Life"
+                                            name="estimated_useful_life"
+                                            type="number"
+                                            value={data.estimated_useful_life}
+                                            onChange={handleChange}
+                                            error={errors.estimated_useful_life}
+                                        />
+                                        <Field
+                                            label="Amount"
+                                            name="amount"
+                                            type="number"
+                                            value={data.amount}
+                                            onChange={handleChange}
+                                            error={errors.amount}
+                                            required
+                                            readOnly={!!data.rrsp_no}
+                                            placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Amount"}
+                                        />
+                                        <Field
+                                            label="Remarks"
+                                            name="remarks"
+                                            value={data.remarks}
+                                            onChange={handleChange}
+                                            error={errors.remarks}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 

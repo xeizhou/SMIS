@@ -52,7 +52,7 @@ class RegSPIController extends Controller
                 'sort_field' => $sortField ?: null,
                 'sort_direction' => $sortDirection,
             ],
-            'rrsps' => RrspMonitoring::select('id', 'rrsp_no')
+            'rrsps' => RrspMonitoring::select('id', 'rrsp_no', 'end_user_name')
                 ->with('items')
                 ->orderByDesc('created_at')
                 ->get(),
@@ -69,34 +69,52 @@ class RegSPIController extends Controller
     {
         $validated = $request->validate([
             'month_year' => ['required', 'string', 'max:20'],
-            'ics_no' => ['nullable', 'string', 'max:50'],
             'rrsp_no' => ['nullable', 'string', 'max:50', 'exists:rrsp_monitoring,rrsp_no'],
-            'fund_cluster_id' => ['nullable', 'string', 'max:20', 'exists:fund_clusters,fund_cluster_id'],
-            'semi_expendable_property_no' => ['required', 'string', 'max:100'],
-            'item_description' => ['nullable', 'string', 'max:255'],
-            'estimated_useful_life' => ['nullable', 'integer', 'min:0'],
-            'issued_qty' => ['nullable', 'integer', 'min:0'],
-            'issued_office_officer' => ['nullable', 'string', 'max:255'],
-            'returned_qty' => ['nullable', 'integer', 'min:0'],
-            'returned_office_officer' => ['nullable', 'string', 'max:255'],
-            'reissued_qty' => ['nullable', 'integer', 'min:0'],
-            'reissued_office_officer' => ['nullable', 'string', 'max:255'],
-            'disposed_qty' => ['nullable', 'integer', 'min:0'],
-            'balance_qty' => ['nullable', 'integer', 'min:0'],
-            'amount' => ['required', 'numeric', 'min:0'],
-            'remarks' => ['nullable', 'string', 'max:255'],
-            
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.ics_no' => ['nullable', 'string', 'max:50'],
+            'items.*.fund_cluster_id' => ['nullable', 'string', 'max:20', 'exists:fund_clusters,fund_cluster_id'],
+            'items.*.semi_expendable_property_no' => ['required', 'string', 'max:100'],
+            'items.*.item_description' => ['nullable', 'string', 'max:255'],
+            'items.*.estimated_useful_life' => ['nullable', 'integer', 'min:0'],
+            'items.*.issued_qty' => ['nullable', 'integer', 'min:0'],
+            'items.*.issued_office_officer' => ['nullable', 'string', 'max:255'],
+            'items.*.returned_qty' => ['nullable', 'integer', 'min:0'],
+            'items.*.returned_office_officer' => ['nullable', 'string', 'max:255'],
+            'items.*.reissued_qty' => ['nullable', 'integer', 'min:0'],
+            'items.*.reissued_office_officer' => ['nullable', 'string', 'max:255'],
+            'items.*.disposed_qty' => ['nullable', 'integer', 'min:0'],
+            'items.*.balance_qty' => ['nullable', 'integer', 'min:0'],
+            'items.*.amount' => ['required', 'numeric', 'min:0'],
+            'items.*.remarks' => ['nullable', 'string', 'max:255'],
         ]);
 
+        foreach ($validated['items'] as $itemData) {
+            $issued = (int) ($itemData['issued_qty'] ?? 0);
+            $returned = (int) ($itemData['returned_qty'] ?? 0);
+            $reissued = (int) ($itemData['reissued_qty'] ?? 0);
+            $disposed = (int) ($itemData['disposed_qty'] ?? 0);
+            $balance = $issued - $returned + $reissued - $disposed;
 
-
-        $validated['issued_qty'] = (int) ($validated['issued_qty'] ?? 0);
-        $validated['returned_qty'] = (int) ($validated['returned_qty'] ?? 0);
-        $validated['reissued_qty'] = (int) ($validated['reissued_qty'] ?? 0);
-        $validated['disposed_qty'] = (int) ($validated['disposed_qty'] ?? 0);
-        $validated['balance_qty'] = ($validated['issued_qty'] - $validated['returned_qty'] + $validated['reissued_qty'] - $validated['disposed_qty']);
-
-        RegspiMonitoring::create($validated);
+            RegspiMonitoring::create([
+                'month_year' => $validated['month_year'],
+                'ics_no' => $itemData['ics_no'] ?? null,
+                'rrsp_no' => $validated['rrsp_no'] ?? null,
+                'fund_cluster_id' => $itemData['fund_cluster_id'] ?? null,
+                'semi_expendable_property_no' => $itemData['semi_expendable_property_no'],
+                'item_description' => $itemData['item_description'] ?? null,
+                'estimated_useful_life' => $itemData['estimated_useful_life'] ?? null,
+                'issued_qty' => $issued,
+                'issued_office_officer' => $itemData['issued_office_officer'] ?? null,
+                'returned_qty' => $returned,
+                'returned_office_officer' => $itemData['returned_office_officer'] ?? null,
+                'reissued_qty' => $reissued,
+                'reissued_office_officer' => $itemData['reissued_office_officer'] ?? null,
+                'disposed_qty' => $disposed,
+                'balance_qty' => $balance,
+                'amount' => $itemData['amount'],
+                'remarks' => $itemData['remarks'] ?? null,
+            ]);
+        }
 
         return redirect()->back()->with('success', 'RegSPI record added successfully.');
     }

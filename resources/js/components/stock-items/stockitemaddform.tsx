@@ -10,6 +10,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
     Command,
@@ -274,7 +275,7 @@ export default function StockItemAddForm({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[1000px] w-[95vw] max-h-[90vh] overflow-hidden p-0">
+            <DialogContent className="sm:max-w-[1000px] w-[95vw] max-h-[90vh] overflow-hidden p-0">
                 <ScrollArea className="max-h-[90vh] w-full">
                     <div className="p-6">
                         <DialogHeader>
@@ -285,7 +286,7 @@ export default function StockItemAddForm({
                             {/* Section: Item Details */}
                             <div>
                                 <h3 className={sectionTitleClass}>Item Details</h3>
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                     <Field
                                         label="Stock No."
                                         name="stock_no"
@@ -330,15 +331,18 @@ export default function StockItemAddForm({
                                         )}
                                     </div>
 
-                                    <div className="md:col-span-1">
-                                        <Field
-                                            label="Description"
+                                    <div className="md:col-span-3">
+                                        <label className={labelClass}>Description</label>
+                                        <Textarea
                                             name="description"
                                             value={data.description}
-                                            onChange={handleChange}
-                                            error={errors.description}
+                                            onChange={(e) => handleChange(e as any)}
                                             placeholder="Enter description"
+                                            className={cn("min-h-[100px]", errors.description && 'border-red-500')}
                                         />
+                                        {errors.description && (
+                                            <p className="mt-1 text-xs text-red-500">{errors.description}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
