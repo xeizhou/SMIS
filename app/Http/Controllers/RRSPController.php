@@ -92,7 +92,7 @@ class RRSPController extends Controller
         $validated = $request->validate([
             'rrspNo' => 'required|string|max:255|unique:rrsp_monitoring,rrsp_no',
             'poNumber' => 'required|string|exists:serve_po,po_number',
-            'dateReceived' => 'nullable|date',
+            'dateReceived' => 'required|date',
             'endUserName' => 'nullable|string|max:255',
             'returnBy' => 'nullable|string|max:255',
             'items' => 'required|array|min:1',
@@ -148,7 +148,7 @@ class RRSPController extends Controller
         $validated = $request->validate([
             'rrspNo' => 'required|string|max:255|unique:rrsp_monitoring,rrsp_no,'.$rrsp->id,
             'poNumber' => 'required|string|exists:serve_po,po_number',
-            'dateReceived' => 'nullable|date',
+            'dateReceived' => 'required|date',
             'endUserName' => 'nullable|string|max:255',
             'returnBy' => 'nullable|string|max:255',
             'items' => 'required|array|min:1',

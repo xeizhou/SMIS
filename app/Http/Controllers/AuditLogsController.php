@@ -35,8 +35,13 @@ class AuditLogsController extends Controller
                 'For Disposal', 'For Disposal Monitoring' => \Illuminate\Support\Facades\DB::table('for_disposal_monitoring')->where('id', $id)->value('transaction_no'),
                 'Bona Vida', 'Bona Vida Monitoring' => \Illuminate\Support\Facades\DB::table('bona_vida_monitoring')->where('bvm_id', $id)->value('invoice_no'),
                 'Purchase Order' => $id,
-                'PO Letter Monitoring' => \Illuminate\Support\Facades\DB::table('po_letter_monitoring')->where('id', $id)->value('reference_no') ?? \Illuminate\Support\Facades\DB::table('po_letter_monitoring')->where('id', $id)->value('po_number'),
-                'Delivery' => \Illuminate\Support\Facades\DB::table('delivery')->where('delivery_id', $id)->value('po_number'),
+                'PO Letter Monitoring' => \Illuminate\Support\Facades\DB::table('po_letter_monitoring')->where('id', $id)->value('reference_no'),
+                'Delivery Monitoring', 'Delivery', 'Delivery Follow-ups' => str_contains(strtolower($action), 'follow-up')
+                    ? \Illuminate\Support\Facades\DB::table('delivery_follow_ups')
+                        ->join('delivery', 'delivery.delivery_id', '=', 'delivery_follow_ups.delivery_id')
+                        ->where('delivery_follow_ups.id', $id)
+                        ->value('delivery.po_number')
+                    : \Illuminate\Support\Facades\DB::table('delivery')->where('delivery_id', $id)->value('po_number'),
                 'Supplier List' => \Illuminate\Support\Facades\DB::table('supplier_list')->where('supplier_id', $id)->value('supplier_name'),
                 'Fund Clusters' => $id,
                 'Employee File Locator' => (function() use ($id) {
@@ -86,8 +91,8 @@ class AuditLogsController extends Controller
             })
             ->when($moduleFilter && $moduleFilter !== 'All', function ($query) use ($moduleFilter) {
                 $mappedAction = match ($moduleFilter) {
-                    'RRPPE Monitoring' => 'RRPPE',
-                    'RRSP Monitoring' => 'RRSP',
+                    'RRPPE Monitoring' => ['RRPPE', 'Area'],
+                    'RRSP Monitoring' => ['RRSP', 'Area'],
                     'RegSPI Monitoring' => 'RegSPI',
                     'ITR PTR' => 'ITR/PTR',
                     'For Disposal' => 'For Disposal',
@@ -107,7 +112,11 @@ class AuditLogsController extends Controller
                 };
 
                 if ($mappedAction) {
-                    $query->where('action', 'like', "%{$mappedAction}%");
+                    $query->where(function ($q) use ($mappedAction) {
+                        foreach ((array) $mappedAction as $act) {
+                            $q->orWhere('action', 'like', "%{$act}%");
+                        }
+                    });
                 } elseif ($module === 'System Audit Logs') {
                     $query->where(function ($q) {
                         $q->where('action', 'like', '%Audit Log%')
@@ -141,9 +150,12 @@ class AuditLogsController extends Controller
         // Map the items to a more frontend-friendly format
         $logs->getCollection()->transform(function ($log) {
             $actionLower = strtolower($log->action);
+            $targetUrl = strtolower($log->target_url ?? '');
             
             $module = match (true) {
-                str_contains($actionLower, 'delivery') => 'Delivery',
+                str_contains($actionLower, 'delivery') => 'Delivery Monitoring',
+                str_contains($actionLower, 'area') && str_contains($targetUrl, 'rrppe') => 'RRPPE Monitoring',
+                str_contains($actionLower, 'area') => 'RRSP Monitoring',
                 str_contains($actionLower, 'rrsp') => 'RRSP Monitoring',
                 str_contains($actionLower, 'rrppe') => 'RRPPE Monitoring',
                 str_contains($actionLower, 'regspi') => 'RegSPI Monitoring',
@@ -156,7 +168,6 @@ class AuditLogsController extends Controller
                 str_contains($actionLower, 'fund cluster') => 'Fund Clusters',
                 str_contains($actionLower, 'employee file locator') => 'Employee File Locator',
                 str_contains($actionLower, 'office') => 'Offices',
-                str_contains($actionLower, 'area') => 'Areas',
                 str_contains($actionLower, 'clearance') => 'Clearance',
                 str_contains($actionLower, 'stock item') => 'Stock Items',
                 str_contains($actionLower, 'unit') => 'Units',
@@ -168,6 +179,15 @@ class AuditLogsController extends Controller
             
             $reference = $this->resolveReference($module, $log->action, $log->target_url);
 
+            $sub_module = null;
+            if ($module === 'Delivery Monitoring') {
+                $sub_module = str_contains($actionLower, 'follow-up') ? 'Delivery Follow-ups' : null;
+            } elseif ($module === 'RRSP Monitoring') {
+                $sub_module = str_contains($actionLower, 'area') ? 'Area Records' : null;
+            } elseif ($module === 'RRPPE Monitoring') {
+                $sub_module = str_contains($actionLower, 'area') ? 'Area Records' : null;
+            }
+
             return [
                 'log_id' => $log->auditLogID,
                 'timestamp' => $log->log_timestamp->format('M d, Y h:i A'),
@@ -175,6 +195,7 @@ class AuditLogsController extends Controller
                 'avatar_url' => $log->user ? $log->user->avatar_url : null,
                 'role' => $log->role,
                 'module' => $module,
+                'sub_module' => $sub_module,
                 'reference' => $reference,
                 'action' => $log->action,
                 'target_url' => $log->target_url ? preg_replace('/(\?|&)search=/', '$1highlight_search=', $log->target_url) : null,

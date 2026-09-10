@@ -27,7 +27,7 @@ return new class extends Migration
             $table->string('po_number', 50);
             $table->date('po_date');
             $table->date('date_received_by_supplier')->nullable();
-            $table->string('delivery_term', 50)->nullable();
+            $table->integer('delivery_term')->default(0);
             $table->date('due_date')->nullable();
             $table->string('office_end_user', 100);
             $table->enum('type_of_letter', [

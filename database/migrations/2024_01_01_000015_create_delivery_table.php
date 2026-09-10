@@ -19,7 +19,7 @@ return new class extends Migration
 
             $table->date('delivery_date')->nullable();
             $table->date('po_date_received')->nullable();
-            $table->string('delivery_term', 100)->nullable();
+            $table->integer('delivery_term')->default(0);
             $table->date('due_date')->nullable();
             $table->integer('no_of_days_ld')->default(0);
             $table->string('received_by_1', 150)->nullable();

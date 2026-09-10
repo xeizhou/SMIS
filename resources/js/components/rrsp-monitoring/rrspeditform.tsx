@@ -338,8 +338,9 @@ return;
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label htmlFor="edit-dateReceived">Date Received</Label>
+                                <Label htmlFor="edit-dateReceived">Date Received <span className="text-destructive">*</span></Label>
                                 <Input
+                                    required
                                     id="edit-dateReceived"
                                     type="date"
                                     value={data.dateReceived}
