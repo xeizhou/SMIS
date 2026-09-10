@@ -1,5 +1,5 @@
 import { Form, Head, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
 import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
@@ -44,6 +44,30 @@ export default function Login({ status, canResetPassword }: Props) {
     const [expiredMessage] = useState<string | null>(initialExpiredMessage);
 
     const bannerMessage = flash?.error ?? expiredMessage;
+
+    // SESSION_LIFETIME is intentionally short (5 min), which also governs
+    // how long the CSRF token embedded in this page stays valid. Without
+    // this, anyone who takes more than ~5 minutes to fill in the form
+    // (password manager hiccup, getting pulled away, etc) hits a 419 on
+    // submit. Ping the server well inside that window to keep the session
+    // — and therefore the token — alive while this page is open.
+    useEffect(() => {
+        const KEEPALIVE_INTERVAL_MS = 2 * 60 * 1000; // must stay well under SESSION_LIFETIME
+
+        const interval = setInterval(() => {
+            fetch(window.location.pathname, {
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'include',
+            }).catch(() => {
+                // Ignore — a failed refresh just means the real submit
+                // will hit the TokenMismatchException path and redirect
+                // cleanly instead.
+            });
+        }, KEEPALIVE_INTERVAL_MS);
+
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <>
