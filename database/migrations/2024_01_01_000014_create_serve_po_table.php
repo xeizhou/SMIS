@@ -77,9 +77,6 @@ return new class extends Migration
             $table->string('delivery_receipt')->nullable();
             $table->string('par_ics_number')->nullable();
             $table->string('ris_number')->nullable();
-            $table->string('inspected_by')->nullable();
-            $table->date('inspection_date')->nullable();
-            $table->string('iar_number')->nullable();
             $table->date('date_completed')->nullable();
             
             // Forwarded to Finance tab

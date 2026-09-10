@@ -55,6 +55,14 @@ return new class extends Migration
             $table->text('notify_receipt')->nullable();
             $table->text('notify_call')->nullable();
             $table->text('notify_email')->nullable();
+            
+            $table->date('po_vpad_notified_date')->nullable();
+            $table->string('po_vpad_notified_via', 255)->nullable();
+            $table->date('coa_stamp_notified_date')->nullable();
+            $table->string('coa_stamp_notified_via', 255)->nullable();
+            $table->date('receipt_claimed_notified_date')->nullable();
+            $table->string('receipt_claimed_notified_via', 255)->nullable();
+
             $table->string('status', 50)->nullable();
             $table->text('remarks')->nullable();
             $table->timestamps();

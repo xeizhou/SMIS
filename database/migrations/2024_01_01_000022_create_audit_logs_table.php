@@ -13,11 +13,12 @@ return new class extends Migration
             $table->dateTime('log_timestamp');
 
             $table->foreignId('userID')
-                ->constrained('users', 'userID')
+                ->constrained('users', 'id')
                 ->restrictOnDelete();
 
-            $table->enum('role', ['Staff', 'Admin']);
+            $table->string('role', 50)->nullable();
             $table->string('action', 500);
+            $table->string('target_url', 1000)->nullable();
         });
     }
 
