@@ -403,10 +403,9 @@ return;
                                             <Input
                                                 id={`edit-item-${index}-name`}
                                                 required
-                                                readOnly
-                                                className="bg-muted text-muted-foreground"
-                                                placeholder="Auto-filled from P.O."
+                                                placeholder="Enter Item Name"
                                                 value={item.itemName}
+                                                onChange={(e) => updateItem(index, 'itemName', e.target.value)}
                                             />
                                             {(errors as any)[`items.${index}.itemName`] && (
                                                 <p className="text-sm text-destructive">{(errors as any)[`items.${index}.itemName`]}</p>
