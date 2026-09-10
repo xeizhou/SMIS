@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -42,31 +41,17 @@ class EnsureSingleSession
             return $next($request);
         }
 
-        // Normal authenticated request: this session must still be the
-        // one on record as the account's active session — UNLESS this
-        // request's own session row still exists and is live in the
-        // sessions table. That covers background/polling requests (e.g.
-        // chat) firing from a tab that's still genuinely logged in, even
-        // if a newer tab/device has since claimed "current_session_id".
+        // Normal authenticated request: this session must still be the one
+        // on record as the account's active session. No "still alive"
+        // fallback here — that's what caused the earlier bug, where a
+        // superseded-but-still-open tab kept working for up to 50 minutes
+        // after a second device took over. If current_session_id has moved
+        // on to another device, this session is superseded — log it out.
         if ($user->current_session_id !== $sessionId) {
-            $expiredBefore = now()->subMinutes((int) config('session.lifetime'))->getTimestamp();
-
-            $thisSessionIsLive = DB::table('sessions')
-                ->where('id', $sessionId)
-                ->where('user_id', $user->getKey())
-                ->where('last_activity', '>=', $expiredBefore)
-                ->exists();
-
-            if (! $thisSessionIsLive) {
-                return $this->forceLogout(
-                    $request,
-                    'You have been logged out because your account was signed in from another device.'
-                );
-            }
-
-            // This session row is still alive — allow the request through
-            // without forcing a logout, even though it's not the
-            // "current" claimed session anymore.
+            return $this->forceLogout(
+                $request,
+                'You have been logged out because your account was signed in from another device.'
+            );
         }
 
         return $next($request);
@@ -78,7 +63,7 @@ class EnsureSingleSession
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        $request->session()->flash('status', $message);
+        $request->session()->flash('error', $message);
 
         if ($request->header('X-Inertia')) {
             return Inertia::location(route('login'));
