@@ -48,6 +48,7 @@ export interface RrspItem {
 export interface RrspOption {
     id: number;
     rrsp_no: string;
+    end_user_name?: string | null;
     items?: RrspItem[];
 }
 

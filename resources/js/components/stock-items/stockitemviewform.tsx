@@ -40,11 +40,11 @@ const labelClass = 'text-xs font-medium text-muted-foreground';
 const valueClass = 'text-sm text-foreground mt-0.5';
 const sectionTitleClass = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground/80 mb-3 pb-2 border-b';
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({ label, value, className }: { label: string; value: string; className?: string }) {
     return (
         <div>
             <p className={labelClass}>{label}</p>
-            <p className={valueClass}>{value}</p>
+            <p className={`${valueClass} ${className || ''}`}>{value}</p>
         </div>
     );
 }
@@ -71,13 +71,13 @@ export default function StockItemViewForm({ open, onOpenChange, stock }: Props) 
                             {/* Section: Item Details */}
                             <section>
                                 <p className={sectionTitleClass}>Item Details</p>
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                                     <Detail label="Stock No." value={stock.stock_no} />
                                     <Detail label="Item Name" value={stock.item_name} />
-                                    <div className="sm:col-span-2">
-                                        <Detail label="Description" value={stock.description ?? '—'} />
-                                    </div>
                                     <Detail label="Fund Cluster" value={fundClusterLabel} />
+                                    <div className="sm:col-span-3">
+                                        <Detail label="Description" value={stock.description ?? '—'} className="whitespace-pre-wrap" />
+                                    </div>
                                 </div>
                             </section>
 
