@@ -379,6 +379,7 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                 item_description: item.item_description || prev.item_description,
                 semi_expendable_property_no: item.property_no || prev.semi_expendable_property_no,
                 amount: item.cost ? String(item.cost) : prev.amount,
+                issued_qty: item.quantity ? String(item.quantity) : prev.issued_qty,
             }));
             setSelectedItem(String(item.id));
         } else {
@@ -403,6 +404,7 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                 item_description: item.item_description || prev.item_description,
                 semi_expendable_property_no: item.property_no || prev.semi_expendable_property_no,
                 amount: item.cost ? String(item.cost) : prev.amount,
+                issued_qty: item.quantity ? String(item.quantity) : prev.issued_qty,
             }));
         }
     };
@@ -512,7 +514,6 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                         value={data.semi_expendable_property_no}
                                         onChange={handleChange}
                                         error={errors.semi_expendable_property_no}
-                                        required
                                         readOnly={!!data.rrsp_no}
                                         placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Property No."}
                                     />

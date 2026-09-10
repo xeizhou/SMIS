@@ -15,7 +15,8 @@ class Area extends Model
 
     public function getActivityUrl()
     {
-        return route('rrsp-monitoring.areas.index', [
+        $prefix = request()->is('rrppe-monitoring*') ? 'rrppe-monitoring' : 'rrsp-monitoring';
+        return route("{$prefix}.areas.index", [
             'highlight_search' => $this->name,
             'highlight_id' => $this->getKey(),
         ]);

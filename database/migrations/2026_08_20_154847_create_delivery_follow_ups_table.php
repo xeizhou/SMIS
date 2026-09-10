@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('delivery_id');
             $table->string('notice_type');
             $table->timestamp('follow_up_date');
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->text('remarks')->nullable();
             $table->timestamps();
 
             $table->foreign('delivery_id')->references('delivery_id')->on('delivery')->onDelete('cascade');

@@ -368,7 +368,7 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                 item_description: item.item_description || '',
                 amount: item.cost ? String(item.cost) : '',
                 estimated_useful_life: '',
-                issued_qty: '',
+                issued_qty: item.quantity ? String(item.quantity) : '',
                 issued_office_officer: selected.end_user_name || '',
                 returned_qty: '',
                 returned_office_officer: '',
@@ -550,7 +550,6 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                                     value={item.semi_expendable_property_no}
                                                     onChange={(e) => handleItemChange(index, 'semi_expendable_property_no', e.target.value)}
                                                     error={errors[`items.${index}.semi_expendable_property_no`]}
-                                                    required
                                                     readOnly={!!data.rrsp_no}
                                                     placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Property No."}
                                                 />

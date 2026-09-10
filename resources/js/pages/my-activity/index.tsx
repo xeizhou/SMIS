@@ -2,7 +2,7 @@ import { Head, router, Link } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { auditLogsHighlight } from '../audit-logs/auditLogsHighlight';
-import { Search } from 'lucide-react';
+import { Search, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ interface ActivityLog {
     log_id: number;
     timestamp: string;
     module: string;
+    sub_module: string | null;
     action: string;
     reference: string | null;
     description: string;
@@ -226,7 +227,17 @@ export default function Index({ logs, userActions, filters }: Props) {
                                             <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                                                 {row.timestamp}
                                             </td>
-                                            <td className="px-4 py-3">{row.module}</td>
+                                            <td className="px-4 py-3">
+                                                {row.sub_module ? (
+                                                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                        <span className="font-medium text-foreground">{row.module}</span>
+                                                        <ChevronRight className="size-3.5" />
+                                                        <span>{row.sub_module}</span>
+                                                    </div>
+                                                ) : (
+                                                    row.module
+                                                )}
+                                            </td>
                                             <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                                                 {row.reference || '-'}
                                             </td>

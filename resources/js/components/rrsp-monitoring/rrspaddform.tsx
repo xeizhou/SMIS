@@ -278,8 +278,9 @@ export default function RrspAddForm({ open, onOpenChange, areas }: Props) {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label htmlFor="dateReceived">Date Received</Label>
+                                <Label htmlFor="dateReceived">Date Received <span className="text-destructive">*</span></Label>
                                 <Input
+                                    required
                                     id="dateReceived"
                                     type="date"
                                     value={data.dateReceived}
