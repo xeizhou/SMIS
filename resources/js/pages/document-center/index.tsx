@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import { Switch } from '@/components/ui/switch';
@@ -28,6 +29,7 @@ import {
     Send,
     Database,
     RefreshCw,
+    Trash2,
 } from 'lucide-react';
 import {
     Select,
@@ -63,6 +65,12 @@ interface DetailData {
     attachments: AttachmentItem[];
 }
 
+interface BackupFile {
+    name: string;
+    size: number;
+    created_at: string;
+}
+
 const PAGE_SIZE = 20;
 
 function formatBytes(bytes: number | null) {
@@ -70,6 +78,11 @@ function formatBytes(bytes: number | null) {
     const kb = bytes / 1024;
     if (kb < 1024) return `${kb.toFixed(0)} KB`;
     return `${(kb / 1024).toFixed(1)} MB`;
+}
+
+function formatBackupSize(bytes: number) {
+    const mb = bytes / (1024 * 1024);
+    return mb < 1 ? `${(bytes / 1024).toFixed(0)} KB` : `${mb.toFixed(1)} MB`;
 }
 
 const STAT_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -446,6 +459,18 @@ function GalleryTab({
     );
 }
 
+function ModalPortal({ children }: { children: React.ReactNode }) {
+    // Renders straight onto document.body instead of in place. Modals in this
+    // page live under a layout wrapper that applies a transform (page
+    // transition animation), which creates a new containing block for
+    // fixed-position elements — so a plain `fixed inset-0` here would only
+    // cover that wrapper's box, not the real viewport, and would visually
+    // exclude the sidebar. Portaling to <body> guarantees it always covers
+    // the whole screen regardless of what wraps this component.
+    if (typeof document === 'undefined') return null;
+    return createPortal(children, document.body);
+}
+
 function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean) => void }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -464,6 +489,7 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
         reminder_email_schedule_time: '08:00',
         reminder_email_days: ['3'],
         audit_logs_cleanup_days: 30,
+        database_backup_enabled: false,
     });
     
     const [originalSettings, setOriginalSettings] = useState({
@@ -473,6 +499,7 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
         reminder_email_schedule_time: '08:00',
         reminder_email_days: ['3'],
         audit_logs_cleanup_days: 30,
+        database_backup_enabled: false,
     });
 
     const isOverdueDirty = settings.delivery_email_enabled !== originalSettings.delivery_email_enabled ||
@@ -484,9 +511,11 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
 
     const isAuditDirty = settings.audit_logs_cleanup_days !== originalSettings.audit_logs_cleanup_days;
 
+    const isBackupDirty = settings.database_backup_enabled !== originalSettings.database_backup_enabled;
+
     useEffect(() => {
-        if (onDirtyChange) onDirtyChange(isOverdueDirty || isUpcomingDirty || isAuditDirty);
-    }, [isOverdueDirty, isUpcomingDirty, isAuditDirty, onDirtyChange]);
+        if (onDirtyChange) onDirtyChange(isOverdueDirty || isUpcomingDirty || isAuditDirty || isBackupDirty);
+    }, [isOverdueDirty, isUpcomingDirty, isAuditDirty, isBackupDirty, onDirtyChange]);
     
     const [rawTasks, setRawTasks] = useState<any[]>([]);
     const [refreshingTasks, setRefreshingTasks] = useState(false);
@@ -500,6 +529,113 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
             .finally(() => setRefreshingTasks(false));
     };
 
+    // Database Backup States
+    const [backups, setBackups] = useState<BackupFile[]>([]);
+    const [loadingBackups, setLoadingBackups] = useState(true);
+    const [backingUp, setBackingUp] = useState(false);
+    const [restoringName, setRestoringName] = useState<string | null>(null);
+    const [restoreTarget, setRestoreTarget] = useState<BackupFile | null>(null);
+    const [restorePassword, setRestorePassword] = useState('');
+    const [restorePasswordError, setRestorePasswordError] = useState<string | null>(null);
+    const [deletingName, setDeletingName] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<BackupFile | null>(null);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deletePasswordError, setDeletePasswordError] = useState<string | null>(null);
+
+    const refreshBackups = () => {
+        setLoadingBackups(true);
+        axios.get('/api/scheduled-tasks/backups')
+            .then(res => setBackups(res.data))
+            .finally(() => setLoadingBackups(false));
+    };
+
+    const handleForceBackup = () => {
+        setBackingUp(true);
+        axios.post('/api/scheduled-tasks/force-backup')
+            .then(res => {
+                toast.success(res.data.message || 'Backup completed successfully!');
+                refreshBackups();
+            })
+            .catch(err => toast.error(err.response?.data?.message || 'Backup failed.'))
+            .finally(() => setBackingUp(false));
+    };
+
+    const closeRestoreModal = () => {
+        setRestoreTarget(null);
+        setRestorePassword('');
+        setRestorePasswordError(null);
+    };
+
+    const handleRestoreBackup = () => {
+        if (!restoreTarget) return;
+
+        if (!restorePassword) {
+            setRestorePasswordError('Please enter your password to confirm.');
+            return;
+        }
+
+        const name = restoreTarget.name;
+        setRestoringName(name);
+        setRestorePasswordError(null);
+
+        axios.post(`/api/scheduled-tasks/backups/${encodeURIComponent(name)}/restore`, {
+            password: restorePassword,
+        })
+            .then(res => {
+                toast.success(res.data.message || 'Database restored successfully!');
+                closeRestoreModal();
+                refreshBackups();
+            })
+            .catch(err => {
+                if (err.response?.status === 403 || err.response?.status === 422) {
+                    setRestorePasswordError(err.response?.data?.message || 'Incorrect password.');
+                } else {
+                    toast.error(err.response?.data?.message || 'Restore failed.');
+                }
+            })
+            .finally(() => setRestoringName(null));
+    };
+
+    const closeDeleteModal = () => {
+        setDeleteTarget(null);
+        setDeletePassword('');
+        setDeletePasswordError(null);
+    };
+
+    const handleDeleteBackup = () => {
+        if (!deleteTarget) return;
+
+        if (!deletePassword) {
+            setDeletePasswordError('Please enter your password to confirm.');
+            return;
+        }
+
+        const name = deleteTarget.name;
+        setDeletingName(name);
+        setDeletePasswordError(null);
+
+        axios.delete(`/api/scheduled-tasks/backups/${encodeURIComponent(name)}`, {
+            data: { password: deletePassword },
+        })
+            .then(res => {
+                toast.success(res.data.message || 'Backup deleted successfully!');
+                closeDeleteModal();
+                refreshBackups();
+            })
+            .catch(err => {
+                if (err.response?.status === 403 || err.response?.status === 422) {
+                    setDeletePasswordError(err.response?.data?.message || 'Incorrect password.');
+                } else {
+                    toast.error(err.response?.data?.message || 'Failed to delete backup.');
+                }
+            })
+            .finally(() => setDeletingName(null));
+    };
+
+    useEffect(() => {
+        refreshBackups();
+    }, []);
+
     useEffect(() => {
         axios.get('/api/scheduled-tasks')
             .then(res => {
@@ -511,6 +647,7 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
                     reminder_email_schedule_time: data.reminder_email_schedule_time || '08:00',
                     reminder_email_days: Array.isArray(data.reminder_email_days) ? data.reminder_email_days : (data.reminder_email_days ? [data.reminder_email_days] : ['3']),
                     audit_logs_cleanup_days: data.audit_logs_cleanup_days || 30,
+                    database_backup_enabled: Boolean(data.database_backup_enabled),
                 };
                 setSettings(newSettings);
                 setOriginalSettings(newSettings);
@@ -770,6 +907,98 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
                 </div>
             </div>
 
+            {/* Database Backup */}
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden mt-6">
+                <div className="border-b p-4 sm:p-5 bg-muted/40 flex items-start gap-4">
+                    <div className="bg-primary/10 text-primary p-2.5 rounded-lg">
+                        <Database className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg">Database Backup</h3>
+                        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                            Creates a full database dump on the 1st of every month, saved as
+                            backupdatabase_month_year. You can also trigger one manually below.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="p-4 sm:p-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label className="text-base">Enable Monthly Auto-Backup</Label>
+                            <p className="text-sm text-muted-foreground">Runs automatically at 2:00 AM on the 1st of each month.</p>
+                        </div>
+                        <Switch
+                            checked={settings.database_backup_enabled}
+                            onCheckedChange={(checked) => setSettings(s => ({ ...s, database_backup_enabled: checked }))}
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label className="text-base">Manual Backup</Label>
+                            <p className="text-sm text-muted-foreground">Create a backup right now, regardless of the schedule above.</p>
+                        </div>
+                        <Button onClick={handleForceBackup} disabled={backingUp} className="gap-2">
+                            {backingUp ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                            Backup Now
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="border-t">
+                    <div className="p-4 sm:p-5 flex items-center justify-between">
+                        <h4 className="text-sm font-semibold">Existing Backups</h4>
+                        <Button variant="ghost" size="icon" onClick={refreshBackups} disabled={loadingBackups} className="h-8 w-8 rounded-full text-muted-foreground">
+                            <RefreshCw className={`h-4 w-4 ${loadingBackups ? 'animate-spin' : ''}`} />
+                        </Button>
+                    </div>
+                    <div className="divide-y">
+                        {backups.length === 0 ? (
+                            <p className="px-5 pb-5 text-sm text-muted-foreground">No backups yet.</p>
+                        ) : backups.map((b) => (
+                            <div key={b.name} className="px-5 py-3 flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium">{b.name}</p>
+                                    <p className="text-xs text-muted-foreground">{b.created_at} · {formatBackupSize(b.size)}</p>
+                                </div>
+                                <div className="shrink-0 flex items-center gap-3">
+                                    <a
+                                        href={`/api/scheduled-tasks/backups/${encodeURIComponent(b.name)}/download`}
+                                        className="text-sm text-primary hover:underline"
+                                    >
+                                        Download
+                                    </a>
+                                    <button
+                                        onClick={() => {
+                                            setRestorePassword('');
+                                            setRestorePasswordError(null);
+                                            setRestoreTarget(b);
+                                        }}
+                                        disabled={restoringName !== null || deletingName !== null}
+                                        className="text-sm text-red-600 hover:underline dark:text-red-400 disabled:pointer-events-none disabled:opacity-50"
+                                    >
+                                        Restore
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setDeletePassword('');
+                                            setDeletePasswordError(null);
+                                            setDeleteTarget(b);
+                                        }}
+                                        disabled={restoringName !== null || deletingName !== null}
+                                        className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400 disabled:pointer-events-none disabled:opacity-50 transition-colors"
+                                        title="Delete backup"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
             {/* Manual Email Triggers */}
             <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden mt-6">
                 <div className="border-b p-4 sm:p-5 bg-muted/40 flex items-start gap-4">
@@ -871,6 +1100,9 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
                             const match = task.command.match(/--days=(\d+)/);
                             const days = match ? match[1] : '';
                             description = days ? `When the auto-emailer runs for deliveries due in exactly ${days} days.` : "When the upcoming auto-emailer is scheduled to run next.";
+                        } else if (task.command.includes('backup:database')) {
+                            title = "Database Backup";
+                            description = "When the monthly database backup is scheduled to run next.";
                         }
 
                         return (
@@ -917,53 +1149,178 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
 
             {/* Clean Today Modal Overlay */}
             {showCleanTodayModal && (
-                <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-card border text-card-foreground shadow-lg rounded-xl max-w-md w-full animate-in zoom-in-95 duration-200 overflow-hidden">
-                        <div className="p-6">
-                            <h3 className="font-semibold text-lg tracking-tight mb-2">Clean Today's Audit Logs?</h3>
-                            <p className="text-sm text-muted-foreground">
-                                This will permanently remove all audit logs created today. This action cannot be undone.
-                            </p>
-                        </div>
-                        <div className="flex items-center justify-end gap-3 p-4 bg-muted/40 border-t">
-                            <Button variant="ghost" onClick={() => setShowCleanTodayModal(false)} disabled={cleaningToday}>
-                                Cancel
-                            </Button>
-                            <Button variant="destructive" onClick={handleCleanToday} disabled={cleaningToday} className="gap-2">
-                                {cleaningToday && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-                                Clean Today's Logs
-                            </Button>
+                <ModalPortal>
+                    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-card border text-card-foreground shadow-lg rounded-xl max-w-md w-full animate-in zoom-in-95 duration-200 overflow-hidden">
+                            <div className="p-6">
+                                <h3 className="font-semibold text-lg tracking-tight mb-2">Clean Today's Audit Logs?</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    This will permanently remove all audit logs created today. This action cannot be undone.
+                                </p>
+                            </div>
+                            <div className="flex items-center justify-end gap-3 p-4 bg-muted/40 border-t">
+                                <Button variant="ghost" onClick={() => setShowCleanTodayModal(false)} disabled={cleaningToday}>
+                                    Cancel
+                                </Button>
+                                <Button variant="destructive" onClick={handleCleanToday} disabled={cleaningToday} className="gap-2">
+                                    {cleaningToday && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                                    Clean Today's Logs
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </ModalPortal>
+            )}
+
+            {/* Restore Backup Modal Overlay */}
+            {restoreTarget && (
+                <ModalPortal>
+                    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-card border text-card-foreground shadow-lg rounded-xl max-w-md w-full animate-in zoom-in-95 duration-200 overflow-hidden">
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <h3 className="font-semibold text-lg tracking-tight mb-2 text-red-600 dark:text-red-400">Restore This Backup?</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        This will overwrite the current live database with{' '}
+                                        <span className="font-medium text-foreground">{restoreTarget.name}</span>. Any
+                                        data created or changed after this backup was taken will be lost. A safety
+                                        snapshot of the current database is taken automatically before restoring, but
+                                        this action should still be treated as destructive.
+                                    </p>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="restore-backup-password" className="text-sm">
+                                        Enter your password to confirm
+                                    </Label>
+                                    <Input
+                                        id="restore-backup-password"
+                                        type="password"
+                                        autoFocus
+                                        value={restorePassword}
+                                        onChange={(e) => {
+                                            setRestorePassword(e.target.value);
+                                            if (restorePasswordError) setRestorePasswordError(null);
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && restoringName === null) {
+                                                handleRestoreBackup();
+                                            }
+                                        }}
+                                        placeholder="Your account password"
+                                        className={restorePasswordError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                                    />
+                                    {restorePasswordError && (
+                                        <p className="text-xs text-red-600 dark:text-red-400">{restorePasswordError}</p>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-end gap-3 p-4 bg-muted/40 border-t">
+                                <Button variant="ghost" onClick={closeRestoreModal} disabled={restoringName !== null}>
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    onClick={handleRestoreBackup}
+                                    disabled={restoringName !== null || !restorePassword}
+                                    className="gap-2"
+                                >
+                                    {restoringName !== null && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                                    Restore Database
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </ModalPortal>
+            )}
+
+            {/* Delete Backup Modal Overlay */}
+            {deleteTarget && (
+                <ModalPortal>
+                    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-card border text-card-foreground shadow-lg rounded-xl max-w-md w-full animate-in zoom-in-95 duration-200 overflow-hidden">
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <h3 className="font-semibold text-lg tracking-tight mb-2 text-red-600 dark:text-red-400">Delete This Backup?</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        This will permanently delete{' '}
+                                        <span className="font-medium text-foreground">{deleteTarget.name}</span> from
+                                        disk. This does not affect the live database — it only removes this backup
+                                        file. This action cannot be undone.
+                                    </p>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="delete-backup-password" className="text-sm">
+                                        Enter your password to confirm
+                                    </Label>
+                                    <Input
+                                        id="delete-backup-password"
+                                        type="password"
+                                        autoFocus
+                                        value={deletePassword}
+                                        onChange={(e) => {
+                                            setDeletePassword(e.target.value);
+                                            if (deletePasswordError) setDeletePasswordError(null);
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && deletingName === null) {
+                                                handleDeleteBackup();
+                                            }
+                                        }}
+                                        placeholder="Your account password"
+                                        className={deletePasswordError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                                    />
+                                    {deletePasswordError && (
+                                        <p className="text-xs text-red-600 dark:text-red-400">{deletePasswordError}</p>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-end gap-3 p-4 bg-muted/40 border-t">
+                                <Button variant="ghost" onClick={closeDeleteModal} disabled={deletingName !== null}>
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    onClick={handleDeleteBackup}
+                                    disabled={deletingName !== null || !deletePassword}
+                                    className="gap-2"
+                                >
+                                    {deletingName !== null ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                    Delete Backup
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </ModalPortal>
             )}
 
             {/* Clear Scheduler Cache Modal Overlay */}
             {showClearCacheModal && (
-                <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-card border text-card-foreground shadow-lg rounded-xl max-w-md w-full animate-in zoom-in-95 duration-200 overflow-hidden">
-                        <div className="p-6">
-                            <h3 className="font-semibold text-lg tracking-tight mb-2 text-red-600 dark:text-red-400">Reset Scheduled Task State?</h3>
-                            <p className="text-sm text-muted-foreground">
-                                This will clear the scheduler's cached execution state. Scheduled tasks will run again on their next tick if they meet the schedule condition.
-                            </p>
-                        </div>
-                        <div className="flex items-center justify-end gap-3 p-4 bg-muted/40 border-t">
-                            <Button variant="ghost" onClick={() => setShowClearCacheModal(false)} disabled={clearingCache}>
-                                Cancel
-                            </Button>
-                            <Button 
-                                variant="outline" 
-                                onClick={handleClearCache} 
-                                disabled={clearingCache} 
-                                className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
-                            >
-                                {clearingCache && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-                                Reset State
-                            </Button>
+                <ModalPortal>
+                    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-card border text-card-foreground shadow-lg rounded-xl max-w-md w-full animate-in zoom-in-95 duration-200 overflow-hidden">
+                            <div className="p-6">
+                                <h3 className="font-semibold text-lg tracking-tight mb-2 text-red-600 dark:text-red-400">Reset Scheduled Task State?</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    This will clear the scheduler's cached execution state. Scheduled tasks will run again on their next tick if they meet the schedule condition.
+                                </p>
+                            </div>
+                            <div className="flex items-center justify-end gap-3 p-4 bg-muted/40 border-t">
+                                <Button variant="ghost" onClick={() => setShowClearCacheModal(false)} disabled={clearingCache}>
+                                    Cancel
+                                </Button>
+                                <Button 
+                                    variant="outline" 
+                                    onClick={handleClearCache} 
+                                    disabled={clearingCache} 
+                                    className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+                                >
+                                    {clearingCache && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                                    Reset State
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </ModalPortal>
             )}
 
             {/* Clear Scheduler Cache */}
@@ -993,7 +1350,7 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
             </div>
 
             {/* Global Save Button - Sticky Bottom */}
-            {(isOverdueDirty || isUpcomingDirty || isAuditDirty) && (
+            {(isOverdueDirty || isUpcomingDirty || isAuditDirty || isBackupDirty) && (
                 <div className="sticky bottom-6 mt-8 rounded-xl border bg-card text-card-foreground shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between p-4 z-20 animate-in slide-in-from-bottom-5 fade-in duration-300 gap-4">
                     <p className="text-sm font-medium text-destructive italic flex items-center gap-2">
                         <Settings className="h-4 w-4 text-destructive animate-pulse" />
