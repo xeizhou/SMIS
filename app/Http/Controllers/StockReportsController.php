@@ -38,7 +38,7 @@ class StockReportsController extends Controller
             ->leftJoin('transactions as t', function ($join) use ($cutoffDate) {
                 $join->on('t.stock_no', '=', 'i.stock_no');
                 if ($cutoffDate) {
-                    $join->where('t.transaction_date', '<=', $cutoffDate);
+                    $join->whereRaw('DATE(t.transaction_date) <= ?', [$cutoffDate]);
                 }
             })
             ->select(
@@ -106,7 +106,7 @@ class StockReportsController extends Controller
             ->leftJoin('transactions as t', function ($join) use ($cutoffDate) {
                 $join->on('t.stock_no', '=', 'i.stock_no');
                 if ($cutoffDate) {
-                    $join->where('t.transaction_date', '<=', $cutoffDate);
+                    $join->whereRaw('DATE(t.transaction_date) <= ?', [$cutoffDate]);
                 }
             })
             ->select(
