@@ -398,6 +398,16 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                 });
     })->name('online-users');
 
+    // Called on an interval by useSessionHeartbeat() while an authenticated
+    // tab is open and in the foreground. No handler logic needed — Laravel's
+    // StartSession middleware already bumps `last_activity` on every
+    // authenticated request that passes through the 'web' middleware group,
+    // which is the entire mechanism claimSession()/EnsureSingleSession rely
+    // on to tell a live tab apart from a closed/crashed one.
+    Route::post('/heartbeat', function () {
+        return response()->noContent();
+    })->name('heartbeat');
+
     Route::get('/avatar/{user}', function (\App\Models\User $user) {
         abort_unless($user->avatar_path, 404);
         abort_unless(\Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar_path), 404);

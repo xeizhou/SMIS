@@ -7,9 +7,20 @@ use Illuminate\Support\Facades\DB;
 trait HasSingleSession
 {
     /**
+     * How long a claimed session can go without a heartbeat before a NEW
+     * login attempt is allowed to treat it as abandoned and take over.
+     * Deliberately much shorter than SESSION_LIFETIME (which still governs
+     * actual session/CSRF validity everywhere else) — this constant only
+     * controls how fast a closed or crashed tab stops blocking someone
+     * else from logging in.
+     */
+    protected const STALE_CLAIM_AFTER_SECONDS = 30;
+
+    /**
      * Atomically claim the given session ID as this user's active session.
      * Succeeds if there's no current owner, or the current owner is stale
-     * (missing from the sessions table, or expired by last_activity).
+     * (missing from the sessions table, or hasn't sent a heartbeat within
+     * STALE_CLAIM_AFTER_SECONDS).
      *
      * Safe under concurrency: the UPDATE's WHERE clause is evaluated and
      * applied as a single atomic operation by the storage engine. If two
@@ -20,7 +31,7 @@ trait HasSingleSession
      */
     public function claimSession(string $sessionId): bool
     {
-        $expiredBefore = now()->subMinutes((int) config('session.lifetime'))->getTimestamp();
+        $staleBefore = now()->subSeconds(self::STALE_CLAIM_AFTER_SECONDS)->getTimestamp();
 
         $affected = DB::update(
             <<<'SQL'
@@ -35,7 +46,7 @@ trait HasSingleSession
                 )
               )
             SQL,
-            [$sessionId, $this->getKey(), $expiredBefore]
+            [$sessionId, $this->getKey(), $staleBefore]
         );
 
         if ($affected > 0) {
@@ -66,7 +77,11 @@ trait HasSingleSession
 
     /**
      * Is this user's recorded session currently owned by someone, and is
-     * that ownership still live (not stale)?
+     * that ownership still live (not stale)? Uses the full SESSION_LIFETIME
+     * — a deliberately longer, more forgiving window than
+     * STALE_CLAIM_AFTER_SECONDS, since this answers a different question
+     * ("is this session still generally valid") than claimSession() does
+     * ("has this session gone quiet long enough to hand to someone else").
      */
     public function hasActiveSessionOwnedByAnother(): bool
     {
