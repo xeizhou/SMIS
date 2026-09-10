@@ -89,6 +89,43 @@ interface PurchaseOrder {
     date_forwarded_to_smu: string | null;
     coa_processed_date: string | null;
     date_forwarded_frontdesk: string | null;
+
+    po_step: string | null;
+    po_vpad_notified_date: string | null;
+    po_vpad_notified_via: string | null;
+    po_vpad_forwarded_by: string | null;
+    date_forwarded_to_end_user: string | null;
+    end_user_forwarded_by: string | null;
+    date_forwarded_supplier: string | null;
+    forwarded_by_supplier: string | null;
+    claimed_by_supplier: string | null;
+    supplier_signature_date: string | null;
+    date_forwarded_coa: string | null;
+    forwarded_by_coa: string | null;
+    date_returned_from_coa: string | null;
+    coa_date: string | null;
+    claim_date: string | null;
+    claimed_by_coa: string | null;
+    coa_stamp_notified_date: string | null;
+    coa_stamp_notified_via: string | null;
+    date_received_by_supplier: string | null;
+    receipt_receiving_date: string | null;
+    receipt_claimed_by: string | null;
+    receipt_claimed_notified_date: string | null;
+    receipt_claimed_notified_via: string | null;
+    items_receiving_date: string | null;
+    items_claimed_by: string | null;
+    payment_status: string | null;
+    workflow_remarks: string | null;
+    invoice_number: string | null;
+    invoice_date: string | null;
+    delivery_receipt: string | null;
+    par_ics_number: string | null;
+    ris_number: string | null;
+    date_completed: string | null;
+    date_forwarded_to_finance: string | null;
+    finance_forwarded_by: string | null;
+
     attachments?: Attachment[];
     items?: { stock_no: string }[];
 }
@@ -406,7 +443,7 @@ const PROCUREMENT_TYPE_OPTIONS = [
 ];
 
 const MODE_OF_PROCUREMENT_OPTIONS = [
-    { value: 'SMALL VALUE PROCURMENT', label: 'SMALL VALUE PROCURMENT' },
+    { value: 'SMALL VALUE PROCUREMENT', label: 'SMALL VALUE PROCUREMENT' },
     { value: 'SHOPPING', label: 'SHOPPING' },
     { value: 'PUBLIC BIDDING', label: 'PUBLIC BIDDING' },
 ];
@@ -435,6 +472,43 @@ const emptyForm = {
     date_forwarded_to_smu: '',
     coa_processed_date: '',
     date_forwarded_frontdesk: '',
+
+    po_step: '',
+    po_vpad_notified_date: '',
+    po_vpad_notified_via: '',
+    po_vpad_forwarded_by: '',
+    date_forwarded_to_end_user: '',
+    end_user_forwarded_by: '',
+    date_forwarded_supplier: '',
+    forwarded_by_supplier: '',
+    claimed_by_supplier: '',
+    supplier_signature_date: '',
+    date_forwarded_coa: '',
+    forwarded_by_coa: '',
+    date_returned_from_coa: '',
+    coa_date: '',
+    claim_date: '',
+    claimed_by_coa: '',
+    coa_stamp_notified_date: '',
+    coa_stamp_notified_via: '',
+    date_received_by_supplier: '',
+    receipt_receiving_date: '',
+    receipt_claimed_by: '',
+    receipt_claimed_notified_date: '',
+    receipt_claimed_notified_via: '',
+    items_receiving_date: '',
+    items_claimed_by: '',
+    payment_status: '',
+    workflow_remarks: '',
+    invoice_number: '',
+    invoice_date: '',
+    delivery_receipt: '',
+    par_ics_number: '',
+    ris_number: '',
+    date_completed: '',
+    date_forwarded_to_finance: '',
+    finance_forwarded_by: '',
+
     inspection_entries: [] as any[],
 };
 
@@ -506,6 +580,43 @@ function toFormData(po: PurchaseOrder | null): typeof emptyForm {
         date_forwarded_to_smu: toDateInputValue(po.date_forwarded_to_smu),
         coa_processed_date: toDateInputValue(po.coa_processed_date),
         date_forwarded_frontdesk: toDateInputValue(po.date_forwarded_frontdesk),
+        
+        po_step: po.po_step ?? '',
+        po_vpad_notified_date: toDateInputValue(po.po_vpad_notified_date),
+        po_vpad_notified_via: po.po_vpad_notified_via ?? '',
+        po_vpad_forwarded_by: po.po_vpad_forwarded_by ?? '',
+        date_forwarded_to_end_user: toDateInputValue(po.date_forwarded_to_end_user),
+        end_user_forwarded_by: po.end_user_forwarded_by ?? '',
+        date_forwarded_supplier: toDateInputValue(po.date_forwarded_supplier),
+        forwarded_by_supplier: po.forwarded_by_supplier ?? '',
+        claimed_by_supplier: po.claimed_by_supplier ?? '',
+        supplier_signature_date: toDateInputValue(po.supplier_signature_date),
+        date_forwarded_coa: toDateInputValue(po.date_forwarded_coa),
+        forwarded_by_coa: po.forwarded_by_coa ?? '',
+        date_returned_from_coa: toDateInputValue(po.date_returned_from_coa),
+        coa_date: toDateInputValue(po.coa_date),
+        claim_date: toDateInputValue(po.claim_date),
+        claimed_by_coa: po.claimed_by_coa ?? '',
+        coa_stamp_notified_date: toDateInputValue(po.coa_stamp_notified_date),
+        coa_stamp_notified_via: po.coa_stamp_notified_via ?? '',
+        date_received_by_supplier: toDateInputValue(po.date_received_by_supplier),
+        receipt_receiving_date: toDateInputValue(po.receipt_receiving_date),
+        receipt_claimed_by: po.receipt_claimed_by ?? '',
+        receipt_claimed_notified_date: toDateInputValue(po.receipt_claimed_notified_date),
+        receipt_claimed_notified_via: po.receipt_claimed_notified_via ?? '',
+        items_receiving_date: toDateInputValue(po.items_receiving_date),
+        items_claimed_by: po.items_claimed_by ?? '',
+        payment_status: po.payment_status ?? '',
+        workflow_remarks: po.workflow_remarks ?? '',
+        invoice_number: po.invoice_number ?? '',
+        invoice_date: toDateInputValue(po.invoice_date),
+        delivery_receipt: po.delivery_receipt ?? '',
+        par_ics_number: po.par_ics_number ?? '',
+        ris_number: po.ris_number ?? '',
+        date_completed: toDateInputValue(po.date_completed),
+        date_forwarded_to_finance: toDateInputValue(po.date_forwarded_to_finance),
+        finance_forwarded_by: po.finance_forwarded_by ?? '',
+
         inspection_entries: po.inspection_entries?.length 
             ? po.inspection_entries.map((entry: any) => ({
                 iar_number: entry.iar_number || '',
@@ -1073,6 +1184,104 @@ export default function PurchaseOrderEditForm({
                                     onChange={handleChange}
                                     error={errors.date_forwarded_frontdesk}
                                 />
+                            </div>
+                        </div>
+
+                        {/* Section: Workflow Tracking & Progress */}
+                        <div>
+                            <h3 className={sectionTitleClass}>Workflow Tracking & Progress</h3>
+                            
+                            <div className="space-y-6">
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">PO From VPAD</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <Field label="Forwarded By" name="po_vpad_forwarded_by" value={data.po_vpad_forwarded_by} onChange={handleChange} error={errors.po_vpad_forwarded_by} />
+                                        <Field label="Notified Date" name="po_vpad_notified_date" type="date" value={data.po_vpad_notified_date} onChange={handleChange} error={errors.po_vpad_notified_date} />
+                                        <Field label="Notified Via" name="po_vpad_notified_via" value={data.po_vpad_notified_via} onChange={handleChange} error={errors.po_vpad_notified_via} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">End User</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <Field label="Date Forwarded" name="date_forwarded_to_end_user" type="date" value={data.date_forwarded_to_end_user} onChange={handleChange} error={errors.date_forwarded_to_end_user} />
+                                        <Field label="Forwarded By" name="end_user_forwarded_by" value={data.end_user_forwarded_by} onChange={handleChange} error={errors.end_user_forwarded_by} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">For Supplier's Signature</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <Field label="Date Forwarded" name="date_forwarded_supplier" type="date" value={data.date_forwarded_supplier} onChange={handleChange} error={errors.date_forwarded_supplier} />
+                                        <Field label="Forwarded By" name="forwarded_by_supplier" value={data.forwarded_by_supplier} onChange={handleChange} error={errors.forwarded_by_supplier} />
+                                        <Field label="Claimed By" name="claimed_by_supplier" value={data.claimed_by_supplier} onChange={handleChange} error={errors.claimed_by_supplier} />
+                                        <Field label="Signature Date" name="supplier_signature_date" type="date" value={data.supplier_signature_date} onChange={handleChange} error={errors.supplier_signature_date} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">For COA Stamp</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <Field label="Date Forwarded" name="date_forwarded_coa" type="date" value={data.date_forwarded_coa} onChange={handleChange} error={errors.date_forwarded_coa} />
+                                        <Field label="Forwarded By" name="forwarded_by_coa" value={data.forwarded_by_coa} onChange={handleChange} error={errors.forwarded_by_coa} />
+                                        <Field label="Date Returned" name="date_returned_from_coa" type="date" value={data.date_returned_from_coa} onChange={handleChange} error={errors.date_returned_from_coa} />
+                                        <Field label="COA Date" name="coa_date" type="date" value={data.coa_date} onChange={handleChange} error={errors.coa_date} />
+                                        <Field label="Claim Date" name="claim_date" type="date" value={data.claim_date} onChange={handleChange} error={errors.claim_date} />
+                                        <Field label="Claimed By" name="claimed_by_coa" value={data.claimed_by_coa} onChange={handleChange} error={errors.claimed_by_coa} />
+                                        <Field label="Notified Date" name="coa_stamp_notified_date" type="date" value={data.coa_stamp_notified_date} onChange={handleChange} error={errors.coa_stamp_notified_date} />
+                                        <Field label="Notified Via" name="coa_stamp_notified_via" value={data.coa_stamp_notified_via} onChange={handleChange} error={errors.coa_stamp_notified_via} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Receipt & Delivery</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <Field label="Date Received by Supplier" name="date_received_by_supplier" type="date" value={data.date_received_by_supplier} onChange={handleChange} error={errors.date_received_by_supplier} />
+                                        <Field label="Receipt Receiving Date" name="receipt_receiving_date" type="date" value={data.receipt_receiving_date} onChange={handleChange} error={errors.receipt_receiving_date} />
+                                        <Field label="Receipt Claimed By" name="receipt_claimed_by" value={data.receipt_claimed_by} onChange={handleChange} error={errors.receipt_claimed_by} />
+                                        <Field label="Notified Date" name="receipt_claimed_notified_date" type="date" value={data.receipt_claimed_notified_date} onChange={handleChange} error={errors.receipt_claimed_notified_date} />
+                                        <Field label="Notified Via" name="receipt_claimed_notified_via" value={data.receipt_claimed_notified_via} onChange={handleChange} error={errors.receipt_claimed_notified_via} />
+                                        <Field label="Items Receiving Date" name="items_receiving_date" type="date" value={data.items_receiving_date} onChange={handleChange} error={errors.items_receiving_date} />
+                                        <Field label="Items Claimed By" name="items_claimed_by" value={data.items_claimed_by} onChange={handleChange} error={errors.items_claimed_by} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Additional Reference & Status</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <Field label="Invoice No." name="invoice_number" value={data.invoice_number} onChange={handleChange} error={errors.invoice_number} />
+                                        <Field label="Invoice Date" name="invoice_date" type="date" value={data.invoice_date} onChange={handleChange} error={errors.invoice_date} />
+                                        <Field label="Delivery Receipt" name="delivery_receipt" value={data.delivery_receipt} onChange={handleChange} error={errors.delivery_receipt} />
+                                        <Field label="PAR/ICS No." name="par_ics_number" value={data.par_ics_number} onChange={handleChange} error={errors.par_ics_number} />
+                                        <Field label="RIS No." name="ris_number" value={data.ris_number} onChange={handleChange} error={errors.ris_number} />
+                                        <Field label="Payment Status" name="payment_status" value={data.payment_status} onChange={handleChange} error={errors.payment_status} />
+                                        <Field label="Workflow Remarks" name="workflow_remarks" value={data.workflow_remarks} onChange={handleChange} error={errors.workflow_remarks} />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Completion & Finance</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <Field label="Date Completed" name="date_completed" type="date" value={data.date_completed} onChange={handleChange} error={errors.date_completed} />
+                                        <Field label="Forwarded to Finance" name="date_forwarded_to_finance" type="date" value={data.date_forwarded_to_finance} onChange={handleChange} error={errors.date_forwarded_to_finance} />
+                                        <Field label="Forwarded By" name="finance_forwarded_by" value={data.finance_forwarded_by} onChange={handleChange} error={errors.finance_forwarded_by} />
+                                        <SelectField
+                                            label="PO Step"
+                                            value={data.po_step}
+                                            onChange={handleSelectChange('po_step')}
+                                            error={errors.po_step}
+                                            placeholder="-- Select Step --"
+                                            options={[
+                                                { value: 'PO From VPAD', label: 'PO From VPAD' },
+                                                { value: 'End User', label: 'End User' },
+                                                { value: "For Supplier's Signature", label: "For Supplier's Signature" },
+                                                { value: 'For COA Stamp', label: 'For COA Stamp' },
+                                                { value: 'Receipt & Delivery', label: 'Receipt & Delivery' },
+                                                { value: 'Completed', label: 'Completed' },
+                                            ]}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
