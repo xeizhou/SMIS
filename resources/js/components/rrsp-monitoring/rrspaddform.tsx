@@ -314,9 +314,6 @@ export default function RrspAddForm({ open, onOpenChange, areas }: Props) {
                     <div>
                         <div className="flex items-center justify-between border-b pb-2 mb-4">
                             <h3 className="text-sm font-semibold text-foreground">Items</h3>
-                            <Button type="button" variant="outline" size="sm" onClick={addItem} className="h-8 gap-1">
-                                <Plus className="size-4" /> Add Item
-                            </Button>
                         </div>
                         
                         <div className="space-y-6">
@@ -477,6 +474,17 @@ export default function RrspAddForm({ open, onOpenChange, areas }: Props) {
                                 </div>
                                 );
                             })}
+                        </div>
+                        
+                        <div className="flex justify-center pt-6">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={addItem}
+                                className="w-full md:w-auto"
+                            >
+                                + Add Item
+                            </Button>
                         </div>
                     </div>
 
