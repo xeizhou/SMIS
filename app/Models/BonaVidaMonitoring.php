@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\SerializesDatesWithoutTimezoneShift;
 
@@ -11,7 +13,7 @@ use App\Traits\LogsActivity;
 
 class BonaVidaMonitoring extends Model
 {
-    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift;
+    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift, SoftDeletes;
 
     const LOG_NAME = 'Bona Vida Monitoring';
 
@@ -45,5 +47,10 @@ class BonaVidaMonitoring extends Model
     public function getActivityUrl()
     {
         return route('bona-vida-monitoring.index') . '?highlight_id=' . $this->getKey();
+    }
+
+    public function archiveMetadata(): MorphOne
+    {
+        return $this->morphOne(Archive::class, 'archivable');
     }
 }

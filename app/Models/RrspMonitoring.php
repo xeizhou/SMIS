@@ -4,13 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Traits\LogsActivity;
 use App\Traits\SerializesDatesWithoutTimezoneShift;
 
 class RrspMonitoring extends Model
 {
-    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift;
+    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift, SoftDeletes;
 
     const LOG_NAME = 'RRSP Monitoring';
 
@@ -48,5 +50,10 @@ class RrspMonitoring extends Model
     public function purchaseOrder(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(ServePo::class, 'po_number', 'po_number');
+    }
+
+    public function archiveMetadata(): MorphOne
+    {
+        return $this->morphOne(Archive::class, 'archivable');
     }
 }

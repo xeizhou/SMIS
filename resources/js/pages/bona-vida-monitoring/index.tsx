@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Trash2, Eye } from 'lucide-react';
+import { Search, Pencil, Archive, Eye } from 'lucide-react';
 import { useState } from 'react';
 import BonaVidaAddForm from '@/components/bona-vida-monitoring/bonavidaaddform';
 import BonaVidaDeleteModal from '@/components/bona-vida-monitoring/bonavidadeletemodal';
@@ -166,9 +166,9 @@ export default function Index({ records, filters, offices }: Props) {
                         type="button"
                         onClick={() => openDelete(record)}
                         className="text-red-600 hover:text-red-800"
-                        title="Delete"
+                        title="Archive"
                     >
-                        <Trash2 className="size-4" />
+                        <Archive className="size-4" />
                     </button>
                     <button
                         type="button"

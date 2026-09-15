@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown, RefreshCw, Trash2 } from 'lucide-react';
+import { Check, ChevronsUpDown, RefreshCw, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -516,7 +516,7 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                                         onClick={() => removeItem(index)}
                                                         className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                                     >
-                                                        <Trash2 className="size-4" />
+                                                        <Archive className="size-4" />
                                                     </Button>
                                                 )}
                                             </div>

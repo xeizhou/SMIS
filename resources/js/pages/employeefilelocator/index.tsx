@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Trash2 } from 'lucide-react';
+import { Search, Pencil, Archive } from 'lucide-react';
 import { useState } from 'react';
 import EmployeeFileAddForm from '@/components/employee-file-locator/employeefileaddform';
 import EmployeeFileDeleteModal from '@/components/employee-file-locator/employeefiledeletemodal';
@@ -124,9 +124,9 @@ export default function Index({ records, filters, statuses }: Props) {
                         type="button"
                         onClick={() => openDelete(record)}
                         className="text-red-600 hover:text-red-800"
-                        title="Delete"
+                        title="Archive"
                     >
-                        <Trash2 className="size-4" />
+                        <Archive className="size-4" />
                     </button>
                 </div>
             )

@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Archive, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -391,7 +391,7 @@ export default function StockItemAddForm({
                                                         onClick={() => removeUnitRow(index)}
                                                         className="text-red-500 hover:bg-red-50 hover:text-red-700 h-10 w-10 shrink-0"
                                                     >
-                                                        <Trash2 className="size-4" />
+                                                        <Archive className="size-4" />
                                                     </Button>
                                                 )}
                                             </div>

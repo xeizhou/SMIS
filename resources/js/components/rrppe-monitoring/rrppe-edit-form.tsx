@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm, router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Archive, RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -319,7 +319,7 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas, stockIt
                                             className="absolute right-2 top-2 h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                             onClick={() => removeItem(index)}
                                         >
-                                            <Trash2 className="size-4" />
+                                            <Archive className="size-4" />
                                         </Button>
                                     )}
                                     <h4 className="mb-3 text-sm font-medium">Item #{index + 1}</h4>

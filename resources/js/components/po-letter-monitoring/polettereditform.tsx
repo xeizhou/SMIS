@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useRef, useState } from 'react';
-import { RefreshCw, Paperclip, X, Check, ChevronsUpDown, Trash2, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive } from 'lucide-react';
+import { RefreshCw, Paperclip, X, Check, ChevronsUpDown, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -842,9 +842,9 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                                                             e.stopPropagation();
                                                             removeExistingAttachment(att.id);
                                                         }}
-                                                        title="Remove"
+                                                        title="Remove/Archive"
                                                     >
-                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        <Archive className="h-3.5 w-3.5" />
                                                     </Button>
                                                 </div>
                                                 );
@@ -898,7 +898,7 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                                                                 }
                                                             }}
                                                             className="shrink-0 text-red-600 hover:text-red-800"
-                                                            title="Remove"
+                                                            title="Remove/Archive"
                                                         >
                                                             <X className="size-4" />
                                                         </span>

@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Trash2, ClipboardCheck } from 'lucide-react';
+import { Search, Pencil, Archive, ClipboardCheck } from 'lucide-react';
 import { useState } from 'react';
 import ClearanceAddForm from '@/components/clearance/clearanceaddform';
 import ClearanceDeleteModal from '@/components/clearance/clearancedeletemodal';
@@ -184,8 +184,8 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
                     <button type="button" onClick={() => openEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
                         <Pencil className="size-4" />
                     </button>
-                    <button type="button" onClick={() => openDelete(record)} className="text-red-600 hover:text-red-800" title="Delete">
-                        <Trash2 className="size-4" />
+                    <button type="button" onClick={() => openDelete(record)} className="text-red-600 hover:text-red-800" title="Archive">
+                        <Archive className="size-4" />
                     </button>
                     {record.status !== 'Completed' && (
                         <button type="button" onClick={() => openProcess(record)} className="text-green-600 hover:text-green-800" title="Process Clearance">

@@ -188,8 +188,14 @@ class BonaVidaController extends Controller
     /**
      * Remove the specified bona vida record.
      */
-    public function destroy(BonaVidaMonitoring $bonavida): RedirectResponse
+    public function destroy(Request $request, BonaVidaMonitoring $bonavida): RedirectResponse
     {
+        $bonavida->archiveMetadata()->create([
+            'identity_document' => 'Bona Vida - ' . $bonavida->property_no,
+            'archived_from' => 'Assets > Bona Vida Monitoring',
+            'archived_by' => $request->user()?->id,
+        ]);
+
         $bonavida->delete();
 
         return redirect()->back()->with('success', 'Bona Vida record archived successfully.');

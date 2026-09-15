@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +12,7 @@ use App\Traits\LogsActivity;
 
 class Clearance extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     const LOG_NAME = 'Clearance';
 
@@ -56,5 +58,10 @@ class Clearance extends Model
     public function getActivityUrl()
     {
         return route('clearance.index') . '?highlight_id=' . $this->getKey();
+    }
+
+    public function archiveMetadata(): MorphOne
+    {
+        return $this->morphOne(Archive::class, 'archivable');
     }
 }

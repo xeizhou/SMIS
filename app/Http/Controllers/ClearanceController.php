@@ -173,15 +173,13 @@ public function index(Request $request): Response
     /**
      * Remove the specified clearance record.
      */
-    public function destroy(Clearance $clearance): RedirectResponse
+    public function destroy(Request $request, Clearance $clearance): RedirectResponse
     {
-        // Clean up attachments — files on disk aren't covered by DB FK
-        // constraints since this is a polymorphic relation, so they have
-        // to be removed manually before the clearance record itself is deleted.
-        foreach ($clearance->attachments as $attachment) {
-            Storage::disk('public')->delete($attachment->file_path);
-        }
-        $clearance->attachments()->delete();
+        $clearance->archiveMetadata()->create([
+            'identity_document' => 'Clearance - ' . $clearance->tracking_no,
+            'archived_from' => 'HR > Clearance',
+            'archived_by' => $request->user()?->id,
+        ]);
 
         $clearance->delete();
 

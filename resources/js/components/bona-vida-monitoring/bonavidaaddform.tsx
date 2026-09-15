@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState } from 'react';
-import { Check, ChevronsUpDown, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -415,7 +415,7 @@ export default function BonaVidaAddForm({ open, onOpenChange, offices }: Props) 
                                                                 onClick={() => removeRow(index)}
                                                                 disabled={rows.length === 1}
                                                             >
-                                                                <Trash2 className="size-4" />
+                                                                <Archive className="size-4" />
                                                             </Button>
                                                         </td>
                                                     </tr>

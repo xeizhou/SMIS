@@ -28,6 +28,9 @@ import {
     Send,
     Database,
     RefreshCw,
+    MoreHorizontal,
+    RotateCcw,
+    Eye,
 } from 'lucide-react';
 import {
     Select,
@@ -35,8 +38,24 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
+    SelectGroup,
+    SelectLabel,
+    SelectSeparator,
 } from '@/components/ui/select';
-
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import PurchaseOrderViewForm from '@/components/purchase-order/poviewform';
+import DeliveryViewForm from '@/components/deliveries/deliveryviewform';
+import PoLetterViewForm from '@/components/po-letter-monitoring/poletterviewform';
+import RrspViewForm from '@/components/rrsp-monitoring/rrspviewform';
+import RegSpiViewForm from '@/components/regspi-monitoring/regspiviewform';
+import BonaVidaViewForm from '@/components/bona-vida-monitoring/bonavidaviewform';
+import ClearanceViewForm from '@/components/clearance/clearanceviewform';
+import EmployeeFileViewForm from '@/components/employee-file-locator/employeefileviewform';
 interface ItemOption {
     id: string | number;
     label: string;
@@ -1009,12 +1028,341 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
     );
 }
 
+function ArchiveTab({ archives }: { archives: any[] }) {
+    const [query, setQuery] = useState('');
+    const [moduleFilter, setModuleFilter] = useState('All');
+    const [page, setPage] = useState(1);
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [selectedArchiveData, setSelectedArchiveData] = useState<{ type: string; data: any } | null>(null);
+    const [fetchingArchiveId, setFetchingArchiveId] = useState<number | null>(null);
+
+    const handleViewArchive = async (id: number) => {
+        setFetchingArchiveId(id);
+        try {
+            const res = await axios.get(`/document-center/archive/${id}/details`);
+            setSelectedArchiveData(res.data);
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Failed to fetch archive details.");
+        } finally {
+            setFetchingArchiveId(null);
+        }
+    };
+
+    const filtered = useMemo(() => {
+        let result = archives;
+
+        if (query.trim()) {
+            const q = query.toLowerCase();
+            result = result.filter(
+                (a) =>
+                    a.identity_document?.toLowerCase().includes(q) ||
+                    a.archived_from?.toLowerCase().includes(q) ||
+                    a.archived_by?.toLowerCase().includes(q),
+            );
+        }
+
+        if (moduleFilter !== 'All') {
+            result = result.filter(a => {
+                return a.archived_from?.toLowerCase().includes(moduleFilter.toLowerCase()); 
+            });
+        }
+
+        return result;
+    }, [archives, query, moduleFilter]);
+
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === paginated.length && paginated.length > 0) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(paginated.map(item => item.id));
+        }
+    };
+
+    const toggleSelect = (id: number) => {
+        setSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(selectedId => selectedId !== id) : [...prev, id]
+        );
+    };
+
+    const handleClear = () => {
+        setQuery('');
+        setModuleFilter('All');
+        setPage(1);
+        setSelectedIds([]);
+    };
+
+    return (
+        <div className="relative flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1 sm:max-w-md">
+                    <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+                    <Input
+                        placeholder="Search..."
+                        className="pl-9 h-10 w-full"
+                        value={query}
+                        onChange={(e) => {
+                            setQuery(e.target.value);
+                            setPage(1);
+                        }}
+                    />
+                </div>
+                
+                <div className="flex items-center gap-2">
+                    <Select value={moduleFilter} onValueChange={setModuleFilter}>
+                        <SelectTrigger className={`w-full sm:w-[220px] h-10 ${moduleFilter === 'All' ? 'text-muted-foreground' : ''}`}>
+                            <SelectValue placeholder="All Modules" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="All">All Modules</SelectItem>
+                            <SelectSeparator />
+                            <SelectGroup>
+                                <SelectLabel>ASSETS</SelectLabel>
+                                <SelectItem value="RRPPE Monitoring">RRPPE Monitoring</SelectItem>
+                                <SelectItem value="RRSP Monitoring">RRSP Monitoring</SelectItem>
+                                <SelectItem value="RegSPI Monitoring">RegSPI Monitoring</SelectItem>
+                                <SelectItem value="ITR PTR">ITR PTR</SelectItem>
+                                <SelectItem value="For Disposal">For Disposal</SelectItem>
+                                <SelectItem value="Bona Vida">Bona Vida</SelectItem>
+                            </SelectGroup>
+                            <SelectSeparator />
+                            <SelectGroup>
+                                <SelectLabel>PROCUREMENT</SelectLabel>
+                                <SelectItem value="Purchase Order">Purchase Order</SelectItem>
+                                <SelectItem value="PO Letter Monitoring">PO Letter Monitoring</SelectItem>
+                                <SelectItem value="Delivery">Delivery</SelectItem>
+                                <SelectItem value="Supplier List">Supplier List</SelectItem>
+                                <SelectItem value="Fund Clusters">Fund Clusters</SelectItem>
+                            </SelectGroup>
+                            <SelectSeparator />
+                            <SelectGroup>
+                                <SelectLabel>PERSONNEL FILES</SelectLabel>
+                                <SelectItem value="Employee File Locator">Employee File Locator</SelectItem>
+                                <SelectItem value="Offices">Offices</SelectItem>
+                                <SelectItem value="Clearance">Clearance</SelectItem>
+                            </SelectGroup>
+                            <SelectSeparator />
+                            <SelectGroup>
+                                <SelectLabel>STOCK CARDS</SelectLabel>
+                                <SelectItem value="Stock Items">Stock Items</SelectItem>
+                                <SelectItem value="Units">Units</SelectItem>
+                                <SelectItem value="Transactions">Transactions</SelectItem>
+                            </SelectGroup>
+                            <SelectSeparator />
+                            <SelectGroup>
+                                <SelectLabel>SYSTEM</SelectLabel>
+                                <SelectItem value="System Audit Logs">System Audit Logs</SelectItem>
+                                <SelectItem value="Notifications">Notifications</SelectItem>
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                    
+                    <Button variant="secondary" className="h-10 px-6 font-medium bg-muted/60">
+                        Search
+                    </Button>
+                    <Button variant="ghost" onClick={handleClear} className="h-10 px-4 font-medium">
+                        Clear
+                    </Button>
+                </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border bg-card text-card-foreground shadow-sm">
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="border-b text-muted-foreground">
+                            <th className="px-4 py-4 text-left font-medium w-[40px]">
+                                <Checkbox 
+                                    checked={selectedIds.length === paginated.length && paginated.length > 0}
+                                    onCheckedChange={toggleSelectAll}
+                                />
+                            </th>
+                            <th className="px-4 py-4 text-left font-medium">Identity Document</th>
+                            <th className="px-4 py-4 text-left font-medium">Archived from</th>
+                            <th className="px-4 py-4 text-left font-medium">Archived by</th>
+                            <th className="px-4 py-4 text-left font-medium">Time/Date</th>
+                            <th className="px-4 py-4 text-right font-medium">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {paginated.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                                    No archived documents found.
+                                </td>
+                            </tr>
+                        ) : (
+                            paginated.map((item) => (
+                                <tr key={item.id} className="border-b transition-colors hover:bg-muted/40">
+                                    <td className="px-4 py-4">
+                                        <Checkbox 
+                                            checked={selectedIds.includes(item.id)}
+                                            onCheckedChange={() => toggleSelect(item.id)}
+                                        />
+                                    </td>
+                                    <td className="px-4 py-4 font-medium">
+                                        {item.identity_document}
+                                    </td>
+                                    <td className="px-4 py-4">
+                                        {item.archived_from?.includes('>') ? (
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-semibold text-foreground">
+                                                    {item.archived_from.split('>')[0].trim()}
+                                                </span>
+                                                <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+                                                <span className="text-muted-foreground">
+                                                    {item.archived_from.split('>')[1].trim()}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-muted-foreground">{item.archived_from}</span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-4">
+                                        <div className="flex items-center gap-2">
+                                            {item.archived_by_avatar ? (
+                                                <img src={item.archived_by_avatar} alt={item.archived_by} className="h-6 w-6 rounded-full object-cover border border-gray-200" />
+                                            ) : (
+                                                <div className="h-6 w-6 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xs font-semibold">
+                                                    {item.archived_by ? item.archived_by.charAt(0).toUpperCase() : '?'}
+                                                </div>
+                                            )}
+                                            <span className="font-medium text-sm">{item.archived_by}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-4 text-muted-foreground">{item.created_at}</td>
+                                    <td className="px-4 py-4 text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+                                                    <span className="sr-only">Open menu</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-[160px]">
+                                                <DropdownMenuItem 
+                                                    className="cursor-pointer" 
+                                                    onClick={() => handleViewArchive(item.id)}
+                                                    disabled={fetchingArchiveId === item.id}
+                                                >
+                                                    {fetchingArchiveId === item.id ? (
+                                                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <Eye className="mr-2 h-4 w-4" />
+                                                    )}
+                                                    <span>View</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem className="cursor-pointer">
+                                                    <RotateCcw className="mr-2 h-4 w-4" />
+                                                    <span>Restore</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+                {totalPages > 1 && (
+                    <div className="p-4 border-t">
+                        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+                    </div>
+                )}
+            </div>
+
+            {selectedIds.length > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+                    <div className="flex items-center rounded-lg bg-background border shadow-lg overflow-hidden">
+                        <div className="flex items-center h-12 bg-blue-600 text-white px-4 min-w-[3rem] justify-center font-medium">
+                            {selectedIds.length}
+                        </div>
+                        <div className="flex items-center h-12 px-4 gap-8">
+                            <span className="font-medium text-sm">Items Selected</span>
+                            <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                                    <RotateCcw className="h-4 w-4" />
+                                    Restore
+                                </Button>
+                                <div className="w-px h-4 bg-border mx-1"></div>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setSelectedIds([])}>
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {selectedArchiveData?.type === 'ServePo' && (
+                <PurchaseOrderViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    purchaseOrder={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'Delivery' && (
+                <DeliveryViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    delivery={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'PoLetterMonitoring' && (
+                <PoLetterViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    poLetter={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'RrspMonitoring' && (
+                <RrspViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    record={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'RegspiMonitoring' && (
+                <RegSpiViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    regspi={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'BonaVidaMonitoring' && (
+                <BonaVidaViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    record={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'Clearance' && (
+                <ClearanceViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    clearance={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'EmployeeFileLocator' && (
+                <EmployeeFileViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    record={selectedArchiveData.data}
+                />
+            )}
+        </div>
+    );
+}
+
 export default function DocumentCenterIndex({
     purchaseOrders,
     clearances,
+    archives,
 }: {
     purchaseOrders: ItemOption[];
     clearances: ItemOption[];
+    archives: any[];
 }) {
     const [activeTab, setActiveTab] = useState('archive');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -1082,9 +1430,9 @@ export default function DocumentCenterIndex({
 
                     <TabsContent
                         value="archive"
-                        className="animate-in fade-in mt-5 flex min-h-[300px] items-center justify-center rounded-xl border border-dashed duration-300 sm:mt-6"
+                        className="animate-in fade-in mt-5 duration-300 sm:mt-6"
                     >
-                        <p className="text-muted-foreground text-sm">No archived documents yet.</p>
+                        <ArchiveTab archives={archives} />
                     </TabsContent>
 
                     <TabsContent value="gallery" className="animate-in fade-in mt-5 duration-300 sm:mt-6">

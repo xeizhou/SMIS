@@ -375,9 +375,9 @@ class PurchaseOrdersController extends Controller
     }
 
     /**
-     * Remove the specified purchase order.
+     * Archive the specified purchase order.
      */
-    public function destroy(ServePo $purchaseOrder): RedirectResponse
+    public function destroy(Request $request, ServePo $purchaseOrder): RedirectResponse
     {
         $deliveryCount = $purchaseOrder->deliveries()->count();
         $letterCount = $purchaseOrder->letterMonitorings()->count();
@@ -392,19 +392,18 @@ class PurchaseOrdersController extends Controller
             }
 
             return redirect()->back()->with('error',
-                "Can't delete this PO. it has " . implode(', ', $parts) . ". Remove those first."
+                "Can't archive this PO. it has " . implode(', ', $parts) . ". Remove those first."
             );
         }
 
-        // Clean up attachments — files on disk aren't covered by DB FK
-        // constraints since this is a polymorphic relation, so they have
-        // to be removed manually before the PO record itself is deleted.
-        foreach ($purchaseOrder->attachments as $attachment) {
-            Storage::disk('public')->delete($attachment->file_path);
-        }
-        $purchaseOrder->attachments()->delete();
+        // Create an archive record before soft deleting
+        $purchaseOrder->archiveMetadata()->create([
+            'identity_document' => $purchaseOrder->po_number,
+            'archived_from' => 'Procurement > Purchase Orders',
+            'archived_by' => $request->user()?->id,
+        ]);
 
-        $purchaseOrder->delete();
+        $purchaseOrder->delete(); // This will soft delete now
 
         return redirect()->back()->with('success', 'Purchase order archived successfully.');
     }

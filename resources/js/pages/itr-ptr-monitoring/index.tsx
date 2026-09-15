@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Trash2, Eye } from 'lucide-react';
+import { Search, Pencil, Archive, Eye } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ItrPtrAddForm from '@/components/itr-ptr-monitoring/itr-ptr-add-form';
 import ItrPtrDeleteModal from '@/components/itr-ptr-monitoring/itr-ptr-delete-modal';
@@ -228,7 +228,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                                     <Pencil className="h-4 w-4" />
                                                 </button>
                                                 <button onClick={() => openDeleteModal(item.id)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
-                                                    <Trash2 className="h-4 w-4" />
+                                                    <Archive className="h-4 w-4" />
                                                 </button>
                                                 <button onClick={() => openViewModal(item)} className="text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
                                                     <Eye className="h-4 w-4" />

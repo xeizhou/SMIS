@@ -609,6 +609,10 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     ->name('document-center.po-attachments');
     Route::get('/document-center/clearance/{id}/attachments', [DocumentCenterController::class, 'clearanceAttachments'])
     ->name('document-center.clearance-attachments'); 
+    Route::get('/document-center/archive/{id}/attachments', [DocumentCenterController::class, 'archiveAttachments'])
+    ->name('document-center.archive-attachments'); 
+    Route::get('/document-center/archive/{id}/details', [DocumentCenterController::class, 'archiveOriginalDetails'])
+    ->name('document-center.archive-details');
     
     // Scheduled Tasks API
     Route::get('/api/scheduled-tasks', function () {

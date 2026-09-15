@@ -207,6 +207,13 @@ class RRSPController extends Controller
     public function destroy(Request $request, $rrsp)
     {
         $record = RrspMonitoring::where('id', $rrsp)->orWhere('rrsp_no', $rrsp)->firstOrFail();
+
+        $record->archiveMetadata()->create([
+            'identity_document' => 'RRSP - ' . $record->rrsp_no,
+            'archived_from' => 'Assets > RRSP Monitoring',
+            'archived_by' => $request->user()?->id,
+        ]);
+
         $record->delete();
 
         return back()->with('success', 'RRSP record archived successfully.');

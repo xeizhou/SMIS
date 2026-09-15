@@ -1,7 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Trash2 } from 'lucide-react';
+import { Search, Pencil, Archive } from 'lucide-react';
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -201,7 +201,7 @@ export default function Areas({ areas, filters }: Props) {
                                                         <Pencil className="size-4" />
                                                     </button>
                                                     <button onClick={() => openDeleteModal(area)} className="text-red-600 hover:text-red-800">
-                                                        <Trash2 className="size-4" />
+                                                        <Archive className="size-4" />
                                                     </button>
                                                 </div>
                                             </td>

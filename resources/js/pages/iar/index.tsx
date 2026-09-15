@@ -5,7 +5,7 @@ import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Pencil, Trash2, Eye } from 'lucide-react';
+import { Search, Pencil, Archive, Eye } from 'lucide-react';
 import {
     Select,
     SelectTrigger,
@@ -390,9 +390,9 @@ export default function Index({
                                                     type="button"
                                                     onClick={() => openDeleteModal(pir.pir_id)}
                                                     className="text-red-600 hover:text-red-800"
-                                                    title="Delete"
+                                                    title="Archive"
                                                 >
-                                                    <Trash2 className="size-4" />
+                                                    <Archive className="size-4" />
                                                 </button>
                                                 <button
                                                     type="button"

@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Search, Archive } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import RrspAddForm from '@/components/rrsp-monitoring/rrspaddform';
 import RrspDeleteModal from '@/components/rrsp-monitoring/rrspdeletemodal';
@@ -355,9 +355,9 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                                                                 type="button"
                                                                 onClick={() => handleDelete(rrsp)}
                                                                 className="text-red-600 hover:text-red-800"
-                                                                title="Delete"
+                                                                title="Archive"
                                                             >
-                                                                <Trash2 className="size-4" />
+                                                                <Archive className="size-4" />
                                                             </button>
                                                             <button
                                                                 type="button"

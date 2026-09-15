@@ -2,7 +2,7 @@ import { useForm, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Archive, RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -332,7 +332,7 @@ export default function RrspAddForm({ open, onOpenChange, areas }: Props) {
                                             className="absolute right-2 top-2 h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                             onClick={() => removeItem(index)}
                                         >
-                                            <Trash2 className="size-4" />
+                                            <Archive className="size-4" />
                                         </Button>
                                     )}
                                     <h4 className="mb-3 text-sm font-medium">Item #{index + 1}</h4>
