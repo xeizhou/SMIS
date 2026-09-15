@@ -18,15 +18,8 @@ return new class extends Migration
             $table->string('rrsp_no', 50)->unique();
             $table->string('po_number')->nullable();
             $table->date('date_received');
-            $table->text('item_description');
-            $table->integer('quantity');
-            $table->string('property_no', 50)->nullable();
             $table->string('end_user_name', 100)->nullable();
             $table->string('return_by')->nullable();
-            $table->decimal('cost', 15, 2)->nullable();
-            $table->string('kind_of_semi_expendable', 50)->nullable();
-            $table->string('status', 50)->nullable();
-            $table->string('area', 100)->nullable();
             $table->timestamps();
             
             $table->foreign('po_number')

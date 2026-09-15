@@ -177,8 +177,6 @@ class TransactionLogsController extends Controller
 
         $transaction = Transaction::create($validated);
 
-        $this->logAudit("Added transaction #{$transaction->transactionID}.");
-
         return redirect()->back()->with('success', 'Transaction added successfully.');
     }
 

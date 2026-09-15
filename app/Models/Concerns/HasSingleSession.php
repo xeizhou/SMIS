@@ -76,24 +76,25 @@ trait HasSingleSession
     }
 
     /**
-     * Is this user's recorded session currently owned by someone, and is
-     * that ownership still live (not stale)? Uses the full SESSION_LIFETIME
-     * — a deliberately longer, more forgiving window than
-     * STALE_CLAIM_AFTER_SECONDS, since this answers a different question
-     * ("is this session still generally valid") than claimSession() does
-     * ("has this session gone quiet long enough to hand to someone else").
+     * Is this user's recorded session still "fresh" — i.e. within the same
+     * staleness window that claimSession() uses to decide whether a new
+     * login should be allowed to take over? This is the read-only check
+     * used to REJECT a login attempt with "already logged in elsewhere";
+     * it must use the same STALE_CLAIM_AFTER_SECONDS window claimSession()
+     * uses to ACCEPT a takeover, or the two can disagree (which is exactly
+     * the bug this replaces).
      */
-    public function hasActiveSessionOwnedByAnother(): bool
+    public function hasFreshActiveSessionOwnedByAnother(): bool
     {
         if (empty($this->current_session_id)) {
             return false;
         }
 
-        $expiredBefore = now()->subMinutes((int) config('session.lifetime'))->getTimestamp();
+        $staleBefore = now()->subSeconds(self::STALE_CLAIM_AFTER_SECONDS)->getTimestamp();
 
         return DB::table('sessions')
             ->where('id', $this->current_session_id)
-            ->where('last_activity', '>=', $expiredBefore)
+            ->where('last_activity', '>=', $staleBefore)
             ->exists();
     }
 }
