@@ -1391,6 +1391,21 @@ function ArchiveTab({ archives }: { archives: any[] }) {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [selectedArchiveData, setSelectedArchiveData] = useState<{ type: string; data: any } | null>(null);
     const [fetchingArchiveId, setFetchingArchiveId] = useState<number | null>(null);
+    const [isRestoring, setIsRestoring] = useState(false);
+
+    const handleRestore = (ids: number[]) => {
+        if (!ids.length) return;
+        setIsRestoring(true);
+        router.post('/document-center/archive/restore', { ids }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setSelectedIds([]);
+            },
+            onFinish: () => {
+                setIsRestoring(false);
+            }
+        });
+    };
 
     const handleViewArchive = async (id: number) => {
         setFetchingArchiveId(id);
@@ -1609,7 +1624,11 @@ function ArchiveTab({ archives }: { archives: any[] }) {
                                                     )}
                                                     <span>View</span>
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem className="cursor-pointer">
+                                                <DropdownMenuItem 
+                                                    className="cursor-pointer"
+                                                    onClick={() => handleRestore([item.id])}
+                                                    disabled={isRestoring}
+                                                >
                                                     <RotateCcw className="mr-2 h-4 w-4" />
                                                     <span>Restore</span>
                                                 </DropdownMenuItem>
@@ -1637,8 +1656,14 @@ function ArchiveTab({ archives }: { archives: any[] }) {
                         <div className="flex items-center h-12 px-4 gap-8">
                             <span className="font-medium text-sm">Items Selected</span>
                             <div className="flex items-center gap-1">
-                                <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                                    <RotateCcw className="h-4 w-4" />
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    onClick={() => handleRestore(selectedIds)}
+                                    disabled={isRestoring}
+                                >
+                                    {isRestoring ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                                     Restore
                                 </Button>
                                 <div className="w-px h-4 bg-border mx-1"></div>

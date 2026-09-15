@@ -613,6 +613,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     ->name('document-center.archive-attachments'); 
     Route::get('/document-center/archive/{id}/details', [DocumentCenterController::class, 'archiveOriginalDetails'])
     ->name('document-center.archive-details');
+    Route::post('/document-center/archive/restore', [DocumentCenterController::class, 'restoreArchive'])
+    ->name('document-center.archive-restore');
     
     // Scheduled Tasks API
     Route::get('/api/scheduled-tasks', function () {
