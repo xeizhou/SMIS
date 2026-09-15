@@ -385,14 +385,14 @@ class PurchaseOrdersController extends Controller
         if ($deliveryCount > 0 || $letterCount > 0) {
             $parts = [];
             if ($deliveryCount > 0) {
-                $parts[] = "{$deliveryCount} linked delivery record" . ($deliveryCount > 1 ? 's' : '');
+                $parts[] = "{$deliveryCount} Linked Delivery Record" . ($deliveryCount > 1 ? 's' : '');
             }
             if ($letterCount > 0) {
-                $parts[] = "{$letterCount} linked letter record" . ($letterCount > 1 ? 's' : '');
+                $parts[] = "{$letterCount} Linked PO Letter" . ($letterCount > 1 ? 's' : '');
             }
 
             return redirect()->back()->with('error',
-                "Can't archive this PO. it has " . implode(', ', $parts) . ". Remove those first."
+                "Cannot archive this PO because it has linked records. Please remove them first:\n" . implode("\n", $parts)
             );
         }
 

@@ -81,9 +81,20 @@ export default function PurchaseOrderDeleteModal({
                     </p>
 
                     {errorMessage && (
-                        <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
-                            {errorMessage}
-                        </p>
+                        <div className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+                            {errorMessage.includes('\n') ? (
+                                <>
+                                    <p>{errorMessage.split('\n')[0]}</p>
+                                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
+                                        {errorMessage.split('\n').slice(1).map((line, i) => (
+                                            <li key={i}>{line}</li>
+                                        ))}
+                                    </ul>
+                                </>
+                            ) : (
+                                <p>{errorMessage}</p>
+                            )}
+                        </div>
                     )}
                 </div>
 

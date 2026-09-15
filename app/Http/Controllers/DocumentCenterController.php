@@ -199,6 +199,45 @@ class DocumentCenterController extends Controller
         ]);
     }
 
+    public function restoreArchive(\Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:archives,id',
+        ]);
+
+        $archives = \App\Models\Archive::whereIn('id', $request->ids)->get();
+
+        foreach ($archives as $archive) {
+            $type = $archive->archivable_type;
+            $id = $archive->archivable_id;
+
+            $model = match($type) {
+                \App\Models\ServePo::class => \App\Models\ServePo::withTrashed()->where('po_number', $id)->first(),
+                \App\Models\Delivery::class => \App\Models\Delivery::withTrashed()->where('delivery_id', $id)->first(),
+                \App\Models\PoLetterMonitoring::class => \App\Models\PoLetterMonitoring::withTrashed()->find($id),
+                \App\Models\RrspMonitoring::class => \App\Models\RrspMonitoring::withTrashed()->find($id),
+                \App\Models\RegspiMonitoring::class => \App\Models\RegspiMonitoring::withTrashed()->find($id),
+                \App\Models\BonaVidaMonitoring::class => \App\Models\BonaVidaMonitoring::withTrashed()->find($id),
+                \App\Models\Clearance::class => \App\Models\Clearance::withTrashed()->find($id),
+                \App\Models\EmployeeFileLocator::class => \App\Models\EmployeeFileLocator::withTrashed()->find($id),
+                \App\Models\StockItem::class => \App\Models\StockItem::withTrashed()->find($id),
+                \App\Models\Unit::class => \App\Models\Unit::withTrashed()->find($id),
+                \App\Models\TransactionLog::class => \App\Models\TransactionLog::withTrashed()->find($id),
+                \App\Models\User::class => \App\Models\User::withTrashed()->find($id),
+                default => null,
+            };
+
+            if ($model && method_exists($model, 'restore')) {
+                $model->restore();
+            }
+
+            $archive->delete();
+        }
+
+        return redirect()->back()->with('success', 'Selected documents restored successfully.');
+    }
+
     private function formatAttachment(Attachment $attachment, string $source): array
     {
         return [
