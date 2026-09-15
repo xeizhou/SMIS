@@ -10,7 +10,7 @@ class AuditLogsController extends Controller
 {
     private function resolveReference($module, $action, $targetUrl)
     {
-        if ($module !== 'RegSPI' && $targetUrl && preg_match('/(?:highlight_search|search)=([^&]+)/', $targetUrl, $matches)) {
+        if (!in_array($module, ['RegSPI', 'RegSPI Monitoring']) && $targetUrl && preg_match('/(?:highlight_search|search)=([^&]+)/', $targetUrl, $matches)) {
             return urldecode($matches[1]);
         }
         
@@ -188,6 +188,15 @@ class AuditLogsController extends Controller
                 $sub_module = str_contains($actionLower, 'area') ? 'Area Records' : null;
             }
 
+            $targetUrlOutput = $log->target_url ? preg_replace('/(\?|&)search=/', '$1highlight_search=', $log->target_url) : null;
+            
+            // For RegSPI, we want the frontend to use highlight_id instead of highlight_search
+            // so we strip highlight_search from the URL if it exists, ensuring backward compatibility.
+            if ($module === 'RegSPI Monitoring' && $targetUrlOutput) {
+                $targetUrlOutput = preg_replace('/([?&])(?:highlight_search|search)=[^&]+(&?)/', '$1', $targetUrlOutput);
+                $targetUrlOutput = preg_replace('/[?&]$/', '', $targetUrlOutput);
+            }
+
             return [
                 'log_id' => $log->auditLogID,
                 'timestamp' => $log->log_timestamp->format('M d, Y h:i A'),
@@ -198,7 +207,7 @@ class AuditLogsController extends Controller
                 'sub_module' => $sub_module,
                 'reference' => $reference,
                 'action' => $log->action,
-                'target_url' => $log->target_url ? preg_replace('/(\?|&)search=/', '$1highlight_search=', $log->target_url) : null,
+                'target_url' => $targetUrlOutput,
             ];
         });
 

@@ -191,7 +191,10 @@ export default function Dashboard() {
 
     // Auto-refresh data periodically and on tab focus to keep dashboard "real-time"
     useEffect(() => {
+        let pollInterval: ReturnType<typeof setInterval> | undefined;
+
         const refreshData = () => {
+            if (document.hidden) return; // skip while tab isn't visible, same as OnlineUsersBar
             router.reload({
                 only: [
                     'pendingDeliveries', 'allPendingDeliveries',
@@ -203,20 +206,24 @@ export default function Dashboard() {
             });
         };
 
-        // Refresh every 15 seconds
-        const pollInterval = setInterval(refreshData, 15000);
-
-        // Refresh when returning to the tab
         const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
+            if (!document.hidden) {
                 refreshData();
+                if (!pollInterval) pollInterval = setInterval(refreshData, 15000);
+            } else if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = undefined;
             }
         };
+
         document.addEventListener('visibilitychange', handleVisibilityChange);
+        if (!document.hidden) {
+            pollInterval = setInterval(refreshData, 15000);
+        }
 
         return () => {
-            clearInterval(pollInterval);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (pollInterval) clearInterval(pollInterval);
         };
     }, []);
 

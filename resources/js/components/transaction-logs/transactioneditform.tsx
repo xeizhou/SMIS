@@ -170,13 +170,28 @@ function SelectField({
     placeholder = 'Select...',
     disabled = false,
     options,
+    onRefresh,
+    isRefreshing = false,
 }: SelectFieldProps) {
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
 
             <Select value={value} onValueChange={onChange} disabled={disabled}>
                 <SelectTrigger className="w-full">
@@ -206,6 +221,8 @@ interface SearchableSelectProps {
     required?: boolean;
     placeholder?: string;
     options: { value: string; label: string }[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
 }
 
 function SearchableSelect({
@@ -216,6 +233,8 @@ function SearchableSelect({
     required = false,
     placeholder = 'Search...',
     options,
+    onRefresh,
+    isRefreshing = false,
 }: SearchableSelectProps) {
     const [open, setOpen] = useState(false);
 
@@ -223,10 +242,23 @@ function SearchableSelect({
 
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
 
             <Popover open={open} onOpenChange={setOpen} modal={true}>
                 <PopoverTrigger asChild>
@@ -316,6 +348,16 @@ export default function TransactionEditForm({
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    
+    const [refreshingField, setRefreshingField] = useState<string | null>(null);
+
+    const handleRefreshData = (field: string) => {
+        setRefreshingField(field);
+        router.reload({
+            only: ['stockItems', 'fundClusters', 'offices'],
+            onFinish: () => setRefreshingField(null),
+        });
+    };
     // Snapshot of the type this transaction had when the form was opened.
     // Used purely to detect whether the user is changing RECEIVE<->ISSUE,
     // which is treated differently from an ordinary typo correction.
@@ -620,6 +662,8 @@ export default function TransactionEditForm({
                                     value: fc.fund_cluster_id,
                                     label: `${fc.fund_cluster_id}`,
                                 }))}
+                                onRefresh={() => handleRefreshData('fundClusters')}
+                                isRefreshing={refreshingField === 'fundClusters'}
                             />
                             <SearchableSelect
                                 label="Office"
@@ -632,6 +676,8 @@ export default function TransactionEditForm({
                                     value: office.office_code,
                                     label: `${office.office_code}`,
                                 }))}
+                                onRefresh={() => handleRefreshData('offices')}
+                                isRefreshing={refreshingField === 'offices'}
                             />
                         </div>
                     </div>

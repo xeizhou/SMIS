@@ -160,10 +160,23 @@ function SelectField({
 }: SelectFieldProps) {
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
 
             <Select value={value} onValueChange={onChange} disabled={disabled}>
                 <SelectTrigger className="w-full">
@@ -192,6 +205,8 @@ interface SearchableSelectProps {
     required?: boolean;
     placeholder?: string;
     options: { value: string; label: string }[];
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
 }
 
 function SearchableSelect({
@@ -202,6 +217,8 @@ function SearchableSelect({
     required = false,
     placeholder = 'Search...',
     options,
+    onRefresh,
+    isRefreshing = false,
 }: SearchableSelectProps) {
     const [open, setOpen] = useState(false);
 
@@ -209,10 +226,23 @@ function SearchableSelect({
 
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {onRefresh && (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={`Refresh ${label} list`}
+                    >
+                        <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                )}
+            </div>
 
             <Popover open={open} onOpenChange={setOpen} modal={true}>
                 <PopoverTrigger asChild>
@@ -565,6 +595,8 @@ export default function TransactionAddForm({
                                             value: fc.fund_cluster_id,
                                             label: `${fc.fund_cluster_id}`,
                                         }))}
+                                        onRefresh={() => handleRefreshData('fundClusters')}
+                                        isRefreshing={refreshingField === 'fundClusters'}
                                     />
                                     <SearchableSelect
                                         label="Office"
@@ -577,6 +609,8 @@ export default function TransactionAddForm({
                                             value: office.office_code,
                                             label: `${office.office_code}`,
                                         }))}
+                                        onRefresh={() => handleRefreshData('offices')}
+                                        isRefreshing={refreshingField === 'offices'}
                                     />
                                 </div>
                             </div>

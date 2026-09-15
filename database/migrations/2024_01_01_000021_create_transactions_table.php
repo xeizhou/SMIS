@@ -24,6 +24,7 @@ return new class extends Migration
 
             $table->dateTime('transaction_date');
             $table->string('item_name', 150);
+            $table->string('description', 255)->nullable();
 
             $table->foreignId('unitID')
                 ->constrained('units', 'unitID')

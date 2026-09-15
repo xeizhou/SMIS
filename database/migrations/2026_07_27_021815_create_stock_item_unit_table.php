@@ -23,19 +23,10 @@ return new class extends Migration
                   ->cascadeOnDelete();
         });
 
-        // Optional but recommended: Drop the old column to prevent confusion
-        Schema::table('stock_items', function (Blueprint $table) {
-            $table->dropForeign(['unitID']);
-            $table->dropColumn('unitID');
-        });
     }
 
     public function down(): void
     {
         Schema::dropIfExists('stock_item_unit');
-
-        Schema::table('stock_items', function (Blueprint $table) {
-            $table->foreignId('unitID')->nullable()->constrained('units', 'unitID')->nullOnDelete();
-        });
     }
 };

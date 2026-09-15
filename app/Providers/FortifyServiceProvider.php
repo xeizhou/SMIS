@@ -53,7 +53,15 @@ class FortifyServiceProvider extends ServiceProvider
                 return null;
             }
 
-            if ($user->hasActiveSessionOwnedByAnother()) {
+            // IMPORTANT: this must use the SAME staleness window that
+            // claimSession() uses (STALE_CLAIM_AFTER_SECONDS), not the
+            // full session.lifetime window. Those are two different
+            // questions — "is this session generally still valid" vs.
+            // "has it gone quiet long enough to let someone else take
+            // over" — and gating login on the wrong one is what caused
+            // a closed tab to still block a second login for the full
+            // session lifetime instead of the intended ~30s.
+            if ($user->hasFreshActiveSessionOwnedByAnother()) {
                 throw ValidationException::withMessages([
                     Fortify::username() => 'This account is already logged in on another device.',
                 ]);
