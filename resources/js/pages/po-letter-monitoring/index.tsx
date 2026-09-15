@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Search, Archive } from 'lucide-react';
 import { useState } from 'react';
 import PoLetterAddForm from '@/components/po-letter-monitoring/poletteraddform';
 import PoLetterDeleteModal from '@/components/po-letter-monitoring/poletterdeletemodal';
@@ -298,8 +298,8 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
                                                         <button type="button" onClick={() => handleEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
                                                             <Pencil className="size-4" />
                                                         </button>
-                                                        <button type="button" onClick={() => handleDelete(record)} className="text-red-600 hover:text-red-800" title="Delete">
-                                                            <Trash2 className="size-4" />
+                                                        <button type="button" onClick={() => handleDelete(record)} className="text-red-600 hover:text-red-800" title="Archive">
+                                                            <Archive className="size-4" />
                                                         </button>
                                                         <button type="button" onClick={() => handleView(record)} className="text-foreground hover:text-muted-foreground" title="View">
                                                             <Eye className="size-4" />

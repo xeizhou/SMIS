@@ -112,8 +112,14 @@ public function index(Request $request): Response
     /**
      * Remove the specified employee file record.
      */
-    public function destroy(EmployeeFileLocator $employeefilelocator): RedirectResponse
+    public function destroy(Request $request, EmployeeFileLocator $employeefilelocator): RedirectResponse
     {
+        $employeefilelocator->archiveMetadata()->create([
+            'identity_document' => 'Employee File - ' . $employeefilelocator->last_name . ', ' . $employeefilelocator->first_name,
+            'archived_from' => 'HR > Employee File Locator',
+            'archived_by' => $request->user()?->id,
+        ]);
+
         $employeefilelocator->delete();
 
         return redirect()->back()->with('success', 'Employee file record archived successfully.');

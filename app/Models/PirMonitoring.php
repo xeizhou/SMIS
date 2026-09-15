@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +14,7 @@ use App\Traits\SerializesDatesWithoutTimezoneShift;
 
 class PirMonitoring extends Model
 {
-    use HasFactory, SerializesDatesWithoutTimezoneShift; 
+    use HasFactory, SerializesDatesWithoutTimezoneShift, SoftDeletes; 
 
     const LOG_NAME = 'Reports Monitoring';
 
@@ -150,4 +152,9 @@ class PirMonitoring extends Model
     }
 
 
+
+    public function archiveMetadata(): MorphOne
+    {
+        return $this->morphOne(Archive::class, 'archivable');
+    }
 }

@@ -1,6 +1,6 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import { Pencil, Search, Trash2, Mail, ShieldCheck, Lock, Camera, X, ZoomIn, Loader2 } from 'lucide-react';
+import { Pencil, Search, Archive, Mail, ShieldCheck, Lock, Camera, X, ZoomIn, Loader2 } from 'lucide-react';
 import Cropper, { type Area } from 'react-easy-crop';
 import { Button } from '@/components/ui/button';
 import {
@@ -529,9 +529,9 @@ export default function Index({ users }: IndexProps) {
                                                     type="button"
                                                     onClick={() => openDelete(user)}
                                                     className="text-red-600 hover:text-red-800"
-                                                    title="Delete"
+                                                    title="Archive"
                                                 >
-                                                    <Trash2 className="size-4" />
+                                                    <Archive className="size-4" />
                                                 </button>
                                             </>
                                         )}

@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Search, Pencil, Archive, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -207,9 +207,9 @@ export default function Index({ units, filters }: Props) {
                                                     type="button"
                                                     onClick={() => openDeleteModal(unit.unitID)}
                                                     className="text-red-600 hover:text-red-800"
-                                                    title="Delete"
+                                                    title="Archive"
                                                 >
-                                                    <Trash2 className="size-4" />
+                                                    <Archive className="size-4" />
                                                 </button>
                                             </div>
                                         </td>

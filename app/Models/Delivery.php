@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +16,7 @@ use Carbon\Carbon;
 
 class Delivery extends Model
 {
-    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift;
+    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift, SoftDeletes;
 
     const LOG_NAME = 'Delivery Monitoring';
 
@@ -173,5 +175,10 @@ class Delivery extends Model
                 return $dueDate->diffInDays($delivered);
             },
         );
+    }
+
+    public function archiveMetadata(): MorphOne
+    {
+        return $this->morphOne(Archive::class, 'archivable');
     }
 }

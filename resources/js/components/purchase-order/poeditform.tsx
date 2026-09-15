@@ -34,7 +34,6 @@ import {
     FileText,
     FileSpreadsheet,
     FileArchive,
-    Trash2,
     Check,
     ChevronsUpDown,
 } from "lucide-react";
@@ -1356,7 +1355,7 @@ export default function PurchaseOrderEditForm({
                                                                     removeExistingAttachment(att.id);
                                                                 }}
                                                             >
-                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                                <Archive className="h-3.5 w-3.5" />
                                                             </Button>
                                                         </div>
                                                     );
@@ -1412,7 +1411,7 @@ export default function PurchaseOrderEditForm({
                                                                     }
                                                                 }}
                                                                 className="shrink-0 text-red-600 hover:text-red-800"
-                                                                title="Remove"
+                                                                title="Remove/Archive"
                                                             >
                                                                 <X className="size-3.5 sm:size-4" />
                                                             </span>

@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 
-import { Eye, Pencil, Search, Trash2, Upload } from 'lucide-react';
+import { Eye, Pencil, Search, Archive, Upload } from 'lucide-react';
 import { useState } from 'react';
 import RegSPIAddForm from '@/components/regspi-monitoring/regspiaddform';
 import RegSPIDeleteModal from '@/components/regspi-monitoring/regspideletemodal';
@@ -254,8 +254,8 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                                                 <button type="button" onClick={() => handleEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
                                                     <Pencil className="size-4" />
                                                 </button>
-                                                <button type="button" onClick={() => handleDelete(record)} className="text-red-600 hover:text-red-800" title="Delete">
-                                                    <Trash2 className="size-4" />
+                                                <button type="button" onClick={() => handleDelete(record)} className="text-red-600 hover:text-red-800" title="Archive">
+                                                    <Archive className="size-4" />
                                                 </button>
                                                 <button type="button" onClick={() => handleView(record)} className="text-foreground hover:text-muted-foreground" title="View">
                                                     <Eye className="size-4" />

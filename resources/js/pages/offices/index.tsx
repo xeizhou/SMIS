@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Trash2 } from 'lucide-react';
+import { Search, Pencil, Archive } from 'lucide-react';
 import { useRef, useState } from 'react';
 import OfficeAddForm from '@/components/offices/officeaddform';
 import OfficeDeleteModal from '@/components/offices/officedeletemodal';
@@ -112,9 +112,9 @@ export default function Index({ offices, filters }: Props) {
                     <button
                         onClick={() => handleDelete(office)}
                         className="text-red-500 hover:text-red-700 transition-colors"
-                        title="Delete"
+                        title="Archive"
                     >
-                        <Trash2 className="h-4 w-4" />
+                        <Archive className="h-4 w-4" />
                     </button>
                 </div>
             ),

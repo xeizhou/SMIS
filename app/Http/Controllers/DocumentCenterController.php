@@ -74,9 +74,22 @@ class DocumentCenterController extends Controller
                 'attachment_count' => $clearanceCounts[$clearance->clearance_id] ?? 0,
             ]);
 
+        $archives = \App\Models\Archive::with('user:id,name,avatar_path')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn ($archive) => [
+                'id' => $archive->id,
+                'identity_document' => $archive->identity_document,
+                'archived_from' => $archive->archived_from,
+                'archived_by' => $archive->user ? $archive->user->name : 'Unknown',
+                'archived_by_avatar' => $archive->user ? $archive->user->avatar_url : null,
+                'created_at' => $archive->created_at->diffForHumans(),
+            ]);
+
         return Inertia::render('document-center/index', [
             'purchaseOrders' => $purchaseOrders,
             'clearances' => $clearances,
+            'archives' => $archives,
         ]);
     }
 
@@ -128,6 +141,60 @@ class DocumentCenterController extends Controller
             'label' => $clearance->name,
             'subtitle' => $clearance->getRelation('office')?->office_name,
             'stats' => $this->buildStats($attachments, ['from_clearance' => 'Clearance']),
+            'attachments' => $attachments->values(),
+        ]);
+    }
+
+    public function archiveOriginalDetails(int $id)
+    {
+        $archive = \App\Models\Archive::findOrFail($id);
+
+        $type = $archive->archivable_type;
+        $id = $archive->archivable_id;
+
+        $model = match($type) {
+            \App\Models\ServePo::class => \App\Models\ServePo::withTrashed()->with(['supplier', 'fundCluster', 'office', 'attachments', 'items', 'inspectionEntries'])->where('po_number', $id)->first(),
+            \App\Models\Delivery::class => \App\Models\Delivery::withTrashed()->with(['attachments', 'deliveryDates', 'supplier'])->where('delivery_id', $id)->first(),
+            \App\Models\PoLetterMonitoring::class => \App\Models\PoLetterMonitoring::withTrashed()->with(['attachments'])->find($id),
+            \App\Models\RrspMonitoring::class => \App\Models\RrspMonitoring::withTrashed()->with(['items', 'attachments'])->find($id),
+            \App\Models\RegspiMonitoring::class => \App\Models\RegspiMonitoring::withTrashed()->with(['attachments'])->find($id),
+            \App\Models\BonaVidaMonitoring::class => \App\Models\BonaVidaMonitoring::withTrashed()->with(['attachments'])->find($id),
+            \App\Models\Clearance::class => \App\Models\Clearance::withTrashed()->with(['attachments'])->find($id),
+            \App\Models\EmployeeFileLocator::class => \App\Models\EmployeeFileLocator::withTrashed()->with(['attachments'])->find($id),
+            default => null,
+        };
+
+        if ($model && $type === \App\Models\ServePo::class) {
+            $model->setAttribute('inspection_entries', $model->inspectionEntries);
+        }
+
+        if ($model) {
+            return response()->json([
+                'type' => class_basename($type),
+                'data' => $model
+            ]);
+        }
+
+        // Return a structured error for other types that are not implemented yet
+        return response()->json([
+            'message' => 'Details view not yet implemented for ' . class_basename($type)
+        ], 501);
+    }
+
+    public function archiveAttachments(int $id)
+    {
+        $archive = \App\Models\Archive::findOrFail($id);
+
+        $attachments = Attachment::where('attachable_type', $archive->archivable_type)
+            ->where('attachable_id', $archive->archivable_id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn (Attachment $a) => $this->formatAttachment($a, $archive->archived_from));
+
+        return response()->json([
+            'label' => $archive->identity_document,
+            'subtitle' => $archive->archived_from,
+            'stats' => $this->buildStats($attachments, ['total' => $archive->archived_from]), // using total just as a placeholder since stats logic handles total internally
             'attachments' => $attachments->values(),
         ]);
     }

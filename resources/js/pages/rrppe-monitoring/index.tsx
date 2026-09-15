@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Trash2, Eye } from 'lucide-react';
+import { Search, Pencil, Archive, Eye } from 'lucide-react';
 import React, { useState } from 'react';
 import RrppeAddForm from '@/components/rrppe-monitoring/rrppe-add-form';
 import RrppeDeleteModal from '@/components/rrppe-monitoring/rrppe-delete-modal';
@@ -286,7 +286,7 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                                                             <Pencil className="h-4 w-4" />
                                                         </button>
                                                         <button onClick={() => openDeleteModal(item.id)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
-                                                            <Trash2 className="h-4 w-4" />
+                                                            <Archive className="h-4 w-4" />
                                                         </button>
                                                         <button
                                                             type="button"

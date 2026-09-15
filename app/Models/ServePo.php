@@ -7,12 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\LogsActivity;
 use App\Traits\SerializesDatesWithoutTimezoneShift;
 
 class ServePo extends Model
 {
-    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift;
+    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift, SoftDeletes;
 
     protected $table = 'serve_po';
 
@@ -169,5 +171,10 @@ class ServePo extends Model
     public function getActivityUrl()
     {
         return route('purchase-orders.index') . '?highlight_id=' . $this->po_number;
+    }
+
+    public function archiveMetadata(): MorphOne
+    {
+        return $this->morphOne(Archive::class, 'archivable');
     }
 }

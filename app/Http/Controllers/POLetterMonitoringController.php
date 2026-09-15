@@ -164,14 +164,14 @@ class POLetterMonitoringController extends Controller
     /**
      * Remove the specified PO letter monitoring record.
      */
-    public function destroy(PoLetterMonitoring $poLetterMonitoring): RedirectResponse
+    public function destroy(Request $request, PoLetterMonitoring $poLetterMonitoring): RedirectResponse
     {
-        // Files on disk aren't covered by DB FK constraints since this is
-        // a polymorphic relation, so they have to be removed manually.
-        foreach ($poLetterMonitoring->attachments as $attachment) {
-            Storage::disk('public')->delete($attachment->file_path);
-        }
-        $poLetterMonitoring->attachments()->delete();
+        $poLetterMonitoring->archiveMetadata()->create([
+            'identity_document' => 'PO Letter - ' . ($poLetterMonitoring->po_number ?? $poLetterMonitoring->reference_no),
+            'archived_from' => 'Procurement > PO Letter Monitoring',
+            'archived_by' => $request->user()?->id,
+        ]);
+
         $poLetterMonitoring->delete();
 
         return redirect()->back()->with('success', 'PO letter record archived successfully.');

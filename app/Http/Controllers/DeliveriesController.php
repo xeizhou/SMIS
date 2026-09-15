@@ -174,15 +174,14 @@ class DeliveriesController extends Controller
     /**
      * Remove the specified delivery.
      */
-    public function destroy(Delivery $delivery): RedirectResponse
+    public function destroy(Request $request, Delivery $delivery): RedirectResponse
     {
-        // Clean up attachments — files on disk aren't covered by DB FK
-        // constraints since this is a polymorphic relation, so they have
-        // to be removed manually before the delivery record itself is deleted.
-        foreach ($delivery->attachments as $attachment) {
-            Storage::disk('public')->delete($attachment->file_path);
-        }
-        $delivery->attachments()->delete();
+        // Create an archive record before soft deleting
+        $delivery->archiveMetadata()->create([
+            'identity_document' => 'Delivery - ' . $delivery->po_number,
+            'archived_from' => 'Procurement > Delivery Monitoring',
+            'archived_by' => $request->user()?->id,
+        ]);
 
         $delivery->delete();
 

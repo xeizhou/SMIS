@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Search, Trash2} from 'lucide-react';
+import { Eye, Pencil, Search, Archive} from 'lucide-react';
 import { useState, useEffect } from 'react';
 import DeliveryAddForm from '@/components/deliveries/deliveryaddform';
 import DeliveryDeleteModal from '@/components/deliveries/deliverydeletemodal';
@@ -321,8 +321,8 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                                 <button type="button" onClick={() => handleEdit(delivery)} className="text-blue-600 hover:text-blue-800" title="Edit">
                                                     <Pencil className="size-4" />
                                                 </button>
-                                                <button type="button" onClick={() => handleDelete(delivery)} className="text-red-600 hover:text-red-800" title="Delete">
-                                                    <Trash2 className="size-4" />
+                                                <button type="button" onClick={() => handleDelete(delivery)} className="text-red-600 hover:text-red-800" title="Archive">
+                                                    <Archive className="size-4" />
                                                 </button>
                                                 <button type="button" onClick={() => handleView(delivery)} className="text-foreground hover:text-muted-foreground" title="View">
                                                     <Eye className="size-4" />

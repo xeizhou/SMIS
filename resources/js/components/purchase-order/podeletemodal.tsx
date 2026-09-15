@@ -63,13 +63,13 @@ export default function PurchaseOrderDeleteModal({
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="text-black">
-                        Confirm Delete
+                        Confirm Archive
                     </DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete purchase order{' '}
+                        Are you sure you want to archive purchase order{' '}
                         {poNumber ? (
                             <span className="font-medium text-foreground">
                                 {poNumber}
@@ -77,7 +77,7 @@ export default function PurchaseOrderDeleteModal({
                         ) : (
                             'this purchase order'
                         )}
-                        ? This action cannot be undone.
+                        ?
                     </p>
 
                     {errorMessage && (
@@ -98,12 +98,10 @@ export default function PurchaseOrderDeleteModal({
 
                     <Button
                         type="button"
-                        variant="destructive"
                         onClick={confirmDelete}
                         disabled={processing}
-                        className="bg-red-600 hover:bg-red-700 text-white"
                     >
-                        {processing ? 'Deleting...' : 'Delete'}
+                        {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

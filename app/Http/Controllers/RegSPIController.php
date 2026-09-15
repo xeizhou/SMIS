@@ -160,8 +160,14 @@ class RegSPIController extends Controller
     /**
      * Remove the specified RegSPI record.
      */
-    public function destroy(RegspiMonitoring $regspi): RedirectResponse
+    public function destroy(Request $request, RegspiMonitoring $regspi): RedirectResponse
     {
+        $regspi->archiveMetadata()->create([
+            'identity_document' => 'RegSPI - ' . $regspi->property_no,
+            'archived_from' => 'Assets > RegSPI Monitoring',
+            'archived_by' => $request->user()?->id,
+        ]);
+
         $regspi->delete();
 
         return redirect()->back()->with('success', 'RegSPI record archived successfully.');

@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Plus, Search, Trash2, Archive } from 'lucide-react';
 import { useState } from 'react';
 import PurchaseOrderAddForm from '@/components/purchase-order/poaddform';
 import type { StockItemOption } from '@/components/purchase-order/item-multi-select';
@@ -436,9 +436,9 @@ export default function Index({
                                                         type="button"
                                                         onClick={() => handleDelete(po)}
                                                         className="text-red-600 hover:text-red-800"
-                                                        title="Delete"
+                                                        title="Archive"
                                                     >
-                                                        <Trash2 className="size-4" />
+                                                        <Archive className="size-4" />
                                                     </button>
                                                 )}
                                                 <button

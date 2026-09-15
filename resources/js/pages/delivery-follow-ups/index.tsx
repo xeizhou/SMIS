@@ -4,7 +4,7 @@ import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { Phone, Mail, Trash2, Search, MessageSquare } from 'lucide-react';
+import { Phone, Mail, Archive, Search, MessageSquare } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -204,9 +204,9 @@ export default function DeliveryFollowUpsIndex({ followUps, filters }: Props) {
                                                     type="button" 
                                                     onClick={() => confirmDelete(followUp.id)} 
                                                     className="text-red-600 hover:text-red-800" 
-                                                    title="Delete"
+                                                    title="Archive"
                                                 >
-                                                    <Trash2 className="size-4" />
+                                                    <Archive className="size-4" />
                                                 </button>
                                             </div>
                                         </td>
