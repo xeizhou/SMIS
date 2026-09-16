@@ -165,7 +165,7 @@ export default function Index({ units, filters }: Props) {
                                         Short Name
                                     </button>
                                 </th>
-                                <th className="px-4 py-3 text-center font-semibold text-white bg-[#370001]">
+                                <th className="px-4 py-3 text-left font-semibold text-white bg-[#370001]">
                                     Actions
                                 </th>
                             </tr>
@@ -193,8 +193,8 @@ export default function Index({ units, filters }: Props) {
                                     >
                                         <td className="px-4 py-3">{unit.unit_name}</td>
                                         <td className="px-4 py-3">{unit.unit_short_name}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            <div className="flex items-center justify-center gap-3">
+                                        <td className="px-4 py-3 text-left">
+                                            <div className="flex items-center justify-start gap-3">
                                                 <button
                                                     type="button"
                                                     onClick={() => handleEdit(unit)}

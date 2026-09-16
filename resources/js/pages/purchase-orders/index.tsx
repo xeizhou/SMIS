@@ -359,7 +359,7 @@ export default function Index({
                                         PO Amount
                                     </button>
                                 </th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">
+                                <th className="px-4 py-3 text-left font-semibold text-white">
                                     Actions
                                 </th>
                             </tr>
@@ -412,7 +412,7 @@ export default function Index({
                                             {formatCurrency(po.total_amount_po)}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-3">
+                                            <div className="flex items-center justify-start gap-3">
                                                 {!isStaff && (
                                                     <button
                                                         type="button"

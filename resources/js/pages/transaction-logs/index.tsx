@@ -349,10 +349,10 @@ export default function Index({
                                     <div className="flex items-center gap-2">Unit</div>
                                 </th>
                                 <th 
-                                    className="px-4 py-3 text-center font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
+                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('quantity')}
                                 >
-                                    <div className="flex items-center justify-center gap-2">Qty</div>
+                                    <div className="flex items-center justify-start gap-2">Qty</div>
                                 </th>
                                 <th 
                                     className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
@@ -367,7 +367,7 @@ export default function Index({
                                     <div className="flex items-center gap-2">Office</div>
                                 </th>
                                 {/* Make sure non-clickable headers get the background color too! */}
-                                <th className="px-4 py-3 text-center font-semibold text-white bg-[#370001]">Actions</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white bg-[#370001]">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -411,11 +411,11 @@ export default function Index({
                                             {tx.description ? ` - ${tx.description}` : ''}
                                         </td>
                                         <td className="px-4 py-3 truncate">{tx.unit?.unit_short_name ?? '—'}</td>
-                                        <td className="px-4 py-3 text-center truncate">{tx.quantity}</td>
+                                        <td className="px-4 py-3 text-left truncate">{tx.quantity}</td>
                                         <td className="px-4 py-3 truncate">{tx.reference}</td>
                                         <td className="px-4 py-3 truncate">{tx.office?.office_code ?? '—'}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            <div className="flex items-center justify-center gap-3">
+                                        <td className="px-4 py-3 text-left">
+                                            <div className="flex items-center justify-start gap-3">
                                                 <button
                                                     type="button"
                                                     onClick={() => handleEdit(tx)}

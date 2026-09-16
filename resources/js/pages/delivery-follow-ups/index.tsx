@@ -153,7 +153,7 @@ export default function DeliveryFollowUpsIndex({ followUps, filters }: Props) {
                                         <button type="button" onClick={() => handleSort(field)} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button>
                                     </th>
                                 ))}
-                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -199,7 +199,7 @@ export default function DeliveryFollowUpsIndex({ followUps, filters }: Props) {
                                             {format(new Date(followUp.follow_up_date), 'MMM d, yyyy h:mm a')}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center">
+                                            <div className="flex items-center justify-start">
                                                 <button 
                                                     type="button" 
                                                     onClick={() => confirmDelete(followUp.id)} 

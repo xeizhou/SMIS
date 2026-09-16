@@ -179,7 +179,7 @@ export default function Areas({ areas, filters }: Props) {
                             <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                                 <tr>
                                     <th className="px-4 py-3 text-left font-semibold text-white">Area Name</th>
-                                    <th className="px-4 py-3 text-center font-semibold text-white w-32">Actions</th>
+                                    <th className="px-4 py-3 text-left font-semibold text-white w-32">Actions</th>
                                 </tr>
                             </thead>
                             {areas.data.length === 0 ? (
@@ -196,7 +196,7 @@ export default function Areas({ areas, filters }: Props) {
                                         <tr key={area.id} data-record-id={area.id} data-search-0={area.name} className="border-b border-border/50 hover:bg-muted/40 transition-colors">
                                             <td className="px-4 py-3 font-medium">{area.name}</td>
                                             <td className="px-4 py-3">
-                                                <div className="flex items-center justify-center gap-3">
+                                                <div className="flex items-center justify-start gap-3">
                                                     <button onClick={() => openEditModal(area)} className="text-blue-600 hover:text-blue-800">
                                                         <Pencil className="size-4" />
                                                     </button>

@@ -274,7 +274,7 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                             <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                                 <tr>
                                 {['RRSP No', 'P.O Number', 'Item Name', 'Property No', 'End User', 'Return By', 'Area', 'Date Received', 'Qty', 'Cost', 'Status'].map((label, index) => <th key={label} className="p-0 text-left font-semibold text-white"><button type="button" onClick={() => handleSort(['rrsp_no', 'rrsp_no', 'rrsp_no', 'end_user_name', 'return_by', 'rrsp_no', 'date_received', 'rrsp_no', 'rrsp_no', 'rrsp_no'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
-                                <th className="px-4 py-3 text-center font-semibold text-white">
+                                <th className="px-4 py-3 text-left font-semibold text-white">
                                     Actions
                                 </th>
                             </tr>
@@ -332,7 +332,7 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                                                     <td className="px-4 py-3" rowSpan={itemsCount}>
                                                         {formatDate(rrsp.dateReceived)}
                                                     </td>
-                                                <td className="px-4 py-3 text-center">
+                                                <td className="px-4 py-3 text-left">
                                                     {firstItem?.quantity ?? '—'}
                                                 </td>
                                                 <td className="px-4 py-3">
@@ -342,7 +342,7 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                                                     {firstItem?.status ? <StatusBadge status={firstItem.status} /> : '—'}
                                                 </td>
                                                     <td className="px-4 py-3" rowSpan={itemsCount}>
-                                                        <div className="flex items-center justify-center gap-3">
+                                                        <div className="flex items-center justify-start gap-3">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleEdit(rrsp)}
@@ -389,7 +389,7 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                                                         <td className="px-4 py-3">
                                                             {item.area ?? '—'}
                                                         </td>
-                                                    <td className="px-4 py-3 text-center">
+                                                    <td className="px-4 py-3 text-left">
                                                         {item.quantity ?? '—'}
                                                     </td>
                                                     <td className="px-4 py-3">

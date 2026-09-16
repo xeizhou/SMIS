@@ -404,7 +404,7 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
                                                         <th className="px-3 py-2 text-left font-medium w-[140px]">Price Override</th>
                                                         <th className="px-3 py-2 text-left font-medium w-[150px]">Total Amount</th>
                                                         <th className="px-3 py-2 text-left font-medium">Remarks</th>
-                                                        <th className="px-3 py-2 text-center font-medium w-[60px]"></th>
+                                                        <th className="px-3 py-2 text-left font-medium w-[60px]"></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -473,7 +473,7 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
                                                                     placeholder="Optional"
                                                                 />
                                                             </td>
-                                                            <td className="px-2 py-2 text-center align-top">
+                                                            <td className="px-2 py-2 text-left align-top">
                                                                 <Button
                                                                     type="button"
                                                                     variant="ghost"

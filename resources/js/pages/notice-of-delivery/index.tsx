@@ -279,7 +279,7 @@ export default function NoticeOfDeliveryReport({
                         <tr>
                             <th className={`pl-8 pr-4 w-[30%] whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}><button type="button" onClick={() => handleSort('po_number')}>P.O. NUMBER</button></th>
                             <th className={`px-4 w-[50%] whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}><button type="button" onClick={() => handleSort('supplier')}>SUPPLIER'S NAME</button></th>
-                            <th className={`pl-4 pr-8 w-[20%] text-center whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}><button type="button" onClick={() => handleSort('status')}>STATUS</button></th>
+                            <th className={`pl-4 pr-8 w-[20%] text-left whitespace-nowrap ${isFullscreen ? 'py-4' : 'py-3.5'}`}><button type="button" onClick={() => handleSort('status')}>STATUS</button></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-200/70 dark:divide-neutral-800/60">
@@ -364,7 +364,7 @@ export default function NoticeOfDeliveryReport({
                                             </div>
                                         )}
                                     </td>
-                                    <td className={`pl-4 pr-8 text-center align-middle ${isFullscreen ? 'py-4' : 'py-3'}`}>
+                                    <td className={`pl-4 pr-8 text-left align-middle ${isFullscreen ? 'py-4' : 'py-3'}`}>
                                         <span className={getStatusBadge(item.status)}>
                                             {item.status}
                                         </span>

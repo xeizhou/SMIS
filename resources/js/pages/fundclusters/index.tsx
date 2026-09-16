@@ -89,7 +89,7 @@ export default function Index({ fundClusters, filters }: Props) {
             sortable: false,
             width: 'w-[20%]',
             render: (fc) => (
-                <div className="flex items-center justify-center gap-3">
+                <div className="flex items-center justify-start gap-3">
                     <button
                         type="button"
                         onClick={() => handleEdit(fc)}

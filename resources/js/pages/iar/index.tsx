@@ -328,8 +328,8 @@ export default function Index({
                                 <th className="px-4 py-3 text-right font-semibold text-white">PO Amount</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">Invoice No.</th>
                                 <th className="px-4 py-3 text-left font-semibold text-white">IAR No.</th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">Status</th>
-                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Status</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -366,7 +366,7 @@ export default function Index({
                                                 return `${count} IAR${count > 1 ? 's' : ''}`;
                                             })()}
                                         </td>
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-4 py-3 text-left">
                                             <span
                                                 className={
                                                     'px-2 py-1 rounded-full text-xs font-semibold ' +
@@ -376,8 +376,8 @@ export default function Index({
                                                 {pir.status}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <div className="flex items-center justify-center gap-3">
+                                        <td className="px-4 py-3 text-left">
+                                            <div className="flex items-center justify-start gap-3">
                                                 <button
                                                     type="button"
                                                     onClick={() => handleEdit(pir)}

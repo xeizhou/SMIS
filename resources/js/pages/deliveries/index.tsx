@@ -281,7 +281,7 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                         <button type="button" onClick={() => handleSort(field)} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button>
                                     </th>
                                 ))}
-                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -306,7 +306,7 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                         <td className="px-4 py-3">{delivery.supplier?.supplier_name ?? '—'}</td>
                                         <td className="px-4 py-3">{formatDate(delivery.delivery_date)}</td>
                                         
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-4 py-3 text-left">
                                             <span
                                                 className={
                                                     'px-2 py-1 rounded-full text-xs font-semibold ' +
@@ -317,7 +317,7 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                             </span>
                                         </td>
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-3">
+                                            <div className="flex items-center justify-start gap-3">
                                                 <button type="button" onClick={() => handleEdit(delivery)} className="text-blue-600 hover:text-blue-800" title="Edit">
                                                     <Pencil className="size-4" />
                                                 </button>

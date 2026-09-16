@@ -282,8 +282,8 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                 <tr>
                                     <th className="px-4 py-3 text-left font-semibold">Item Description</th>
                                     <th className="px-4 py-3 text-left font-semibold">Unit</th>
-                                    <th className="px-4 py-3 text-center font-semibold">Balance per Stock Card</th>
-                                    <th className="px-4 py-3 text-center font-semibold">Quantity per Physical Count</th>
+                                    <th className="px-4 py-3 text-left font-semibold">Balance per Stock Card</th>
+                                    <th className="px-4 py-3 text-left font-semibold">Quantity per Physical Count</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -308,10 +308,10 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                                 {item.item_description ? ` - ${item.item_description}` : ''}
                                             </td>
                                             <td className="px-4 py-3">{item.unit_short_name}</td>
-                                            <td className="px-4 py-3 text-center font-medium">
+                                            <td className="px-4 py-3 text-left font-medium">
                                                 {item.balance_per_stock_card}
                                             </td>
-                                            <td className="px-4 py-3 text-center">
+                                            <td className="px-4 py-3 text-left">
                                                 <span className="inline-block w-24 border-b border-foreground">
                                                     &nbsp;
                                                 </span>
