@@ -74,17 +74,37 @@ class DocumentCenterController extends Controller
                 'attachment_count' => $clearanceCounts[$clearance->clearance_id] ?? 0,
             ]);
 
-        $archives = \App\Models\Archive::with('user:id,name,avatar_path')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(fn ($archive) => [
+        $search = request('search');
+        $module = request('module');
+        $perPage = request()->integer('per_page', 10);
+
+        $archivesQuery = \App\Models\Archive::with('user:id,name,avatar_path')
+            ->orderBy('created_at', 'desc');
+
+        if ($search) {
+            $archivesQuery->where(function ($q) use ($search) {
+                $q->where('identity_document', 'like', "%{$search}%")
+                  ->orWhere('archived_from', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($module && $module !== 'All') {
+            $archivesQuery->where('archived_from', 'like', "%{$module}%");
+        }
+
+        $archives = $archivesQuery->paginate($perPage)
+            ->through(fn ($archive) => [
                 'id' => $archive->id,
                 'identity_document' => $archive->identity_document,
                 'archived_from' => $archive->archived_from,
                 'archived_by' => $archive->user ? $archive->user->name : 'Unknown',
                 'archived_by_avatar' => $archive->user ? $archive->user->avatar_url : null,
                 'created_at' => $archive->created_at->diffForHumans(),
-            ]);
+            ])
+            ->withQueryString();
 
         return Inertia::render('document-center/index', [
             'purchaseOrders' => $purchaseOrders,
@@ -163,11 +183,16 @@ class DocumentCenterController extends Controller
             \App\Models\EmployeeFileLocator::class => \App\Models\EmployeeFileLocator::withTrashed()->with(['attachments'])->find($id),
             \App\Models\Office::class => \App\Models\Office::withTrashed()->find($id),
             \App\Models\StockItem::class => \App\Models\StockItem::withTrashed()->with(['units', 'fundCluster'])->find($id),
+<<<<<<< HEAD
             \App\Models\Unit::class => \App\Models\Unit::withTrashed()->find($id),
             \App\Models\Transaction::class => tap(
                 \App\Models\Transaction::withTrashed()->with(['unit', 'fundCluster', 'office', 'stockItem'])->find($id),
                 fn ($t) => $t?->setAttribute('fund_cluster_detail', $t->fundCluster)
             ),
+=======
+            \App\Models\Supplier::class => \App\Models\Supplier::withTrashed()->find($id),
+            \App\Models\FundCluster::class => \App\Models\FundCluster::withTrashed()->find($id),
+>>>>>>> fb98cfe652aeaa681a7280cc88faaf8cd3923f58
             default => null,
         };
 
@@ -233,7 +258,12 @@ class DocumentCenterController extends Controller
                 \App\Models\Unit::class => \App\Models\Unit::withTrashed()->find($id),
                 \App\Models\TransactionLog::class => \App\Models\TransactionLog::withTrashed()->find($id),
                 \App\Models\User::class => \App\Models\User::withTrashed()->find($id),
+<<<<<<< HEAD
                 \App\Models\Transaction::class => \App\Models\Transaction::withTrashed()->find($id),
+=======
+                \App\Models\Supplier::class => \App\Models\Supplier::withTrashed()->find($id),
+                \App\Models\FundCluster::class => \App\Models\FundCluster::withTrashed()->find($id),
+>>>>>>> fb98cfe652aeaa681a7280cc88faaf8cd3923f58
                 default => null,
             };
 

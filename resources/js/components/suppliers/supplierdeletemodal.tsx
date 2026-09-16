@@ -60,19 +60,37 @@ export default function SupplierDeleteModal({
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="text-black">
-                        Confirm Delete
+                        Confirm Archive
                     </DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete this supplier? This action
-                        cannot be undone.
+                        Are you sure you want to archive supplier ID{' '}
+                        {supplierId ? (
+                            <span className="font-medium text-foreground">
+                                {supplierId}
+                            </span>
+                        ) : (
+                            'this supplier'
+                        )}
+                        ?
                     </p>
                     {errorMessage && (
-                        <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
-                            {errorMessage}
-                        </p>
+                        <div className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+                            {errorMessage.includes('\n') ? (
+                                <>
+                                    <p>{errorMessage.split('\n')[0]}</p>
+                                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
+                                        {errorMessage.split('\n').slice(1).map((line, i) => (
+                                            <li key={i}>{line}</li>
+                                        ))}
+                                    </ul>
+                                </>
+                            ) : (
+                                <p>{errorMessage}</p>
+                            )}
+                        </div>
                     )}
                 </div>
 
@@ -85,11 +103,11 @@ export default function SupplierDeleteModal({
                     </Button>
 
                     <Button
-                        variant="destructive"
+                        type="button"
                         onClick={confirmDelete}
                         disabled={processing}
                     >
-                        {processing ? 'Deleting...' : 'Delete'}
+                        {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

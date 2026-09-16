@@ -120,8 +120,8 @@ public function index(Request $request): Response
         );
 
         $employeefilelocator->archiveMetadata()->create([
-            'identity_document' => $fullName,
-            'archived_from' => 'Personnel Files > Employee File Locator',
+            'identity_document' => $employeefilelocator->last_name . ', ' . $employeefilelocator->first_name,
+            'archived_from' => 'HR > Employee File Locator',
             'archived_by' => $request->user()?->id,
         ]);
 

@@ -82,17 +82,16 @@ public function index(Request $request)
     /**
      * Remove the specified fund cluster.
      */
-    public function destroy(FundCluster $fundCluster)
-        {
-            try {
-                $fundCluster->delete();
-            } catch (\Illuminate\Database\QueryException $e) {
-                if ($e->getCode() === '23000') {
-                    return back()->withErrors(['delete' => 'Cannot delete this fund cluster — it is still referenced by related records.']);
-                }
-                throw $e;
-            }
+    public function destroy(Request $request, FundCluster $fundCluster)
+    {
+        $fundCluster->archiveMetadata()->create([
+            'identity_document' => $fundCluster->fund_cluster_id,
+            'archived_from' => 'Procurement > Fund Clusters',
+            'archived_by' => $request->user()?->id,
+        ]);
 
-            return redirect()->back()->with('success', 'Fund cluster archived successfully.');
-        }
+        $fundCluster->delete();
+
+        return redirect()->back()->with('success', 'Fund cluster archived successfully.');
+    }
 }
