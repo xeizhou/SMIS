@@ -166,17 +166,23 @@ public function index(Request $request)
         return back()->with('success', 'Office updated successfully.');
     }
 
-    public function destroy(Office $office)
-        {
-            try {
-                $office->delete();
-            } catch (\Illuminate\Database\QueryException $e) {
-                if ($e->getCode() === '23000') {
-                    return back()->with('error', 'Cannot delete this office — it is still referenced by related records.');
-                }
-                throw $e;
-            }
+    public function destroy(Request $request, Office $office)
+    {
+        try {
+            $office->archiveMetadata()->create([
+                'identity_document' => $office->office_name,
+                'archived_from' => 'Personnel Files > Offices',
+                'archived_by' => $request->user()?->id,
+            ]);
 
-            return redirect()->back()->with('success', 'Office archived successfully.');
+            $office->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() === '23000') {
+                return back()->with('error', 'Cannot delete this office — it is still referenced by related records.');
+            }
+            throw $e;
         }
+
+        return redirect()->back()->with('success', 'Office archived successfully.');
+    }
 }

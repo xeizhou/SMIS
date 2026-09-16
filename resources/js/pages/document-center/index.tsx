@@ -1794,7 +1794,7 @@ function ArchiveTab({ archives }: { archives: any }) {
                 <ClearanceViewForm
                     open={true}
                     onOpenChange={(open) => !open && setSelectedArchiveData(null)}
-                    clearance={selectedArchiveData.data}
+                    record={selectedArchiveData.data}
                 />
             )}
             {selectedArchiveData?.type === 'EmployeeFileLocator' && (
@@ -1802,6 +1802,13 @@ function ArchiveTab({ archives }: { archives: any }) {
                     open={true}
                     onOpenChange={(open) => !open && setSelectedArchiveData(null)}
                     record={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'Office' && (
+                <OfficeViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    office={selectedArchiveData.data}
                 />
             )}
         </div>

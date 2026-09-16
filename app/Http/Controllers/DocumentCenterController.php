@@ -243,6 +243,7 @@ class DocumentCenterController extends Controller
                 \App\Models\BonaVidaMonitoring::class => \App\Models\BonaVidaMonitoring::withTrashed()->find($id),
                 \App\Models\Clearance::class => \App\Models\Clearance::withTrashed()->find($id),
                 \App\Models\EmployeeFileLocator::class => \App\Models\EmployeeFileLocator::withTrashed()->find($id),
+                \App\Models\Office::class => \App\Models\Office::withTrashed()->find($id),
                 \App\Models\StockItem::class => \App\Models\StockItem::withTrashed()->find($id),
                 \App\Models\Unit::class => \App\Models\Unit::withTrashed()->find($id),
                 \App\Models\TransactionLog::class => \App\Models\TransactionLog::withTrashed()->find($id),
