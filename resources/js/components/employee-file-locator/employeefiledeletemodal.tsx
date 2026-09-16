@@ -27,7 +27,7 @@ interface Props {
 export default function EmployeeFileDeleteModal({ open, onOpenChange, record }: Props) {
     const [processing, setProcessing] = useState(false);
 
-    const confirmDelete = () => {
+    const confirmArchive = () => {
         if (!record) {
             return;
         }
@@ -48,12 +48,12 @@ export default function EmployeeFileDeleteModal({ open, onOpenChange, record }: 
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-black">Confirm Delete</DialogTitle>
+                    <DialogTitle className="text-black">Confirm Archive</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete this employee file record? This action cannot be undone.
+                        Are you sure you want to archive this employee file record? You can restore it later from the Document Center.
                     </p>
                 </div>
 
@@ -63,12 +63,12 @@ export default function EmployeeFileDeleteModal({ open, onOpenChange, record }: 
                     </Button>
                     <Button
                         type="button"
-                        variant="destructive"
-                        onClick={confirmDelete}
+                        onClick={confirmArchive}
                         disabled={processing}
-                        className="bg-red-600 hover:bg-red-700 text-white"
+                        style={{ backgroundColor: '#612A35' }}
+                        className="text-white hover:opacity-90"
                     >
-                        {processing ? 'Deleting...' : 'Delete'}
+                        {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
