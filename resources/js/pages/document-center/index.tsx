@@ -59,6 +59,10 @@ import ClearanceViewForm from '@/components/clearance/clearanceviewform';
 import EmployeeFileViewForm from '@/components/employee-file-locator/employeefileviewform';
 import OfficeViewForm from '@/components/offices/officeviewform';
 import StockItemViewForm from '@/components/stock-items/stockitemviewform';
+<<<<<<< HEAD
+import UnitViewForm from '@/components/units/unitviewform';
+import TransactionViewForm from '@/components/transaction-logs/transactionviewform';
+=======
 import Pagination from '@/components/Pagination';
 import {
     Pagination as ShadPagination,
@@ -66,6 +70,7 @@ import {
     PaginationItem,
 } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
+>>>>>>> fb98cfe652aeaa681a7280cc88faaf8cd3923f58
 interface ItemOption {
     id: string | number;
     label: string;
@@ -1818,6 +1823,20 @@ function ArchiveTab({ archives }: { archives: any }) {
                     open={true}
                     onOpenChange={(open) => !open && setSelectedArchiveData(null)}
                     stock={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'Unit' && (
+                <UnitViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    unit={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'Transaction' && (
+                <TransactionViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    transaction={selectedArchiveData.data}
                 />
             )}
         </div>

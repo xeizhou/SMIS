@@ -13,11 +13,10 @@ return new class extends Migration
             $table->string('transaction_type', 15);
 
             $table->string('stock_no', 50)->nullable();
-            
-            // ADDED cascadeOnUpdate() HERE
+
             $table->foreign('stock_no', 'fk_transactions_stock_no')
                 ->references('stock_no')->on('stock_items')
-                ->cascadeOnUpdate() 
+                ->cascadeOnUpdate()
                 ->restrictOnDelete();
 
             $table->string('fund_cluster', 20);
@@ -42,6 +41,8 @@ return new class extends Migration
             $table->foreign('office_code', 'fk_transactions_office_code')
                 ->references('office_code')->on('offices')
                 ->restrictOnDelete();
+
+            $table->softDeletes();
         });
     }
 

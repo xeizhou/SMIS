@@ -84,13 +84,40 @@ class UnitsController extends Controller
     /**
      * Remove the specified unit.
      */
-    public function destroy(Unit $unit)
+    public function destroy(Request $request, Unit $unit)
     {
+        $stockItemCount = $unit->stockItems()->count();
+        $itemCount = $unit->items()->count();
+        $transactionCount = $unit->transactions()->count();
+
+        if ($stockItemCount > 0 || $itemCount > 0 || $transactionCount > 0) {
+            $parts = [];
+            if ($stockItemCount > 0) {
+                $parts[] = "{$stockItemCount} Linked Stock Item" . ($stockItemCount > 1 ? 's' : '');
+            }
+            if ($itemCount > 0) {
+                $parts[] = "{$itemCount} Linked Item" . ($itemCount > 1 ? 's' : '');
+            }
+            if ($transactionCount > 0) {
+                $parts[] = "{$transactionCount} Linked Transaction Record" . ($transactionCount > 1 ? 's' : '');
+            }
+
+            return redirect()->back()->with('error',
+                "Cannot archive this unit because it has linked records. Please remove them first:\n" . implode("\n", $parts)
+            );
+        }
+
         try {
+            $unit->archiveMetadata()->create([
+                'identity_document' => $unit->unit_name . ' (' . $unit->unit_short_name . ')',
+                'archived_from' => 'Stock Cards > Units',
+                'archived_by' => $request->user()?->id,
+            ]);
+
             $unit->delete();
         } catch (\Illuminate\Database\QueryException $e) {
             if ($e->getCode() === '23000') {
-                return back()->with('error', 'Cannot delete this unit — it is still used by existing stock items.');
+                return back()->with('error', 'Cannot delete this unit — it is still used by existing records.');
             }
             throw $e;
         }

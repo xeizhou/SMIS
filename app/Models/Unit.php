@@ -4,12 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Traits\LogsActivity;
 
 class Unit extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     const LOG_NAME = 'Units';
 
@@ -24,9 +27,10 @@ class Unit extends Model
         'unit_short_name',
     ];
 
-    public function stockItems(): HasMany
+    public function stockItems(): BelongsToMany
     {
-        return $this->hasMany(StockItem::class, 'unitID', 'unitID');
+        return $this->belongsToMany(StockItem::class, 'stock_item_unit', 'unitID', 'stock_no')
+                    ->withPivot('is_default');
     }
 
     public function items(): HasMany
@@ -42,5 +46,10 @@ class Unit extends Model
     public function getActivityUrl()
     {
         return route('units.index') . '?highlight_id=' . $this->getKey();
+    }
+
+    public function archiveMetadata(): MorphOne
+    {
+        return $this->morphOne(Archive::class, 'archivable');
     }
 }

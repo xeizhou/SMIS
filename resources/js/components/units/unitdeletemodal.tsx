@@ -19,7 +19,7 @@ export default function UnitDeleteModal({ open, onOpenChange, unitID }: Props) {
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const confirmDelete = () => {
+    const confirmArchive = () => {
         if (!unitID) {
             return;
         }
@@ -37,7 +37,7 @@ export default function UnitDeleteModal({ open, onOpenChange, unitID }: Props) {
                 onOpenChange(false);
             },
             onError: () => {
-                setError('Something went wrong while deleting this unit.');
+                setError('Something went wrong while archiving this unit.');
             },
             onFinish: () => setProcessing(false),
         });
@@ -47,17 +47,28 @@ export default function UnitDeleteModal({ open, onOpenChange, unitID }: Props) {
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-red-600">Delete Unit</DialogTitle>
+                    <DialogTitle className="text-black">Confirm Archive</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4 space-y-2">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete this unit? This action cannot be undone.
+                        Are you sure you want to archive this unit? You can restore it later from the Document Center.
                     </p>
                     {error && (
-                        <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950 rounded-md px-3 py-2">
-                            {error}
-                        </p>
+                        <div className="text-sm text-red-600 bg-red-50 dark:bg-red-950 rounded-md px-3 py-2">
+                            {error.includes('\n') ? (
+                                <>
+                                    <p>{error.split('\n')[0]}</p>
+                                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
+                                        {error.split('\n').slice(1).map((line, i) => (
+                                            <li key={i}>{line}</li>
+                                        ))}
+                                    </ul>
+                                </>
+                            ) : (
+                                <p>{error}</p>
+                            )}
+                        </div>
                     )}
                 </div>
 
@@ -67,12 +78,12 @@ export default function UnitDeleteModal({ open, onOpenChange, unitID }: Props) {
                     </Button>
                     <Button
                         type="button"
-                        variant="destructive"
-                        onClick={confirmDelete}
+                        onClick={confirmArchive}
                         disabled={processing}
-                        className="bg-red-600 hover:bg-red-700 text-white"
+                        style={{ backgroundColor: '#612A35' }}
+                        className="text-white hover:opacity-90"
                     >
-                        {processing ? 'Deleting...' : 'Delete'}
+                        {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
