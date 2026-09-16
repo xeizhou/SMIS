@@ -57,6 +57,8 @@ import RegSpiViewForm from '@/components/regspi-monitoring/regspiviewform';
 import BonaVidaViewForm from '@/components/bona-vida-monitoring/bonavidaviewform';
 import ClearanceViewForm from '@/components/clearance/clearanceviewform';
 import EmployeeFileViewForm from '@/components/employee-file-locator/employeefileviewform';
+import OfficeViewForm from '@/components/offices/officeviewform';
+import StockItemViewForm from '@/components/stock-items/stockitemviewform';
 import Pagination from '@/components/Pagination';
 import {
     Pagination as ShadPagination,
@@ -1809,6 +1811,13 @@ function ArchiveTab({ archives }: { archives: any }) {
                     open={true}
                     onOpenChange={(open) => !open && setSelectedArchiveData(null)}
                     office={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'StockItem' && (
+                <StockItemViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    stock={selectedArchiveData.data}
                 />
             )}
         </div>

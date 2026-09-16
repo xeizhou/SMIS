@@ -5,12 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\LogsActivity;
 
 class StockItem extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     const LOG_NAME = 'Stock Items';
 
@@ -59,10 +62,29 @@ class StockItem extends Model
 
     public function units()
     {
-        // The second argument is the pivot table name.
         return $this->belongsToMany(Unit::class, 'stock_item_unit', 'stock_no', 'unitID')
                     ->withPivot('is_default');
     }
 
+    public function archiveMetadata(): MorphOne
+    {
+        return $this->morphOne(Archive::class, 'archivable');
+    }
 
+    public function purchaseOrders(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(
+            ServePo::class,
+            'serve_po_items',
+            'stock_no',
+            'po_number',
+            'stock_no',
+            'po_number'
+        );
+    }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'stock_no', 'stock_no');
+    }
 }

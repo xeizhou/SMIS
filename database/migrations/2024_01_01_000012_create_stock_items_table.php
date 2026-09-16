@@ -26,6 +26,7 @@ return new class extends Migration
             $table->string('link', 500)->nullable();
             
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
