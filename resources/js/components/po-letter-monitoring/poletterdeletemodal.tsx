@@ -40,18 +40,18 @@ return;
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-black">Confirm Delete</DialogTitle>
+                    <DialogTitle className="text-black">Confirm Archive</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete PO letter{' '}
+                        Are you sure you want to archive PO letter{' '}
                         {referenceNo ? (
                             <span className="font-medium text-foreground">{referenceNo}</span>
                         ) : (
                             'this record'
                         )}
-                        ? This action cannot be undone.
+                        ?
                     </p>
                 </div>
 
@@ -61,12 +61,10 @@ return;
                     </Button>
                     <Button
                         type="button"
-                        variant="destructive"
                         onClick={confirmDelete}
                         disabled={processing}
-                        className="bg-red-600 hover:bg-red-700 text-white"
                     >
-                        {processing ? 'Deleting...' : 'Delete'}
+                        {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

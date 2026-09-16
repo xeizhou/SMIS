@@ -161,6 +161,8 @@ class DocumentCenterController extends Controller
             \App\Models\BonaVidaMonitoring::class => \App\Models\BonaVidaMonitoring::withTrashed()->with(['attachments'])->find($id),
             \App\Models\Clearance::class => \App\Models\Clearance::withTrashed()->with(['attachments'])->find($id),
             \App\Models\EmployeeFileLocator::class => \App\Models\EmployeeFileLocator::withTrashed()->with(['attachments'])->find($id),
+            \App\Models\Supplier::class => \App\Models\Supplier::withTrashed()->find($id),
+            \App\Models\FundCluster::class => \App\Models\FundCluster::withTrashed()->find($id),
             default => null,
         };
 
@@ -225,6 +227,8 @@ class DocumentCenterController extends Controller
                 \App\Models\Unit::class => \App\Models\Unit::withTrashed()->find($id),
                 \App\Models\TransactionLog::class => \App\Models\TransactionLog::withTrashed()->find($id),
                 \App\Models\User::class => \App\Models\User::withTrashed()->find($id),
+                \App\Models\Supplier::class => \App\Models\Supplier::withTrashed()->find($id),
+                \App\Models\FundCluster::class => \App\Models\FundCluster::withTrashed()->find($id),
                 default => null,
             };
 

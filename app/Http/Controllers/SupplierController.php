@@ -147,17 +147,16 @@ public function index(Request $request)
         return back()->with('success', 'Supplier updated successfully.');
     }
 
-    public function destroy(Supplier $supplier)
-        {
-            try {
-                $supplier->delete();
-            } catch (\Illuminate\Database\QueryException $e) {
-                if ($e->getCode() === '23000') {
-                    return back()->withErrors(['delete' => 'Cannot delete this supplier — it is still referenced by related records.']);
-                }
-                throw $e;
-            }
+    public function destroy(Request $request, Supplier $supplier)
+    {
+        $supplier->archiveMetadata()->create([
+            'identity_document' => $supplier->supplier_name,
+            'archived_from' => 'Procurement > Supplier List',
+            'archived_by' => $request->user()?->id,
+        ]);
 
-            return back()->with('success', 'Supplier archived successfully.');
-        }
+        $supplier->delete();
+
+        return back()->with('success', 'Supplier archived successfully.');
+    }
 }

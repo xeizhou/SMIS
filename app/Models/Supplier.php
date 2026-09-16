@@ -4,12 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\LogsActivity;
 
 class Supplier extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     const LOG_NAME = 'Supplier List';
 
@@ -45,6 +47,11 @@ class Supplier extends Model
     public function pirMonitorings(): HasMany
     {
         return $this->hasMany(PirMonitoring::class, 'supplier_id');
+    }
+
+    public function archiveMetadata(): MorphOne
+    {
+        return $this->morphOne(Archive::class, 'archivable');
     }
 
     public function getActivityUrl()
