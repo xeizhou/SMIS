@@ -114,14 +114,19 @@ public function index(Request $request): Response
      */
     public function destroy(Request $request, EmployeeFileLocator $employeefilelocator): RedirectResponse
     {
+        $fullName = trim(
+            $employeefilelocator->last_name . ', ' . $employeefilelocator->first_name
+            . ($employeefilelocator->middle_name ? ' ' . $employeefilelocator->middle_name : '')
+        );
+
         $employeefilelocator->archiveMetadata()->create([
-            'identity_document' => 'Employee File - ' . $employeefilelocator->last_name . ', ' . $employeefilelocator->first_name,
-            'archived_from' => 'HR > Employee File Locator',
+            'identity_document' => $fullName,
+            'archived_from' => 'Personnel Files > Employee File Locator',
             'archived_by' => $request->user()?->id,
         ]);
 
-        $employeefilelocator->delete();
+        $employeefilelocator->delete(); // soft delete via SoftDeletes trait
 
-        return redirect()->back()->with('success', 'Employee file record archived successfully.');
+        return back()->with('success', 'Employee file record archived successfully.');
     }
 }

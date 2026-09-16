@@ -17,7 +17,7 @@ interface Props {
 export default function ClearanceDeleteModal({ open, onOpenChange, record }: Props) {
     const [processing, setProcessing] = useState(false);
 
-    const confirmDelete = () => {
+    const confirmArchive = () => {
         if (!record) {
             return;
         }
@@ -38,19 +38,25 @@ export default function ClearanceDeleteModal({ open, onOpenChange, record }: Pro
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-black">Confirm Delete</DialogTitle>
+                    <DialogTitle className="text-black">Confirm Archive</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete this clearance record? This action cannot be undone.
+                        Are you sure you want to archive this clearance record? You can restore it later from the Document Center.
                     </p>
                 </div>
 
                 <DialogFooter className="gap-2 sm:gap-2">
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button type="button" variant="destructive" onClick={confirmDelete} disabled={processing} className="bg-red-600 hover:bg-red-700 text-white">
-                        {processing ? 'Deleting...' : 'Delete'}
+                    <Button
+                        type="button"
+                        onClick={confirmArchive}
+                        disabled={processing}
+                        style={{ backgroundColor: '#612A35' }}
+                        className="text-white hover:opacity-90"
+                    >
+                        {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
