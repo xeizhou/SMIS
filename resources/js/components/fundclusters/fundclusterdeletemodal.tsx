@@ -53,17 +53,36 @@ setErrorMessage(null);
         >
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-red-600">Delete Fund Cluster</DialogTitle>
+                    <DialogTitle className="text-black">Confirm Archive</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete this fund cluster? This action cannot be undone.
+                        Are you sure you want to archive fund cluster{' '}
+                        {fundClusterId ? (
+                            <span className="font-medium text-foreground">
+                                {fundClusterId}
+                            </span>
+                        ) : (
+                            'this fund cluster'
+                        )}
+                        ?
                     </p>
                     {errorMessage && (
-                        <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
-                            {errorMessage}
-                        </p>
+                        <div className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+                            {errorMessage.includes('\n') ? (
+                                <>
+                                    <p>{errorMessage.split('\n')[0]}</p>
+                                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
+                                        {errorMessage.split('\n').slice(1).map((line, i) => (
+                                            <li key={i}>{line}</li>
+                                        ))}
+                                    </ul>
+                                </>
+                            ) : (
+                                <p>{errorMessage}</p>
+                            )}
+                        </div>
                     )}
                 </div>
 
@@ -73,12 +92,10 @@ setErrorMessage(null);
                     </Button>
                     <Button
                         type="button"
-                        variant="destructive"
                         onClick={confirmDelete}
                         disabled={processing}
-                        className="bg-red-600 hover:bg-red-700 text-white"
                     >
-                        {processing ? 'Deleting...' : 'Delete'}
+                        {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

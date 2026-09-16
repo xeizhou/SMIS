@@ -5,11 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\LogsActivity;
 
 class FundCluster extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     const LOG_NAME = 'Fund Cluster';
 
@@ -44,6 +46,11 @@ class FundCluster extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class, 'fund_cluster', 'fund_cluster_id');
+    }
+
+    public function archiveMetadata(): MorphOne
+    {
+        return $this->morphOne(Archive::class, 'archivable');
     }
 
     public function getActivityUrl()

@@ -38,18 +38,18 @@ return;
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-black">Confirm Delete</DialogTitle>
+                    <DialogTitle className="text-black">Confirm Archive</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete delivery{' '}
+                        Are you sure you want to archive delivery{' '}
                         {poNumber ? (
                             <span className="font-medium text-foreground">{poNumber}</span>
                         ) : (
                             'this delivery'
                         )}
-                        ? This action cannot be undone.
+                        ?
                     </p>
                 </div>
 
@@ -57,8 +57,8 @@ return;
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
-                    <Button type="button" variant="destructive" onClick={confirmDelete} disabled={processing} className="bg-red-600 hover:bg-red-700 text-white">
-                        {processing ? 'Deleting...' : 'Delete'}
+                    <Button type="button" onClick={confirmDelete} disabled={processing}>
+                        {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
