@@ -242,7 +242,7 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                         <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                             <tr>
                                 {['RRPPE No.', 'Item Description', 'Property No.', 'End User', 'Return By', 'Area', 'Date Received', 'Qty', 'Status'].map((label, index) => <th key={label} className="p-0 font-medium"><button type="button" onClick={() => handleSort(['rrppe_no', 'rrppe_no', 'rrppe_no', 'end_user_name', 'return_by', 'rrppe_no', 'date_received', 'rrppe_no', 'rrppe_no'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
-                                <th className="px-4 py-3 font-medium text-center">Actions</th>
+                                <th className="px-4 py-3 font-medium text-left">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -276,12 +276,12 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                                                 <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{item.returnBy ?? '—'}</td>
                                                 <td className="px-4 py-3">{firstItem?.area ?? '—'}</td>
                                                 <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{formatDate(item.dateReceived)}</td>
-                                                <td className="px-4 py-3 text-center">{firstItem?.quantity ?? '—'}</td>
+                                                <td className="px-4 py-3 text-left">{firstItem?.quantity ?? '—'}</td>
                                                 <td className="px-4 py-3">
                                                     {firstItem?.status ? <StatusBadge status={firstItem.status} /> : '—'}
                                                 </td>
                                                 <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>
-                                                    <div className="flex items-center justify-center gap-3">
+                                                    <div className="flex items-center justify-start gap-3">
                                                         <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
                                                             <Pencil className="h-4 w-4" />
                                                         </button>
@@ -316,7 +316,7 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                                                     </td>
                                                     <td className="px-4 py-3">{subItem.propertyNo ?? '—'}</td>
                                                     <td className="px-4 py-3">{subItem.area ?? '—'}</td>
-                                                    <td className="px-4 py-3 text-center">{subItem.quantity ?? '—'}</td>
+                                                    <td className="px-4 py-3 text-left">{subItem.quantity ?? '—'}</td>
                                                     <td className="px-4 py-3">
                                                         {subItem.status ? <StatusBadge status={subItem.status} /> : '—'}
                                                     </td>

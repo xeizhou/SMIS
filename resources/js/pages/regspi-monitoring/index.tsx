@@ -223,7 +223,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                             <tr>
                                 {['Property No.', 'Item Description', 'Issued Qty', 'Balance Qty'].map((label, index) => <th key={label} className="p-0 text-left font-semibold text-white"><button type="button" onClick={() => handleSort(['semi_expendable_property_no', 'item_description', 'issued_qty', 'balance_qty'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
                                
-                                <th className="px-4 py-3 text-center font-semibold text-white">Actions</th>
+                                <th className="px-4 py-3 text-left font-semibold text-white">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -250,7 +250,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                                         <td className="px-4 py-3">{record.balance_qty ?? '—'}</td>
                                        
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-3">
+                                            <div className="flex items-center justify-start gap-3">
                                                 <button type="button" onClick={() => handleEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
                                                     <Pencil className="size-4" />
                                                 </button>

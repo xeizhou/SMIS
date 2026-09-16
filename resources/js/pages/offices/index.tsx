@@ -98,7 +98,7 @@ export default function Index({ offices, filters }: Props) {
             width: 'w-[10%]',
             // Use render to inject your custom action buttons
             render: (office) => (
-                <div className="flex items-center justify-center gap-3">
+                <div className="flex items-center justify-start gap-3">
                     <button
                         onClick={() => {
                             setSelectedOffice(office);

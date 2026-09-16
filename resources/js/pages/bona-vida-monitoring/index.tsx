@@ -153,7 +153,7 @@ export default function Index({ records, filters, offices }: Props) {
             sortable: false,
             width: 'w-[15%]',
             render: (record) => (
-                <div className="flex items-center justify-center gap-3">
+                <div className="flex items-center justify-start gap-3">
                     <button
                         type="button"
                         onClick={() => openEdit(record)}

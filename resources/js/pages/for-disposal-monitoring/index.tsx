@@ -188,7 +188,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                         <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                             <tr>
                                 {['Transaction No.', 'Property No.', 'Description', 'Location', 'Amount'].map((label, index) => <th key={label} className="p-0 font-medium"><button type="button" onClick={() => handleSort(['transaction_no', 'property_no', 'description', 'location', 'amount'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
-                                <th className="px-4 py-3 font-medium text-center">Actions</th>
+                                <th className="px-4 py-3 font-medium text-left">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -208,7 +208,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                         <td className="px-4 py-3">{item.location}</td>
                                         <td className="px-4 py-3">{formatCurrency(item.amount)}</td>
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-3">
+                                            <div className="flex items-center justify-start gap-3">
                                                 <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
                                                     <Pencil className="h-4 w-4" />
                                                 </button>

@@ -111,7 +111,7 @@ export default function Index({ suppliers, filters }: Props) {
             sortable: true,
             width: 'w-[10%]',
             render: (supplier) => (
-                <div className="flex justify-center">
+                <div className="flex justify-start">
                     <span
                         className={
                             supplier.status === 'active'
@@ -130,7 +130,7 @@ export default function Index({ suppliers, filters }: Props) {
             sortable: false,
             width: 'w-[10%]',
             render: (supplier) => (
-                <div className="flex items-center justify-center gap-3">
+                <div className="flex items-center justify-start gap-3">
                     <button
                         onClick={() => {
                             setSelectedSupplier(supplier);

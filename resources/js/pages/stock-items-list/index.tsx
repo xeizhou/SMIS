@@ -271,7 +271,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                             {item.item_description ? ` - ${item.item_description}` : ''}
                                         </td>
                                         <td className="px-4 py-3 truncate">{item.unit_short_name}</td>
-                                        <td className="px-4 py-3 text-center font-medium">
+                                        <td className="px-4 py-3 text-left font-medium">
                                             {item.balance_per_stock_card}
                                         </td>
                                     </AnimatedTableRow>

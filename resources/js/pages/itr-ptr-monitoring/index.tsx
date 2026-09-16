@@ -204,7 +204,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                 
                                 
                                 
-                                <th className="px-4 py-3 font-medium text-center">Actions</th>
+                                <th className="px-4 py-3 font-medium text-left">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -223,7 +223,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                         <td className="px-4 py-3">{item.description}</td>
                                         <td className="px-4 py-3">{item.claimed_by}</td>
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-3">
+                                            <div className="flex items-center justify-start gap-3">
                                                 <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
                                                     <Pencil className="h-4 w-4" />
                                                 </button>
