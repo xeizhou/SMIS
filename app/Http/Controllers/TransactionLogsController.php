@@ -229,18 +229,19 @@ class TransactionLogsController extends Controller
     /**
      * Remove the specified transaction.
      */
-    public function destroy(Transaction $transaction)
+    public function destroy(Request $request, Transaction $transaction)
     {
-        try {
-            $id = $transaction->transactionID;
-            $transaction->delete();
+        $id = $transaction->transactionID;
 
-            $this->logAudit("Deleted transaction #{$id}.");
-        } catch (\Illuminate\Database\QueryException $e) {
-            return back()->withErrors([
-                'delete' => 'This transaction cannot be deleted because it has related records.',
-            ]);
-        }
+        $transaction->archiveMetadata()->create([
+            'identity_document' => "Transaction #{$id} — {$transaction->item_name}",
+            'archived_from' => 'Stock Cards > Transactions',
+            'archived_by' => $request->user()?->id,
+        ]);
+
+        $transaction->delete();
+
+        $this->logAudit("Archived transaction #{$id}.");
 
         return redirect()->back()->with('success', 'Transaction archived successfully.');
     }

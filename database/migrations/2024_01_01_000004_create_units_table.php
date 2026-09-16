@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('unit_name', 50);
             $table->string('unit_short_name', 10);
             // NOTE: source SQL has no created_at/updated_at for this table — omitted to match.
+             $table->softDeletes();
         });
     }
 

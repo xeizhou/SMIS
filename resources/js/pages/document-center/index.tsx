@@ -59,6 +59,8 @@ import ClearanceViewForm from '@/components/clearance/clearanceviewform';
 import EmployeeFileViewForm from '@/components/employee-file-locator/employeefileviewform';
 import OfficeViewForm from '@/components/offices/officeviewform';
 import StockItemViewForm from '@/components/stock-items/stockitemviewform';
+import UnitViewForm from '@/components/units/unitviewform';
+import TransactionViewForm from '@/components/transaction-logs/transactionviewform';
 interface ItemOption {
     id: string | number;
     label: string;
@@ -1746,6 +1748,20 @@ function ArchiveTab({ archives }: { archives: any[] }) {
                     open={true}
                     onOpenChange={(open) => !open && setSelectedArchiveData(null)}
                     stock={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'Unit' && (
+                <UnitViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    unit={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'Transaction' && (
+                <TransactionViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    transaction={selectedArchiveData.data}
                 />
             )}
         </div>

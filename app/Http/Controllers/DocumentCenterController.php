@@ -163,6 +163,11 @@ class DocumentCenterController extends Controller
             \App\Models\EmployeeFileLocator::class => \App\Models\EmployeeFileLocator::withTrashed()->with(['attachments'])->find($id),
             \App\Models\Office::class => \App\Models\Office::withTrashed()->find($id),
             \App\Models\StockItem::class => \App\Models\StockItem::withTrashed()->with(['units', 'fundCluster'])->find($id),
+            \App\Models\Unit::class => \App\Models\Unit::withTrashed()->find($id),
+            \App\Models\Transaction::class => tap(
+                \App\Models\Transaction::withTrashed()->with(['unit', 'fundCluster', 'office', 'stockItem'])->find($id),
+                fn ($t) => $t?->setAttribute('fund_cluster_detail', $t->fundCluster)
+            ),
             default => null,
         };
 
@@ -228,6 +233,7 @@ class DocumentCenterController extends Controller
                 \App\Models\Unit::class => \App\Models\Unit::withTrashed()->find($id),
                 \App\Models\TransactionLog::class => \App\Models\TransactionLog::withTrashed()->find($id),
                 \App\Models\User::class => \App\Models\User::withTrashed()->find($id),
+                \App\Models\Transaction::class => \App\Models\Transaction::withTrashed()->find($id),
                 default => null,
             };
 

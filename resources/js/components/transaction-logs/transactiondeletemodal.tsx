@@ -17,16 +17,27 @@ interface Props {
 
 export default function TransactionDeleteModal({ open, onOpenChange, transactionID }: Props) {
     const [processing, setProcessing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const confirmDelete = () => {
+    const confirmArchive = () => {
         if (!transactionID) {
-return;
-}
+            return;
+        }
 
         setProcessing(true);
+        setError(null);
         router.delete(`/transaction-logs/${transactionID}`, {
-            onSuccess: () => {
+            preserveScroll: true,
+            onSuccess: (page) => {
+                const flash = (page.props as any)?.flash;
+                if (flash?.error) {
+                    setError(flash.error);
+                    return;
+                }
                 onOpenChange(false);
+            },
+            onError: () => {
+                setError('Something went wrong while archiving this transaction.');
             },
             onFinish: () => setProcessing(false),
         });
@@ -36,27 +47,32 @@ return;
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-red-600">Delete Transaction</DialogTitle>
+                    <DialogTitle className="text-black">Confirm Archive</DialogTitle>
                 </DialogHeader>
 
-                <div className="py-4">
+                <div className="py-4 space-y-2">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete this transaction record? This action cannot be undone.
+                        Are you sure you want to archive this transaction record? You can restore it later from the Document Center.
                     </p>
+                    {error && (
+                        <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950 rounded-md px-3 py-2">
+                            {error}
+                        </p>
+                    )}
                 </div>
 
-                <DialogFooter className="gap-2 sm:gap-2 ">
+                <DialogFooter className="gap-2 sm:gap-2">
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
                     <Button
                         type="button"
-                        variant="destructive"
-                        onClick={confirmDelete}
+                        onClick={confirmArchive}
                         disabled={processing}
-                        className="bg-red-600 hover:bg-red-700 text-white"
+                        style={{ backgroundColor: '#612A35' }}
+                        className="text-white hover:opacity-90"
                     >
-                        {processing ? 'Deleting...' : 'Delete'}
+                        {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

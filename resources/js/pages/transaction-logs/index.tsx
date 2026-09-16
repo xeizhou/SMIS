@@ -2,11 +2,12 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Archive, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Search, Pencil, Archive, Eye, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useState } from 'react';
 import TransactionAddForm from '@/components/transaction-logs/transactionaddform';
 import TransactionDeleteModal from '@/components/transaction-logs/transactiondeletemodal';
 import TransactionEditForm from '@/components/transaction-logs/transactioneditform';
+import TransactionViewForm from '@/components/transaction-logs/transactionviewform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -130,6 +131,7 @@ export default function Index({
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
+    const [viewOpen, setViewOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -185,6 +187,11 @@ export default function Index({
     const handleEdit = (transaction: Transaction) => {
         setSelectedTransaction(transaction);
         setEditOpen(true);
+    };
+
+    const handleView = (transaction: Transaction) => {
+        setSelectedTransaction(transaction);
+        setViewOpen(true);
     };
 
     const openDeleteModal = (id: number) => {
@@ -464,6 +471,11 @@ export default function Index({
                 fundClusters={fundClusters}
                 offices={offices}
                 stockItems={stockItems}
+            />
+            <TransactionViewForm
+                open={viewOpen}
+                onOpenChange={setViewOpen}
+                transaction={selectedTransaction}
             />
             <TransactionDeleteModal
                 open={isDeleteModalOpen}
