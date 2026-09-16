@@ -129,13 +129,39 @@ class StockItemsController extends Controller
 
             return redirect()->back()->with('success', 'Stock item updated successfully.');
         }
-
-    public function destroy(StockItem $stockItem)
+    
+    public function destroy(Request $request, StockItem $stockItem)
     {
+        $poCount = $stockItem->purchaseOrders()->count();
+        $transactionCount = $stockItem->transactions()->count();
+
+        if ($poCount > 0 || $transactionCount > 0) {
+            $parts = [];
+            if ($poCount > 0) {
+                $parts[] = "{$poCount} Linked Purchase Order" . ($poCount > 1 ? 's' : '');
+            }
+            if ($transactionCount > 0) {
+                $parts[] = "{$transactionCount} Linked Transaction Record" . ($transactionCount > 1 ? 's' : '');
+            }
+
+            return redirect()->back()->with('error',
+                "Cannot archive this stock item because it has linked records. Please remove them first:\n" . implode("\n", $parts)
+            );
+        }
+
         try {
+            $stockItem->archiveMetadata()->create([
+                'identity_document' => $stockItem->stock_no . ' — ' . $stockItem->item_name,
+                'archived_from' => 'Stock Cards > Stock Items',
+                'archived_by' => $request->user()?->id,
+            ]);
+
             $stockItem->delete();
         } catch (\Illuminate\Database\QueryException $e) {
-            return back()->with('error', 'Cannot delete this stock item — it is referenced by transaction records.');
+            if ($e->getCode() === '23000') {
+                return back()->with('error', 'Cannot delete this stock item — it is referenced by transaction records.');
+            }
+            throw $e;
         }
 
         return redirect()->back()->with('success', 'Stock item archived successfully.');

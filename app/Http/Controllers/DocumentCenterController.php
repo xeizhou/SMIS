@@ -162,6 +162,7 @@ class DocumentCenterController extends Controller
             \App\Models\Clearance::class => \App\Models\Clearance::withTrashed()->with(['attachments'])->find($id),
             \App\Models\EmployeeFileLocator::class => \App\Models\EmployeeFileLocator::withTrashed()->with(['attachments'])->find($id),
             \App\Models\Office::class => \App\Models\Office::withTrashed()->find($id),
+            \App\Models\StockItem::class => \App\Models\StockItem::withTrashed()->with(['units', 'fundCluster'])->find($id),
             default => null,
         };
 
