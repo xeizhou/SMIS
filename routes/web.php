@@ -518,6 +518,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/supplier/quick-add', [SupplierController::class, 'quickAdd'])->name('supplier.quick-add');
     Route::put('/supplier/{supplier}', [SupplierController::class, 'update']);
     Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
+    Route::post('/supplier/import', [SupplierController::class, 'import'])->name('supplier.import');
 
     Route::get('/fund-clusters', [FundClustersController::class, 'index'])->name('fund-clusters.index');
     Route::post('/fund-clusters', [FundClustersController::class, 'store'])->name('fund-clusters.store');

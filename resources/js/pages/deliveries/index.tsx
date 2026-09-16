@@ -306,7 +306,7 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                         <td className="px-4 py-3">{delivery.supplier?.supplier_name ?? '—'}</td>
                                         <td className="px-4 py-3">{formatDate(delivery.delivery_date)}</td>
                                         
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-4 py-3 text-left">
                                             <span
                                                 className={
                                                     'px-2 py-1 rounded-full text-xs font-semibold ' +

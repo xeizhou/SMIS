@@ -77,6 +77,100 @@ public function index(Request $request)
         ]);
     }
 
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
+        ]);
+
+        $expectedHeader = [
+            'SUPPLIER NAME',
+            'ADDRESS',
+            'EMAIL',
+            'CONTACT NO.',
+            'CONTACT PERSON',
+            'POSITION',
+        ];
+
+        $handle = fopen($request->file('file')->getRealPath(), 'r');
+
+        if ($handle === false) {
+            return back()->withErrors(['file' => 'Could not read the uploaded file.']);
+        }
+
+        $headerFound = false;
+        $rowsChecked = 0;
+
+        // The standard export sometimes has a blank row before the real header,
+        // so scan the first few lines for it instead of assuming line 1.
+        while (($row = fgetcsv($handle)) !== false && $rowsChecked < 5) {
+            $rowsChecked++;
+            $normalized = array_map(fn ($cell) => strtoupper(trim((string) $cell)), $row);
+            $normalized = array_slice($normalized, 0, count($expectedHeader));
+
+            if ($normalized === $expectedHeader) {
+                $headerFound = true;
+                break;
+            }
+        }
+
+        if (!$headerFound) {
+            fclose($handle);
+
+            return back()->withErrors([
+                'file' => 'This CSV doesn\'t match the required supplier directory format. '
+                    . 'Expected columns: ' . implode(', ', $expectedHeader) . '.',
+            ]);
+        }
+
+        $imported = 0;
+        $skippedDuplicate = 0;
+        $skippedBlank = 0;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            if (count(array_filter($row, fn ($cell) => trim((string) $cell) !== '')) === 0) {
+                continue;
+            }
+
+            $supplierName = trim((string) ($row[0] ?? ''));
+            $email = trim((string) ($row[2] ?? ''));
+            $contactNumber = trim((string) ($row[3] ?? ''));
+            $contactPerson = trim((string) ($row[4] ?? ''));
+
+            if ($supplierName === '') {
+                $skippedBlank++;
+                continue;
+            }
+
+            if (Supplier::where('supplier_name', $supplierName)->exists()) {
+                $skippedDuplicate++;
+                continue;
+            }
+
+            Supplier::create([
+                'supplier_name' => $supplierName,
+                'contact_person' => $contactPerson !== '' ? $contactPerson : null,
+                'contact_number' => $contactNumber !== '' ? $contactNumber : null,
+                'email_address' => filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : null,
+                'status' => 'active',
+            ]);
+
+            $imported++;
+        }
+
+        fclose($handle);
+
+        $message = "Imported {$imported} supplier(s).";
+        if ($skippedDuplicate) {
+            $message .= " Skipped {$skippedDuplicate} duplicate(s).";
+        }
+        if ($skippedBlank) {
+            $message .= " Skipped {$skippedBlank} blank row(s).";
+        }
+
+        return back()->with('success', $message);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SortableTable, { ColumnDef } from '@/components/table/SortableTable';
 import { buildFilterUrl } from '@/lib/filterUrl';
+import SupplierImportForm from '@/components/suppliers/supplierimportform';
 
 interface Supplier {
     supplier_id: number;
@@ -52,6 +53,7 @@ export default function Index({ suppliers, filters }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
+    const [importOpen, setImportOpen] = useState(false);
     
     const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
     const [selectedSupplierId, setSelectedSupplierId] = useState<number | null>(null);
@@ -111,7 +113,7 @@ export default function Index({ suppliers, filters }: Props) {
             sortable: true,
             width: 'w-[10%]',
             render: (supplier) => (
-                <div className="flex justify-center">
+                <div className="flex justify-start">
                     <span
                         className={
                             supplier.status === 'active'
@@ -204,6 +206,20 @@ export default function Index({ suppliers, filters }: Props) {
                         <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
                     </div>
 
+                    <div className="flex gap-2 w-full lg:w-auto">
+                        <Button type="button" variant="outline" onClick={() => setImportOpen(true)} className="flex-1 lg:flex-none">
+                            Import CSV
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => setDialogOpen(true)}
+                            className="flex-1 lg:flex-none"
+                            style={{ backgroundColor: '#612A35' }}
+                        >
+                            Add Supplier
+                        </Button>
+                    </div>
+
                     <Button
                         type="button"
                         onClick={() => setDialogOpen(true)}
@@ -236,6 +252,7 @@ export default function Index({ suppliers, filters }: Props) {
             <SupplierAddForm open={dialogOpen} onOpenChange={setDialogOpen} />
             <SupplierEditForm open={editOpen} onOpenChange={setEditOpen} supplier={selectedSupplier} />
             <SupplierDeleteModal open={deleteOpen} onOpenChange={setDeleteOpen} supplierId={selectedSupplierId} />
+            <SupplierImportForm open={importOpen} onOpenChange={setImportOpen} />
         </>
     );
 }
