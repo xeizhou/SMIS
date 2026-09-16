@@ -178,7 +178,7 @@ class DeliveriesController extends Controller
     {
         // Create an archive record before soft deleting
         $delivery->archiveMetadata()->create([
-            'identity_document' => 'Delivery - ' . $delivery->po_number,
+            'identity_document' => $delivery->po_number,
             'archived_from' => 'Procurement > Delivery Monitoring',
             'archived_by' => $request->user()?->id,
         ]);

@@ -167,7 +167,7 @@ class POLetterMonitoringController extends Controller
     public function destroy(Request $request, PoLetterMonitoring $poLetterMonitoring): RedirectResponse
     {
         $poLetterMonitoring->archiveMetadata()->create([
-            'identity_document' => 'PO Letter - ' . ($poLetterMonitoring->po_number ?? $poLetterMonitoring->reference_no),
+            'identity_document' => $poLetterMonitoring->po_number ?? $poLetterMonitoring->reference_no,
             'archived_from' => 'Procurement > PO Letter Monitoring',
             'archived_by' => $request->user()?->id,
         ]);

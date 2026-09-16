@@ -59,6 +59,13 @@ import ClearanceViewForm from '@/components/clearance/clearanceviewform';
 import EmployeeFileViewForm from '@/components/employee-file-locator/employeefileviewform';
 import OfficeViewForm from '@/components/offices/officeviewform';
 import StockItemViewForm from '@/components/stock-items/stockitemviewform';
+import Pagination from '@/components/Pagination';
+import {
+    Pagination as ShadPagination,
+    PaginationContent,
+    PaginationItem,
+} from '@/components/ui/pagination';
+import { cn } from '@/lib/utils';
 interface ItemOption {
     id: string | number;
     label: string;
@@ -314,54 +321,117 @@ function ItemDetail({ endpoint, onBack }: { endpoint: string; onBack: () => void
     );
 }
 
-function Pagination({
+function ClientPagination({
     page,
     totalPages,
-    onChange,
+    totalItems,
+    pageSize,
+    onPageChange,
+    onPageSizeChange,
+    perPageOptions = [10, 25, 50, 100],
 }: {
     page: number;
     totalPages: number;
-    onChange: (page: number) => void;
+    totalItems: number;
+    pageSize: number;
+    onPageChange: (page: number) => void;
+    onPageSizeChange: (size: number) => void;
+    perPageOptions?: number[];
 }) {
-    if (totalPages <= 1) return null;
+    if (totalPages <= 1 && perPageOptions.length === 0) return null;
+
+    const from = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
+    const to = Math.min(page * pageSize, totalItems);
 
     const pages = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
         (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1,
     );
 
+    const MAROON = '#612A35';
+
     return (
-        <div className="flex items-center justify-center gap-1 pt-2">
-            <button
-                onClick={() => onChange(Math.max(1, page - 1))}
-                disabled={page === 1}
-                className="flex h-8 w-8 items-center justify-center rounded-md border transition-colors disabled:pointer-events-none disabled:opacity-40"
-            >
-                <ChevronLeft className="h-4 w-4" />
-            </button>
-
-            {pages.map((p, i) => (
-                <div key={p} className="flex items-center">
-                    {i > 0 && pages[i - 1] !== p - 1 && (
-                        <span className="text-muted-foreground px-1 text-sm">…</span>
-                    )}
-                    <button
-                        onClick={() => onChange(p)}
-                        className={`flex h-8 w-8 items-center justify-center rounded-md border text-sm transition-colors ${
-                            p === page ? 'bg-[#612A35] text-white border-[#612A35]' : ''
-                        }`}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>
+                    Showing {from}–{to} of {totalItems}
+                </span>
+                <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                        Rows per page
+                    </p>
+                    <Select
+                        value={String(pageSize)}
+                        onValueChange={(value) => onPageSizeChange(Number(value))}
                     >
-                        {p}
-                    </button>
+                        <SelectTrigger className="h-8 w-[80px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                            {perPageOptions.map((opt) => (
+                                <SelectItem key={opt} value={String(opt)}>
+                                    {opt}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
-            ))}
+            </div>
 
-            <button
-                onClick={() => onChange(Math.min(totalPages, page + 1))}
-                disabled={page === totalPages}
-                className="flex h-8 w-8 items-center justify-center rounded-md border transition-colors disabled:pointer-events-none disabled:opacity-40"
-            >
-                <ChevronRight className="h-4 w-4" />
-            </button>
+            <ShadPagination className="mx-0 w-auto">
+                <PaginationContent>
+                    <PaginationItem>
+                        <button
+                            onClick={() => onPageChange(Math.max(1, page - 1))}
+                            disabled={page === 1}
+                            className={cn(
+                                'flex h-9 items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors',
+                                page === 1
+                                    ? 'pointer-events-none border-gray-200 bg-white text-gray-400 opacity-40'
+                                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
+                            )}
+                        >
+                            &laquo; Previous
+                        </button>
+                    </PaginationItem>
+                    
+                    {pages.map((p, i) => (
+                        <div key={p} className="flex items-center">
+                            {i > 0 && pages[i - 1] !== p - 1 && (
+                                <span className="text-muted-foreground px-1 text-sm">…</span>
+                            )}
+                            <PaginationItem>
+                                <button
+                                    onClick={() => onPageChange(p)}
+                                    className={cn(
+                                        'flex h-9 min-w-9 items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors',
+                                        p === page
+                                            ? 'text-white'
+                                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
+                                    )}
+                                    style={p === page ? { backgroundColor: MAROON, borderColor: MAROON } : undefined}
+                                >
+                                    {p}
+                                </button>
+                            </PaginationItem>
+                        </div>
+                    ))}
+
+                    <PaginationItem>
+                        <button
+                            onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+                            disabled={page === totalPages}
+                            className={cn(
+                                'flex h-9 items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors',
+                                page === totalPages
+                                    ? 'pointer-events-none border-gray-200 bg-white text-gray-400 opacity-40'
+                                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
+                            )}
+                        >
+                            Next &raquo;
+                        </button>
+                    </PaginationItem>
+                </PaginationContent>
+            </ShadPagination>
         </div>
     );
 }
@@ -377,6 +447,7 @@ function GalleryTab({
     const [selectedId, setSelectedId] = useState<string | number | null>(null);
     const [query, setQuery] = useState('');
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     const items = category === 'po' ? purchaseOrders : clearances;
 
@@ -390,8 +461,13 @@ function GalleryTab({
         );
     }, [items, query]);
 
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+    const handlePageSizeChange = (size: number) => {
+        setPageSize(size);
+        setPage(1);
+    };
 
     useEffect(() => {
         setPage(1);
@@ -474,7 +550,16 @@ function GalleryTab({
                 </div>
             )}
 
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+            <div className="pt-2">
+                <ClientPagination 
+                    page={page} 
+                    totalPages={totalPages} 
+                    totalItems={filtered.length}
+                    pageSize={pageSize}
+                    onPageChange={setPage}
+                    onPageSizeChange={handlePageSizeChange}
+                />
+            </div>
         </div>
     );
 }
@@ -1386,14 +1471,16 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
     );
 }
 
-function ArchiveTab({ archives }: { archives: any[] }) {
-    const [query, setQuery] = useState('');
-    const [moduleFilter, setModuleFilter] = useState('All');
-    const [page, setPage] = useState(1);
+function ArchiveTab({ archives }: { archives: any }) {
+    const searchParams = new URLSearchParams(window.location.search);
+    const [query, setQuery] = useState(searchParams.get('search') || '');
+    const [moduleFilter, setModuleFilter] = useState(searchParams.get('module') || 'All');
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [selectedArchiveData, setSelectedArchiveData] = useState<{ type: string; data: any } | null>(null);
     const [fetchingArchiveId, setFetchingArchiveId] = useState<number | null>(null);
     const [isRestoring, setIsRestoring] = useState(false);
+
+    const { data: paginated, ...meta } = archives;
 
     const handleRestore = (ids: number[]) => {
         if (!ids.length) return;
@@ -1421,36 +1508,20 @@ function ArchiveTab({ archives }: { archives: any[] }) {
         }
     };
 
-    const filtered = useMemo(() => {
-        let result = archives;
-
-        if (query.trim()) {
-            const q = query.toLowerCase();
-            result = result.filter(
-                (a) =>
-                    a.identity_document?.toLowerCase().includes(q) ||
-                    a.archived_from?.toLowerCase().includes(q) ||
-                    a.archived_by?.toLowerCase().includes(q),
-            );
-        }
-
-        if (moduleFilter !== 'All') {
-            result = result.filter(a => {
-                return a.archived_from?.toLowerCase().includes(moduleFilter.toLowerCase()); 
-            });
-        }
-
-        return result;
-    }, [archives, query, moduleFilter]);
-
-    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    const handleSearch = () => {
+        router.get(window.location.pathname, {
+            ...Object.fromEntries(searchParams),
+            search: query,
+            module: moduleFilter === 'All' ? undefined : moduleFilter,
+            page: 1,
+        }, { preserveState: true, preserveScroll: true });
+    };
 
     const toggleSelectAll = () => {
         if (selectedIds.length === paginated.length && paginated.length > 0) {
             setSelectedIds([]);
         } else {
-            setSelectedIds(paginated.map(item => item.id));
+            setSelectedIds(paginated.map((item: any) => item.id));
         }
     };
 
@@ -1463,8 +1534,8 @@ function ArchiveTab({ archives }: { archives: any[] }) {
     const handleClear = () => {
         setQuery('');
         setModuleFilter('All');
-        setPage(1);
         setSelectedIds([]);
+        router.get(window.location.pathname, {}, { preserveState: true, preserveScroll: true });
     };
 
     return (
@@ -1478,7 +1549,9 @@ function ArchiveTab({ archives }: { archives: any[] }) {
                         value={query}
                         onChange={(e) => {
                             setQuery(e.target.value);
-                            setPage(1);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSearch();
                         }}
                     />
                 </div>
@@ -1532,7 +1605,7 @@ function ArchiveTab({ archives }: { archives: any[] }) {
                         </SelectContent>
                     </Select>
                     
-                    <Button variant="secondary" className="h-10 px-6 font-medium bg-muted/60">
+                    <Button variant="secondary" onClick={handleSearch} className="h-10 px-6 font-medium bg-muted/60">
                         Search
                     </Button>
                     <Button variant="ghost" onClick={handleClear} className="h-10 px-4 font-medium">
@@ -1545,17 +1618,17 @@ function ArchiveTab({ archives }: { archives: any[] }) {
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="border-b text-muted-foreground">
-                            <th className="px-4 py-4 text-left font-medium w-[40px]">
+                            <th className="px-4 py-2 text-left font-medium w-[40px]">
                                 <Checkbox 
                                     checked={selectedIds.length === paginated.length && paginated.length > 0}
                                     onCheckedChange={toggleSelectAll}
                                 />
                             </th>
-                            <th className="px-4 py-4 text-left font-medium">Identity Document</th>
-                            <th className="px-4 py-4 text-left font-medium">Archived from</th>
-                            <th className="px-4 py-4 text-left font-medium">Archived by</th>
-                            <th className="px-4 py-4 text-left font-medium">Time/Date</th>
-                            <th className="px-4 py-4 text-right font-medium">Action</th>
+                            <th className="px-4 py-2 text-left font-medium">Identity Document</th>
+                            <th className="px-4 py-2 text-left font-medium">Archived from</th>
+                            <th className="px-4 py-2 text-left font-medium">Archived by</th>
+                            <th className="px-4 py-2 text-left font-medium">Time/Date</th>
+                            <th className="px-4 py-2 text-right font-medium">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1568,16 +1641,16 @@ function ArchiveTab({ archives }: { archives: any[] }) {
                         ) : (
                             paginated.map((item) => (
                                 <tr key={item.id} className="border-b transition-colors hover:bg-muted/40">
-                                    <td className="px-4 py-4">
+                                    <td className="px-4 py-2">
                                         <Checkbox 
                                             checked={selectedIds.includes(item.id)}
                                             onCheckedChange={() => toggleSelect(item.id)}
                                         />
                                     </td>
-                                    <td className="px-4 py-4 font-medium">
+                                    <td className="px-4 py-2 font-medium">
                                         {item.identity_document}
                                     </td>
-                                    <td className="px-4 py-4">
+                                    <td className="px-4 py-2">
                                         {item.archived_from?.includes('>') ? (
                                             <div className="flex items-center gap-2">
                                                 <span className="font-semibold text-foreground">
@@ -1592,7 +1665,7 @@ function ArchiveTab({ archives }: { archives: any[] }) {
                                             <span className="text-muted-foreground">{item.archived_from}</span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-4">
+                                    <td className="px-4 py-2">
                                         <div className="flex items-center gap-2">
                                             {item.archived_by_avatar ? (
                                                 <img src={item.archived_by_avatar} alt={item.archived_by} className="h-6 w-6 rounded-full object-cover border border-gray-200" />
@@ -1604,8 +1677,8 @@ function ArchiveTab({ archives }: { archives: any[] }) {
                                             <span className="font-medium text-sm">{item.archived_by}</span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-4 text-muted-foreground">{item.created_at}</td>
-                                    <td className="px-4 py-4 text-right">
+                                    <td className="px-4 py-2 text-muted-foreground">{item.created_at}</td>
+                                    <td className="px-4 py-2 text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
@@ -1642,11 +1715,10 @@ function ArchiveTab({ archives }: { archives: any[] }) {
                         )}
                     </tbody>
                 </table>
-                {totalPages > 1 && (
-                    <div className="p-4 border-t">
-                        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-                    </div>
-                )}
+            </div>
+            
+            <div className="pt-2">
+                <Pagination meta={meta} preserveScroll />
             </div>
 
             {selectedIds.length > 0 && (
@@ -1759,7 +1831,7 @@ export default function DocumentCenterIndex({
 }: {
     purchaseOrders: ItemOption[];
     clearances: ItemOption[];
-    archives: any[];
+    archives: any;
 }) {
     const [activeTab, setActiveTab] = useState('archive');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -1802,9 +1874,9 @@ export default function DocumentCenterIndex({
         <>
             <Head title="Document Center" />
 
-            <div className="p-3 sm:p-6">
+            <div className="p-4 sm:p-6">
                 <Tabs value={activeTab} onValueChange={handleTabChange}>
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="relative sticky top-16 group-has-data-[collapsible=icon]/sidebar-wrapper:top-12 transition-[all] ease-linear z-30 -mx-4 -mt-4 mb-0 bg-background/95 backdrop-blur px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h1 className="text-foreground text-xl font-bold sm:text-2xl">Document Center</h1>
                             <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
@@ -1827,16 +1899,16 @@ export default function DocumentCenterIndex({
 
                     <TabsContent
                         value="archive"
-                        className="animate-in fade-in mt-5 duration-300 sm:mt-6"
+                        className="animate-in fade-in mt-0 duration-300 sm:mt-0"
                     >
                         <ArchiveTab archives={archives} />
                     </TabsContent>
 
-                    <TabsContent value="gallery" className="animate-in fade-in mt-5 duration-300 sm:mt-6">
+                    <TabsContent value="gallery" className="animate-in fade-in mt-0 duration-300 sm:mt-0">
                         <GalleryTab purchaseOrders={purchaseOrders} clearances={clearances} />
                     </TabsContent>
 
-                    <TabsContent value="scheduled-tasks" className="animate-in fade-in mt-5 duration-300 sm:mt-6">
+                    <TabsContent value="scheduled-tasks" className="animate-in fade-in mt-0 duration-300 sm:mt-0">
                         <ScheduledTasksTab onDirtyChange={setHasUnsavedChanges} />
                     </TabsContent>
                 </Tabs>

@@ -176,7 +176,7 @@ public function index(Request $request): Response
     public function destroy(Request $request, Clearance $clearance): RedirectResponse
     {
         $clearance->archiveMetadata()->create([
-            'identity_document' => $clearance->name,
+            'identity_document' => $clearance->tracking_no,
             'archived_from' => 'HR > Clearance',
             'archived_by' => $request->user()?->id,
         ]);
