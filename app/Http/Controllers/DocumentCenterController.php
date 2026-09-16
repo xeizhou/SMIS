@@ -74,17 +74,37 @@ class DocumentCenterController extends Controller
                 'attachment_count' => $clearanceCounts[$clearance->clearance_id] ?? 0,
             ]);
 
-        $archives = \App\Models\Archive::with('user:id,name,avatar_path')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(fn ($archive) => [
+        $search = request('search');
+        $module = request('module');
+        $perPage = request()->integer('per_page', 10);
+
+        $archivesQuery = \App\Models\Archive::with('user:id,name,avatar_path')
+            ->orderBy('created_at', 'desc');
+
+        if ($search) {
+            $archivesQuery->where(function ($q) use ($search) {
+                $q->where('identity_document', 'like', "%{$search}%")
+                  ->orWhere('archived_from', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($module && $module !== 'All') {
+            $archivesQuery->where('archived_from', 'like', "%{$module}%");
+        }
+
+        $archives = $archivesQuery->paginate($perPage)
+            ->through(fn ($archive) => [
                 'id' => $archive->id,
                 'identity_document' => $archive->identity_document,
                 'archived_from' => $archive->archived_from,
                 'archived_by' => $archive->user ? $archive->user->name : 'Unknown',
                 'archived_by_avatar' => $archive->user ? $archive->user->avatar_url : null,
                 'created_at' => $archive->created_at->diffForHumans(),
-            ]);
+            ])
+            ->withQueryString();
 
         return Inertia::render('document-center/index', [
             'purchaseOrders' => $purchaseOrders,

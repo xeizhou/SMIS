@@ -163,7 +163,7 @@ class RegSPIController extends Controller
     public function destroy(Request $request, RegspiMonitoring $regspi): RedirectResponse
     {
         $regspi->archiveMetadata()->create([
-            'identity_document' => 'RegSPI - ' . $regspi->property_no,
+            'identity_document' => $regspi->property_no,
             'archived_from' => 'Assets > RegSPI Monitoring',
             'archived_by' => $request->user()?->id,
         ]);

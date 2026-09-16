@@ -115,7 +115,7 @@ public function index(Request $request): Response
     public function destroy(Request $request, EmployeeFileLocator $employeefilelocator): RedirectResponse
     {
         $employeefilelocator->archiveMetadata()->create([
-            'identity_document' => 'Employee File - ' . $employeefilelocator->last_name . ', ' . $employeefilelocator->first_name,
+            'identity_document' => $employeefilelocator->last_name . ', ' . $employeefilelocator->first_name,
             'archived_from' => 'HR > Employee File Locator',
             'archived_by' => $request->user()?->id,
         ]);
