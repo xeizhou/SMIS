@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('po_number');
             $table->string('stock_no');
             $table->timestamps();
+            $table->softDeletes();
 
             $table->foreign('po_number')
                 ->references('po_number')->on('serve_po')

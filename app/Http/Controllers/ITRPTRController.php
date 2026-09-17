@@ -126,25 +126,18 @@ class ITRPTRController extends Controller
         return redirect()->back()->with('success', 'ITR/PTR record updated successfully.');
     }
 
-    public function destroy($id)
+    public function destroy(\Illuminate\Http\Request $request, $id)
     {
         $itrPtr = ItrPtrMonitoring::findOrFail($id);
-        
-        DB::transaction(function () use ($itrPtr) {
-            // Delete For Disposal records first (bottom of hierarchy)
-            ForDisposalMonitoring::where('transaction_no', $itrPtr->transaction_no)
-                ->where('property_no', $itrPtr->property_no)
-                ->delete();
 
-            // Delete Pre-Repair records next
-            PreRepairMonitoring::where('transaction_no', $itrPtr->transaction_no)
-                ->where('property_no', $itrPtr->property_no)
-                ->delete();
+        $itrPtr->archiveMetadata()->create([
+            'identity_document' => $itrPtr->property_no,
+            'archived_from' => 'Assets > ITR/PTR Monitoring',
+            'archived_by' => $request->user()?->id,
+        ]);
 
-            // Delete the parent
-            $itrPtr->delete();
-        });
+        $itrPtr->delete();
 
         return redirect()->back()->with('success', 'ITR/PTR record archived successfully.');
     }
-}
+    }

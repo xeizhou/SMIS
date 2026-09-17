@@ -208,6 +208,10 @@ class RRSPController extends Controller
     {
         $record = RrspMonitoring::where('id', $rrsp)->orWhere('rrsp_no', $rrsp)->firstOrFail();
 
+        if ($record->po_number && \App\Models\ServePo::where('po_number', $record->po_number)->exists()) {
+            return back()->with('error', "Cannot archive this RRSP because it has linked records. Please remove them first:\n1 Linked Purchase Order\n- P.O. No.: {$record->po_number}");
+        }
+
         $record->archiveMetadata()->create([
             'identity_document' => $record->rrsp_no,
             'archived_from' => 'Assets > RRSP Monitoring',

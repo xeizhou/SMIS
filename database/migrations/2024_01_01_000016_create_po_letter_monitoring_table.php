@@ -41,6 +41,7 @@ return new class extends Migration
             $table->date('date_forwarded_to_end_user')->nullable();
             $table->text('remarks')->nullable();
             $table->timestamps();
+            $table->softDeletes();
 
             $table->unique(['po_number', 'type_of_letter'], 'uq_po_letter_pk');
 

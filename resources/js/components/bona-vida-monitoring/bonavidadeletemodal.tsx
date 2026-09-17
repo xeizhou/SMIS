@@ -51,12 +51,18 @@ export default function BonaVidaDeleteModal({ open, onOpenChange, record }: Prop
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-black">Confirm Delete</DialogTitle>
+                    <DialogTitle className="text-black">Confirm Archive</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete this Bona Vida record? This action cannot be undone.
+                        Are you sure you want to archive Bona Vida record with Invoice No. {' '}
+                        {record?.invoice_no ? (
+                            <span className="font-medium text-foreground">{record.invoice_no}</span>
+                        ) : (
+                            'this record'
+                        )}
+                        ?
                     </p>
                 </div>
 
@@ -66,12 +72,10 @@ export default function BonaVidaDeleteModal({ open, onOpenChange, record }: Prop
                     </Button>
                     <Button
                         type="button"
-                        variant="destructive"
                         onClick={confirmDelete}
                         disabled={processing}
-                        className="bg-red-600 hover:bg-red-700 text-white"
                     >
-                        {processing ? 'Deleting...' : 'Delete'}
+                        {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

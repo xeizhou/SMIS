@@ -21,7 +21,7 @@ class RrppeItemObserver
 
         $rrppe = $item->rrppe ?? RRPPEMonitoring::find($item->rrppe_monitoring_id);
 
-        ForDisposalMonitoring::updateOrCreate(
+        $forDisposal = ForDisposalMonitoring::withTrashed()->updateOrCreate(
             [
                 'source_type' => 'rrppe_item',
                 'source_id' => $item->id,
@@ -39,6 +39,10 @@ class RrppeItemObserver
                 'location' => $item->area ?? 'N/A',
             ]
         );
+
+        if ($forDisposal->trashed()) {
+            $forDisposal->restore();
+        }
     }
 
     public function deleted(RrppeItem $item): void

@@ -176,9 +176,16 @@ class RRPPEController extends Controller
         return redirect()->back()->with('success', 'RRPPE record updated successfully.');
     }
 
-        public function destroy($id)
+    public function destroy(\Illuminate\Http\Request $request, $id)
     {
         $record = RRPPEMonitoring::findOrFail($id);
+
+        $record->archiveMetadata()->create([
+            'identity_document' => $record->rrppe_no,
+            'archived_from' => 'Assets > RRPPE Monitoring',
+            'archived_by' => $request->user()?->id,
+        ]);
+
         foreach ($record->items as $item) {
             $item->delete();
         }

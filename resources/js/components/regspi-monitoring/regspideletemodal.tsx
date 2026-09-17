@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -18,17 +19,34 @@ interface Props {
 
 export default function RegSPIDeleteModal({ open, onOpenChange, regspiId, propertyNo }: Props) {
     const [processing, setProcessing] = useState(false);
+    const [warningOpen, setWarningOpen] = useState(false);
+    const [warningMessage, setWarningMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (open) {
+            setWarningMessage(null);
+        }
+    }, [open]);
 
     const confirmDelete = () => {
         if (!regspiId) {
-return;
-}
+            return;
+        }
 
         setProcessing(true);
 
         router.delete(`/regspi-monitoring/${encodeURIComponent(String(regspiId))}`, {
-            onSuccess: () => {
-                onOpenChange(false);
+            preserveScroll: true,
+            onSuccess: (page) => {
+                const flash = (page.props as any)?.flash;
+
+                if (flash?.error) {
+                    onOpenChange(false);
+                    setWarningMessage(flash.error);
+                    setWarningOpen(true);
+                } else {
+                    onOpenChange(false);
+                }
             },
             onFinish: () => {
                 setProcessing(false);
@@ -37,39 +55,93 @@ return;
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="text-black">Confirm Delete</DialogTitle>
-                </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-black">Confirm Archive</DialogTitle>
+                    </DialogHeader>
 
-                <div className="py-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete RegSPI record{' '}
-                        {propertyNo ? (
-                            <span className="font-medium text-foreground">{propertyNo}</span>
+                    <div className="py-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Are you sure you want to archive RegSPI record{' '}
+                            {propertyNo ? (
+                                <span className="font-medium text-foreground">{propertyNo}</span>
+                            ) : (
+                                'this record'
+                            )}
+                            ?
+                        </p>
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-2">
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={confirmDelete}
+                            disabled={processing}
+                        >
+                            {processing ? 'Archiving...' : 'Archive'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={warningOpen} onOpenChange={setWarningOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-600">
+                            <AlertTriangle className="h-5 w-5" />
+                            Warning
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="pb-3">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Cannot archive RegSPI record{' '}
+                            {propertyNo ? (
+                                <span className="font-medium text-foreground">{propertyNo}</span>
+                            ) : (
+                                'this record'
+                            )}
+                            .
+                        </p>
+                    </div>
+
+                    <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+                        {warningMessage?.includes('\n') ? (
+                            <>
+                                <p>{warningMessage.split('\n')[0]}</p>
+                                <ul className="list-disc pl-5 mt-3 space-y-0.5">
+                                    {warningMessage
+                                        .split('\n')
+                                        .slice(1)
+                                        .filter((line) => line.trim() !== '')
+                                        .map((line, i) =>
+                                            line.startsWith('- ') ? (
+                                                <li key={i} className="list-[circle] ml-5">
+                                                    {line.substring(2)}
+                                                </li>
+                                            ) : (
+                                                <li key={i}>{line}</li>
+                                            ),
+                                        )}
+                                </ul>
+                            </>
                         ) : (
-                            'this record'
+                            <p>{warningMessage}</p>
                         )}
-                        ? This action cannot be undone.
-                    </p>
-                </div>
+                    </div>
 
-                <DialogFooter className="gap-2 sm:gap-2">
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                        Cancel
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={confirmDelete}
-                        disabled={processing}
-                        className="bg-red-600 hover:bg-red-700 text-white"
-                    >
-                        {processing ? 'Deleting...' : 'Delete'}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                    <DialogFooter className="pt-2">
+                        <Button type="button" onClick={() => setWarningOpen(false)}>
+                            OK
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

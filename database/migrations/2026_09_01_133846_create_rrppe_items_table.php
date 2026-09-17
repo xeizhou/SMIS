@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('area', 100)->nullable();
             $table->text('remarks')->nullable();
             $table->timestamps();
+            $table->softDeletes();
 
             $table->foreign('rrppe_monitoring_id')
                   ->references('id')

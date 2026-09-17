@@ -116,21 +116,32 @@ class PreRepairController extends Controller
     public function destroy($id)
     {
         $preRepair = PreRepairMonitoring::findOrFail($id);
-        
-        DB::transaction(function () use ($preRepair) {
-            // ITR/PTR is no longer connected, and ForDisposal records should NOT be automatically deleted (unless strictly requested)
-            // Wait, "pre repair and for disposal are connected to each other".
-            // If they are connected, deleting a Pre-Repair should probably still cascade delete the For-Disposal record, 
-            // OR it should fail if it exists. Since SQLite doesn't natively cascade without PRAGMA foreign_keys = ON, 
-            // I'll keep the manual cascade delete for ForDisposal to keep them "connected".
-            ForDisposalMonitoring::where('pre_repair_no', $preRepair->pre_repair_no)
+        $forDisposals = \App\Models\ForDisposalMonitoring::where('pre_repair_no', $preRepair->pre_repair_no)
                 ->where('transaction_no', $preRepair->transaction_no)
                 ->where('property_no', $preRepair->property_no)
-                ->delete();
-
-            // Delete the Pre-Repair record
-            $preRepair->delete();
-        });
+                ->get();
+                
+        if ($forDisposals->count() > 0) {
+            $parts = [];
+            $count = $forDisposals->count();
+            $str = "{$count} Linked For Disposal Record" . ($count > 1 ? 's' : '') . "\n";
+            foreach ($forDisposals as $fd) {
+                $str .= "- Property No.: {$fd->property_no}\n";
+            }
+            $parts[] = rtrim($str);
+            
+            return redirect()->back()->with('error',
+                "Cannot archive this Pre-Repair record because it has linked records. Please remove them first:\n" . implode("\n", $parts)
+            );
+        }
+        
+        $preRepair->archiveMetadata()->create([
+            'identity_document' => $preRepair->property_no,
+            'archived_from' => 'Assets > Pre-Repair Monitoring',
+            'archived_by' => request()->user()?->id,
+        ]);
+        
+        $preRepair->delete();
 
         return redirect()->back()->with('success', 'Pre-Repair record archived successfully.');
     }

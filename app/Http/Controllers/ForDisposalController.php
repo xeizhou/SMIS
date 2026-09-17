@@ -99,9 +99,34 @@ class ForDisposalController extends Controller
         return redirect()->back()->with('success', 'For Disposal record updated successfully.');
     }
 
-    public function destroy($id)
+    public function destroy(\Illuminate\Http\Request $request, $id)
     {
         $forDisposal = ForDisposalMonitoring::findOrFail($id);
+
+        if ($forDisposal->source_type && $forDisposal->source_id) {
+            $sourceModel = null;
+            $sourceName = '';
+
+            if (str_contains(strtolower($forDisposal->source_type), 'rrsp')) {
+                $sourceModel = \App\Models\RrspItem::find($forDisposal->source_id);
+                $sourceName = 'RRSP';
+            } elseif (str_contains(strtolower($forDisposal->source_type), 'rrppe')) {
+                $sourceModel = \App\Models\RrppeItem::find($forDisposal->source_id) ?? \App\Models\RRPPEMonitoring::find($forDisposal->source_id);
+                $sourceName = 'RRPPE';
+            }
+
+            if ($sourceModel) {
+                $identifier = $sourceModel->property_no ?? $sourceModel->rrppe_no ?? $forDisposal->property_no;
+                return redirect()->back()->with('error', "This For Disposal record has linked records. Please remove them first:\n1 Linked {$sourceName}\n- Property No.: {$identifier}");
+            }
+        }
+
+        $forDisposal->archiveMetadata()->create([
+            'identity_document' => $forDisposal->property_no,
+            'archived_from' => 'Assets > For Disposal Monitoring',
+            'archived_by' => $request->user()?->id,
+        ]);
+
         $forDisposal->delete();
 
         return redirect()->back()->with('success', 'For Disposal record archived successfully.');

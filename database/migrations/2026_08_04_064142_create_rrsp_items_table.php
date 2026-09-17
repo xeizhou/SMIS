@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('kind_of_semi_expendable', 50)->nullable();
             $table->string('area', 100)->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

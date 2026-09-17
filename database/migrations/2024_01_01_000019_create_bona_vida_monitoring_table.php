@@ -21,6 +21,7 @@ return new class extends Migration
             $table->date('invoice_date');
             $table->string('remarks', 255)->nullable();
             $table->timestamps();
+            $table->softDeletes();
 
             $table->foreign('office_code', 'fk_bonavida_office')
                 ->references('office_code')->on('offices')

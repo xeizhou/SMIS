@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Traits\LogsActivity;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class ItrPtrMonitoring extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     const LOG_NAME = 'ITR/PTR Monitoring';
 
@@ -51,5 +53,10 @@ class ItrPtrMonitoring extends Model
     public function getActivityUrl()
     {
         return route('itr-ptr-monitoring.index') . '?highlight_id=' . $this->getKey();
+    }
+
+    public function archiveMetadata(): MorphOne
+    {
+        return $this->morphOne(Archive::class, 'archivable');
     }
 }

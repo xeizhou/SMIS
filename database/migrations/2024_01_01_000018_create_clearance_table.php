@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('end_user_claim', 100)->nullable();
             
             $table->timestamps();
+            $table->softDeletes();
 
             $table->foreign('office', 'fk_clearance_office')
                 ->references('office_code')->on('offices')

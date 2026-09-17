@@ -32,6 +32,7 @@ return new class extends Migration
             $table->decimal('amount', 15, 2);
             $table->string('remarks', 255)->nullable();
             $table->timestamps();
+            $table->softDeletes();
 
             $table->foreign('rrsp_no', 'fk_regspi_rrsp_no')
                 ->references('rrsp_no')->on('rrsp_monitoring')

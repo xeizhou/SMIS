@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('end_user_name', 100)->nullable();
             $table->string('return_by')->nullable();
             $table->timestamps();
+            $table->softDeletes();
             
             $table->foreign('po_number')
                   ->references('po_number')

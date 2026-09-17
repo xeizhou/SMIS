@@ -32,6 +32,7 @@ return new class extends Migration
             $table->decimal('total_amount_delivered', 15, 2)->default(0);
             $table->decimal('po_total_amount', 15, 2)->default(0);
             $table->string('folder_link', 500)->nullable();
+            $table->softDeletes();
 
             $table->foreign('po_number', 'fk_delivery_po_number')
                 ->references('po_number')->on('serve_po')

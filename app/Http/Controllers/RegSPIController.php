@@ -162,8 +162,27 @@ class RegSPIController extends Controller
      */
     public function destroy(Request $request, RegspiMonitoring $regspi): RedirectResponse
     {
+        $rrsps = \App\Models\RrspMonitoring::where('rrsp_no', $regspi->rrsp_no)->get();
+
+        if ($rrsps->count() > 0) {
+            $parts = [];
+
+            if ($rrsps->count() > 0) {
+                $count = $rrsps->count();
+                $str = "{$count} Linked RRSP" . ($count > 1 ? 's' : '') . "\n";
+                foreach ($rrsps as $rrsp) {
+                    $str .= "- RRSP No.: {$rrsp->rrsp_no}\n";
+                }
+                $parts[] = rtrim($str);
+            }
+
+            return redirect()->back()->with('error',
+                "This RegSPI record has linked records. Please remove them first:\n" . implode("\n", $parts)
+            );
+        }
+
         $regspi->archiveMetadata()->create([
-            'identity_document' => $regspi->property_no,
+            'identity_document' => $regspi->semi_expendable_property_no,
             'archived_from' => 'Assets > RegSPI Monitoring',
             'archived_by' => $request->user()?->id,
         ]);

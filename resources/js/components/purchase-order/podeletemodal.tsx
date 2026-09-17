@@ -1,6 +1,8 @@
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { AlertTriangle } from 'lucide-react';
+
 import {
     Dialog,
     DialogContent,
@@ -17,7 +19,8 @@ interface Props {
 
 interface FlashProps {
     success?: string;
-    error?: string;}
+    error?: string;
+}
 
 export default function PurchaseOrderDeleteModal({
     open,
@@ -25,11 +28,12 @@ export default function PurchaseOrderDeleteModal({
     poNumber,
 }: Props) {
     const [processing, setProcessing] = useState(false);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [warningOpen, setWarningOpen] = useState(false);
+    const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
     useEffect(() => {
         if (open) {
-            setErrorMessage(null);
+            setWarningMessage(null);
         }
     }, [open]);
 
@@ -39,7 +43,6 @@ export default function PurchaseOrderDeleteModal({
         }
 
         setProcessing(true);
-        setErrorMessage(null);
 
         router.delete(`/purchase-orders/${encodeURIComponent(poNumber)}`, {
             preserveScroll: true,
@@ -47,7 +50,9 @@ export default function PurchaseOrderDeleteModal({
                 const flash = page.props.flash as FlashProps;
 
                 if (flash?.error) {
-                    setErrorMessage(flash.error);
+                    onOpenChange(false);
+                    setWarningMessage(flash.error);
+                    setWarningOpen(true);
                 } else {
                     onOpenChange(false);
                 }
@@ -59,64 +64,105 @@ export default function PurchaseOrderDeleteModal({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="text-black">
-                        Confirm Archive
-                    </DialogTitle>
-                </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-black">
+                            Confirm Archive
+                        </DialogTitle>
+                    </DialogHeader>
 
-                <div className="py-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to archive purchase order{' '}
-                        {poNumber ? (
-                            <span className="font-medium text-foreground">
-                                {poNumber}
-                            </span>
-                        ) : (
-                            'this purchase order'
-                        )}
-                        ?
-                    </p>
-
-                    {errorMessage && (
-                        <div className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
-                            {errorMessage.includes('\n') ? (
-                                <>
-                                    <p>{errorMessage.split('\n')[0]}</p>
-                                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
-                                        {errorMessage.split('\n').slice(1).map((line, i) => (
-                                            <li key={i}>{line}</li>
-                                        ))}
-                                    </ul>
-                                </>
+                    <div className="py-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Are you sure you want to archive purchase order{' '}
+                            {poNumber ? (
+                                <span className="font-medium text-foreground">
+                                    {poNumber}
+                                </span>
                             ) : (
-                                <p>{errorMessage}</p>
+                                'this purchase order'
                             )}
-                        </div>
-                    )}
-                </div>
+                            ?
+                        </p>
+                    </div>
 
-                <DialogFooter className="gap-2 sm:gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        Cancel
-                    </Button>
+                    <DialogFooter className="gap-2 sm:gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => onOpenChange(false)}
+                        >
+                            Cancel
+                        </Button>
 
-                    <Button
-                    className='bg-[#612A35]'
-                        type="button"
-                        onClick={confirmDelete}
-                        disabled={processing}
-                    >
-                        {processing ? 'Archiving...' : 'Archive'}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                        <Button
+                            className="bg-[#612A35]"
+                            type="button"
+                            onClick={confirmDelete}
+                            disabled={processing}
+                        >
+                            {processing ? 'Archiving...' : 'Archive'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={warningOpen} onOpenChange={setWarningOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-600">
+                            <AlertTriangle className="h-5 w-5" />
+                            Warning
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="pb-3">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Cannot archive purchase order {' '}
+                            {poNumber ? (
+                                <span className="font-medium text-foreground">
+                                    {poNumber}
+                                </span>
+                            ) : (
+                                'this purchase order'
+                            )}
+                            .
+                        </p>
+                    </div>
+
+                    <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+                        {warningMessage?.includes('\n') ? (
+                            <>
+                                <p>{warningMessage.split('\n')[0]}</p>
+                                <ul className="list-disc pl-5 mt-3 space-y-0.5">
+                                    {warningMessage
+                                        .split('\n')
+                                        .slice(1)
+                                        .filter((line) => line.trim() !== '')
+                                        .map((line, i) =>
+                                            line.startsWith('- ') ? (
+                                                <li key={i} className="list-[circle] ml-5">
+                                                    {line.substring(2)}
+                                                </li>
+                                            ) : (
+                                                <li key={i}>{line}</li>
+                                            ),
+                                        )}
+                                </ul>
+                            </>
+                        ) : (
+                            <p>{warningMessage}</p>
+                        )}
+                    </div>
+
+                    <DialogFooter className="pt-2">
+                        <Button type="button" onClick={() => setWarningOpen(false)}>
+                            OK
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

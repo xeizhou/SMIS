@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -13,10 +13,18 @@ interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     itemId: number | null;
+    identifierValue?: string | null;
 }
 
-export default function ForDisposalDeleteModal({ open, onOpenChange, itemId }: Props) {
+export default function ForDisposalDeleteModal({ open, onOpenChange, itemId, identifierValue }: Props) {
     const [processing, setProcessing] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (open) {
+            setErrorMessage(null);
+        }
+    }, [open]);
 
     const confirmDelete = () => {
         if (!itemId) {
@@ -26,8 +34,15 @@ return;
         setProcessing(true);
 
         router.delete(`/for-disposal-monitoring/${itemId}`, {
-            onSuccess: () => {
-                onOpenChange(false);
+            preserveScroll: true,
+            onSuccess: (page) => {
+                const flash = (page.props as any)?.flash;
+
+                if (flash?.error) {
+                    setErrorMessage(flash.error);
+                } else {
+                    onOpenChange(false);
+                }
             },
             onFinish: () => setProcessing(false),
         });
@@ -37,13 +52,39 @@ return;
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-red-600">Delete Record</DialogTitle>
+                    <DialogTitle>Confirm Archive</DialogTitle>
                 </DialogHeader>
                 
                 <div className="py-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete this record? This action cannot be undone.
+                        Are you sure you want to archive For Disposal record{' '}
+                        {identifierValue ? (
+                            <span className="font-medium text-foreground">{identifierValue}</span>
+                        ) : (
+                            'this record'
+                        )}
+                        ?
                     </p>
+                    
+                    {errorMessage && (
+                        <div className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+                            {errorMessage.includes('\n') ? (
+                                <>
+                                    <p>{errorMessage.split('\n')[0]}</p>
+                                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
+                                        {errorMessage.split('\n').slice(1).map((line, i) => {
+                                            if (line.startsWith('- ')) {
+                                                return <li key={i} className="list-[circle] ml-5">{line.substring(2)}</li>;
+                                            }
+                                            return <li key={i}>{line}</li>;
+                                        })}
+                                    </ul>
+                                </>
+                            ) : (
+                                <p>{errorMessage}</p>
+                            )}
+                        </div>
+                    )}
                 </div>
                 
                 <DialogFooter className="gap-2 sm:gap-0">
@@ -52,12 +93,10 @@ return;
                     </Button>
                     <Button 
                         type="button" 
-                        variant="destructive" 
                         onClick={confirmDelete} 
                         disabled={processing}
-                        className="bg-red-600 hover:bg-red-700 text-white"
                     >
-                        {processing ? 'Deleting...' : 'Delete'}
+                        {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

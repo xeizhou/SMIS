@@ -32,7 +32,7 @@ import {
     MoreHorizontal,
     RotateCcw,
     Eye,
-    Trash2
+    Trash2,
 } from 'lucide-react';
 import {
     Select,
@@ -69,6 +69,9 @@ import {
     PaginationItem,
 } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
+import RrppeViewModal from '@/components/rrppe-monitoring/rrppe-view-modal';
+import ItrPtrViewModal from '@/components/itr-ptr-monitoring/itr-ptr-view-modal';
+import ForDisposalViewModal from '@/components/for-disposal-monitoring/for-disposal-view-modal';
 interface ItemOption {
     id: string | number;
     label: string;
@@ -1642,7 +1645,7 @@ function ArchiveTab({ archives }: { archives: any }) {
                                 </td>
                             </tr>
                         ) : (
-                            paginated.map((item) => (
+                            paginated.map((item: any) => (
                                 <tr key={item.id} className="border-b transition-colors hover:bg-muted/40">
                                     <td className="px-4 py-2">
                                         <Checkbox 
@@ -1778,7 +1781,7 @@ function ArchiveTab({ archives }: { archives: any }) {
                 <RrspViewForm
                     open={true}
                     onOpenChange={(open) => !open && setSelectedArchiveData(null)}
-                    record={selectedArchiveData.data}
+                    rrsp={selectedArchiveData.data}
                 />
             )}
             {selectedArchiveData?.type === 'RegspiMonitoring' && (
@@ -1835,6 +1838,27 @@ function ArchiveTab({ archives }: { archives: any }) {
                     open={true}
                     onOpenChange={(open) => !open && setSelectedArchiveData(null)}
                     transaction={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'RRPPEMonitoring' && (
+                <RrppeViewModal
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    item={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'ItrPtrMonitoring' && (
+                <ItrPtrViewModal
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    item={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'ForDisposalMonitoring' && (
+                <ForDisposalViewModal
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    item={selectedArchiveData.data}
                 />
             )}
         </div>

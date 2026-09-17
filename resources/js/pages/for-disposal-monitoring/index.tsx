@@ -109,8 +109,9 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
         setIsViewModalOpen(true);
     };
 
-    const openDeleteModal = (id: number) => {
-        setItemToDelete(id);
+    const openDeleteModal = (item: ForDisposalMonitoring) => {
+        setItemToDelete(item.id);
+        setSelectedItem(item);
         setIsDeleteModalOpen(true);
     };
 
@@ -212,7 +213,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                                 <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
                                                     <Pencil className="h-4 w-4" />
                                                 </button>
-                                                <button onClick={() => openDeleteModal(item.id)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
+                                                <button onClick={() => openDeleteModal(item)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                                                     <Archive className="h-4 w-4" />
                                                 </button>
                                                 <button onClick={() => openViewModal(item)} className="text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
@@ -257,6 +258,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                 open={isDeleteModalOpen}
                 onOpenChange={setIsDeleteModalOpen}
                 itemId={itemToDelete}
+                identifierValue={selectedItem?.property_no}
             />
         </>
     );
