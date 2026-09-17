@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -18,6 +18,12 @@ interface Props {
 export default function UnitDeleteModal({ open, onOpenChange, unitID }: Props) {
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (open) {
+            setError(null);
+        }
+    }, [open]);
 
     const confirmArchive = () => {
         if (!unitID) {
