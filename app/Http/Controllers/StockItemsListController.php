@@ -50,7 +50,10 @@ class StockItemsListController extends Controller
                     ->where('siu.is_default', '=', true);
             })
             ->join('units as u', 'u.unitID', '=', 'siu.unitID')
-            ->leftJoin('transactions as t', 't.stock_no', '=', 'i.stock_no')
+            ->leftJoin('transactions as t', function ($join) {
+                $join->on('t.stock_no', '=', 'i.stock_no')
+                    ->whereNull('t.deleted_at');
+            })
             ->select(
                 'i.stock_no',
                 'i.item_name',
@@ -82,6 +85,7 @@ class StockItemsListController extends Controller
                     $sub->select(DB::raw(1))
                         ->from('transactions as t2')
                         ->whereColumn('t2.stock_no', 'i.stock_no')
+                        ->whereNull('t2.deleted_at')
                         ->where('t2.fund_cluster', $fundClusterId);
                 });
             })
@@ -247,7 +251,10 @@ class StockItemsListController extends Controller
                     ->where('siu.is_default', '=', true);
             })
             ->join('units as u', 'u.unitID', '=', 'siu.unitID')
-            ->leftJoin('transactions as t', 't.stock_no', '=', 'i.stock_no')
+            ->leftJoin('transactions as t', function ($join) {
+                $join->on('t.stock_no', '=', 'i.stock_no')
+                    ->whereNull('t.deleted_at');
+            })
             ->select(
                 'i.*',
                 'u.unit_name',
@@ -264,11 +271,12 @@ class StockItemsListController extends Controller
                         ->orWhere('i.stock_no', 'like', "%{$search}%");
                 });
             })
-            ->when(!$stockNo && $fundClusterId && $fundClusterId !== 'None', function ($q) use ($fundClusterId) {  // <-- also guard this one
+            ->when(!$stockNo && $fundClusterId && $fundClusterId !== 'None', function ($q) use ($fundClusterId) {
                 $q->whereExists(function ($sub) use ($fundClusterId) {
                     $sub->select(DB::raw(1))
                         ->from('transactions as t2')
                         ->whereColumn('t2.stock_no', 'i.stock_no')
+                        ->whereNull('t2.deleted_at')
                         ->where('t2.fund_cluster', $fundClusterId);
                 });
             })
@@ -293,6 +301,7 @@ class StockItemsListController extends Controller
 
         $transactions = DB::table('transactions')
             ->whereIn('stock_no', $stockNos)
+            ->whereNull('deleted_at')
             ->orderBy('transaction_date', 'asc')
             ->orderBy('transactionID', 'asc')
             ->get();
