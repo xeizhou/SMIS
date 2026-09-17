@@ -168,6 +168,14 @@ public function index(Request $request)
 
     public function destroy(Request $request, Office $office)
     {
+        $poCount = \App\Models\ServePo::where('end_user', $office->office_code)->count();
+
+        if ($poCount > 0) {
+            return back()->with('error',
+                "Cannot archive this office because it has {$poCount} linked Purchase Order" . ($poCount > 1 ? 's' : '') . ". Please remove them first."
+            );
+        }
+
         try {
             $office->archiveMetadata()->create([
                 'identity_document' => $office->office_name,

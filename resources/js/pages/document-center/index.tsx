@@ -453,7 +453,7 @@ function GalleryTab({
     const [selectedId, setSelectedId] = useState<string | number | null>(null);
     const [query, setQuery] = useState('');
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(20);
 
     const items = category === 'po' ? purchaseOrders : clearances;
 
@@ -564,6 +564,7 @@ function GalleryTab({
                     pageSize={pageSize}
                     onPageChange={setPage}
                     onPageSizeChange={handlePageSizeChange}
+                    perPageOptions={[30, 50, 100]}
                 />
             </div>
         </div>
