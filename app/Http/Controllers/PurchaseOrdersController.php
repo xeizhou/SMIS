@@ -406,15 +406,15 @@ class PurchaseOrdersController extends Controller
 
             if ($letters->count() > 0) {
                 $count = $letters->count();
-                $str = "{$count} Linked PO Letter" . ($count > 1 ? 's' : '') . "\n";
+                $str = "{$count} Linked P.O. Letter" . ($count > 1 ? 's' : '') . "\n";
                 foreach ($letters as $letter) {
-                    $str .= "- PO Letter No.: {$letter->reference_no}\n";
+                    $str .= "- P.O. Letter No.: {$letter->reference_no}\n";
                 }
                 $parts[] = rtrim($str);
             }
 
             return redirect()->back()->with('error',
-                "This purchase order has linked records. Please remove them first:\n". implode("\n", $parts)
+                "This Purchase Order has linked records. Please remove them first:\n". implode("\n", $parts)
             );
         }
 

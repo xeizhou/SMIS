@@ -151,7 +151,7 @@ export default function RrspDeleteModal({
 
                     <DialogFooter className="pt-2">
                         <Button type="button" onClick={() => setWarningOpen(false)}>
-                            OK
+                            Cancel
                         </Button>
                     </DialogFooter>
                 </DialogContent>

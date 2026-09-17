@@ -137,7 +137,7 @@ export default function RegSPIDeleteModal({ open, onOpenChange, regspiId, proper
 
                     <DialogFooter className="pt-2">
                         <Button type="button" onClick={() => setWarningOpen(false)}>
-                            OK
+                            Cancel
                         </Button>
                     </DialogFooter>
                 </DialogContent>

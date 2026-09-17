@@ -129,7 +129,7 @@ export default function ItrPtrDeleteModal({ open, onOpenChange, itemId, transact
 
                     <DialogFooter className="pt-2">
                         <Button type="button" onClick={() => setWarningOpen(false)}>
-                            OK
+                            Cancel
                         </Button>
                     </DialogFooter>
                 </DialogContent>

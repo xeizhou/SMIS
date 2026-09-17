@@ -135,7 +135,7 @@ export default function ForDisposalDeleteModal({ open, onOpenChange, itemId, ide
 
                     <DialogFooter className="pt-2">
                         <Button type="button" onClick={() => setWarningOpen(false)}>
-                            OK
+                            Cancel
                         </Button>
                     </DialogFooter>
                 </DialogContent>
