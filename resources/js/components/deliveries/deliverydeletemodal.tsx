@@ -57,7 +57,7 @@ return;
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
-                    <Button type="button" onClick={confirmDelete} disabled={processing}>
+                    <Button className='bg-[#612A35]' type="button" onClick={confirmDelete} disabled={processing}>
                         {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>

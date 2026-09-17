@@ -103,6 +103,7 @@ export default function SupplierDeleteModal({
                     </Button>
 
                     <Button
+                        className='bg-[#612A35]'
                         type="button"
                         onClick={confirmDelete}
                         disabled={processing}
