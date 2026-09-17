@@ -13,14 +13,12 @@ import {
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    itemId: number | null;
     rrspNo: string | null;
 }
 
 export default function RrspDeleteModal({
     open,
     onOpenChange,
-    itemId,
     rrspNo,
 }: Props) {
     const [processing, setProcessing] = useState(false);
