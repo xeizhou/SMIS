@@ -108,32 +108,41 @@ class ForDisposalController extends Controller
             $sourceName = '';
 
             if (str_contains(strtolower($forDisposal->source_type), 'rrsp')) {
-                $sourceModel = \App\Models\RrspItem::find($forDisposal->source_id);
+                $sourceModel = \App\Models\RrspItem::withTrashed()->find($forDisposal->source_id);
                 $sourceName = 'RRSP';
             } elseif (str_contains(strtolower($forDisposal->source_type), 'rrppe')) {
-                $sourceModel = \App\Models\RrppeItem::find($forDisposal->source_id) ?? \App\Models\RRPPEMonitoring::find($forDisposal->source_id);
+                $sourceModel = \App\Models\RrppeItem::withTrashed()->find($forDisposal->source_id) ?? \App\Models\RRPPEMonitoring::withTrashed()->find($forDisposal->source_id);
                 $sourceName = 'RRPPE';
             }
 
             if ($sourceModel) {
-                $identifier = $sourceModel->property_no ?? $sourceModel->rrppe_no ?? $forDisposal->property_no;
                 $parentContext = '';
+                $isActive = !$sourceModel->trashed();
 
                 if (str_contains(strtolower($forDisposal->source_type), 'rrsp')) {
-                    $parent = \App\Models\RrspMonitoring::find($sourceModel->rrsp_monitoring_id);
+                    $parent = \App\Models\RrspMonitoring::withTrashed()->find($sourceModel->rrsp_monitoring_id);
                     if ($parent) {
                         $parentContext = " (from {$parent->rrsp_no})";
+                        if ($parent->trashed()) {
+                            $isActive = false; // Parent is archived, so dependency is not active
+                        }
                     }
                 } elseif (str_contains(strtolower($forDisposal->source_type), 'rrppe')) {
                     if (isset($sourceModel->rrppe_monitoring_id)) {
-                        $parent = \App\Models\RRPPEMonitoring::find($sourceModel->rrppe_monitoring_id);
+                        $parent = \App\Models\RRPPEMonitoring::withTrashed()->find($sourceModel->rrppe_monitoring_id);
                         if ($parent) {
                             $parentContext = " (from {$parent->rrppe_no})";
+                            if ($parent->trashed()) {
+                                $isActive = false; // Parent is archived, so dependency is not active
+                            }
                         }
                     }
                 }
 
-                return redirect()->back()->with('error', "This For Disposal record has linked records. Please remove them first:\n1 Linked {$sourceName}\n- Property No.: {$identifier}{$parentContext}");
+                if ($isActive) {
+                    $identifier = $sourceModel->property_no ?? $sourceModel->rrppe_no ?? $forDisposal->property_no;
+                    return redirect()->back()->with('error', "Cannot archive For Disposal record {$forDisposal->transaction_no}.\n\nThis For Disposal record has linked records. Please remove them first:\n\n* 1 Linked {$sourceName}\n* Property No.: {$identifier}{$parentContext}");
+                }
             }
         }
 

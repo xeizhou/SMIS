@@ -95,8 +95,13 @@ class DocumentCenterController extends Controller
             $archivesQuery->where('archived_from', 'like', "%{$module}%");
         }
 
-        $archives = $archivesQuery->paginate($perPage)
-            ->through(fn ($archive) => [
+        $archives = $archivesQuery->paginateWithHighlight(
+            $perPage,
+            ['*'],
+            'page',
+            null,
+            'Record not found, it may have been restored to its original module or permanently deleted.'
+        )->through(fn ($archive) => [
                 'id' => $archive->id,
                 'identity_document' => $archive->identity_document,
                 'archived_from' => $archive->archived_from,

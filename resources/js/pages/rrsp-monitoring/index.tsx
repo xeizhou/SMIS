@@ -115,31 +115,6 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
     const [rrspToDelete, setRrspToDelete] = useState<RrspMonitoring | null>(
         null
     );
-    const isFirstRender = useRef(true);
-
-    useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false;
-            return;
-        }
-
-        const timer = setTimeout(() => {
-            router.get(
-                '/rrsp-monitoring',
-                {
-                    search,
-                    status: status === 'all' ? undefined : status,
-                },
-                {
-                    preserveState: true,
-                    preserveScroll: true,
-                    replace: true,
-                }
-            );
-        }, 300);
-
-        return () => clearTimeout(timer);
-    }, [search, status]);
 
     const handleSort = (field: string) => {
         const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
@@ -148,16 +123,30 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        // Handled by useEffect
+        router.get(
+            '/rrsp-monitoring',
+            { search, status: status === 'all' ? undefined : status },
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
     };
 
     const handleStatusChange = (value: string) => {
         setStatus(value);
+        router.get(
+            '/rrsp-monitoring',
+            { search, status: value === 'all' ? undefined : value },
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
     };
 
     const handleClear = () => {
         setSearch('');
         setStatus('all');
+        router.get(
+            '/rrsp-monitoring',
+            { search: '', status: undefined },
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
     };
 
     const handleEdit = (rrsp: RrspMonitoring) => {

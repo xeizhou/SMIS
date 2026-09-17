@@ -22,12 +22,28 @@ trait LogsActivity
 
         static::updated(function ($model) {
             if (! static::$activityLoggingSuppressed) {
+                if (in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive($model)) &&
+                    $model->wasChanged('deleted_at') &&
+                    is_null($model->deleted_at)) {
+                    $model->logActivity('Restored a record to ' . static::getModelName(), $model->getActivityUrl());
+                    return;
+                }
+
                 $model->logActivity('Edited a record in ' . static::getModelName(), $model->getActivityUrl());
             }
         });
 
         static::deleted(function ($model) {
             if (! static::$activityLoggingSuppressed) {
+                if (method_exists($model, 'archiveMetadata')) {
+                    $archive = $model->archiveMetadata()->first();
+                    if ($archive) {
+                        $url = route('document-center') . '?highlight_id=' . urlencode($archive->id);
+                        $model->logActivity("Archived a record ({$archive->identity_document}) from " . static::getModelName(), $url);
+                        return;
+                    }
+                }
+
                 $model->logActivity('Deleted a record from ' . static::getModelName(), null); // Deletions have no URL
             }
         });
