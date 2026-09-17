@@ -4,7 +4,6 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import { ChatPopover } from '@/components/chat-popover';
 
 interface OnlineUser {
     id: number;
@@ -25,7 +24,6 @@ export function OnlineUsersBar() {
 
     const [users, setUsers] = useState<OnlineUser[]>([]);
     const [loaded, setLoaded] = useState(false);
-    const [activeChat, setActiveChat] = useState<OnlineUser | null>(null);
 
     useEffect(() => {
         if (!isAuthed) {
@@ -116,11 +114,7 @@ export function OnlineUsersBar() {
                     {sorted.map((u) => (
                         <HoverCard key={u.id} openDelay={150} closeDelay={100}>
                             <HoverCardTrigger asChild>
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveChat(u)}
-                                    className="group relative rounded-full outline-none transition-transform duration-150 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-white/40"
-                                >
+                                <div className="group relative rounded-full">
                                     <Avatar
                                         className={cn(
                                             'h-8 w-8 ring-2 ring-offset-2 ring-offset-[#3d0002] transition-all',
@@ -138,7 +132,7 @@ export function OnlineUsersBar() {
                                             u.online ? 'bg-green-500' : 'bg-gray-500',
                                         )}
                                     />
-                                </button>
+                                </div>
                             </HoverCardTrigger>
                             <HoverCardContent
                                 side={isCollapsed ? 'right' : 'top'}
@@ -177,15 +171,6 @@ export function OnlineUsersBar() {
                         </HoverCard>
                     ))}
                 </div>
-            )}
-
-            {activeChat && (
-                <ChatPopover
-                    userId={activeChat.id}
-                    userName={activeChat.name}
-                    userAvatar={activeChat.avatar}
-                    onClose={() => setActiveChat(null)}
-                />
             )}
         </div>
     );
