@@ -951,6 +951,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/api/messages/unread-counts', [\App\Http\Controllers\MessageController::class, 'unreadCounts']);
     Route::get('/api/messages/{user}', [\App\Http\Controllers\MessageController::class, 'show']);
     Route::post('/api/messages/{user}', [\App\Http\Controllers\MessageController::class, 'store']);
+    Route::get('/api/messages/{message}/attachment', [\App\Http\Controllers\MessageController::class, 'attachment'])
+        ->name('messages.attachment');
 
     Route::get('/api/messages', function (\Illuminate\Http\Request $request) {
         $me = $request->user();
