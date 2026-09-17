@@ -75,7 +75,7 @@ export default function PurchaseOrderDeleteModal({
 
                     <div className="py-4">
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Are you sure you want to archive purchase order{' '}
+                            Are you sure you want to archive Purchase Order record {' '}
                             {poNumber ? (
                                 <span className="font-medium text-foreground">
                                     {poNumber}
