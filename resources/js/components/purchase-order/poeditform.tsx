@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X, RefreshCw, ExternalLink, Plus } from 'lucide-react';
+import { Paperclip, X, RefreshCw, ExternalLink, Plus, Archive } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
