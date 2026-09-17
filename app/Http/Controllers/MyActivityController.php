@@ -11,6 +11,10 @@ class MyActivityController extends Controller
 {
     private function resolveReference($module, $action, $targetUrl)
     {
+        if (preg_match('/Archived a record \(([^)]+)\)/i', $action, $matches)) {
+            return $matches[1];
+        }
+
         if ($module !== 'RegSPI' && $targetUrl && preg_match('/(?:highlight_search|search)=([^&]+)/', $targetUrl, $matches)) {
             return urldecode($matches[1]);
         }

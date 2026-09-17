@@ -1647,7 +1647,7 @@ function ArchiveTab({ archives }: { archives: any }) {
                             </tr>
                         ) : (
                             paginated.map((item: any) => (
-                                <tr key={item.id} className="border-b transition-colors hover:bg-muted/40">
+                                <tr key={item.id} data-record-id={item.id} className="border-b transition-colors hover:bg-muted/40">
                                     <td className="px-4 py-2">
                                         <Checkbox 
                                             checked={selectedIds.includes(item.id)}

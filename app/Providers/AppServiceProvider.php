@@ -39,7 +39,8 @@ class AppServiceProvider extends ServiceProvider
                 $perPage = null,
                 $columns = ['*'],
                 $pageName = 'page',
-                $page = null
+                $page = null,
+                $notFoundMessage = null
             ) {
                 /** @var \Illuminate\Database\Eloquent\Builder $this */
                 $request = request();
@@ -117,32 +118,12 @@ class AppServiceProvider extends ServiceProvider
 
                         if ($targetPage !== $currentPage) {
                             $request->query->set($pageName, $targetPage);
-
                             $newQueryString = http_build_query($request->query());
-
-                            $request->server->set(
-                                'QUERY_STRING',
-                                $newQueryString
+                            $url = $request->url() . '?' . $newQueryString;
+                            
+                            throw new \Illuminate\Http\Exceptions\HttpResponseException(
+                                redirect()->to($url)
                             );
-
-                            $baseUri = strtok(
-                                $request->server->get('REQUEST_URI'),
-                                '?'
-                            );
-
-                            $request->server->set(
-                                'REQUEST_URI',
-                                $baseUri . '?' . $newQueryString
-                            );
-
-                            $reflection = new \ReflectionClass($request);
-                            $parent = $reflection->getParentClass();
-
-                            if ($parent && $parent->hasProperty('requestUri')) {
-                                $property = $parent->getProperty('requestUri');
-                                $property->setAccessible(true);
-                                $property->setValue($request, null);
-                            }
                         }
 
                         \Illuminate\Pagination\Paginator::currentPageResolver(
@@ -151,7 +132,10 @@ class AppServiceProvider extends ServiceProvider
                             }
                         );
                     } else {
-                        $request->session()->now('error_modal', 'Record not found, it may have been archived or deleted.');
+                        $message = $notFoundMessage ?? 'Record not found, it may have been archived or deleted.';
+                        throw new \Illuminate\Http\Exceptions\HttpResponseException(
+                            redirect()->back()->with('error_modal', $message)
+                        );
                     }
                 }
 
