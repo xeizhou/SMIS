@@ -32,6 +32,7 @@ import {
     MoreHorizontal,
     RotateCcw,
     Eye,
+    Trash2
 } from 'lucide-react';
 import {
     Select,
@@ -1726,7 +1727,7 @@ function ArchiveTab({ archives }: { archives: any }) {
             {selectedIds.length > 0 && (
                 <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
                     <div className="flex items-center rounded-lg bg-background border shadow-lg overflow-hidden">
-                        <div className="flex items-center h-12 bg-blue-600 text-white px-4 min-w-[3rem] justify-center font-medium">
+                        <div className="flex items-center h-12 bg-[#612A35] text-white px-4 min-w-[3rem] justify-center font-medium">
                             {selectedIds.length}
                         </div>
                         <div className="flex items-center h-12 px-4 gap-8">

@@ -108,6 +108,7 @@ export default function PurchaseOrderDeleteModal({
                     </Button>
 
                     <Button
+                    className='bg-[#612A35]'
                         type="button"
                         onClick={confirmDelete}
                         disabled={processing}

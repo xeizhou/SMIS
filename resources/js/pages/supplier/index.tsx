@@ -117,11 +117,13 @@ export default function Index({ suppliers, filters }: Props) {
                     <span
                         className={
                             supplier.status === 'active'
-                                ? 'inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                : 'inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                ? 'inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                : 'inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-bold text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                         }
                     >
-                        {supplier.status.charAt(0).toUpperCase() + supplier.status.slice(1)}
+                        <span className="font-bold">
+                            {supplier.status.charAt(0).toUpperCase() + supplier.status.slice(1)}
+                        </span>
                     </span>
                 </div>
             )
