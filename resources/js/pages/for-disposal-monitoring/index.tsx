@@ -203,7 +203,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                         data-search-1={item.transaction_no}
                                         data-record-id={item.id}
                                     >
-                                        <td className="px-4 py-3 font-medium">{item.transaction_no}</td>
+                                        <td className="px-4 py-3 font-medium">{item.transaction_no?.replace(/-\d+$/, '')}</td>
                                         <td className="px-4 py-3">{item.property_no}</td>
                                         <td className="px-4 py-3">{item.description}</td>
                                         <td className="px-4 py-3">{item.location}</td>
@@ -258,7 +258,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                 open={isDeleteModalOpen}
                 onOpenChange={setIsDeleteModalOpen}
                 itemId={itemToDelete}
-                identifierValue={selectedItem?.property_no}
+                identifierValue={selectedItem?.transaction_no?.replace(/-\d+$/, '')}
             />
         </>
     );
