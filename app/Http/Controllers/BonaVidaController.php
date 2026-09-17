@@ -191,7 +191,7 @@ class BonaVidaController extends Controller
     public function destroy(Request $request, BonaVidaMonitoring $bonavida): RedirectResponse
     {
         $bonavida->archiveMetadata()->create([
-            'identity_document' => $bonavida->property_no,
+            'identity_document' => $bonavida->invoice_no,
             'archived_from' => 'Assets > Bona Vida Monitoring',
             'archived_by' => $request->user()?->id,
         ]);

@@ -38,6 +38,7 @@ return new class extends Migration
             $table->string('location', 100);
             $table->date('date_received');
             $table->timestamps();
+            $table->softDeletes();
 
             $table->unique(['transaction_no', 'property_no'], 'uq_transaction_property');
         });

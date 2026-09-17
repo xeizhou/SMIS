@@ -176,9 +176,9 @@ class DocumentCenterController extends Controller
             \App\Models\ServePo::class => \App\Models\ServePo::withTrashed()->with(['supplier', 'fundCluster', 'office', 'attachments', 'items', 'inspectionEntries'])->where('po_number', $id)->first(),
             \App\Models\Delivery::class => \App\Models\Delivery::withTrashed()->with(['attachments', 'deliveryDates', 'supplier'])->where('delivery_id', $id)->first(),
             \App\Models\PoLetterMonitoring::class => \App\Models\PoLetterMonitoring::withTrashed()->with(['attachments'])->find($id),
-            \App\Models\RrspMonitoring::class => \App\Models\RrspMonitoring::withTrashed()->with(['items', 'attachments'])->find($id),
-            \App\Models\RegspiMonitoring::class => \App\Models\RegspiMonitoring::withTrashed()->with(['attachments'])->find($id),
-            \App\Models\BonaVidaMonitoring::class => \App\Models\BonaVidaMonitoring::withTrashed()->with(['attachments'])->find($id),
+            \App\Models\RrspMonitoring::class => \App\Models\RrspMonitoring::withTrashed()->with(['items' => fn($q) => $q->withTrashed()])->find($id),
+            \App\Models\RegspiMonitoring::class => \App\Models\RegspiMonitoring::withTrashed()->with(['rrspMonitoring', 'fundCluster'])->find($id),
+            \App\Models\BonaVidaMonitoring::class => \App\Models\BonaVidaMonitoring::withTrashed()->with(['office'])->find($id),
             \App\Models\Clearance::class => \App\Models\Clearance::withTrashed()->with(['attachments'])->find($id),
             \App\Models\EmployeeFileLocator::class => \App\Models\EmployeeFileLocator::withTrashed()->with(['attachments'])->find($id),
             \App\Models\Office::class => \App\Models\Office::withTrashed()->find($id),
@@ -190,11 +190,67 @@ class DocumentCenterController extends Controller
             ),
             \App\Models\Supplier::class => \App\Models\Supplier::withTrashed()->find($id),
             \App\Models\FundCluster::class => \App\Models\FundCluster::withTrashed()->find($id),
+            \App\Models\RRPPEMonitoring::class => \App\Models\RRPPEMonitoring::withTrashed()->with(['items' => fn($q) => $q->withTrashed()])->find($id),
+            \App\Models\ItrPtrMonitoring::class => \App\Models\ItrPtrMonitoring::withTrashed()->find($id),
+            \App\Models\ForDisposalMonitoring::class => \App\Models\ForDisposalMonitoring::withTrashed()->find($id),
             default => null,
         };
 
         if ($model && $type === \App\Models\ServePo::class) {
             $model->setAttribute('inspection_entries', $model->inspectionEntries);
+        }
+
+        if ($model && $type === \App\Models\RrspMonitoring::class) {
+            $model = [
+                'id' => $model->id,
+                'rrspNo' => $model->rrsp_no,
+                'poNumber' => $model->po_number,
+                'dateReceived' => optional($model->date_received)->toDateString(),
+                'endUserName' => $model->end_user_name,
+                'returnBy' => $model->return_by,
+                'createdAt' => optional($model->created_at)->toDateTimeString(),
+                'updatedAt' => optional($model->updated_at)->toDateTimeString(),
+                'items' => $model->items->map(function ($i) {
+                    return [
+                        'id' => $i->id,
+                        'itemName' => $i->item_name,
+                        'itemDescription' => $i->item_description,
+                        'quantity' => $i->quantity,
+                        'propertyNo' => $i->property_no,
+                        'status' => $i->status,
+                        'kindOfSemiExpendable' => $i->kind_of_semi_expendable,
+                        'area' => $i->area,
+                        'cost' => $i->cost,
+                        'remarks' => $i->remarks,
+                    ];
+                }),
+            ];
+        }
+
+        if ($model && $type === \App\Models\RRPPEMonitoring::class) {
+            $model = [
+                'id' => $model->id,
+                'rrppeNo' => $model->rrppe_no,
+                'dateReceived' => optional($model->date_received)->toDateString(),
+                'endUserName' => $model->end_user_name,
+                'returnBy' => $model->return_by,
+                'createdAt' => optional($model->created_at)->toDateTimeString(),
+                'updatedAt' => optional($model->updated_at)->toDateTimeString(),
+                'items' => $model->items->map(function ($i) {
+                    return [
+                        'id' => $i->id,
+                        'stockNo' => $i->stock_no,
+                        'itemName' => $i->item_name,
+                        'itemDescription' => $i->item_description,
+                        'quantity' => $i->quantity,
+                        'propertyNo' => $i->property_no,
+                        'cost' => $i->cost,
+                        'status' => $i->status,
+                        'area' => $i->area,
+                        'remarks' => $i->remarks,
+                    ];
+                }),
+            ];
         }
 
         if ($model) {
@@ -258,11 +314,18 @@ class DocumentCenterController extends Controller
                 \App\Models\Transaction::class => \App\Models\Transaction::withTrashed()->find($id),
                 \App\Models\Supplier::class => \App\Models\Supplier::withTrashed()->find($id),
                 \App\Models\FundCluster::class => \App\Models\FundCluster::withTrashed()->find($id),
+                \App\Models\RRPPEMonitoring::class => \App\Models\RRPPEMonitoring::withTrashed()->find($id),
+                \App\Models\ItrPtrMonitoring::class => \App\Models\ItrPtrMonitoring::withTrashed()->find($id),
+                \App\Models\ForDisposalMonitoring::class => \App\Models\ForDisposalMonitoring::withTrashed()->find($id),
                 default => null,
             };
 
             if ($model && method_exists($model, 'restore')) {
                 $model->restore();
+                                // Cascade restore for RRPPE items since they are explicitly deleted on archive
+                if ($type === \App\Models\RRPPEMonitoring::class) {
+                    $model->items()->withTrashed()->restore();
+                }
             }
 
             $archive->delete();

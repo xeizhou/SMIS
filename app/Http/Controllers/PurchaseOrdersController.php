@@ -379,33 +379,55 @@ class PurchaseOrdersController extends Controller
      */
     public function destroy(Request $request, ServePo $purchaseOrder): RedirectResponse
     {
-        $deliveryCount = $purchaseOrder->deliveries()->count();
-        $letterCount = $purchaseOrder->letterMonitorings()->count();
+        $deliveries = $purchaseOrder->deliveries()->get();
+        $letters = $purchaseOrder->letterMonitorings()->get();
+        $rrsps = \App\Models\RrspMonitoring::where('po_number', $purchaseOrder->po_number)->get();
 
-        if ($deliveryCount > 0 || $letterCount > 0) {
+        if ($deliveries->count() > 0 || $letters->count() > 0 || $rrsps->count() > 0) {
             $parts = [];
-            if ($deliveryCount > 0) {
-                $parts[] = "{$deliveryCount} Linked Delivery Record" . ($deliveryCount > 1 ? 's' : '');
+
+            if ($rrsps->count() > 0) {
+                $count = $rrsps->count();
+                $str = "{$count} Linked RRSP" . ($count > 1 ? 's' : '') . "\n";
+                foreach ($rrsps as $rrsp) {
+                    $str .= "- RRSP No.: {$rrsp->rrsp_no}\n";
+                }
+                $parts[] = rtrim($str);
             }
-            if ($letterCount > 0) {
-                $parts[] = "{$letterCount} Linked PO Letter" . ($letterCount > 1 ? 's' : '');
+
+            if ($deliveries->count() > 0) {
+                $count = $deliveries->count();
+                $str = "{$count} Linked Delivery Record" . ($count > 1 ? 's' : '') . "\n";
+                foreach ($deliveries as $del) {
+                    $str .= "- Delivery No.: {$del->delivery_id}\n";
+                }
+                $parts[] = rtrim($str);
+            }
+
+            if ($letters->count() > 0) {
+                $count = $letters->count();
+                $str = "{$count} Linked PO Letter" . ($count > 1 ? 's' : '') . "\n";
+                foreach ($letters as $letter) {
+                    $str .= "- PO Letter No.: {$letter->reference_no}\n";
+                }
+                $parts[] = rtrim($str);
             }
 
             return redirect()->back()->with('error',
-                "Cannot archive this PO because it has linked records. Please remove them first:\n" . implode("\n", $parts)
+                "This purchase order has linked records. Please remove them first:\n". implode("\n", $parts)
             );
         }
 
-        // Create an archive record before soft deleting
-        $purchaseOrder->archiveMetadata()->create([
-            'identity_document' => $purchaseOrder->po_number,
-            'archived_from' => 'Procurement > Purchase Orders',
-            'archived_by' => $request->user()?->id,
-        ]);
+            // Create an archive record before soft deleting
+            $purchaseOrder->archiveMetadata()->create([
+                'identity_document' => $purchaseOrder->po_number,
+                'archived_from' => 'Procurement > Purchase Orders',
+                'archived_by' => $request->user()?->id,
+            ]);
 
-        $purchaseOrder->delete(); // This will soft delete now
+            $purchaseOrder->delete(); // This will soft delete now
 
-        return redirect()->back()->with('success', 'Purchase order archived successfully.');
+            return redirect()->back()->with('success', 'Purchase order archived successfully.');
     }
 
     public function uploadAttachments(Request $request, ServePo $purchaseOrder)

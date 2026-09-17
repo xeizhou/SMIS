@@ -92,7 +92,7 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [viewItem, setViewItem] = useState<RRPPEMonitoring | null>(null);
-    const [itemToDelete, setItemToDelete] = useState<number | null>(null);
+    const [itemToDelete, setItemToDelete] = useState<RRPPEMonitoring | null>(null);
 
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
@@ -137,8 +137,8 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
         setIsViewModalOpen(true);
     };
 
-    const openDeleteModal = (id: number) => {
-        setItemToDelete(id);
+    const openDeleteModal = (item: RRPPEMonitoring) => {
+        setItemToDelete(item);
         setIsDeleteModalOpen(true);
     };
 
@@ -285,7 +285,7 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                                                         <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
                                                             <Pencil className="h-4 w-4" />
                                                         </button>
-                                                        <button onClick={() => openDeleteModal(item.id)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
+                                                        <button onClick={() => openDeleteModal(item)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                                                             <Archive className="h-4 w-4" />
                                                         </button>
                                                         <button
@@ -374,7 +374,8 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
             <RrppeDeleteModal 
                 open={isDeleteModalOpen} 
                 onOpenChange={setIsDeleteModalOpen} 
-                itemId={itemToDelete} 
+                itemId={itemToDelete?.id ?? null} 
+                rrppeNo={itemToDelete?.rrppeNo}
             />
         </>
     );

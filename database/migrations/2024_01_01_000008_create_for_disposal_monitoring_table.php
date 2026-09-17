@@ -31,6 +31,7 @@ return new class extends Migration
             $table->string('location', 100);
 
             $table->timestamps();
+            $table->softDeletes();
 
             // Prevent duplicate disposal records for the same source.
             // This supports the observers for RrspItem and RRPPEMonitoring.

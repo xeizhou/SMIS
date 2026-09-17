@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('fund_cluster_id', 20)->primary();
             $table->string('fund_description', 255)->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

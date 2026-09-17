@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -18,6 +18,13 @@ interface Props {
 
 export default function PoLetterDeleteModal({ open, onOpenChange, poLetterId, referenceNo }: Props) {
     const [processing, setProcessing] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (open) {
+            setErrorMessage(null);
+        }
+    }, [open]);
 
     const confirmDelete = () => {
         if (!poLetterId) {
@@ -27,8 +34,15 @@ return;
         setProcessing(true);
 
         router.delete(`/po-letter-monitoring/${encodeURIComponent(String(poLetterId))}`, {
-            onSuccess: () => {
-                onOpenChange(false);
+            preserveScroll: true,
+            onSuccess: (page) => {
+                const flash = (page.props as any)?.flash;
+
+                if (flash?.error) {
+                    setErrorMessage(flash.error);
+                } else {
+                    onOpenChange(false);
+                }
             },
             onFinish: () => {
                 setProcessing(false);
@@ -53,6 +67,26 @@ return;
                         )}
                         ?
                     </p>
+                    
+                    {errorMessage && (
+                        <div className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+                            {errorMessage.includes('\n') ? (
+                                <>
+                                    <p>{errorMessage.split('\n')[0]}</p>
+                                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
+                                        {errorMessage.split('\n').slice(1).map((line, i) => {
+                                            if (line.startsWith('- ')) {
+                                                return <li key={i} className="list-[circle] ml-5">{line.substring(2)}</li>;
+                                            }
+                                            return <li key={i}>{line}</li>;
+                                        })}
+                                    </ul>
+                                </>
+                            ) : (
+                                <p>{errorMessage}</p>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter className="gap-2 sm:gap-2">
@@ -64,6 +98,7 @@ return;
                         type="button"
                         onClick={confirmDelete}
                         disabled={processing}
+
                     >
                         {processing ? 'Archiving...' : 'Archive'}
                     </Button>

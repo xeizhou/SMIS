@@ -34,7 +34,7 @@ class RrspItemObserver
             $rrsp = \App\Models\RrspMonitoring::find($item->rrsp_monitoring_id);
         }
 
-        ForDisposalMonitoring::updateOrCreate(
+        $forDisposal = ForDisposalMonitoring::withTrashed()->updateOrCreate(
             [
                 'source_type' => 'rrsp_item',
                 'source_id' => $item->id,
@@ -52,6 +52,10 @@ class RrspItemObserver
                 'location' => $item->area ?? 'N/A',
             ]
         );
+
+        if ($forDisposal->trashed()) {
+            $forDisposal->restore();
+        }
     }
 
     /**

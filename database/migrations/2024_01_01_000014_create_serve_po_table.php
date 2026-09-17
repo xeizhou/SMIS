@@ -92,6 +92,7 @@ return new class extends Migration
             $table->string('receipt_claimed_notified_via')->nullable();
 
             $table->timestamps();
+            $table->softDeletes();
 
             $table->foreign('fund_cluster_id', 'fk_serve_po_fund_cluster')
                 ->references('fund_cluster_id')->on('fund_clusters')

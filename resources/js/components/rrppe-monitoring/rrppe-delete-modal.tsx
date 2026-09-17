@@ -13,19 +13,21 @@ interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     itemId: number | null;
+    rrppeNo?: string;
 }
 
 export default function RrppeDeleteModal({
     open,
     onOpenChange,
     itemId,
+    rrppeNo,
 }: Props) {
     const [processing, setProcessing] = useState(false);
 
     const confirmDelete = () => {
         if (!itemId) {
-return;
-}
+            return;
+        }
 
         setProcessing(true);
 
@@ -41,15 +43,20 @@ return;
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-red-600">
-                        Delete Record
+                    <DialogTitle>
+                        Confirm Archive
                     </DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Are you sure you want to delete this record? This action
-                        cannot be undone.
+                        Are you sure you want to archive RRPPE record{' '}
+                        {rrppeNo ? (
+                            <span className="font-medium text-foreground">{rrppeNo}</span>
+                        ) : (
+                            'this record'
+                        )}
+                        ?
                     </p>
                 </div>
 
@@ -63,12 +70,10 @@ return;
                     </Button>
                     <Button
                         type="button"
-                        variant="destructive"
                         onClick={confirmDelete}
                         disabled={processing}
-                        className="bg-red-600 text-white hover:bg-red-700"
                     >
-                        {processing ? 'Deleting...' : 'Delete'}
+                        {processing ? 'Archiving...' : 'Archive'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
