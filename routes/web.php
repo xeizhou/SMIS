@@ -450,6 +450,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/rrsp-monitoring', [RRSPController::class, 'store'])->name('rrsp-monitoring.store');
     Route::put('/rrsp-monitoring/{rrsp}', [RRSPController::class, 'update'])->name('rrsp-monitoring.update');
     Route::delete('/rrsp-monitoring/{rrsp}', [RRSPController::class, 'destroy'])->name('rrsp-monitoring.destroy');
+    Route::post('/rrsp-monitoring/{rrsp}/attachments', [RRSPController::class, 'storeAttachment']); 
+    Route::delete('/attachments/{attachment}', [App\Http\Controllers\AttachmentController::class, 'destroy']);
 
     Route::get('/regspi-monitoring', [RegSPIController::class, 'index'])->name('regspi-monitoring.index');
     Route::post('/regspi-monitoring', [RegSPIController::class, 'store'])->name('regspi-monitoring.store');
@@ -589,17 +591,34 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/stock-reports/export-excel', [StockReportsController::class, 'exportExcel'])->name('stock-reports.export-excel');
     Route::get('/stock-items/print-cards-html', [StockItemsListController::class, 'printCardsView'])->name('stock-items.print-cards-html');
 
+    // ==========================================================
+    // Imports
+    // ==========================================================
     Route::get('/import/{import}/status', [ImportController::class, 'status'])->name('import.status');
     Route::post('/import/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.cancel');
+
+    // RRSP / RRPPE templates — must be registered BEFORE /import/template/{type},
+    // otherwise the wildcard below catches them and 404s (not in SCHEMAS).
+    Route::get('/import/template/rrsp', [ImportController::class, 'rrspTemplate'])->name('import.rrsp.template');
+    Route::get('/import/template/rrppe', [ImportController::class, 'rrppeTemplate'])->name('import.rrppe.template');
 
     Route::get('/import/template/{type}', [ImportController::class, 'template'])->name('import.template');
     Route::post('/import/items', [ImportController::class, 'items'])->name('import.items');
     Route::post('/import/units', [ImportController::class, 'units'])->name('import.units');
     Route::post('/import/transactions', [ImportController::class, 'transactions'])->name('import.transactions');
     Route::post('/import/offices', [ImportController::class, 'offices'])->name('import.offices');
+
     Route::post('/import/regspi', [ImportController::class, 'regspi'])->name('import.regspi');
     Route::get('/import/regspi/{import}/status', [ImportController::class, 'regspiStatus'])->name('import.regspi.status');
     Route::post('/import/regspi/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.regspi.cancel');
+
+    Route::post('/import/rrsp', [ImportController::class, 'rrsp'])->name('import.rrsp');
+    Route::get('/import/rrsp/{import}/status', [ImportController::class, 'status'])->name('import.rrsp.status');
+    Route::post('/import/rrsp/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.rrsp.cancel');
+
+    Route::post('/import/rrppe', [ImportController::class, 'rrppe'])->name('import.rrppe');
+    Route::get('/import/rrppe/{import}/status', [ImportController::class, 'status'])->name('import.rrppe.status');
+    Route::post('/import/rrppe/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.rrppe.cancel');
 
     Route::get('/backup/folders', [BackupController::class, 'folders'])->name('backup.folders');
     Route::post('/backup/create', [BackupController::class, 'create'])->name('backup.create');

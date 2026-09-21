@@ -9,6 +9,8 @@ use App\Models\Office;
 use App\Models\FundCluster;
 use App\Models\Import;
 use App\Jobs\ProcessRegspiImport;
+use App\Jobs\ProcessRrspImport;
+use App\Jobs\ProcessRrppeImport;
 use App\Jobs\ProcessDataImport;
 use App\Services\ImportProcessor;
 use Illuminate\Http\Request;
@@ -28,6 +30,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * (ProcessDataImport) instead, since those two files can get large
  * enough to blow past the request timeout — see ImportProcessor for
  * the shared row logic both paths call.
+ *
+ * RegSPI, RRSP and RRPPE CSV imports are queued too (ProcessRegspiImport /
+ * ProcessRrspImport / ProcessRrppeImport) and report progress through the
+ * Import model.
  *
  * Requires PhpSpreadsheet, which ships as a dependency of maatwebsite/excel.
  * If it's not already in composer.json:
@@ -164,6 +170,10 @@ class ImportController extends Controller
         });
     }
 
+    /**
+     * Cancel endpoint shared by every queued import type (regspi, rrsp,
+     * rrppe, ...) — they all just flip the status on the same Import model.
+     */
     public function regspiCancel(Import $import)
     {
         if (in_array($import->status, ['pending', 'processing'], true)) {
@@ -227,11 +237,7 @@ class ImportController extends Controller
 
     /**
      * POST /import/regspi
-     * Unchanged.
-     */
-    /**
-     * POST /import/regspi
-     * Now requires a user-selected fund_cluster_id, since these CSVs
+     * Requires a user-selected fund_cluster_id, since these CSVs
      * don't carry a "Fund Cluster:" line the way other report types
      * do. Passed straight through to the job rather than stored on
      * the Import row.
@@ -256,10 +262,118 @@ class ImportController extends Controller
     }
 
     /**
+     * POST /import/rrsp
+     * Queued CSV import for RRSP monitoring (header rows + item rows).
+     * No fund cluster needed — the RRSP CSV doesn't use one.
+     */
+    public function rrsp(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:51200',
+        ]);
+
+        $path = $validated['file']->store('imports/rrsp');
+        $import = Import::create([
+            'user_id' => $request->user()->getKey(),
+            'file_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        ProcessRrspImport::dispatch($import->getKey());
+
+        return back()->with('success', "RRSP import started.|||import_id:{$import->getKey()}");
+    }
+
+    /**
+     * GET /import/template/rrsp
+     * Registered BEFORE /import/template/{type} in web.php, so it never
+     * reaches template() (which only knows the SCHEMAS types).
+     */
+    public function rrspTemplate(): StreamedResponse
+    {
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'wb');
+
+            fputcsv($handle, ['RECEIPT OF RETURN OF SEMI-EXPENDABLE PROPERTY 2026']);
+            fputcsv($handle, [
+                'RRSP no.', 'Date', 'Item Description', 'Quantity', 'Property Number',
+                'End-Users Name', 'Cost', 'Office', 'Kind of Semi-Expandable',
+                'Status', 'Area', 'Remarks',
+            ]);
+            fputcsv($handle, [
+                '2026-01-0001', '1/8/2026', 'Printer, Epson L3110', 1, 'ICS-05-IGF-2019091225',
+                'Juan Dela Cruz', '7,750.00', 'CED', 'High Value',
+                'Unserviceable', 'SMU Bodega (Side)', '',
+            ]);
+            // Blank RRSP no. = another item under the RRSP above
+            fputcsv($handle, [
+                '', '', 'UPS, APC 650VA', 1, 'ICS-05-IGF-2023100250',
+                '', '1,595.00', '', 'Low Value',
+                'Unserviceable', 'SMU Bodega (Side)', '',
+            ]);
+
+            fclose($handle);
+        }, 'rrsp_import_template.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * POST /import/rrppe
+     * Queued CSV import for RRPPE monitoring (header rows + item rows).
+     */
+    public function rrppe(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:51200',
+        ]);
+
+        $path = $validated['file']->store('imports/rrppe');
+        $import = Import::create([
+            'user_id' => $request->user()->getKey(),
+            'file_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        ProcessRrppeImport::dispatch($import->getKey());
+
+        return back()->with('success', "RRPPE import started.|||import_id:{$import->getKey()}");
+    }
+
+    /**
+     * GET /import/template/rrppe
+     * Registered BEFORE /import/template/{type} in web.php.
+     */
+    public function rrppeTemplate(): StreamedResponse
+    {
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'wb');
+
+            fputcsv($handle, ['RECEIPT OF RETURN OF PROPERTY, PLANT AND EQUIPMENT 2026']);
+            fputcsv($handle, [
+                'RRPPE NO.', 'Date', 'Item Description', 'Quantity', 'Property Number',
+                'End-Users Name', 'Cost', 'Status', 'Area', 'Remarks',
+            ]);
+            fputcsv($handle, [
+                '2026-01-0001', '1/27/2026', 'REFRIGERATOR, 19 cu.ft', 1, '164-2012090111',
+                'Juan Dela Cruz', '57,999.00', 'UNSERVICEABLE', 'SMU Bodega (Side)', '',
+            ]);
+            // Blank RRPPE no. = another item under the RRPPE above
+            fputcsv($handle, [
+                '', '', 'PROJECTOR, DLP-3000ANSI', 1, '164-2014120003',
+                '', '53,000.00', 'UNSERVICEABLE', 'SMU Bodega (Side)', '',
+            ]);
+
+            fclose($handle);
+        }, 'rrppe_import_template.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
      * GET /import/{import}/status
-     * Renamed from regspiStatus — this is generic across all queued
-     * import types (regspi, items, transactions) since they all just
-     * read off the same Import model fields.
+     * Generic across all queued import types (regspi, rrsp, rrppe, items,
+     * transactions) since they all just read off the same Import model.
      */
     public function status(Request $request, Import $import)
     {

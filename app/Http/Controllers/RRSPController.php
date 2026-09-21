@@ -11,7 +11,7 @@ class RRSPController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->integer('per_page', 10);
-        $query = \App\Models\RrspMonitoring::with('items');
+        $query = \App\Models\RrspMonitoring::with('items', 'attachments');
         $sortField = $request->string('sort_field')->toString();
         $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
         $sorts = ['rrsp_no', 'date_received', 'end_user_name', 'return_by', 'created_at'];
@@ -63,6 +63,15 @@ class RRSPController extends Controller
                             'remarks' => $i->remarks,
                         ];
                     }),
+                    'attachments' => $rrsp->attachments->map(function ($a) {
+                        return [
+                            'id' => $a->id,
+                            'originalName' => $a->original_name,
+                            'url' => $a->url,
+                            'mimeType' => $a->mime_type,
+                            'fileSize' => $a->file_size,
+                        ];
+                    }),
                 ];
             });
 
@@ -111,7 +120,7 @@ class RRSPController extends Controller
         $poItemDescriptions = $po->items->map(function ($i) {
             return $i->description ? "{$i->item_name} - {$i->description}" : $i->item_name;
         })->toArray();
-        
+
         foreach ($validated['items'] as $item) {
             if (!in_array($item['itemDescription'], $poItemDescriptions)) {
                 return back()->withErrors(['items' => 'One or more items do not belong to the selected Purchase Order.'])->withInput();
@@ -167,7 +176,7 @@ class RRSPController extends Controller
         $poItemDescriptions = $po->items->map(function ($i) {
             return $i->description ? "{$i->item_name} - {$i->description}" : $i->item_name;
         })->toArray();
-        
+
         foreach ($validated['items'] as $item) {
             if (!in_array($item['itemDescription'], $poItemDescriptions)) {
                 return back()->withErrors(['items' => 'One or more items do not belong to the selected Purchase Order.'])->withInput();
@@ -288,5 +297,27 @@ class RRSPController extends Controller
         }])->select('po_number')->get();
 
         return response()->json($pos);
+    }
+
+    public function storeAttachment(Request $request, $rrsp)
+    {
+        $record = RrspMonitoring::where('id', $rrsp)->orWhere('rrsp_no', $rrsp)->firstOrFail();
+
+        $request->validate([
+            'files' => 'required|array',
+            'files.*' => 'file|max:10240',
+        ]);
+
+        foreach ($request->file('files') as $file) {
+            $path = $file->store('rrsp-attachments', 'public');
+            $record->attachments()->create([
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+            ]);
+        }
+
+        return back()->with('success', 'Attachment(s) uploaded successfully.');
     }
 }

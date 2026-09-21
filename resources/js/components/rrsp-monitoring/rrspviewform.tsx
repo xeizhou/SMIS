@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -6,6 +7,9 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { File, FileImage, FileText, FileSpreadsheet, FileArchive, ExternalLink } from 'lucide-react';
 
 interface RrspItem {
     id: number;
@@ -20,6 +24,14 @@ interface RrspItem {
     remarks?: string | null;
 }
 
+interface RrspAttachment {
+    id: number;
+    originalName: string;
+    url: string;
+    mimeType: string | null;
+    fileSize: number | null;
+}
+
 interface RrspMonitoring {
     id: string;
     rrspNo: string;
@@ -30,6 +42,7 @@ interface RrspMonitoring {
     createdAt: string | null;
     updatedAt: string | null;
     items?: RrspItem[];
+    attachments?: RrspAttachment[];
 }
 
 interface Props {
@@ -83,16 +96,69 @@ return '—';
     });
 }
 
+function getExtension(filename: string) {
+    return filename.split('.').pop()?.toLowerCase() ?? '';
+}
+
+function getFileType(filename: string) {
+    const ext = getExtension(filename);
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
+    if (ext === 'pdf') return 'pdf';
+    if (['doc', 'docx'].includes(ext)) return 'word';
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return 'excel';
+    if (['zip', 'rar', '7z'].includes(ext)) return 'archive';
+    return 'file';
+}
+
+function FileTypeIcon({ type }: { type: string }) {
+    switch (type) {
+        case 'image':
+            return <FileImage className="h-5 w-5 text-blue-500" />;
+        case 'pdf':
+            return <FileText className="h-5 w-5 text-red-500" />;
+        case 'word':
+            return <FileText className="h-5 w-5 text-blue-600" />;
+        case 'excel':
+            return <FileSpreadsheet className="h-5 w-5 text-green-600" />;
+        case 'archive':
+            return <FileArchive className="h-5 w-5 text-yellow-600" />;
+        default:
+            return <File className="h-5 w-5 text-muted-foreground" />;
+    }
+}
+
+function formatBytes(bytes: number) {
+    const kb = bytes / 1024;
+    return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
+}
+
+interface PreviewTarget {
+    name: string;
+    url: string;
+}
+
 export default function RrspViewForm({
     open,
     onOpenChange,
     rrsp,
 }: Props) {
+    const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null);
+
     if (!rrsp) {
 return null;
 }
 
+    const openAttachmentPreview = (att: RrspAttachment) => {
+        const type = getFileType(att.originalName);
+        if (type === 'image') {
+            setPreviewTarget({ name: att.originalName, url: att.url });
+        } else {
+            window.open(att.url, '_blank', 'noopener,noreferrer');
+        }
+    };
+
 return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
             className="w-[95vw] max-h-[95vh] overflow-hidden p-0"
@@ -147,10 +213,91 @@ return (
                         ))}
                     </div>
                 </section>
+
+                <section>
+                    <p className={sectionTitleClass}>Attachments ({rrsp.attachments?.length ?? 0})</p>
+                    {rrsp.attachments && rrsp.attachments.length > 0 ? (
+                        <ScrollArea className="max-h-[220px]">
+                            <div className="space-y-1.5">
+                                {rrsp.attachments.map((att) => {
+                                    const type = getFileType(att.originalName);
+                                    return (
+                                        <div
+                                            key={att.id}
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => openAttachmentPreview(att)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    openAttachmentPreview(att);
+                                                }
+                                            }}
+                                            className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer"
+                                        >
+                                            <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                {type === 'image' ? (
+                                                    <img
+                                                        src={att.url}
+                                                        alt={att.originalName}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <FileTypeIcon type={type} />
+                                                )}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate text-sm">{att.originalName}</p>
+                                                {att.fileSize != null && (
+                                                    <p className="text-[11px] text-muted-foreground">{formatBytes(att.fileSize)}</p>
+                                                )}
+                                            </div>
+                                            <Badge variant="outline" className="text-[10px] h-5">
+                                                {getExtension(att.originalName).toUpperCase()}
+                                            </Badge>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </ScrollArea>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No attachments.</p>
+                    )}
+                </section>
             </div>
         </div>
                 </ScrollArea>
             </DialogContent>
     </Dialog>
+
+    {/* Image Lightbox */}
+    <Dialog open={!!previewTarget} onOpenChange={(o) => !o && setPreviewTarget(null)}>
+        <DialogContent className="w-[95vw] p-0 overflow-hidden" style={{ maxWidth: '900px' }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+                <p className="text-sm font-medium truncate pr-4">
+                    {previewTarget?.name}
+                </p>
+                <Button variant="ghost" size="icon" className="h-7 w-7 mr-6" asChild>
+                    <a
+                        href={previewTarget?.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open in new tab"
+                    >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                </Button>
+            </div>
+            <div className="flex items-center justify-center bg-muted/30 p-4 max-h-[80vh] overflow-auto">
+                {previewTarget && (
+                    <img
+                        src={previewTarget.url}
+                        alt={previewTarget.name}
+                        className="max-w-full max-h-[75vh] object-contain rounded"
+                    />
+                )}
+            </div>
+        </DialogContent>
+    </Dialog>
+    </>
 );
 }
