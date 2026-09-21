@@ -1,8 +1,9 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
+import RrppeImportDialog from '@/components/rrppe-monitoring/rrppe-import-dialog';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Archive, Eye } from 'lucide-react';
+import { Search, Pencil, Archive, Eye, Upload} from 'lucide-react';
 import React, { useState } from 'react';
 import RrppeAddForm from '@/components/rrppe-monitoring/rrppe-add-form';
 import RrppeDeleteModal from '@/components/rrppe-monitoring/rrppe-delete-modal';
@@ -88,6 +89,7 @@ function formatDate(value: string | null | undefined) {
 
 export default function Index({ data, filters = {}, statuses, areas, stockItems }: { data: PaginatedRRPPE, filters?: any, statuses: string[], areas: string[], stockItems: { stock_no: string; item_name: string; description: string | null }[] }) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [importOpen, setImportOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -222,6 +224,9 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                             </Button>
                         </div>
 
+                        <Button variant="outline" onClick={() => setImportOpen(true)}>
+                            <Upload className="mr-2 size-4" /> Import
+                        </Button>
                         <Button
                             type="button"
                             onClick={openAddModal}
@@ -376,6 +381,11 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                 onOpenChange={setIsDeleteModalOpen} 
                 itemId={itemToDelete?.id ?? null} 
                 rrppeNo={itemToDelete?.rrppeNo}
+            />
+
+            <RrppeImportDialog 
+                open={importOpen} 
+                onOpenChange={setImportOpen} 
             />
         </>
     );
