@@ -37,6 +37,7 @@ const platformNavItems: NavItem[] = [
     { title: 'RegSPI Monitoring', href: '/regspi-monitoring' },
     { title: 'ITR / PTR Monitoring', href: '/itr-ptr-monitoring' },
     { title: 'For-Disposal Monitoring', href: '/for-disposal-monitoring' },
+    { title: 'WMR Monitoring', href: '/wmr-monitoring' },
     { title: 'Bona Vida Monitoring', href: '/bona-vida-monitoring' },
 ];
 

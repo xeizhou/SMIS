@@ -11,6 +11,7 @@ use App\Models\Import;
 use App\Jobs\ProcessRegspiImport;
 use App\Jobs\ProcessRrspImport;
 use App\Jobs\ProcessRrppeImport;
+use App\Jobs\ProcessWmrImport;
 use App\Jobs\ProcessDataImport;
 use App\Services\ImportProcessor;
 use Illuminate\Http\Request;
@@ -366,6 +367,78 @@ class ImportController extends Controller
 
             fclose($handle);
         }, 'rrppe_import_template.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+        /**
+     * POST /import/wmr
+     * Queued CSV import for WMR monitoring (one WMR = a block of rows).
+     */
+    public function wmr(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:51200',
+        ]);
+
+        $path = $validated['file']->store('imports/wmr');
+        $import = Import::create([
+            'user_id' => $request->user()->getKey(),
+            'file_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        ProcessWmrImport::dispatch($import->getKey());
+
+        return back()->with('success', "WMR import started.|||import_id:{$import->getKey()}");
+    }
+
+    /**
+     * GET /import/template/wmr
+     * Registered BEFORE /import/template/{type} in web.php.
+     */
+    public function wmrTemplate(): StreamedResponse
+    {
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'wb');
+
+            // 20 columns; only the cells we fill are listed
+            $row = fn (array $cells) => array_replace(array_fill(0, 20, ''), $cells);
+
+            fputcsv($handle, $row([
+                0 => 'SUPPLIER', 1 => 'IAR No.', 2 => 'IAR Date', 3 => 'ITEM/VEHICLE',
+                4 => 'Details', 12 => 'DEFECTS/COMPLAINTS', 14 => 'COST', 15 => 'OFFICE',
+                16 => 'REQUESTED BY', 17 => 'RECEIVED BY', 18 => 'DATED', 19 => 'REMARKS',
+            ]));
+
+            // One WMR = these 6 rows. A filled SUPPLIER cell starts a new WMR.
+            // Extra materials can go on the following rows of the same column.
+            fputcsv($handle, $row([
+                0 => 'JASMIN PETRON SERVICE STATION', 2 => '1/15/2026', 3 => 'SUZUKI ERTIGA GOT 836',
+                4 => 'WMR:', 5 => '2026010002', 6 => 'Date:', 7 => '1/15/2026',
+                12 => 'LABOR:', 14 => '2,755.00', 15 => 'MOTORPOOL', 16 => 'Juan Dela Cruz',
+            ]));
+            fputcsv($handle, $row([
+                4 => 'JOB ORDER No:', 5 => 'M0-48-12-25', 6 => 'Date:', 7 => '12/2/2025',
+                8 => 'Type:', 9 => 'SUV', 12 => 'Replacement',
+            ]));
+            fputcsv($handle, $row([
+                4 => 'Fund:', 5 => '05-IGF', 6 => 'Brand Name:', 7 => 'SUZUKI',
+                8 => 'MODEL:', 9 => 'ERTIGA', 10 => 'PLATE NO.', 11 => 'GOT 836', 12 => 'Materials:',
+            ]));
+            fputcsv($handle, $row([
+                4 => 'Serial/Engine No:', 5 => 'K14BT1281578', 6 => 'Acquisition Date:', 7 => '2018',
+                8 => 'PROPERTY NO.', 9 => '164-2018070044', 12 => 'ALTERNATOR BELT, COMPRESSOR BELT',
+            ]));
+            fputcsv($handle, $row([
+                4 => 'Inspector Name:', 5 => 'Orvil M. Basug', 6 => 'Date:', 7 => '12/3/2025',
+            ]));
+            fputcsv($handle, $row([
+                4 => 'Invoice:', 5 => '34942', 6 => 'Date:', 7 => '12/10/2025',
+            ]));
+
+            fclose($handle);
+        }, 'wmr_import_template.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }

@@ -56,6 +56,7 @@ import PoLetterViewForm from '@/components/po-letter-monitoring/poletterviewform
 import RrspViewForm from '@/components/rrsp-monitoring/rrspviewform';
 import RegSpiViewForm from '@/components/regspi-monitoring/regspiviewform';
 import BonaVidaViewForm from '@/components/bona-vida-monitoring/bonavidaviewform';
+import WmrViewForm from '@/components/wmr-monitoring/wmrviewform';
 import ClearanceViewForm from '@/components/clearance/clearanceviewform';
 import EmployeeFileViewForm from '@/components/employee-file-locator/employeefileviewform';
 import OfficeViewForm from '@/components/offices/officeviewform';
@@ -1579,6 +1580,7 @@ function ArchiveTab({ archives }: { archives: any }) {
                                 <SelectItem value="ITR PTR">ITR PTR</SelectItem>
                                 <SelectItem value="For Disposal">For Disposal</SelectItem>
                                 <SelectItem value="Bona Vida">Bona Vida</SelectItem>
+                                <SelectItem value="WMR">WMR</SelectItem>
                             </SelectGroup>
                             <SelectSeparator />
                             <SelectGroup>
@@ -1794,6 +1796,13 @@ function ArchiveTab({ archives }: { archives: any }) {
             )}
             {selectedArchiveData?.type === 'BonaVidaMonitoring' && (
                 <BonaVidaViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    record={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'WmrMonitoring' && (
+                <WmrViewForm
                     open={true}
                     onOpenChange={(open) => !open && setSelectedArchiveData(null)}
                     record={selectedArchiveData.data}
