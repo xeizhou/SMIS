@@ -11,7 +11,7 @@ class RRPPEController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->integer('per_page', 10);
-        $query = RRPPEMonitoring::with('items');
+        $query = RRPPEMonitoring::with(['items', 'attachments']);
         $sortField = $request->string('sort_field')->toString();
         $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
         $sorts = ['rrppe_no', 'date_received', 'end_user_name', 'return_by', 'created_at'];
@@ -60,6 +60,15 @@ class RRPPEController extends Controller
                             'remarks' => $i->remarks,
                         ];
                     }),
+                    'attachments' => $rrppe->attachments->map(function ($a) {
+                        return [
+                            'id' => $a->id,
+                            'originalName' => $a->original_name,
+                            'url' => $a->url,
+                            'mimeType' => $a->mime_type,
+                            'fileSize' => $a->file_size,
+                        ];
+                    })->values(),
                 ];
             });
 
@@ -103,8 +112,8 @@ class RRPPEController extends Controller
         $rrppe = RRPPEMonitoring::create([
             'rrppe_no' => $validated['rrppeNo'],
             'date_received' => $validated['dateReceived'],
-            'end_user_name' => $validated['endUserName'],
-            'return_by' => $validated['returnBy'],
+            'end_user_name' => $validated['endUserName'] ?? null,
+            'return_by' => $validated['returnBy'] ?? null,
         ]);
 
         foreach ($validated['items'] as $item) {
@@ -117,11 +126,12 @@ class RRPPEController extends Controller
                 'quantity' => $item['quantity'],
                 'property_no' => $item['propertyNo'],
                 'cost' => $item['cost'] ?? null,
-                'status' => $item['status'],
-                'area' => $item['area'],
+                'status' => $item['status'] ?? null,
+                'area' => $item['area'] ?? null,
                 'remarks' => $item['remarks'] ?? null,
             ]);
         }
+
         return redirect()->back()->with('success', 'RRPPE record added successfully.');
     }
 
@@ -147,8 +157,8 @@ class RRPPEController extends Controller
         $record->update([
             'rrppe_no' => $validated['rrppeNo'],
             'date_received' => $validated['dateReceived'],
-            'end_user_name' => $validated['endUserName'],
-            'return_by' => $validated['returnBy'],
+            'end_user_name' => $validated['endUserName'] ?? null,
+            'return_by' => $validated['returnBy'] ?? null,
         ]);
 
         foreach ($record->items as $item) {
@@ -165,8 +175,8 @@ class RRPPEController extends Controller
                 'quantity' => $item['quantity'],
                 'property_no' => $item['propertyNo'],
                 'cost' => $item['cost'] ?? null,
-                'status' => $item['status'],
-                'area' => $item['area'],
+                'status' => $item['status'] ?? null,
+                'area' => $item['area'] ?? null,
                 'remarks' => $item['remarks'] ?? null,
             ]);
         }
@@ -174,6 +184,37 @@ class RRPPEController extends Controller
         $record->touch();
 
         return redirect()->back()->with('success', 'RRPPE record updated successfully.');
+    }
+
+    /**
+     * Upload attachments for an RRPPE record (same flow as RRSP: the form saves
+     * the record first, then posts the files here as files[]).
+     * The record is looked up by RRPPE No, since the Add form doesn't know the new ID.
+     */
+    public function storeAttachment(Request $request, string $rrppeNo)
+    {
+        $record = RRPPEMonitoring::where('rrppe_no', $rrppeNo)->latest('id')->firstOrFail();
+
+        $request->validate([
+            'files' => 'required|array|min:1',
+            'files.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ]);
+
+        foreach ($request->file('files') as $file) {
+            // 'public' so Storage::url() / the /storage symlink can serve it
+            $path = $file->store('attachments/rrppe/' . $record->id, 'public');
+
+            $record->attachments()->create([
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'mime_type' => $file->getClientMimeType(),
+                'file_size' => $file->getSize(),
+            ]);
+        }
+
+        $record->touch();
+
+        return redirect()->back()->with('success', 'Attachments uploaded successfully.');
     }
 
     public function destroy(\Illuminate\Http\Request $request, $id)

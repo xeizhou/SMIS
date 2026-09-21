@@ -39,6 +39,7 @@ class MyActivityController extends Controller
                 'ITR/PTR', 'ITR/PTR Monitoring' => \Illuminate\Support\Facades\DB::table('itr_ptr_monitoring')->where('id', $id)->value('transaction_no'),
                 'For Disposal', 'For Disposal Monitoring' => \Illuminate\Support\Facades\DB::table('for_disposal_monitoring')->where('id', $id)->value('transaction_no'),
                 'Bona Vida', 'Bona Vida Monitoring' => \Illuminate\Support\Facades\DB::table('bona_vida_monitoring')->where('bvm_id', $id)->value('invoice_no'),
+                'WMR Monitoring' => \Illuminate\Support\Facades\DB::table('wmr_monitoring')->where('id', $id)->value('wmr_no'),
                 'Purchase Order' => $id,
                 'PO Letter Monitoring' => \Illuminate\Support\Facades\DB::table('po_letter_monitoring')->where('id', $id)->value('reference_no'),
                 'Delivery Monitoring', 'Delivery', 'Delivery Follow-ups' => str_contains(strtolower($action), 'follow-up')
@@ -94,6 +95,7 @@ class MyActivityController extends Controller
                     'ITR PTR' => 'ITR/PTR',
                     'For Disposal' => 'For Disposal',
                     'Bona Vida' => 'Bona Vida',
+                    'WMR' => 'WMR',
                     'Purchase Order' => 'Purchase Orders',
                     'PO Letter Monitoring' => 'PO Letter',
                     'Delivery' => 'Delivery',
@@ -158,6 +160,7 @@ class MyActivityController extends Controller
                 str_contains($actionLower, 'itrptr') || str_contains($actionLower, 'itr/ptr') => 'ITR/PTR Monitoring',
                 str_contains($actionLower, 'disposal') => 'For Disposal Monitoring',
                 str_contains($actionLower, 'bona vida') => 'Bona Vida Monitoring',
+                str_contains($actionLower, 'wmr') => 'WMR Monitoring',
                 str_contains($actionLower, 'purchase order') => 'Purchase Order',
                 str_contains($actionLower, 'po letter') => 'PO Letter Monitoring',
                 str_contains($actionLower, 'supplier') => 'Supplier List',

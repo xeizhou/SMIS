@@ -154,6 +154,7 @@ export default function Index({ logs, filters, userActions }: Props) {
                                     <SelectItem value="ITR PTR">ITR PTR</SelectItem>
                                     <SelectItem value="For Disposal">For Disposal</SelectItem>
                                     <SelectItem value="Bona Vida">Bona Vida</SelectItem>
+                                    <SelectItem value="WMR">WMR</SelectItem>
                                 </SelectGroup>
                                 <SelectSeparator />
                                 <SelectGroup>

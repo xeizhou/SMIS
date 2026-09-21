@@ -18,6 +18,7 @@ use App\Http\Controllers\RRPPEController;
 use App\Http\Controllers\RRSPController;
 use App\Http\Controllers\StockItemsController;
 use App\Http\Controllers\StockItemsListController;
+use App\Http\Controllers\WmrController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransactionLogsController;
 use App\Http\Controllers\UnitsController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\StockReportsController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DocumentCenterController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -431,10 +433,17 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     // ==========================================================
     // Assets (sidebar: "Assets")
     // ==========================================================
+
+    // RRPPE attachments are handled inside store/update (multipart form).
+    // The edit form sends POST + `_method=put` so PHP can read uploaded files,
+    // which Laravel routes to the PUT route below via method spoofing.
+    // Removing existing attachments goes through `removedAttachmentIds` on update.
     Route::get('/rrppe-monitoring', [RRPPEController::class, 'index'])->name('rrppe-monitoring.index');
     Route::post('/rrppe-monitoring', [RRPPEController::class, 'store'])->name('rrppe-monitoring.store');
     Route::put('/rrppe-monitoring/{id}', [RRPPEController::class, 'update'])->name('rrppe-monitoring.update');
     Route::delete('/rrppe-monitoring/{id}', [RRPPEController::class, 'destroy'])->name('rrppe-monitoring.destroy');
+    Route::post('/rrppe-monitoring/{rrppeNo}/attachments', [RRPPEController::class, 'storeAttachment'])
+    ->name('rrppe-monitoring.attachments.store');
 
     Route::get('/rrppe-monitoring/areas', [App\Http\Controllers\RrppeAreaController::class, 'index'])->name('rrppe-monitoring.areas.index');
     Route::post('/rrppe-monitoring/areas', [App\Http\Controllers\RrppeAreaController::class, 'store'])->name('rrppe-monitoring.areas.store');
@@ -451,7 +460,6 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::put('/rrsp-monitoring/{rrsp}', [RRSPController::class, 'update'])->name('rrsp-monitoring.update');
     Route::delete('/rrsp-monitoring/{rrsp}', [RRSPController::class, 'destroy'])->name('rrsp-monitoring.destroy');
     Route::post('/rrsp-monitoring/{rrsp}/attachments', [RRSPController::class, 'storeAttachment']); 
-    Route::delete('/attachments/{attachment}', [App\Http\Controllers\AttachmentController::class, 'destroy']);
 
     Route::get('/regspi-monitoring', [RegSPIController::class, 'index'])->name('regspi-monitoring.index');
     Route::post('/regspi-monitoring', [RegSPIController::class, 'store'])->name('regspi-monitoring.store');
@@ -481,6 +489,11 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/bona-vida-monitoring', [BonaVidaController::class, 'store'])->name('bona-vida-monitoring.store');
     Route::put('/bona-vida-monitoring/{bonavida}', [BonaVidaController::class, 'update'])->name('bona-vida-monitoring.update');
     Route::delete('/bona-vida-monitoring/{bonavida}', [BonaVidaController::class, 'destroy'])->name('bona-vida-monitoring.destroy');
+
+    Route::get('/wmr-monitoring', [WmrController::class, 'index'])->name('wmr-monitoring.index');
+    Route::post('/wmr-monitoring', [WmrController::class, 'store'])->name('wmr-monitoring.store');
+    Route::put('/wmr-monitoring/{wmr}', [WmrController::class, 'update'])->name('wmr-monitoring.update');
+    Route::delete('/wmr-monitoring/{wmr}', [WmrController::class, 'destroy'])->name('wmr-monitoring.destroy');
 
     // ==========================================================
     // Procurement (sidebar: "Procurement")
@@ -528,7 +541,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::delete('/fund-clusters/{fundCluster}', [FundClustersController::class, 'destroy'])->name('fund-clusters.destroy');
 
     // Shared polymorphic attachment delete route — used by Purchase Orders,
-    // Deliveries, and PIR. Previously this was declared separately (and
+    // Deliveries, PIR, and RRSP. Previously this was declared separately (and
     // duplicated) under both PO and Deliveries pointing at different
     // controllers; Laravel silently let the second definition win. Now
     // there's exactly one route, one controller, reused everywhere.
@@ -601,6 +614,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     // otherwise the wildcard below catches them and 404s (not in SCHEMAS).
     Route::get('/import/template/rrsp', [ImportController::class, 'rrspTemplate'])->name('import.rrsp.template');
     Route::get('/import/template/rrppe', [ImportController::class, 'rrppeTemplate'])->name('import.rrppe.template');
+    Route::get('/import/template/wmr', [ImportController::class, 'wmrTemplate'])->name('import.wmr.template');
 
     Route::get('/import/template/{type}', [ImportController::class, 'template'])->name('import.template');
     Route::post('/import/items', [ImportController::class, 'items'])->name('import.items');
@@ -619,6 +633,10 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/import/rrppe', [ImportController::class, 'rrppe'])->name('import.rrppe');
     Route::get('/import/rrppe/{import}/status', [ImportController::class, 'status'])->name('import.rrppe.status');
     Route::post('/import/rrppe/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.rrppe.cancel');
+
+    Route::post('/import/wmr', [ImportController::class, 'wmr'])->name('import.wmr');
+    Route::get('/import/wmr/{import}/status', [ImportController::class, 'status'])->name('import.wmr.status');
+    Route::post('/import/wmr/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.wmr.cancel');
 
     Route::get('/backup/folders', [BackupController::class, 'folders'])->name('backup.folders');
     Route::post('/backup/create', [BackupController::class, 'create'])->name('backup.create');

@@ -45,7 +45,16 @@ export type RRPPEMonitoring = {
     createdAt?: string;
     updatedAt?: string;
     items?: RrppeItem[];
+    attachments?: RrppeAttachment[]
 };
+
+export interface RrppeAttachment {
+    id: number;
+    originalName: string;
+    url: string;
+    mimeType: string | null;
+    fileSize: number | null;
+}
 
 export type PaginatedRRPPE = {
     data: RRPPEMonitoring[];
