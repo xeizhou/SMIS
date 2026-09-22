@@ -67,6 +67,10 @@ class TransactionLogsController extends Controller
             $query->where('transaction_type', $request->transaction_type);
         }
 
+        if ($request->filled('office_code') && $request->office_code !== 'all') {
+            $query->where('office_code', $request->office_code);
+        }
+
         if ($request->filled('fund_cluster') && $request->fund_cluster !== 'all') {
             $query->where('fund_cluster', $request->fund_cluster);
         }
@@ -107,7 +111,7 @@ class TransactionLogsController extends Controller
             'transactions' => $transactions,
             'units' => Unit::orderByDesc('unitID')->get(),
             'fundClusters' => FundCluster::orderByDesc('created_at')->get(),
-            'offices' => Office::orderByDesc('office_code')->get(),
+            'offices' => Office::orderBy('office_code')->get(),
             'stockItems' => StockItem::with('units')
                 ->orderByDesc('created_at')
                 ->get(['stock_no', 'item_name', 'description', 'fund_cluster_id'])
@@ -119,6 +123,7 @@ class TransactionLogsController extends Controller
             'filters' => [
                 'search' => $search,
                 'transaction_type' => $request->input('transaction_type', 'all'),
+                'office_code' => $request->input('office_code', 'all'),
                 'fund_cluster' => $request->input('fund_cluster', 'all'), // 3. Pass to frontend
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,

@@ -2,8 +2,8 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Archive, Eye, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Pencil, Archive, Eye, ChevronUp, ChevronDown, ChevronsUpDown, CalendarIcon } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import TransactionAddForm from '@/components/transaction-logs/transactionaddform';
 import TransactionDeleteModal from '@/components/transaction-logs/transactiondeletemodal';
 import TransactionEditForm from '@/components/transaction-logs/transactioneditform';
@@ -53,6 +53,7 @@ interface StockItem {
 interface Transaction {
     transactionID: number;
     transaction_type: string;
+    office_code: string | null;
     fund_cluster: string;
     fund_cluster_detail: FundCluster | null;
     transaction_date: string;
@@ -62,7 +63,6 @@ interface Transaction {
     unitID: number;
     reference: string;
     quantity: number;
-    office_code: string;
     unit: Unit | null;
     office: Office | null;
 }
@@ -85,6 +85,7 @@ interface PaginatedTransactions {
 interface Filters {
     search: string | null;
     transaction_type: string | null;
+    office_code: string | null;
     fund_cluster: string | null;
     date_from: string | null;
     date_to: string | null;
@@ -123,11 +124,25 @@ export default function Index({
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [transactionType, setTransactionType] = useState(filters.transaction_type ?? 'all');
+    const [officeFilter, setOfficeFilter] = useState(filters.office_code ?? 'all');
     const [fundClusterFilter, setFundClusterFilter] = useState(filters.fund_cluster ?? 'all');
     
     // Default native date states
     const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
     const [dateTo, setDateTo] = useState(filters.date_to ?? '');
+
+    const [dateRangeOpen, setDateRangeOpen] = useState(false);
+    const dateRangeRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(e: MouseEvent) {
+            if (dateRangeRef.current && !dateRangeRef.current.contains(e.target as Node)) {
+                setDateRangeOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -141,6 +156,7 @@ export default function Index({
         buildFilterUrl({
             search,
             transaction_type: transactionType,
+            office_code: officeFilter,
             fund_cluster: fundClusterFilter,
             date_from: dateFrom,
             date_to: dateTo,
@@ -171,13 +187,14 @@ export default function Index({
     const handleClear = () => {
         setSearch('');
         setTransactionType('all');
+        setOfficeFilter('all');
         setFundClusterFilter('all');
         setDateFrom('');
         setDateTo('');
         router.get(
             '/transaction-logs',
             buildFilterUrl({
-                search: '', transaction_type: 'all', fund_cluster: 'all',
+                search: '', transaction_type: 'all', office_code: 'all', fund_cluster: 'all',
                 date_from: '', date_to: '', page: 1,
             }),
             { preserveState: true, preserveScroll: true, replace: true }
@@ -253,6 +270,30 @@ export default function Index({
                         </Select>
 
                         <Select
+                            value={officeFilter}
+                            onValueChange={(value) => {
+                                setOfficeFilter(value);
+                                router.get(
+                                    '/transaction-logs',
+                                    getFilterParams({ office_code: value, page: 1 }),
+                                    { preserveState: true, preserveScroll: true, replace: true }
+                                );
+                            }}
+                        >
+                            <SelectTrigger className="w-[140px] text-black">
+                                <SelectValue placeholder="All Offices" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Offices</SelectItem>
+                                {offices.map((o) => (
+                                    <SelectItem key={o.office_code} value={o.office_code}>
+                                        {o.office_code}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <Select
                             value={fundClusterFilter}
                             onValueChange={(value) => {
                                 setFundClusterFilter(value);
@@ -263,7 +304,7 @@ export default function Index({
                                 );
                             }}
                         >
-                            <SelectTrigger className="w-[220px] text-black">
+                            <SelectTrigger className="w-[160px] text-black">
                                 <SelectValue placeholder="All Fund Clusters" />
                             </SelectTrigger>
                             <SelectContent>
@@ -277,22 +318,62 @@ export default function Index({
                         </Select>
 
                         {/* Native Date Range Inputs using Shadcn Input Component */}
-                        <div className="flex items-center gap-2 bg-background">
-                            <Input
-                                type="date"
-                                value={dateFrom}
-                                onChange={(e) => setDateFrom(e.target.value)}
-                                className="w-auto text-black"
-                                title="From Date"
-                            />
-                            <span className="text-sm text-muted-foreground">to</span>
-                            <Input
-                                type="date"
-                                value={dateTo}
-                                onChange={(e) => setDateTo(e.target.value)}
-                                className="w-auto text-black"
-                                title="To Date"
-                            />
+                        <div className="relative" ref={dateRangeRef}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setDateRangeOpen((v) => !v)}
+                                className="justify-start text-left font-normal text-black w-[220px] overflow-hidden"
+                            >
+                                <CalendarIcon className="mr-2 size-4 shrink-0 text-muted-foreground" />
+                                <span className="truncate">
+                                    {dateFrom && dateTo
+                                        ? `${formatDate(dateFrom)} – ${formatDate(dateTo)}`
+                                        : dateFrom
+                                        ? `From ${formatDate(dateFrom)}`
+                                        : dateTo
+                                        ? `Until ${formatDate(dateTo)}`
+                                        : 'Date range'}
+                                </span>
+                            </Button>
+
+                            {dateRangeOpen && (
+                                <div className="absolute z-50 mt-1 flex w-max flex-col gap-2 rounded-md border bg-card p-3 shadow-lg">
+                                    <div className="flex items-center gap-2">
+                                        <label className="w-10 text-xs text-muted-foreground">From</label>
+                                        <Input
+                                            type="date"
+                                            value={dateFrom}
+                                            onChange={(e) => setDateFrom(e.target.value)}
+                                            className="text-black"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <label className="w-10 text-xs text-muted-foreground">To</label>
+                                        <Input
+                                            type="date"
+                                            value={dateTo}
+                                            onChange={(e) => setDateTo(e.target.value)}
+                                            className="text-black"
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={() => {
+                                            setDateRangeOpen(false);
+                                            router.get(
+                                                '/transaction-logs',
+                                                getFilterParams({ page: 1 }),
+                                                { preserveState: true, preserveScroll: true, replace: true }
+                                            );
+                                        }}
+                                    >
+                                        Apply
+                                    </Button>
+                                </div>
+                            )}
                         </div>
 
                         <Button type="submit" variant="secondary">
