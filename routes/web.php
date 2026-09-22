@@ -643,6 +643,10 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/import/bona-vida/{import}/status', [ImportController::class, 'status'])->name('import.bona-vida.status');
     Route::post('/import/bona-vida/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.bona-vida.cancel');
 
+    Route::post('/import/employee-files', [ImportController::class, 'employeeFiles'])->name('import.employee-files');
+    Route::get('/import/employee-files/{import}/status', [ImportController::class, 'status'])->name('import.employee-files.status');
+    Route::post('/import/employee-files/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.employee-files.cancel');
+
     Route::get('/backup/folders', [BackupController::class, 'folders'])->name('backup.folders');
     Route::post('/backup/create', [BackupController::class, 'create'])->name('backup.create');
     Route::post('/backup/restore', [BackupController::class, 'restore'])->name('backup.restore');
