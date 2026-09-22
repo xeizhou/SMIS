@@ -196,7 +196,7 @@ class DocumentCenterController extends Controller
             ),
             \App\Models\Supplier::class => \App\Models\Supplier::withTrashed()->find($id),
             \App\Models\FundCluster::class => \App\Models\FundCluster::withTrashed()->find($id),
-            \App\Models\RRPPEMonitoring::class => \App\Models\RRPPEMonitoring::withTrashed()->with(['items' => fn($q) => $q->withTrashed()])->find($id),
+            \App\Models\RRPPEMonitoring::class => \App\Models\RRPPEMonitoring::withTrashed()->with(['items' => fn($q) => $q->withTrashed(), 'attachments'])->find($id),
             \App\Models\ItrPtrMonitoring::class => \App\Models\ItrPtrMonitoring::withTrashed()->find($id),
             \App\Models\ForDisposalMonitoring::class => \App\Models\ForDisposalMonitoring::withTrashed()->find($id),
             default => null,
@@ -230,6 +230,15 @@ class DocumentCenterController extends Controller
                         'remarks' => $i->remarks,
                     ];
                 }),
+                'attachments' => $model->attachments->map(function ($a) {
+                    return [
+                        'id' => $a->id,
+                        'originalName' => $a->original_name,
+                        'url' => $a->url,
+                        'mimeType' => $a->mime_type,
+                        'fileSize' => $a->file_size,
+                    ];
+                })->values(),
             ];
         }
 
@@ -256,6 +265,15 @@ class DocumentCenterController extends Controller
                         'remarks' => $i->remarks,
                     ];
                 }),
+                'attachments' => $model->attachments->map(function ($a) {
+                    return [
+                        'id' => $a->id,
+                        'originalName' => $a->original_name,
+                        'url' => $a->url,
+                        'mimeType' => $a->mime_type,
+                        'fileSize' => $a->file_size,
+                    ];
+                })->values(),
             ];
         }
 
@@ -307,7 +325,7 @@ class DocumentCenterController extends Controller
                 \App\Models\ServePo::class => \App\Models\ServePo::withTrashed()->where('po_number', $id)->first(),
                 \App\Models\Delivery::class => \App\Models\Delivery::withTrashed()->where('delivery_id', $id)->first(),
                 \App\Models\PoLetterMonitoring::class => \App\Models\PoLetterMonitoring::withTrashed()->find($id),
-                \App\Models\RrspMonitoring::class => \App\Models\RrspMonitoring::withTrashed()->find($id),
+                \App\Models\RrspMonitoring::class => \App\Models\RrspMonitoring::withTrashed()->with(['items' => fn($q) => $q->withTrashed(), 'attachments'])->find($id),
                 \App\Models\RegspiMonitoring::class => \App\Models\RegspiMonitoring::withTrashed()->find($id),
                 \App\Models\BonaVidaMonitoring::class => \App\Models\BonaVidaMonitoring::withTrashed()->find($id),
                 \App\Models\WmrMonitoring::class => \App\Models\WmrMonitoring::withTrashed()->find($id),
