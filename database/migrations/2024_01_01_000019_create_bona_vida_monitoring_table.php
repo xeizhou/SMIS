@@ -26,6 +26,11 @@ return new class extends Migration
             $table->foreign('office_code', 'fk_bonavida_office')
                 ->references('office_code')->on('offices')
                 ->restrictOnDelete();
+
+            $table->unique(
+                ['date_received', 'office_code', 'invoice_no'],
+                'bona_vida_monitoring_unique_delivery'
+            );
         });
     }
 

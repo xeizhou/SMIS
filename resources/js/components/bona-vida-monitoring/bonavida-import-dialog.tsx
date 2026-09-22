@@ -37,7 +37,7 @@ interface ImportStatus {
     error_message: string | null;
 }
 
-export default function RrspImportDialog({ open, onOpenChange }: Props) {
+export default function BonaVidaImportDialog({ open, onOpenChange }: Props) {
     const [file, setFile] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [cancelling, setCancelling] = useState(false);
@@ -49,18 +49,12 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         skipped: string[];
     } | null>(null);
 
-    const [importStatus, setImportStatus] =
-        useState<ImportStatus | null>(null);
+    const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Reset
-    |--------------------------------------------------------------------------
-    | Only called explicitly (e.g. "Import another file"), never on close,
-    | so re-opening the dialog shows whatever was left in progress.
-    */
+    /* Reset — only called explicitly ("Import another file"), never on close,
+       so re-opening the dialog shows whatever was left in progress. */
 
     function reset() {
         setFile(null);
@@ -76,11 +70,7 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | File validation
-    |--------------------------------------------------------------------------
-    */
+    /* File validation */
 
     function validateFile(selectedFile: File): boolean {
         const isCsv =
@@ -95,12 +85,6 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         setError(null);
         return true;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Select file
-    |--------------------------------------------------------------------------
-    */
 
     function selectFile(selectedFile: File | null) {
         if (!selectedFile) {
@@ -117,11 +101,7 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         setImportStatus(null);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Drag & Drop
-    |--------------------------------------------------------------------------
-    */
+    /* Drag & drop */
 
     function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
@@ -159,11 +139,7 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Remove file
-    |--------------------------------------------------------------------------
-    */
+    /* Remove file */
 
     function removeFile() {
         if (submitting || isImporting) {
@@ -178,11 +154,7 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Format file size
-    |--------------------------------------------------------------------------
-    */
+    /* Format file size */
 
     function formatFileSize(bytes: number) {
         if (bytes === 0) {
@@ -190,7 +162,6 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         }
 
         const units = ['Bytes', 'KB', 'MB', 'GB'];
-
         const index = Math.floor(Math.log(bytes) / Math.log(1024));
 
         return `${(bytes / Math.pow(1024, index)).toFixed(
@@ -198,16 +169,8 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         )} ${units[index]}`;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Poll import status
-    |--------------------------------------------------------------------------
-    | Note: this effect lives on the component instance, not on dialog
-    | visibility, so polling keeps running even while the dialog is closed
-    | (as long as the parent keeps this component mounted, which is the
-    | normal pattern for a controlled Dialog). That's what lets you close
-    | the modal mid-import and see progress again when you reopen it.
-    */
+    /* Poll import status — lives on the component instance, so polling
+       keeps running while the dialog is closed (parent keeps it mounted). */
 
     useEffect(() => {
         if (!importStatus) {
@@ -227,12 +190,8 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         const pollStatus = async () => {
             try {
                 const response = await fetch(
-                    `/import/rrsp/${importStatus.id}/status`,
-                    {
-                        headers: {
-                            Accept: 'application/json',
-                        },
-                    },
+                    `/import/bona-vida/${importStatus.id}/status`,
+                    { headers: { Accept: 'application/json' } },
                 );
 
                 if (!response.ok) {
@@ -257,24 +216,13 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         };
     }, [importStatus?.id]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Open / close
-    |--------------------------------------------------------------------------
-    | Closing the dialog (X, backdrop click, Esc) no longer resets state.
-    | Whatever was selected/in-progress/completed is still there next time
-    | the dialog is opened.
-    */
+    /* Open / close — closing never resets state. */
 
     function handleOpenChange(nextOpen: boolean) {
         onOpenChange(nextOpen);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Submit
-    |--------------------------------------------------------------------------
-    */
+    /* Submit */
 
     function submit(event: FormEvent) {
         event.preventDefault();
@@ -294,28 +242,20 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         data.append('file', file);
         data.append('file_format', 'csv');
 
-        router.post('/import/rrsp', data, {
+        router.post('/import/bona-vida', data, {
             forceFormData: true,
 
             onSuccess: (page) => {
                 const flash = (page.props as any)?.flash ?? page.props;
 
-                const raw = flash?.success ?? 'RRSP import started.';
+                const raw = flash?.success ?? 'Bona-Vida import started.';
 
                 const [message, importToken] = raw.split('|||');
 
-                const importId = Number(
-                    importToken?.replace('import_id:', ''),
-                );
+                const importId = Number(importToken?.replace('import_id:', ''));
 
                 if (Number.isInteger(importId) && importId > 0) {
-                    /*
-                     * Immediately create the import status.
-                     *
-                     * total_rows is initially null because
-                     * the queue worker may still be reading
-                     * the CSV.
-                     */
+                    // total_rows is null until the queue worker has read the CSV.
                     setImportStatus({
                         id: importId,
                         status: 'pending',
@@ -327,10 +267,7 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
                         error_message: null,
                     });
                 } else {
-                    setSummary({
-                        message,
-                        skipped: [],
-                    });
+                    setSummary({ message, skipped: [] });
                 }
 
                 setSubmitting(false);
@@ -355,17 +292,8 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         });
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cancel
-    |--------------------------------------------------------------------------
-    | Before an import has started: just closes the dialog, state is kept.
-    | While an import is running: asks the backend to cancel the job, then
-    | reflects that locally. Requires a
-    |   POST /import/rrsp/{import}/cancel
-    | route on the backend that marks the import row 'cancelled' (and
-    | ideally has the queued job check that flag and bail out early).
-    */
+    /* Cancel — before an import starts it just closes the dialog;
+       while running it asks the backend to cancel the job. */
 
     function cancelImport() {
         if (!importStatus || !isImporting) {
@@ -376,16 +304,14 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         setCancelling(true);
 
         router.post(
-            `/import/rrsp/${importStatus.id}/cancel`,
+            `/import/bona-vida/${importStatus.id}/cancel`,
             {},
             {
                 onFinish: () => {
                     setCancelling(false);
                     setSubmitting(false);
                     setImportStatus((current) =>
-                        current
-                            ? { ...current, status: 'cancelled' }
-                            : current,
+                        current ? { ...current, status: 'cancelled' } : current,
                     );
                 },
                 onError: () => {
@@ -398,11 +324,7 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
         );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Import completion
-    |--------------------------------------------------------------------------
-    */
+    /* Import completion */
 
     useEffect(() => {
         if (!importStatus) {
@@ -411,51 +333,45 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
 
         if (importStatus.status === 'completed') {
             setSummary({
-                message: `Import complete — ${importStatus.processed_rows.toLocaleString()} RRSPs processed.`,
+                message: `Import complete — ${importStatus.processed_rows.toLocaleString()} deliveries processed.`,
                 skipped:
                     importStatus.skipped_rows > 0
                         ? [
-                              `${importStatus.skipped_rows.toLocaleString()} RRSPs skipped.`,
+                              `${importStatus.skipped_rows.toLocaleString()} rows skipped.`,
                           ]
                         : [],
             });
 
             setSubmitting(false);
 
-            router.reload({ only: ['rrspMonitorings'] });
+            router.reload({ only: ['records', 'offices'] });
         }
 
         if (importStatus.status === 'failed') {
             setError(
-                importStatus.error_message ??
-                    'The background import failed.',
+                importStatus.error_message ?? 'The background import failed.',
             );
 
             setSubmitting(false);
         }
-
+        
         if (importStatus.status === 'cancelled') {
             setError(null);
             setSummary(null);
             setSubmitting(false);
 
-            router.reload({ only: ['rrspMonitorings'] });
+            router.reload({ only: ['records', 'offices'] });
         }
     }, [importStatus]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Progress
-    |--------------------------------------------------------------------------
-    */
+    /* Progress */
 
     const progress =
         importStatus?.total_rows && importStatus.total_rows > 0
             ? Math.min(
                   100,
                   Math.round(
-                      (importStatus.processed_rows /
-                          importStatus.total_rows) *
+                      (importStatus.processed_rows / importStatus.total_rows) *
                           100,
                   ),
               )
@@ -467,30 +383,23 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
 
     const wasCancelled = importStatus?.status === 'cancelled';
 
-    /*
-    |--------------------------------------------------------------------------
-    | UI
-    |--------------------------------------------------------------------------
-    */
+    /* UI */
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>Import RRSP Records</DialogTitle>
+                    <DialogTitle>Import Bona Vida Records</DialogTitle>
 
                     <DialogDescription>
-                        Upload your RRSP monitoring CSV. Rows with a blank
-                        RRSP no. are added as extra items of the RRSP above
-                        them.
+                        Upload your Bona Vida delivery monitoring CSV. Rows are
+                        matched to existing offices by office code — unmatched
+                        offices are skipped.
                     </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={submit} className="space-y-5">
-                    {/* -------------------------------------------------
-                        File Upload
-                    -------------------------------------------------- */}
-
+                    {/* File upload */}
                     <div>
                         <input
                             ref={fileInputRef}
@@ -584,7 +493,7 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
                                     </span>
 
                                     <span className="text-xs text-muted-foreground">
-                                        RRSP format
+                                        Bona Vida format
                                     </span>
                                 </div>
 
@@ -648,20 +557,14 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
                         )}
                     </div>
 
-                    {/* -------------------------------------------------
-                        Error
-                    -------------------------------------------------- */}
-
+                    {/* Error */}
                     {error && (
                         <div className="rounded-lg border border-red-200 bg-red-50 p-3">
                             <p className="text-sm text-red-600">{error}</p>
                         </div>
                     )}
 
-                    {/* -------------------------------------------------
-                        Cancelled
-                    -------------------------------------------------- */}
-
+                    {/* Cancelled */}
                     {wasCancelled && (
                         <div className="rounded-lg border bg-muted/20 p-3">
                             <p className="text-sm text-muted-foreground">
@@ -670,13 +573,9 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
                         </div>
                     )}
 
-                    {/* -------------------------------------------------
-                        Import Progress
-                    -------------------------------------------------- */}
-
+                    {/* Import progress */}
                     {importStatus && isImporting && (
                         <div className="rounded-xl border bg-muted/20 p-4">
-                            {/* Header */}
                             <div className="flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-2.5">
                                     <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#612A35]/10">
@@ -705,7 +604,6 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
                                 </span>
                             </div>
 
-                            {/* Progress bar */}
                             <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
                                 {importStatus.total_rows !== null ? (
                                     <div
@@ -717,7 +615,6 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
                                 )}
                             </div>
 
-                            {/* Progress details */}
                             {importStatus.total_rows !== null && (
                                 <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
                                     <span>{progress}% complete</span>
@@ -734,10 +631,7 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
                         </div>
                     )}
 
-                    {/* -------------------------------------------------
-                        Success
-                    -------------------------------------------------- */}
-
+                    {/* Success */}
                     {summary && (
                         <div className="rounded-xl border border-green-200 bg-green-50/50 p-4">
                             <div className="flex gap-3">
@@ -772,13 +666,10 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
                         </div>
                     )}
 
-                    {/* -------------------------------------------------
-                        Footer
-                    -------------------------------------------------- */}
-
+                    {/* Footer */}
                     <DialogFooter className="flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <a
-                            href="/import/template/rrsp"
+                            href="/import/template/bona-vida"
                             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground hover:underline"
                         >
                             <Download className="size-3.5" />
@@ -819,7 +710,7 @@ export default function RrspImportDialog({ open, onOpenChange }: Props) {
                                 ) : (
                                     <>
                                         <FileUp className="mr-2 size-4" />
-                                        Import RRSP
+                                        Import Bona Vida
                                     </>
                                 )}
                             </Button>

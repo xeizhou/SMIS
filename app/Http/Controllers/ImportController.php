@@ -12,6 +12,7 @@ use App\Jobs\ProcessRegspiImport;
 use App\Jobs\ProcessRrspImport;
 use App\Jobs\ProcessRrppeImport;
 use App\Jobs\ProcessWmrImport;
+use App\Jobs\ProcessBonaVidaImport;
 use App\Jobs\ProcessDataImport;
 use App\Services\ImportProcessor;
 use Illuminate\Http\Request;
@@ -32,9 +33,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * enough to blow past the request timeout — see ImportProcessor for
  * the shared row logic both paths call.
  *
- * RegSPI, RRSP and RRPPE CSV imports are queued too (ProcessRegspiImport /
- * ProcessRrspImport / ProcessRrppeImport) and report progress through the
- * Import model.
+ * RegSPI, RRSP, RRPPE, WMR and Bona-Vida CSV imports are queued too
+ * (ProcessRegspiImport / ProcessRrspImport / ProcessRrppeImport /
+ * ProcessWmrImport / ProcessBonaVidaImport) and report progress through
+ * the Import model.
  *
  * Requires PhpSpreadsheet, which ships as a dependency of maatwebsite/excel.
  * If it's not already in composer.json:
@@ -173,7 +175,8 @@ class ImportController extends Controller
 
     /**
      * Cancel endpoint shared by every queued import type (regspi, rrsp,
-     * rrppe, ...) — they all just flip the status on the same Import model.
+     * rrppe, wmr, bona-vida, ...) — they all just flip the status on the
+     * same Import model.
      */
     public function regspiCancel(Import $import)
     {
@@ -371,7 +374,7 @@ class ImportController extends Controller
         ]);
     }
 
-        /**
+    /**
      * POST /import/wmr
      * Queued CSV import for WMR monitoring (one WMR = a block of rows).
      */
@@ -444,9 +447,57 @@ class ImportController extends Controller
     }
 
     /**
+     * POST /import/bona-vida
+     * Queued CSV import for Bona-Vida delivery monitoring. No fund
+     * cluster or dialog-selected value needed — office_code comes
+     * straight off the CSV's OFFICES column.
+     */
+    public function bonaVida(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:51200',
+        ]);
+
+        $path = $validated['file']->store('imports/bona-vida');
+        $import = Import::create([
+            'user_id' => $request->user()->getKey(),
+            'file_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        ProcessBonaVidaImport::dispatch($import->getKey());
+
+        return back()->with('success', "Bona-Vida import started.|||import_id:{$import->getKey()}");
+    }
+
+    /**
+     * GET /import/template/bona-vida
+     * Registered BEFORE /import/template/{type} in web.php.
+     */
+    public function bonaVidaTemplate(): StreamedResponse
+    {
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'wb');
+
+            fputcsv($handle, [
+                'DATE RECIEVE', 'OFFICES', 'QTY', 'U/M', 'PRICE',
+                'TOTAL AMOUNT', 'INVOICE NO.', 'INVOICE DATE', 'REMARKS',
+            ]);
+            fputcsv($handle, [
+                '11/3/2022', 'COE-DEANS OFFICE', 6, 'bot', 32.5, 195.0, 1302, '11/3/2022', '',
+            ]);
+
+            fclose($handle);
+        }, 'bona_vida_import_template.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
      * GET /import/{import}/status
-     * Generic across all queued import types (regspi, rrsp, rrppe, items,
-     * transactions) since they all just read off the same Import model.
+     * Generic across all queued import types (regspi, rrsp, rrppe, wmr,
+     * bona-vida, items, transactions) since they all just read off the
+     * same Import model.
      */
     public function status(Request $request, Import $import)
     {

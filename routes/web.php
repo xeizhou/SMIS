@@ -615,6 +615,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/import/template/rrsp', [ImportController::class, 'rrspTemplate'])->name('import.rrsp.template');
     Route::get('/import/template/rrppe', [ImportController::class, 'rrppeTemplate'])->name('import.rrppe.template');
     Route::get('/import/template/wmr', [ImportController::class, 'wmrTemplate'])->name('import.wmr.template');
+    Route::get('/import/template/bona-vida', [ImportController::class, 'bonaVidaTemplate'])->name('import.bona-vida.template');
 
     Route::get('/import/template/{type}', [ImportController::class, 'template'])->name('import.template');
     Route::post('/import/items', [ImportController::class, 'items'])->name('import.items');
@@ -637,6 +638,10 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/import/wmr', [ImportController::class, 'wmr'])->name('import.wmr');
     Route::get('/import/wmr/{import}/status', [ImportController::class, 'status'])->name('import.wmr.status');
     Route::post('/import/wmr/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.wmr.cancel');
+
+    Route::post('/import/bona-vida', [ImportController::class, 'bonaVida'])->name('import.bona-vida');
+    Route::get('/import/bona-vida/{import}/status', [ImportController::class, 'status'])->name('import.bona-vida.status');
+    Route::post('/import/bona-vida/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.bona-vida.cancel');
 
     Route::get('/backup/folders', [BackupController::class, 'folders'])->name('backup.folders');
     Route::post('/backup/create', [BackupController::class, 'create'])->name('backup.create');
