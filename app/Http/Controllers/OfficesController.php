@@ -168,11 +168,32 @@ public function index(Request $request)
 
     public function destroy(Request $request, Office $office)
     {
-        $poCount = \App\Models\ServePo::where('end_user', $office->office_code)->count();
+        $poCount = $office->purchaseOrders()->count();
+        $clearanceCount = $office->clearances()->count();
+        $bonaVidaCount = $office->bonaVidaMonitorings()->count();
+        $transactionCount = $office->transactions()->count();
+        $wmrCount = $office->wmrMonitorings()->count();
 
-        if ($poCount > 0) {
+        if ($poCount > 0 || $clearanceCount > 0 || $bonaVidaCount > 0 || $transactionCount > 0 || $wmrCount > 0) {
+            $parts = [];
+            if ($poCount > 0) {
+                $parts[] = "{$poCount} Linked Purchase Order" . ($poCount > 1 ? 's' : '');
+            }
+            if ($clearanceCount > 0) {
+                $parts[] = "{$clearanceCount} Linked Clearance" . ($clearanceCount > 1 ? 's' : '');
+            }
+            if ($bonaVidaCount > 0) {
+                $parts[] = "{$bonaVidaCount} Linked Bona Vida Record" . ($bonaVidaCount > 1 ? 's' : '');
+            }
+            if ($transactionCount > 0) {
+                $parts[] = "{$transactionCount} Linked Transaction Record" . ($transactionCount > 1 ? 's' : '');
+            }
+            if ($wmrCount > 0) {
+                $parts[] = "{$wmrCount} Linked WMR Record" . ($wmrCount > 1 ? 's' : '');
+            }
+
             return back()->with('error',
-                "Cannot archive this office because it has {$poCount} linked Purchase Order" . ($poCount > 1 ? 's' : '') . ". Please remove them first."
+                "Cannot archive this office because it has linked records. Please remove them first:\n" . implode("\n", $parts)
             );
         }
 

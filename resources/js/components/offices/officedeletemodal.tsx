@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -22,6 +22,12 @@ export default function OfficeDeleteModal({
 }: Props) {
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (open) {
+            setError(null);
+        }
+    }, [open]);
 
     const confirmArchive = () => {
         if (!officeCode) {
@@ -64,9 +70,20 @@ export default function OfficeDeleteModal({
                         Are you sure you want to archive this office? You can restore it later from the Document Center.
                     </p>
                     {error && (
-                        <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950 rounded-md px-3 py-2">
-                            {error}
-                        </p>
+                        <div className="text-sm text-red-600 bg-red-50 dark:bg-red-950 rounded-md px-3 py-2">
+                            {error.includes('\n') ? (
+                                <>
+                                    <p>{error.split('\n')[0]}</p>
+                                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
+                                        {error.split('\n').slice(1).map((line, i) => (
+                                            <li key={i}>{line}</li>
+                                        ))}
+                                    </ul>
+                                </>
+                            ) : (
+                                <p>{error}</p>
+                            )}
+                        </div>
                     )}
                 </div>
 

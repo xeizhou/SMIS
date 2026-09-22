@@ -62,4 +62,14 @@ class Office extends Model
     {
         return $this->morphOne(Archive::class, 'archivable');
     }
+
+    public function purchaseOrders(): HasMany
+    {
+        return $this->hasMany(ServePo::class, 'end_user', 'office_code');
+    }
+
+    public function wmrMonitorings(): HasMany
+    {
+        return $this->hasMany(WmrMonitoring::class, 'office_code', 'office_code');
+    }
 }
