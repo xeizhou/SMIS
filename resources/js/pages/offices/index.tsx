@@ -79,15 +79,15 @@ export default function Index({ offices, filters }: Props) {
 
     // 2. Define your columns here instead of writing raw HTML
     const columns: ColumnDef<Office>[] = [
-        { key: 'office_code', label: 'Office Code', sortable: true, width: 'w-[15%]' },
+        { key: 'office_code', label: 'Office Code', sortable: true, width: 'w-[10%]' },
         { key: 'office_name', label: 'Office Name', sortable: true, width: 'w-[25%]' },
         { key: 'entity_name', label: 'Entity Name', sortable: true, width: 'w-[20%]' },
-        { key: 'office_head', label: 'Office Head', sortable: true, width: 'w-[20%]' },
+        { key: 'office_head', label: 'Office Head', sortable: true, width: 'w-[15%]' },
         {
             key: 'email',
             label: 'Email',
             sortable: true,
-            width: 'w-[10%]',
+            width: 'w-[20%]',
             // Use render to handle null checks
             render: (office) => office.email ?? '—', 
         },
