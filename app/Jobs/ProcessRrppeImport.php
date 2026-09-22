@@ -20,8 +20,16 @@ class ProcessRrppeImport implements ShouldQueue
 
     public int $timeout = 3600;
 
-    /** Touch the imports row / check cancellation every N records (SQLite hates chatty writes). */
-    private const PROGRESS_EVERY = 5;
+    /**
+     * Touch the imports row / check cancellation every N records.
+     *
+     * Was 5 because the per-group ->where('rrppe_no', ...) query plus
+     * per-row transaction made progress checks expensive to skip. Now
+     * that the lookup is preloaded (see $existingByNo in
+     * processGroups()), this can run at the same cadence as the other
+     * imports.
+     */
+    private const PROGRESS_EVERY = 50;
 
     /** Field -> possible column titles (normalized: lowercase, letters/digits only). */
     private const COLUMNS = [
@@ -99,6 +107,17 @@ class ProcessRrppeImport implements ShouldQueue
     {
         $created = $updated = $skipped = $processed = 0;
 
+        /**
+         * Single preload query instead of a `->where('rrppe_no', ...)
+         * ->first()` per group — same pattern as ProcessRegspiImport's
+         * $existingKeys, ProcessWmrImport's $existingByNo, and
+         * ProcessRrspImport's $existingByNo. Keyed by rrppe_no; keeps
+         * trashed rows so they can be restored without a second query.
+         */
+        $existingByNo = RRPPEMonitoring::withTrashed()
+            ->get()
+            ->keyBy('rrppe_no');
+
         foreach ($groups as $group) {
             $processed++;
 
@@ -107,10 +126,8 @@ class ProcessRrppeImport implements ShouldQueue
             if ($header === null || empty($group['items'])) {
                 $skipped++;
             } else {
-                DB::transaction(function () use ($header, $group, $map, &$created, &$updated) {
-                    $record = RRPPEMonitoring::withTrashed()
-                        ->where('rrppe_no', $header['rrppe_no'])
-                        ->first();
+                DB::transaction(function () use ($header, $group, $map, &$created, &$updated, $existingByNo) {
+                    $record = $existingByNo->get($header['rrppe_no']);
 
                     if ($record) {
                         if ($record->trashed()) {
@@ -121,6 +138,11 @@ class ProcessRrppeImport implements ShouldQueue
                     } else {
                         $record = RRPPEMonitoring::create($header);
                         $created++;
+
+                        // Keep the map in sync so a duplicate rrppe_no
+                        // later in the same file updates this record
+                        // instead of creating a second one.
+                        $existingByNo->put($header['rrppe_no'], $record);
                     }
 
                     // Re-import safe: replace items instead of duplicating them
@@ -144,6 +166,17 @@ class ProcessRrppeImport implements ShouldQueue
                 }
             }
         }
+
+        // Final progress write so records processed since the last
+        // PROGRESS_EVERY checkpoint aren't lost from the count
+        // (mirrors the "completed" branch in handle(), which always
+        // writes processed_rows on success).
+        $import->update([
+            'processed_rows' => $processed,
+            'created_rows' => $created,
+            'updated_rows' => $updated,
+            'skipped_rows' => $skipped,
+        ]);
 
         return [$created, $updated, $skipped, false];
     }
@@ -251,9 +284,9 @@ class ProcessRrppeImport implements ShouldQueue
         $property = $this->value($this->cell($line, $map, 'property_no'));
 
         return [
-            // No stock card in the CSV: stock_no stays null, item_name mirrors the description.
+            // No stock card in the CSV: stock_no stays null.
             'stock_no' => null,
-            'item_name' => $description !== null ? mb_substr($description, 0, 255) : null,
+            'item_name' => $this->itemName($description),
             'item_description' => $description,
             'quantity' => max(1, $this->integerValue($this->cell($line, $map, 'quantity'))),
             'property_no' => ($property !== null && strtoupper($property) === 'N/A') ? null : $property,
@@ -262,6 +295,25 @@ class ProcessRrppeImport implements ShouldQueue
             'area' => $this->value($this->cell($line, $map, 'area')),
             'remarks' => $this->value($this->cell($line, $map, 'remarks')),
         ];
+    }
+
+    /**
+     * Item name is the text before the first "," in the description
+     * (that's how the bold item name was written in the source RRPPE
+     * doc, e.g. "REFRIGERATOR, 19 cu.ft" -> "REFRIGERATOR"). Falls back
+     * to the full description if there's no comma.
+     */
+    private function itemName(?string $description): ?string
+    {
+        if ($description === null) {
+            return null;
+        }
+
+        if (preg_match('/^(.*?),/', $description, $matches)) {
+            return mb_substr(trim($matches[1]), 0, 255);
+        }
+
+        return mb_substr($description, 0, 255);
     }
 
     private function cell(array $line, array $map, string $field)

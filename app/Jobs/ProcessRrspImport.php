@@ -20,8 +20,17 @@ class ProcessRrspImport implements ShouldQueue
 
     public int $timeout = 3600;
 
-    /** Touch the imports row / check cancellation every N RRSPs (SQLite hates chatty writes). */
-    private const PROGRESS_EVERY = 5;
+    /**
+     * Touch the imports row / check cancellation every N RRSPs.
+     *
+     * This used to be 5 because the per-group ->where('rrsp_no', ...)
+     * query plus per-row transaction made progress checks expensive
+     * to skip. Now that lookups are preloaded (see $existingByNo in
+     * processGroups()), the transaction is the only remaining cost
+     * per record, so this can run at the same cadence as the other
+     * imports.
+     */
+    private const PROGRESS_EVERY = 50;
 
     /** Header-name -> possible column titles (normalized: lowercase, letters/digits only). */
     private const COLUMNS = [
@@ -101,6 +110,17 @@ class ProcessRrspImport implements ShouldQueue
     {
         $created = $updated = $skipped = $processed = 0;
 
+        /**
+         * Single preload query instead of a `->where('rrsp_no', ...)
+         * ->first()` per group — same idea as ProcessRegspiImport's
+         * $existingKeys and ProcessWmrImport's $existingByNo. Keyed
+         * by rrsp_no; keeps trashed rows so they can be restored
+         * without a second query.
+         */
+        $existingByNo = RrspMonitoring::withTrashed()
+            ->get()
+            ->keyBy('rrsp_no');
+
         foreach ($groups as $group) {
             $processed++;
 
@@ -109,10 +129,8 @@ class ProcessRrspImport implements ShouldQueue
             if ($header === null || empty($group['items'])) {
                 $skipped++;
             } else {
-                DB::transaction(function () use ($header, $group, $map, &$created, &$updated) {
-                    $rrsp = RrspMonitoring::withTrashed()
-                        ->where('rrsp_no', $header['rrsp_no'])
-                        ->first();
+                DB::transaction(function () use ($header, $group, $map, &$created, &$updated, $existingByNo) {
+                    $rrsp = $existingByNo->get($header['rrsp_no']);
 
                     if ($rrsp) {
                         if ($rrsp->trashed()) {
@@ -123,6 +141,11 @@ class ProcessRrspImport implements ShouldQueue
                     } else {
                         $rrsp = RrspMonitoring::create($header);
                         $created++;
+
+                        // Keep the map in sync so a duplicate rrsp_no
+                        // later in the same file updates this record
+                        // instead of creating a second one.
+                        $existingByNo->put($header['rrsp_no'], $rrsp);
                     }
 
                     // Re-import safe: replace items instead of duplicating them
@@ -146,6 +169,17 @@ class ProcessRrspImport implements ShouldQueue
                 }
             }
         }
+
+        // Final progress write so any records processed since the
+        // last PROGRESS_EVERY checkpoint aren't lost from the count
+        // (mirrors ProcessRegspiImport/ProcessWmrImport's completed
+        // branch, which always writes processed_rows on success).
+        $import->update([
+            'processed_rows' => $processed,
+            'created_rows' => $created,
+            'updated_rows' => $updated,
+            'skipped_rows' => $skipped,
+        ]);
 
         return [$created, $updated, $skipped, false];
     }
@@ -254,17 +288,39 @@ class ProcessRrspImport implements ShouldQueue
     private function itemData(array $line, array $map): array
     {
         $property = $this->value($this->cell($line, $map, 'property_no'));
+        $description = $this->value($this->cell($line, $map, 'description'));
 
         return [
-            'item_description' => $this->value($this->cell($line, $map, 'description')),
+            'item_name' => $this->itemName($description),
+            'item_description' => $description,
             'quantity' => max(1, $this->integerValue($this->cell($line, $map, 'quantity'))),
-            'property_number' => ($property !== null && strtoupper($property) === 'N/A') ? null : $property,
+            'property_no' => ($property !== null && strtoupper($property) === 'N/A') ? null : $property,
             'cost' => $this->numberValue($this->cell($line, $map, 'cost')),
-            'kind' => $this->value($this->cell($line, $map, 'kind')),
+            'kind_of_semi_expendable' => $this->value($this->cell($line, $map, 'kind')),
             'status' => $this->value($this->cell($line, $map, 'status')),
             'area' => $this->value($this->cell($line, $map, 'area')),
             'remarks' => $this->value($this->cell($line, $map, 'remarks')),
         ];
+    }
+
+    /**
+     * Item name is the text before the first "," or ";" in the description
+     * (that's how the bold item name was written in the source RRSP doc,
+     * e.g. "SOFA, 3 seater color Green" -> "SOFA", "Acer; Computer Set,
+     * Branded..." -> "Acer"). Falls back to the full description if neither
+     * delimiter is present.
+     */
+    private function itemName(?string $description): ?string
+    {
+        if ($description === null) {
+            return null;
+        }
+
+        if (preg_match('/^(.*?)[,]/', $description, $matches)) {
+            return trim($matches[1]);
+        }
+
+        return $description;
     }
 
     private function cell(array $line, array $map, string $field)

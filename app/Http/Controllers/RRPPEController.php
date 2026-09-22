@@ -216,22 +216,30 @@ class RRPPEController extends Controller
 
         return redirect()->back()->with('success', 'Attachments uploaded successfully.');
     }
-
     public function destroy(\Illuminate\Http\Request $request, $id)
     {
         $record = RRPPEMonitoring::findOrFail($id);
 
+        // Create archive metadata before soft deleting
         $record->archiveMetadata()->create([
             'identity_document' => $record->rrppe_no,
             'archived_from' => 'Assets > RRPPE Monitoring',
             'archived_by' => $request->user()?->id,
         ]);
 
+        // Soft delete the RRPPE items
         foreach ($record->items as $item) {
             $item->delete();
         }
+
+        // Soft delete the RRPPE record.
+        // Attachments remain attached to this record just like Purchase Orders.
         $record->delete();
 
-        return redirect()->back()->with('success', 'RRPPE record archived successfully.');
+        return redirect()->back()->with(
+            'success',
+            'RRPPE record archived successfully.'
+        );
     }
+
 }
