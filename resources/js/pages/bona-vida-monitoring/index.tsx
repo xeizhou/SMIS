@@ -1,10 +1,11 @@
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Archive, Eye } from 'lucide-react';
+import { Search, Pencil, Archive, Eye, Upload } from 'lucide-react';
 import { useState } from 'react';
 import BonaVidaAddForm from '@/components/bona-vida-monitoring/bonavidaaddform';
 import BonaVidaDeleteModal from '@/components/bona-vida-monitoring/bonavidadeletemodal';
 import BonaVidaEditForm from '@/components/bona-vida-monitoring/bonavidaeditform';
+import BonaVidaImportDialog from '@/components/bona-vida-monitoring/bonavida-import-dialog';
 import BonaVidaSummaryModal from '@/components/bona-vida-monitoring/bonavidasummarymodal';
 import BonaVidaViewForm from '@/components/bona-vida-monitoring/bonavidaviewform';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,7 @@ export default function Index({ records, filters, offices }: Props) {
     const [isViewOpen, setIsViewOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+    const [isImportOpen, setIsImportOpen] = useState(false);
 
     const [selectedRecord, setSelectedRecord] = useState<BonaVidaRecord | null>(null);
 
@@ -240,6 +242,15 @@ export default function Index({ records, filters, offices }: Props) {
                             </Button>
                             <Button
                                 type="button"
+                                variant="outline"
+                                onClick={() => setIsImportOpen(true)}
+                                className="w-full lg:w-auto"
+                            >
+                                <Upload className="mr-2 size-4" />
+                                Import
+                            </Button>
+                            <Button
+                                type="button"
                                 onClick={() => setIsAddOpen(true)}
                                 className="w-full lg:w-auto"
                                 style={{ backgroundColor: '#612A35' }}
@@ -278,6 +289,7 @@ export default function Index({ records, filters, offices }: Props) {
             <BonaVidaViewForm open={isViewOpen} onOpenChange={setIsViewOpen} record={selectedRecord} />
             <BonaVidaDeleteModal open={isDeleteOpen} onOpenChange={setIsDeleteOpen} record={selectedRecord} />
             <BonaVidaSummaryModal open={isSummaryOpen} onOpenChange={setIsSummaryOpen} />
+            <BonaVidaImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
         </>
     );
 }
