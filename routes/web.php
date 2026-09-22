@@ -610,18 +610,23 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/import/{import}/status', [ImportController::class, 'status'])->name('import.status');
     Route::post('/import/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.cancel');
 
-    // RRSP / RRPPE templates — must be registered BEFORE /import/template/{type},
-    // otherwise the wildcard below catches them and 404s (not in SCHEMAS).
+    // RRSP / RRPPE / WMR / Bona-Vida / Offices templates — must be registered
+    // BEFORE /import/template/{type}, otherwise the wildcard below catches
+    // them and 404s (offices IS in SCHEMAS, but we want its own CSV template
+    // instead of the generic xlsx one, so it still needs to be listed here).
     Route::get('/import/template/rrsp', [ImportController::class, 'rrspTemplate'])->name('import.rrsp.template');
     Route::get('/import/template/rrppe', [ImportController::class, 'rrppeTemplate'])->name('import.rrppe.template');
     Route::get('/import/template/wmr', [ImportController::class, 'wmrTemplate'])->name('import.wmr.template');
     Route::get('/import/template/bona-vida', [ImportController::class, 'bonaVidaTemplate'])->name('import.bona-vida.template');
+    Route::get('/import/template/offices', [ImportController::class, 'officesTemplate'])->name('import.offices.template');
 
     Route::get('/import/template/{type}', [ImportController::class, 'template'])->name('import.template');
     Route::post('/import/items', [ImportController::class, 'items'])->name('import.items');
     Route::post('/import/units', [ImportController::class, 'units'])->name('import.units');
     Route::post('/import/transactions', [ImportController::class, 'transactions'])->name('import.transactions');
     Route::post('/import/offices', [ImportController::class, 'offices'])->name('import.offices');
+    Route::get('/import/offices/{import}/status', [ImportController::class, 'status'])->name('import.offices.status');
+    Route::post('/import/offices/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.offices.cancel');
 
     Route::post('/import/regspi', [ImportController::class, 'regspi'])->name('import.regspi');
     Route::get('/import/regspi/{import}/status', [ImportController::class, 'regspiStatus'])->name('import.regspi.status');
@@ -642,10 +647,6 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/import/bona-vida', [ImportController::class, 'bonaVida'])->name('import.bona-vida');
     Route::get('/import/bona-vida/{import}/status', [ImportController::class, 'status'])->name('import.bona-vida.status');
     Route::post('/import/bona-vida/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.bona-vida.cancel');
-
-    Route::post('/import/employee-files', [ImportController::class, 'employeeFiles'])->name('import.employee-files');
-    Route::get('/import/employee-files/{import}/status', [ImportController::class, 'status'])->name('import.employee-files.status');
-    Route::post('/import/employee-files/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.employee-files.cancel');
 
     Route::get('/backup/folders', [BackupController::class, 'folders'])->name('backup.folders');
     Route::post('/backup/create', [BackupController::class, 'create'])->name('backup.create');
