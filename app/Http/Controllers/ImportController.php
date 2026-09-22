@@ -8,12 +8,14 @@ use App\Models\Unit;
 use App\Models\Office;
 use App\Models\FundCluster;
 use App\Models\Import;
+use App\Models\EmployeeFileLocator;
 use App\Jobs\ProcessRegspiImport;
 use App\Jobs\ProcessRrspImport;
 use App\Jobs\ProcessRrppeImport;
 use App\Jobs\ProcessWmrImport;
 use App\Jobs\ProcessBonaVidaImport;
 use App\Jobs\ProcessDataImport;
+use App\Jobs\ProcessEmployeeFileImport;
 use App\Services\ImportProcessor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -37,6 +39,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * (ProcessRegspiImport / ProcessRrspImport / ProcessRrppeImport /
  * ProcessWmrImport / ProcessBonaVidaImport) and report progress through
  * the Import model.
+ *
+ * Employee File Locator import is queued (see employeeFiles() below)
+ * and CSV-only.
  *
  * Requires PhpSpreadsheet, which ships as a dependency of maatwebsite/excel.
  * If it's not already in composer.json:
@@ -494,6 +499,59 @@ class ImportController extends Controller
     }
 
     /**
+     * POST /import/employee-files
+     * Queued import for the Employee File Locator sheet — same pattern as
+     * bonaVida(). CSV-only (xlsx uploads are no longer accepted). See
+     * ProcessEmployeeFileImport for the two-block parsing logic.
+     */
+    public function employeeFiles(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:20480',
+        ]);
+
+        $path = $validated['file']->store('imports/employee-files');
+        $import = Import::create([
+            'user_id' => $request->user()->getKey(),
+            'file_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        ProcessEmployeeFileImport::dispatch($import->getKey());
+
+        return back()->with('success', "Employee File Locator import started.|||import_id:{$import->getKey()}");
+    }
+
+    /**
+     * GET /import/template/employee-files
+     * Registered BEFORE /import/template/{type} in web.php (same reason
+     * as the rrsp/rrppe/wmr/bona-vida templates).
+     */
+    public function employeeFileTemplate(): StreamedResponse
+    {
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'wb');
+
+            fputcsv($handle, ['EMPLOYEE FILE LOCATOR']);
+            fputcsv($handle, ['ACTIVE FILES', '', '', '', '', '', '', 'DEAD FILES']);
+            fputcsv($handle, []);
+            fputcsv($handle, [
+                'NO.', 'LAST NAME', 'FIRST NAME', 'MIDDLE NAME', 'AREA', 'STATUS', '',
+                'NO.', 'LAST NAME', 'FIRST NAME', 'MIDDLE NAME', 'AREA', 'STATUS',
+            ]);
+            fputcsv($handle, []);
+            fputcsv($handle, [
+                1, 'DELA CRUZ', 'JUAN', 'S.', '1-L1', 'Active', '',
+                1, 'SANTOS', 'MARIA', 'P.', 'DEAD FILES', 'Dead',
+            ]);
+
+            fclose($handle);
+        }, 'employee_file_locator_import_template.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
      * GET /import/{import}/status
      * Generic across all queued import types (regspi, rrsp, rrppe, wmr,
      * bona-vida, items, transactions) since they all just read off the
@@ -910,5 +968,124 @@ class ImportController extends Controller
             'role' => Auth::user()->role ?? 'user',
             'action' => $action,
         ]);
+    }
+
+    /**
+     * CSV path for the Employee File Locator import. Scans forward for
+     * the "NO." / "LAST NAME" header row rather than assuming a fixed
+     * line number, same approach as the Bona-Vida job.
+     */
+    private function parseEmployeeFileCsv($file): array
+    {
+        $handle = fopen($file->getRealPath(), 'rb');
+
+        if ($handle === false) {
+            throw new \RuntimeException('Could not open CSV file.');
+        }
+
+        $foundHeader = false;
+
+        while (($line = fgetcsv($handle)) !== false) {
+            $first = strtoupper(trim(preg_replace('/^\xEF\xBB\xBF/', '', (string) ($line[0] ?? ''))));
+            $second = strtoupper(trim((string) ($line[1] ?? '')));
+
+            if ($first === 'NO.' && $second === 'LAST NAME') {
+                $foundHeader = true;
+                break;
+            }
+        }
+
+        if (! $foundHeader) {
+            fclose($handle);
+            throw new \RuntimeException('Could not find the NO. / LAST NAME header row.');
+        }
+
+        $rows = [];
+
+        while (($line = fgetcsv($handle)) !== false) {
+            $isBlank = count(array_filter($line, fn ($v) => trim((string) $v) !== '')) === 0;
+
+            if ($isBlank) {
+                continue;
+            }
+
+            array_push($rows, ...$this->splitEmployeeFileRow($line));
+        }
+
+        fclose($handle);
+
+        return $rows;
+    }
+
+    /**
+     * One physical row can yield up to two records: left block (Active)
+     * and right block (Dead). A side only produces a record if it has a
+     * LAST NAME — this is what lets us ignore the right block's
+     * dragged-down "NO." column on rows with no real dead-file data.
+     */
+    private function splitEmployeeFileRow(array $line): array
+    {
+        $rows = [];
+
+        $left = $this->employeeFileSide($line, lastIdx: 1, firstIdx: 2, middleIdx: 3, areaIdx: 4, statusIdx: 5, defaultStatus: 'Active');
+        if ($left !== null) {
+            $rows[] = $left;
+        }
+
+        $right = $this->employeeFileSide($line, lastIdx: 8, firstIdx: 9, middleIdx: 10, areaIdx: 11, statusIdx: 12, defaultStatus: 'Inactive');
+        if ($right !== null) {
+            $rows[] = $right;
+        }
+
+        return $rows;
+    }
+
+    private function employeeFileSide(
+        array $line,
+        int $lastIdx,
+        int $firstIdx,
+        int $middleIdx,
+        int $areaIdx,
+        int $statusIdx,
+        string $defaultStatus
+    ): ?array {
+        $lastName = trim((string) ($line[$lastIdx] ?? ''));
+
+        if ($lastName === '') {
+            return null;
+        }
+
+        $status = trim((string) ($line[$statusIdx] ?? ''));
+
+        // The source sheet literally writes "Dead" in the right block's
+        // STATUS column. The app's status filter only knows about
+        // Active/Inactive, so "Dead" (however it's cased) is normalized
+        // to "Inactive" on the way in — this covers both the literal
+        // value and the empty-cell fallback.
+        if ($status !== '' && strtolower($status) === 'dead') {
+            $status = 'Inactive';
+        }
+
+        return [
+            'last_name' => $lastName,
+            'first_name' => trim((string) ($line[$firstIdx] ?? '')),
+            'middle_name' => $this->nullableTrim($line[$middleIdx] ?? null),
+            // Note: on the source sheet, the right (Dead) block's AREA
+            // column literally reads "DEAD FILES" rather than a real
+            // area code — that value is imported as-is here.
+            'area' => trim((string) ($line[$areaIdx] ?? '')),
+            // A handful of trailing dead-file rows in the source have
+            // every column filled except STATUS (e.g. "DAPITON, VITA
+            // JULE" has no STATUS cell) — those still default to
+            // 'Inactive' via $defaultStatus, matching the "Dead" ->
+            // "Inactive" mapping above.
+            'status' => $status !== '' ? $status : $defaultStatus,
+        ];
+    }
+
+    private function nullableTrim($value): ?string
+    {
+        $value = trim((string) $value);
+        return $value === '' ? null : $value;
     }
 }

@@ -1,10 +1,11 @@
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Archive } from 'lucide-react';
+import { Search, Pencil, Archive, Upload } from 'lucide-react';
 import { useState } from 'react';
 import EmployeeFileAddForm from '@/components/employee-file-locator/employeefileaddform';
 import EmployeeFileDeleteModal from '@/components/employee-file-locator/employeefiledeletemodal';
 import EmployeeFileEditForm from '@/components/employee-file-locator/employeefileeditform';
+import EmployeeFileImportDialog from '@/components/employee-file-locator/employee-file-import-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -53,6 +54,7 @@ export default function Index({ records, filters, statuses }: Props) {
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isImportOpen, setIsImportOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<EmployeeFileRecord | null>(null);
 
     const handleSearch = (e: React.FormEvent) => {
@@ -189,14 +191,25 @@ export default function Index({ records, filters, statuses }: Props) {
                         </Button>
                     </div>
 
-                    <Button
-                        type="button"
-                        onClick={() => setIsAddOpen(true)}
-                        className="w-full lg:w-auto"
-                        style={{ backgroundColor: '#612A35' }}
-                    >
-                        Add Employee File
-                    </Button>
+                    <div className="flex flex-col gap-2 w-full lg:w-auto lg:flex-row">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsImportOpen(true)}
+                            className="w-full lg:w-auto"
+                        >
+                            <Upload className="mr-2 size-4" />
+                            Import
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => setIsAddOpen(true)}
+                            className="w-full lg:w-auto"
+                            style={{ backgroundColor: '#612A35' }}
+                        >
+                            Add Employee File
+                        </Button>
+                    </div>
                 </form>
 
                 {/* 3. Drop in the new Reusable Table */}
@@ -222,6 +235,7 @@ export default function Index({ records, filters, statuses }: Props) {
             <EmployeeFileAddForm open={isAddOpen} onOpenChange={setIsAddOpen} />
             <EmployeeFileEditForm open={isEditOpen} onOpenChange={setIsEditOpen} record={selectedRecord} />
             <EmployeeFileDeleteModal open={isDeleteOpen} onOpenChange={setIsDeleteOpen} record={selectedRecord} />
+            <EmployeeFileImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
         </>
     );
 }
