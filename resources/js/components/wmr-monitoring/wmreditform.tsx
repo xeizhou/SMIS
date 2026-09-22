@@ -319,7 +319,6 @@ export default function WmrEditForm({ open, onOpenChange, record, suppliers, off
                                         value={data.supplier_id}
                                         onChange={(value) => handleSelectChange(value, 'supplier_id')}
                                         error={errors.supplier_id}
-                                        required
                                         placeholder="Search supplier..."
                                         emptyText="No supplier found."
                                         options={suppliers.map((supplier) => ({

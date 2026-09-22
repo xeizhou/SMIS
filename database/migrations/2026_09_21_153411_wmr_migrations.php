@@ -16,6 +16,8 @@ return new class extends Migration
      *  - Vehicle-only fields (fund, type, brand, model, plate, property no.,
      *    labor cost, office, ...) are nullable because non-vehicle WMRs exist
      *    (e.g. the laptop keyboard replacement).
+     *  - supplier_id is nullable because legacy WMR sheets (pre-2026 format)
+     *    don't always name a supplier anywhere in the row.
      *  - fund_cluster_id (not fund_cluster) so the `fundCluster` relation doesn't
      *    serialize over the column in JSON.
      *  - invoice_no / invoice_date are plain strings because a WMR can cite
@@ -35,6 +37,7 @@ return new class extends Migration
             $table->string('wmr_no', 50)->index();
             $table->date('wmr_date');
             $table->foreignId('supplier_id')
+                ->nullable()
                 ->constrained('supplier_list', 'supplier_id')
                 ->restrictOnDelete();
             $table->string('iar_no', 100)->nullable();

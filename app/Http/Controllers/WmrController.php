@@ -116,7 +116,7 @@ class WmrController extends Controller
             ],
             'wmr_date' => ['required', 'date'],
             'supplier_id' => [
-                'required', 'integer',
+                'nullable', 'integer',
                 Rule::exists('supplier_list', 'supplier_id')->whereNull('deleted_at'),
             ],
             'iar_no' => ['nullable', 'string', 'max:100'],

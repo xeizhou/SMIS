@@ -238,7 +238,7 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div>
                                         <label className={labelClass} htmlFor="wmr_no">WMR No. <span className="text-red-500">*</span></label>
-                                        <Input id="wmr_no" name="wmr_no" value={data.wmr_no} onChange={handleChange} placeholder="e.g. 2026090003" />
+                                        <Input id="wmr_no" name="wmr_no" value={data.wmr_no} onChange={handleChange} placeholder="e.g. 2026010001" />
                                         {errors.wmr_no && <p className="mt-1 text-xs text-red-500">{errors.wmr_no}</p>}
                                     </div>
                                     <div>
@@ -251,7 +251,7 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                         value={data.supplier_id}
                                         onChange={(value) => handleSelectChange(value, 'supplier_id')}
                                         error={errors.supplier_id}
-                                        required
+                                        clearable
                                         placeholder="Search supplier..."
                                         emptyText="No supplier found."
                                         options={suppliers.map((supplier) => ({
@@ -261,7 +261,7 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                     />
                                     <div>
                                         <label className={labelClass} htmlFor="iar_no">IAR No.</label>
-                                        <Input id="iar_no" name="iar_no" value={data.iar_no} onChange={handleChange} />
+                                        <Input id="iar_no" name="iar_no" value={data.iar_no} onChange={handleChange} placeholder="e.g. FOR REFERENCE ONLY" />
                                         {errors.iar_no && <p className="mt-1 text-xs text-red-500">{errors.iar_no}</p>}
                                     </div>
                                     <div>
@@ -271,7 +271,7 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                     </div>
                                     <div>
                                         <label className={labelClass} htmlFor="item_vehicle">Item / Vehicle <span className="text-red-500">*</span></label>
-                                        <Input id="item_vehicle" name="item_vehicle" value={data.item_vehicle} onChange={handleChange} placeholder="e.g. MITSUBISHI MONTERO SHE-354" />
+                                        <Input id="item_vehicle" name="item_vehicle" value={data.item_vehicle} onChange={handleChange} placeholder="e.g. ISUZU EXTREME SHA 157" />
                                         {errors.item_vehicle && <p className="mt-1 text-xs text-red-500">{errors.item_vehicle}</p>}
                                     </div>
                                 </div>
@@ -282,7 +282,7 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div>
                                         <label className={labelClass} htmlFor="job_order_no">Job Order No.</label>
-                                        <Input id="job_order_no" name="job_order_no" value={data.job_order_no} onChange={handleChange} placeholder="e.g. M0 71-08-2026" />
+                                        <Input id="job_order_no" name="job_order_no" value={data.job_order_no} onChange={handleChange} placeholder="e.g. M0-47-12-25" />
                                         {errors.job_order_no && <p className="mt-1 text-xs text-red-500">{errors.job_order_no}</p>}
                                     </div>
                                     <div>
@@ -313,27 +313,27 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div>
                                         <label className={labelClass} htmlFor="vehicle_type">Type</label>
-                                        <Input id="vehicle_type" name="vehicle_type" value={data.vehicle_type} onChange={handleChange} placeholder="e.g. SUV, BUS, UV" />
+                                        <Input id="vehicle_type" name="vehicle_type" value={data.vehicle_type} onChange={handleChange} placeholder="e.g. PICK UP, SUV, WAGON" />
                                         {errors.vehicle_type && <p className="mt-1 text-xs text-red-500">{errors.vehicle_type}</p>}
                                     </div>
                                     <div>
                                         <label className={labelClass} htmlFor="brand_name">Brand Name</label>
-                                        <Input id="brand_name" name="brand_name" value={data.brand_name} onChange={handleChange} />
+                                        <Input id="brand_name" name="brand_name" value={data.brand_name} onChange={handleChange} placeholder="e.g. ISUZU" />
                                         {errors.brand_name && <p className="mt-1 text-xs text-red-500">{errors.brand_name}</p>}
                                     </div>
                                     <div>
                                         <label className={labelClass} htmlFor="model">Model</label>
-                                        <Input id="model" name="model" value={data.model} onChange={handleChange} />
+                                        <Input id="model" name="model" value={data.model} onChange={handleChange} placeholder="e.g. Isuzu Extreme" />
                                         {errors.model && <p className="mt-1 text-xs text-red-500">{errors.model}</p>}
                                     </div>
                                     <div>
                                         <label className={labelClass} htmlFor="plate_no">Plate No.</label>
-                                        <Input id="plate_no" name="plate_no" value={data.plate_no} onChange={handleChange} />
+                                        <Input id="plate_no" name="plate_no" value={data.plate_no} onChange={handleChange} placeholder="e.g. SHA 157" />
                                         {errors.plate_no && <p className="mt-1 text-xs text-red-500">{errors.plate_no}</p>}
                                     </div>
                                     <div>
                                         <label className={labelClass} htmlFor="serial_engine_no">Serial / Engine No.</label>
-                                        <Input id="serial_engine_no" name="serial_engine_no" value={data.serial_engine_no} onChange={handleChange} />
+                                        <Input id="serial_engine_no" name="serial_engine_no" value={data.serial_engine_no} onChange={handleChange} placeholder="e.g. EN-PA2942" />
                                         {errors.serial_engine_no && <p className="mt-1 text-xs text-red-500">{errors.serial_engine_no}</p>}
                                     </div>
                                     <div>
@@ -343,7 +343,7 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                     </div>
                                     <div>
                                         <label className={labelClass} htmlFor="property_no">Property No.</label>
-                                        <Input id="property_no" name="property_no" value={data.property_no} onChange={handleChange} />
+                                        <Input id="property_no" name="property_no" value={data.property_no} onChange={handleChange} placeholder="e.g. 164-2018070044" />
                                         {errors.property_no && <p className="mt-1 text-xs text-red-500">{errors.property_no}</p>}
                                     </div>
                                 </div>
@@ -354,7 +354,7 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div>
                                         <label className={labelClass} htmlFor="inspector_name">Inspector Name</label>
-                                        <Input id="inspector_name" name="inspector_name" value={data.inspector_name} onChange={handleChange} />
+                                        <Input id="inspector_name" name="inspector_name" value={data.inspector_name} onChange={handleChange} placeholder="e.g. Orvil M. Basug" />
                                         {errors.inspector_name && <p className="mt-1 text-xs text-red-500">{errors.inspector_name}</p>}
                                     </div>
                                     <div>
@@ -380,7 +380,7 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div>
                                         <label className={labelClass} htmlFor="defects_complaints">Defects / Complaints</label>
-                                        <textarea id="defects_complaints" name="defects_complaints" value={data.defects_complaints} onChange={handleChange} rows={3} className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                                        <textarea id="defects_complaints" name="defects_complaints" value={data.defects_complaints} onChange={handleChange} rows={3} className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="e.g. OIL FILTER, FUEL FILTER" />
                                         {errors.defects_complaints && <p className="mt-1 text-xs text-red-500">{errors.defects_complaints}</p>}
                                     </div>
                                     <div>
@@ -414,7 +414,7 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                     />
                                     <div>
                                         <label className={labelClass} htmlFor="requested_by">Requested By</label>
-                                        <Input id="requested_by" name="requested_by" value={data.requested_by} onChange={handleChange} />
+                                        <Input id="requested_by" name="requested_by" value={data.requested_by} onChange={handleChange} placeholder="e.g. Rhum June Alaba" />
                                         {errors.requested_by && <p className="mt-1 text-xs text-red-500">{errors.requested_by}</p>}
                                     </div>
                                     <div>

@@ -178,14 +178,15 @@ class ProcessWmrImport implements ShouldQueue
     /**
      * Process parsed WMR blocks.
      *
-     * Database strategy:
+     * Database strategy (mirrors ProcessRegspiImport):
      *
-     * - No DB::transaction() around every WMR.
-     * - Existing WMRs are updated directly.
+     * - Existing WMRs are looked up via ONE preloaded map keyed by
+     *   wmr_no, instead of a `->where('wmr_no', ...)->first()` query
+     *   per block. This is the same idea as RegSPI's $existingKeys
+     *   preload, just keyed by model instead of by boolean, since we
+     *   still need to call ->restore() / ->update() on the found row.
      * - New WMRs are collected and inserted in batches.
-     * - Progress is written every 50 records.
-     *
-     * This greatly reduces the number of SQLite write transactions.
+     * - Progress is written every PROGRESS_EVERY records.
      */
     private function processBlocks(
         Import $import,
@@ -196,6 +197,15 @@ class ProcessWmrImport implements ShouldQueue
         $updated = 0;
         $skipped = 0;
         $processed = 0;
+
+        /**
+         * Single upfront query instead of a per-block lookup. Keyed
+         * by wmr_no, includes trashed rows so a soft-deleted WMR can
+         * still be found and restored without an extra query.
+         */
+        $existingByNo = WmrMonitoring::withTrashed()
+            ->get()
+            ->keyBy('wmr_no');
 
         /**
          * New records waiting for batch insertion.
@@ -223,9 +233,6 @@ class ProcessWmrImport implements ShouldQueue
                             $updated
                         )
                     ) {
-                        /*
-                         * Flush anything already waiting before cancelling.
-                         */
                         if ($batchRows !== []) {
                             $this->flushInsertBatch($batchRows);
                             $batchRows = [];
@@ -243,15 +250,7 @@ class ProcessWmrImport implements ShouldQueue
                 continue;
             }
 
-            /*
-             * Check whether this WMR already exists.
-             *
-             * We keep the existing behavior where WMR number is the
-             * identifier used for re-importing.
-             */
-            $existing = WmrMonitoring::withTrashed()
-                ->where('wmr_no', $attrs['wmr_no'])
-                ->first();
+            $existing = $existingByNo->get($attrs['wmr_no']);
 
             if ($existing) {
                 /*
@@ -285,6 +284,16 @@ class ProcessWmrImport implements ShouldQueue
                 $batchRows[] = $attrs;
                 $created++;
 
+                /*
+                 * Keep the in-memory map in sync so that if this same
+                 * wmr_no shows up again later in the same file, it's
+                 * treated as an update rather than a second insert.
+                 */
+                $existingByNo->put(
+                    $attrs['wmr_no'],
+                    new WmrMonitoring($attrs)
+                );
+
                 if (count($batchRows) >= self::BATCH_SIZE) {
                     $this->flushInsertBatch($batchRows);
                     $batchRows = [];
@@ -304,9 +313,6 @@ class ProcessWmrImport implements ShouldQueue
                         $updated
                     )
                 ) {
-                    /*
-                     * Don't lose records waiting in memory.
-                     */
                     if ($batchRows !== []) {
                         $this->flushInsertBatch($batchRows);
                         $batchRows = [];
@@ -396,12 +402,11 @@ class ProcessWmrImport implements ShouldQueue
                     $line[0] ?? ''
                 );
 
+                // New-format files start with a SUPPLIER column.
+                // Legacy files (no SUPPLIER column) start with IAR No.
                 if (
-                    in_array(
-                        $first,
-                        self::COLUMNS['supplier'],
-                        true
-                    )
+                    in_array($first, self::COLUMNS['supplier'], true)
+                    || in_array($first, ['iarno'], true)
                 ) {
                     $map = $this->buildMap($line);
                 }
@@ -409,11 +414,14 @@ class ProcessWmrImport implements ShouldQueue
                 continue;
             }
 
-            $supplierCol = $map['supplier'] ?? 0;
+            // Block boundary: SUPPLIER column if this file has one,
+            // otherwise ITEM/DESCRIPTION (legacy files have no
+            // SUPPLIER column, but every head row has an item/vehicle).
+            $boundaryCol = $map['supplier'] ?? $map['item_vehicle'] ?? 0;
 
             if (
                 $this->value(
-                    $line[$supplierCol] ?? null
+                    $line[$boundaryCol] ?? null
                 ) !== null
             ) {
                 $blocks[] = [$line];
@@ -426,7 +434,7 @@ class ProcessWmrImport implements ShouldQueue
 
         if ($map === null) {
             throw new \RuntimeException(
-                'Could not find the "SUPPLIER" header row.'
+                'Could not find the "SUPPLIER" or "IAR No." header row.'
             );
         }
 
@@ -505,31 +513,37 @@ class ProcessWmrImport implements ShouldQueue
             $map
         );
 
-        $supplier = $this->collapse(
-            $col('supplier')
-        );
+        // NEW: legacy files often have no WMR No: line at all — fall
+        // back to the IAR No./IAR Date columns as the identifier.
+        if ($d['wmr_no'] === null) {
+            $d['wmr_no'] = $this->value($col('iar_no'));
+        }
+
+        if ($d['wmr_date'] === null) {
+            $d['wmr_date'] = $this->date($col('iar_date'));
+        }
+
+        $supplierText = $this->collapse($col('supplier')) ?? $d['supplier'];
 
         $itemVehicle = $this->collapse(
             $col('item_vehicle')
         );
 
+        // NOTE: supplier is intentionally no longer part of this
+        // validity check — supplier_id is nullable now, so a block
+        // with no SUPPLIER text anywhere still imports.
         if (
             $d['wmr_no'] === null
             || strlen($d['wmr_no']) > 50
             || $d['wmr_date'] === null
             || $itemVehicle === null
-            || $supplier === null
         ) {
             return null;
         }
 
-        $supplierId = $this->supplierId(
-            $supplier
-        );
-
-        if ($supplierId === null) {
-            return null;
-        }
+        $supplierId = $supplierText !== null
+            ? $this->supplierId($supplierText)
+            : null;
 
         $attrs = [
             'wmr_no' => $d['wmr_no'],
@@ -646,6 +660,9 @@ class ProcessWmrImport implements ShouldQueue
                 'defects_complaints',
                 'materials',
                 'remarks',
+                'supplier', // NEW: only populated for legacy files where
+                            // SUPPLIER text is buried inside a detail line
+                            // instead of living in its own column.
             ],
             null
         );
@@ -660,9 +677,9 @@ class ProcessWmrImport implements ShouldQueue
 
         foreach ($rows as $line) {
             /*
-             * Free-text column:
-             * LABOR / defects, then Materials / material lines.
-             */
+            * Free-text column:
+            * LABOR / defects, then Materials / material lines.
+            */
             $text = $this->value(
                 $line[$textCol] ?? null
             );
@@ -709,9 +726,9 @@ class ProcessWmrImport implements ShouldQueue
             }
 
             /*
-             * Details cells joined into one line so both
-             * old and new CSV layouts are supported.
-             */
+            * Details cells joined into one line so both
+            * old and new CSV layouts are supported.
+            */
             $s = trim(
                 preg_replace(
                     '/\s+/',
@@ -734,9 +751,27 @@ class ProcessWmrImport implements ShouldQueue
                 continue;
             }
 
+            // NEW: fallback scans that work anywhere in the line, not just
+            // at the start — legacy files bury "WMR No:" and "SUPPLIER:"
+            // mid-line alongside other labels (e.g. "Fund: 05-IGF  WMR
+            // No:2023-01-0003", "FUND: 101  SUPPLIER: JASMINE/PETRON").
+            if (
+                $d['wmr_no'] === null
+                && preg_match('/WMR\s*No\.?\s*:?\s*(\S+)/i', $s, $m)
+            ) {
+                $d['wmr_no'] = $this->value($m[1]);
+            }
+
+            if (
+                $d['supplier'] === null
+                && preg_match('/SUPPLIER\s*:\s*(.*?)(?:\s{2,}|$)/i', $s, $m)
+            ) {
+                $d['supplier'] = $this->value($m[1]);
+            }
+
             /*
-             * WMR number and date.
-             */
+            * WMR number and date.
+            */
             if (
                 $d['wmr_no'] === null
                 && preg_match(
@@ -764,8 +799,8 @@ class ProcessWmrImport implements ShouldQueue
             }
 
             /*
-             * Job Order.
-             */
+            * Job Order.
+            */
             if (
                 ! $seenJobOrder
                 && preg_match(
@@ -812,8 +847,8 @@ class ProcessWmrImport implements ShouldQueue
             }
 
             /*
-             * Fund / Brand / Model / Plate.
-             */
+            * Fund / Brand / Model / Plate.
+            */
             if (
                 preg_match(
                     '/^Fund\b/i',
@@ -868,8 +903,8 @@ class ProcessWmrImport implements ShouldQueue
             }
 
             /*
-             * Serial / Acquisition Date / Property Number.
-             */
+            * Serial / Acquisition Date / Property Number.
+            */
             if (
                 preg_match(
                     '/^Serial\b/i',
@@ -913,8 +948,8 @@ class ProcessWmrImport implements ShouldQueue
             }
 
             /*
-             * Inspector.
-             */
+            * Inspector.
+            */
             if (
                 preg_match(
                     '/^Inspector\b/i',
@@ -947,8 +982,8 @@ class ProcessWmrImport implements ShouldQueue
             }
 
             /*
-             * Invoice row.
-             */
+            * Invoice row.
+            */
             if (
                 preg_match(
                     '/^(Invoice|Job Order)\b/i',
@@ -1041,8 +1076,12 @@ class ProcessWmrImport implements ShouldQueue
      * LOOKUPS
      * ------------------------------------------------------------- */
 
-    private function supplierId(string $name): ?int
+    private function supplierId(?string $name): ?int
     {
+        if ($name === null || $name === '') {
+            return null;
+        }
+
         $key = mb_strtolower($name);
 
         if (
