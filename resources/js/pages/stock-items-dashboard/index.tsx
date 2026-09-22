@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Area, AreaChart, Line, LineChart, ReferenceLine, Cell } from 'recharts';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
 // ---------------------------------------------------------------------------
@@ -102,6 +103,22 @@ type Props = {
     transactions: TransactionPage;
     movement: MovementPoint[];
     filters: FilterOptions;
+    itemsByOffice: OfficeItems[];
+};
+
+type OfficeItemRow = {
+    item_name: string;
+    received_qty: number;
+    issued_qty: number;
+    transaction_count: number;
+    last_transaction_date: string | null;
+};
+
+type OfficeItems = {
+    office_code: string;
+    office_name: string;
+    item_count: number;
+    items: OfficeItemRow[];
 };
 
 const STATUS_STYLES: Record<StockItem['status'], string> = {
@@ -210,10 +227,11 @@ function formatDate(value: string) {
     return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export default function Index({ kpis, stockItems, transactions, movement, filters }: Props) {
+export default function Index({ kpis, stockItems, transactions, movement, itemsByOffice, filters }: Props) {
     const [quarterFilter, setQuarterFilter] = useState(getCurrentQuarter());
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | StockItem['status']>('all');
+    const [officeSearch, setOfficeSearch] = useState('');
     const [officeFilter, setOfficeFilter] = useState('');
     const [fundClusterFilter, setFundClusterFilter] = useState('');
     const [chartType, setChartType] = useState<ChartType>('grouped');
@@ -225,7 +243,7 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
     const [isFiltering, setIsFiltering] = useState(false);
 
     usePoll(5000, {
-        only: ['kpis', 'stockItems', 'transactions', 'movement'],
+        only: ['kpis', 'stockItems', 'transactions', 'movement', 'itemsByOffice'],
         onSuccess: () => setLastUpdated(new Date()),
     }, { autoStart: !isFiltering });
 
@@ -253,6 +271,12 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
             return i.item_name.toLowerCase().includes(q) || i.stock_no.toLowerCase().includes(q);
         });
     }, [search, statusFilter, stockItems]);
+
+    const filteredOffices = useMemo(() => {
+        const q = officeSearch.trim().toLowerCase();
+        if (!q) return itemsByOffice;
+        return itemsByOffice.filter((o) => o.office_name.toLowerCase().includes(q));
+    }, [officeSearch, itemsByOffice]);
 
     // Chart data now comes from the server-aggregated `movement` prop, which
     // is scoped to the full filtered date range (quarter/office/fund cluster)
@@ -565,235 +589,300 @@ export default function Index({ kpis, stockItems, transactions, movement, filter
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
-                    {/* Stock Item List — no print action here by design */}
-                    <div ref={listRef} className="rounded-xl border bg-card xl:col-span-3">
-                        <div className="space-y-3 border-b p-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="font-semibold">Stock Item List</h2>
-                                <div className="relative w-56">
-                                    <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                        placeholder="Search item name or stock no..."
-                                        className="h-8 pl-8 text-sm"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex gap-1.5">
-                                {STATUS_FILTERS.map((f) => (
-                                    <button
-                                        key={f.key}
-                                        onClick={() => setStatusFilter(f.key)}
-                                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                                            statusFilter === f.key
-                                                ? 'text-white'
-                                                : 'bg-muted text-muted-foreground hover:bg-muted/70'
-                                        }`}
-                                        style={statusFilter === f.key ? { backgroundColor: BRAND } : undefined}
-                                    >
-                                        {f.label}
-                                    </button>
-                                ))}
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-8">
+                {/* Stock Item List — no print action here by design */}
+                <div ref={listRef} className="rounded-xl border bg-card xl:col-span-3">
+                    <div className="space-y-3 border-b p-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="font-semibold">Stock Item List</h2>
+                            <div className="relative w-56">
+                                <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="Search item name or stock no..."
+                                    className="h-8 pl-8 text-sm"
+                                />
                             </div>
                         </div>
-                        <ScrollArea className="h-[520px]">
-                            <table className="w-full text-sm">
-                                <thead className="sticky top-0 text-left text-xs text-white" style={{ backgroundColor: BRAND_DARK }}>
-                                    <tr>
-                                        <th className="p-3 font-semibold">Stock No</th>
-                                        <th className="p-3 font-semibold">Item Name</th>
-                                        <th className="p-3 font-semibold">Unit</th>
-                                        <th className="p-3 text-right font-semibold">Balance</th>
-                                        <th className="p-3 font-semibold">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredItems.map((item) => {
-                                        const defaultUnit = item.units.find((u) => u.is_default) ?? item.units[0];
-                                        const isFlashed = flashedRows.has(item.stock_no);
-                                        return (
-                                            <tr
-                                                key={item.stock_no}
-                                                className={`border-t transition-colors ${isFlashed ? 'bg-amber-100/70' : ''}`}
-                                            >
-                                                <td className="p-3 font-mono text-xs">{item.stock_no}</td>
-                                                <td className="p-3">{item.item_name}</td>
-                                                <td className="p-3 text-muted-foreground">{defaultUnit?.unit_short_name ?? '—'}</td>
-                                                <td className="p-3 text-right font-medium">{item.balance}</td>
-                                                <td className="p-3">
-                                                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[item.status]}`}>
-                                                        {STATUS_LABEL[item.status]}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                    {filteredItems.length === 0 && (
-                                        <tr>
-                                            <td colSpan={5} className="p-6 text-center text-muted-foreground">
-                                                No items match your filters.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </ScrollArea>
+                        <div className="flex gap-1.5">
+                            {STATUS_FILTERS.map((f) => (
+                                <button
+                                    key={f.key}
+                                    onClick={() => setStatusFilter(f.key)}
+                                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                                        statusFilter === f.key
+                                            ? 'text-white'
+                                            : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                                    }`}
+                                    style={statusFilter === f.key ? { backgroundColor: BRAND } : undefined}
+                                >
+                                    {f.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-
-                    {/* Transaction Log */}
-                    <div className="rounded-xl border bg-card xl:col-span-2">
-                        <div className="space-y-3 border-b p-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <ReceiptText className="size-4 text-muted-foreground" />
-                                    <h2 className="font-semibold">Transactions ({transactions.quarter})</h2>
-                                </div>
-                                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                                    {transactions.total} total
-                                </span>
-                            </div>
-                            <div className="flex gap-2">
-                                <Select
-                                    value={quarterFilter || 'all'}
-                                    onValueChange={(v) => {
-                                        const value = v === 'all' ? '' : v;
-                                        setQuarterFilter(value);
-                                        applyTransactionFilters({ quarter: value });
-                                    }}
-                                >
-                                    <SelectTrigger className="h-8 flex-1 text-xs">
-                                        <SelectValue placeholder="All Quarters" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Quarters</SelectItem>
-                                        {filters.quarters.map((q) => (
-                                            <SelectItem key={q} value={q}>
-                                                {q}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Select
-                                    value={officeFilter || 'all'}
-                                    onValueChange={(v) => {
-                                        const value = v === 'all' ? '' : v;
-                                        setOfficeFilter(value);
-                                        applyTransactionFilters({ office_code: value });
-                                    }}
-                                >
-                                    <SelectTrigger className="h-8 flex-1 text-xs">
-                                        <SelectValue placeholder="All Offices" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Offices</SelectItem>
-                                        {filters.offices.map((o) => (
-                                            <SelectItem key={o.office_code} value={o.office_code}>
-                                                {o.office_name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Select
-                                    value={fundClusterFilter || 'all'}
-                                    onValueChange={(v) => {
-                                        const value = v === 'all' ? '' : v;
-                                        setFundClusterFilter(value);
-                                        applyTransactionFilters({ fund_cluster: value });
-                                    }}
-                                >
-                                    <SelectTrigger className="h-8 flex-1 text-xs">
-                                        <SelectValue placeholder="All Fund Clusters" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Fund Clusters</SelectItem>
-                                        {filters.fundClusters.map((fc) => (
-                                            <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
-                                                {fc.fund_cluster_id}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <ScrollArea className="h-[420px]">
-                            <table className="w-full text-sm">
-                                <thead className="sticky top-0 z-10 bg-muted/60 text-left text-xs text-muted-foreground backdrop-blur-sm">
-                                    <tr>
-                                        <th className="p-3 font-medium">Date</th>
-                                        <th className="p-3 font-medium">Item</th>
-                                        <th className="p-3 font-medium">Ref.</th>
-                                        <th className="p-3 font-medium">Type</th>
-                                        <th className="p-3 text-right font-medium">Qty</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {transactions.data.map((t, i) => (
+                    <ScrollArea className="h-[520px]">
+                        <table className="w-full text-sm">
+                            <thead className="sticky top-0 text-left text-xs text-white" style={{ backgroundColor: BRAND_DARK }}>
+                                <tr>
+                                    <th className="p-3 font-semibold">Stock No</th>
+                                    <th className="p-3 font-semibold">Item Name</th>
+                                    <th className="p-3 font-semibold">Unit</th>
+                                    <th className="p-3 text-right font-semibold">Balance</th>
+                                    <th className="p-3 font-semibold">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredItems.map((item) => {
+                                    const defaultUnit = item.units.find((u) => u.is_default) ?? item.units[0];
+                                    const isFlashed = flashedRows.has(item.stock_no);
+                                    return (
                                         <tr
-                                            key={t.transactionID}
-                                            className={`border-t transition-colors hover:bg-muted/40 ${i % 2 === 1 ? 'bg-muted/10' : ''}`}
+                                            key={item.stock_no}
+                                            className={`border-t transition-colors ${isFlashed ? 'bg-amber-100/70' : ''}`}
                                         >
-                                            <td className="p-3 whitespace-nowrap text-xs text-muted-foreground">
-                                                {formatDate(t.transaction_date)}
-                                            </td>
+                                            <td className="p-3 font-mono text-xs">{item.stock_no}</td>
+                                            <td className="p-3">{item.item_name}</td>
+                                            <td className="p-3 text-muted-foreground">{defaultUnit?.unit_short_name ?? '—'}</td>
+                                            <td className="p-3 text-right font-medium">{item.balance}</td>
                                             <td className="p-3">
-                                                <div className="font-medium">{t.item_name}</div>
-                                                <div className="text-xs text-muted-foreground">{t.office_code}</div>
-                                            </td>
-                                            <td className="p-3 font-mono text-xs text-muted-foreground">{t.reference}</td>
-                                            <td className="p-3">
-                                                <span
-                                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_STYLES[t.transaction_type]}`}
-                                                >
-                                                    {TYPE_ICON[t.transaction_type]}
-                                                    {t.transaction_type}
+                                                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[item.status]}`}>
+                                                    {STATUS_LABEL[item.status]}
                                                 </span>
                                             </td>
-                                            <td className="p-3 text-right font-medium tabular-nums">
-                                                {t.quantity}
-                                                <span className="ml-1 text-xs font-normal text-muted-foreground">{t.unit_short_name}</span>
-                                            </td>
                                         </tr>
-                                    ))}
-                                    {transactions.data.length === 0 && (
-                                        <tr>
-                                            <td colSpan={5} className="p-10 text-center">
-                                                <ReceiptText className="mx-auto mb-2 size-6 text-muted-foreground/50" />
-                                                <p className="text-sm text-muted-foreground">No transactions match your filters.</p>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </ScrollArea>
+                                    );
+                                })}
+                                {filteredItems.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="p-6 text-center text-muted-foreground">
+                                            No items match your filters.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </ScrollArea>
+                </div>
 
-                        <div className="flex items-center justify-between border-t bg-muted/20 p-3 text-xs text-muted-foreground">
-                            <span>
-                                Page <span className="font-medium text-foreground">{transactions.current_page}</span> of {transactions.last_page}
-                            </span>
-                            <div className="flex gap-1">
-                                <button
-                                    disabled={transactions.current_page <= 1}
-                                    onClick={() => goToPage(transactions.current_page - 1)}
-                                    className="rounded-md border bg-background p-1 transition-colors hover:bg-muted disabled:opacity-30 disabled:hover:bg-background"
-                                >
-                                    <ChevronLeft className="size-4" />
-                                </button>
-                                <button
-                                    disabled={transactions.current_page >= transactions.last_page}
-                                    onClick={() => goToPage(transactions.current_page + 1)}
-                                    className="rounded-md border bg-background p-1 transition-colors hover:bg-muted disabled:opacity-30 disabled:hover:bg-background"
-                                >
-                                    <ChevronRight className="size-4" />
-                                </button>
+                {/* Transaction Log */}
+                <div className="rounded-xl border bg-card xl:col-span-3">
+                    <div className="space-y-3 border-b p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <ReceiptText className="size-4 text-muted-foreground" />
+                                <h2 className="font-semibold">Transactions ({transactions.quarter})</h2>
                             </div>
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                {transactions.total} total
+                            </span>
+                        </div>
+                        <div className="flex gap-2">
+                            <Select
+                                value={quarterFilter || 'all'}
+                                onValueChange={(v) => {
+                                    const value = v === 'all' ? '' : v;
+                                    setQuarterFilter(value);
+                                    applyTransactionFilters({ quarter: value });
+                                }}
+                            >
+                                <SelectTrigger className="h-8 flex-1 text-xs">
+                                    <SelectValue placeholder="All Quarters" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Quarters</SelectItem>
+                                    {filters.quarters.map((q) => (
+                                        <SelectItem key={q} value={q}>
+                                            {q}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select
+                                value={officeFilter || 'all'}
+                                onValueChange={(v) => {
+                                    const value = v === 'all' ? '' : v;
+                                    setOfficeFilter(value);
+                                    applyTransactionFilters({ office_code: value });
+                                }}
+                            >
+                                <SelectTrigger className="h-8 flex-1 text-xs">
+                                    <SelectValue placeholder="All Offices" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Offices</SelectItem>
+                                    {filters.offices.map((o) => (
+                                        <SelectItem key={o.office_code} value={o.office_code}>
+                                            {o.office_name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select
+                                value={fundClusterFilter || 'all'}
+                                onValueChange={(v) => {
+                                    const value = v === 'all' ? '' : v;
+                                    setFundClusterFilter(value);
+                                    applyTransactionFilters({ fund_cluster: value });
+                                }}
+                            >
+                                <SelectTrigger className="h-8 flex-1 text-xs">
+                                    <SelectValue placeholder="All Fund Clusters" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Fund Clusters</SelectItem>
+                                    {filters.fundClusters.map((fc) => (
+                                        <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
+                                            {fc.fund_cluster_id}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <ScrollArea className="h-[420px]">
+                        <table className="w-full text-sm">
+                            <thead className="sticky top-0 z-10 bg-muted/60 text-left text-xs text-muted-foreground backdrop-blur-sm">
+                                <tr>
+                                    <th className="p-3 font-medium">Date</th>
+                                    <th className="p-3 font-medium">Item</th>
+                                    <th className="p-3 font-medium">Ref.</th>
+                                    <th className="p-3 font-medium">Type</th>
+                                    <th className="p-3 text-right font-medium">Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {transactions.data.map((t, i) => (
+                                    <tr
+                                        key={t.transactionID}
+                                        className={`border-t transition-colors hover:bg-muted/40 ${i % 2 === 1 ? 'bg-muted/10' : ''}`}
+                                    >
+                                        <td className="p-3 whitespace-nowrap text-xs text-muted-foreground">
+                                            {formatDate(t.transaction_date)}
+                                        </td>
+                                        <td className="p-3">
+                                            <div className="font-medium">{t.item_name}</div>
+                                            <div className="text-xs text-muted-foreground">{t.office_code}</div>
+                                        </td>
+                                        <td className="p-3 font-mono text-xs text-muted-foreground">{t.reference}</td>
+                                        <td className="p-3">
+                                            <span
+                                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_STYLES[t.transaction_type]}`}
+                                            >
+                                                {TYPE_ICON[t.transaction_type]}
+                                                {t.transaction_type}
+                                            </span>
+                                        </td>
+                                        <td className="p-3 text-right font-medium tabular-nums">
+                                            {t.quantity}
+                                            <span className="ml-1 text-xs font-normal text-muted-foreground">{t.unit_short_name}</span>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {transactions.data.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="p-10 text-center">
+                                            <ReceiptText className="mx-auto mb-2 size-6 text-muted-foreground/50" />
+                                            <p className="text-sm text-muted-foreground">No transactions match your filters.</p>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </ScrollArea>
+
+                    <div className="flex items-center justify-between border-t bg-muted/20 p-3 text-xs text-muted-foreground">
+                        <span>
+                            Page <span className="font-medium text-foreground">{transactions.current_page}</span> of {transactions.last_page}
+                        </span>
+                        <div className="flex gap-1">
+                            <button
+                                disabled={transactions.current_page <= 1}
+                                onClick={() => goToPage(transactions.current_page - 1)}
+                                className="rounded-md border bg-background p-1 transition-colors hover:bg-muted disabled:opacity-30 disabled:hover:bg-background"
+                            >
+                                <ChevronLeft className="size-4" />
+                            </button>
+                            <button
+                                disabled={transactions.current_page >= transactions.last_page}
+                                onClick={() => goToPage(transactions.current_page + 1)}
+                                className="rounded-md border bg-background p-1 transition-colors hover:bg-muted disabled:opacity-30 disabled:hover:bg-background"
+                            >
+                                <ChevronRight className="size-4" />
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
 
+                {/* Items by Office */}
+                <div className="rounded-xl border bg-card xl:col-span-2">
+                    <div className="space-y-3 border-b p-4">
+                        <div>
+                            <h2 className="font-semibold">Items Transacted by Office</h2>
+                            <p className="text-xs text-muted-foreground">
+                                {transactions.quarter}
+                            </p>
+                        </div>
+                        <div className="relative w-56">
+                            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={officeSearch}
+                                onChange={(e) => setOfficeSearch(e.target.value)}
+                                placeholder="Search office..."
+                                className="h-8 pl-8 text-sm"
+                            />
+                        </div>
+                    </div>
+
+                    {filteredOffices.length === 0 ? (
+                        <div className="flex h-[160px] flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+                            <ReceiptText className="size-6 text-muted-foreground/40" />
+                            {itemsByOffice.length === 0 ? 'No office transactions for this period.' : 'No offices match your search.'}
+                        </div>
+                    ) : (
+                        <ScrollArea className="h-[400px] pr-3">
+                            <Accordion type="single" collapsible className="w-full">
+                                {filteredOffices.map((office) => (
+                                    <AccordionItem key={office.office_code} value={office.office_code}>
+                                        <AccordionTrigger className="px-4">
+                                            <span className="flex w-full items-center justify-between pr-4">
+                                                <span className="font-medium">{office.office_name}</span>
+                                                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+                                                    {office.item_count} item{office.item_count !== 1 ? 's' : ''}
+                                                </span>
+                                            </span>
+                                        </AccordionTrigger>
+                                        <AccordionContent className="px-4">
+                                            <table className="w-full text-sm">
+                                                <thead className="text-left text-xs text-muted-foreground">
+                                                    <tr>
+                                                        <th className="p-2 font-medium">Item</th>
+                                                        <th className="p-2 text-right font-medium">Recv</th>
+                                                        <th className="p-2 text-right font-medium">Issued</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {office.items.map((item) => (
+                                                        <tr key={item.item_name} className="border-t">
+                                                            <td className="p-2 truncate">{item.item_name}</td>
+                                                            <td className="p-2 text-right text-emerald-600">{item.received_qty}</td>
+                                                            <td className="p-2 text-right" style={{ color: BRAND }}>{item.issued_qty}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
+                        </ScrollArea>
+                    )}
+                </div>
+                </div>
+            </div>
+        
         </>
     );
 }

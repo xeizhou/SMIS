@@ -54,6 +54,8 @@ class StockItemDashboardController extends Controller
 
             'movement' => $this->getMovement($request),
 
+            'itemsByOffice' => $this->getItemsByOffice($request),
+
             'filters' => [
                 'offices' => Office::orderBy('office_name')
                     ->get([
@@ -106,6 +108,8 @@ class StockItemDashboardController extends Controller
             'transactions' => $this->getTransactions($request),
 
             'movement' => $this->getMovement($request),
+
+            'itemsByOffice' => $this->getItemsByOffice($request),
         ]);
     }
 
@@ -467,5 +471,52 @@ class StockItemDashboardController extends Controller
 
             default => 'ok',
         };
+    }
+
+    /**
+     * All items transacted per office (RECEIVE + ISSUE), grouped for
+     * an accordion: office_code => { office_name, item_count, rows[] }.
+     * Scoped by the same quarter/office/fund_cluster/type filters as
+     * transactions/movement via applyScope().
+     */
+    private function getItemsByOffice(Request $request)
+    {
+        $query = Transaction::query();
+
+        [$query] = $this->applyScope($request, $query);
+
+        $rows = $query
+            ->selectRaw('
+                office_code,
+                item_name,
+                SUM(CASE WHEN transaction_type = "RECEIVE" THEN quantity ELSE 0 END) AS received_qty,
+                SUM(CASE WHEN transaction_type = "ISSUE" THEN quantity ELSE 0 END) AS issued_qty,
+                COUNT(*) AS transaction_count,
+                MAX(transaction_date) AS last_transaction_date
+            ')
+            ->groupBy('office_code', 'item_name')
+            ->orderBy('item_name')
+            ->get();
+
+        $offices = Office::all(['office_code', 'office_name'])->keyBy('office_code');
+
+        return $rows
+            ->groupBy('office_code')
+            ->map(function ($items, $officeCode) use ($offices) {
+                return [
+                    'office_code' => $officeCode,
+                    'office_name' => $offices->get($officeCode)?->office_name ?? $officeCode,
+                    'item_count' => $items->count(),
+                    'items' => $items->map(fn ($r) => [
+                        'item_name' => $r->item_name,
+                        'received_qty' => (int) $r->received_qty,
+                        'issued_qty' => (int) $r->issued_qty,
+                        'transaction_count' => $r->transaction_count,
+                        'last_transaction_date' => $r->last_transaction_date,
+                    ])->values(),
+                ];
+            })
+            ->sortBy('office_name')
+            ->values();
     }
 }
