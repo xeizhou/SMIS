@@ -29,7 +29,7 @@ class NoticeOfDeliveryReportController extends Controller
             'delivery_date' => 'delivery_date',
         ];
 
-        $getDeliveriesForDate = function (Carbon $date) {
+        $getDeliveriesForDate = function (Carbon $date) use ($sortField, $sorts, $sortDirection) {
             return Delivery::query()
                 ->with(['supplier:supplier_id,supplier_name', 'servePo:po_number,end_user,total_amount_po,item_description,due_date'])
                 ->whereDate('delivery_date', $date->format('Y-m-d'))    
