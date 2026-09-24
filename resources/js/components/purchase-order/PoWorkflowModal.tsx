@@ -115,7 +115,6 @@ function SelectField({ label, value, onChange, error, options, placeholder }: an
 const STEPS = [
     'PO From VPAD',
     'End User',
-    'For Supplier\'s Signature',
     'For COA Stamp',
     'For Release',
     'Payment Processing',
@@ -158,6 +157,10 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                 claimed_by_coa: purchaseOrder.claimed_by_coa || '',
                 po_vpad_notified_date: toDateInputValue(purchaseOrder.po_vpad_notified_date),
                 po_vpad_notified_via: purchaseOrder.po_vpad_notified_via || '',
+                coa_stamp_notified_date: toDateInputValue(purchaseOrder.coa_stamp_notified_date),
+                coa_stamp_notified_via: purchaseOrder.coa_stamp_notified_via || '',
+                receipt_claimed_notified_date: toDateInputValue(purchaseOrder.receipt_claimed_notified_date),
+                receipt_claimed_notified_via: purchaseOrder.receipt_claimed_notified_via || '',
                 date_received_by_supplier: toDateInputValue(purchaseOrder.date_received_by_supplier),
                 receipt_receiving_date: toDateInputValue(purchaseOrder.receipt_receiving_date),
                 receipt_claimed_by: purchaseOrder.receipt_claimed_by || '',
@@ -174,7 +177,10 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                 date_forwarded_to_finance: toDateInputValue(purchaseOrder.date_forwarded_to_finance),
                 inspection_groups: groupInspectionEntries(purchaseOrder.inspection_entries),
             });
-            setActiveTab(purchaseOrder.po_step || 'PO From VPAD');
+            const stepToSet = purchaseOrder.po_step === "For Supplier's Signature" 
+                ? "For COA Stamp" 
+                : (STEPS.includes(purchaseOrder.po_step) ? purchaseOrder.po_step : 'PO From VPAD');
+            setActiveTab(stepToSet);
             setErrors({});
             setProcessing(false);
         }
@@ -374,11 +380,42 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
         });
     };
 
+    const handleNotifyCoa = () => {
+        setProcessing(true);
+        router.post(`/purchase-orders/${purchaseOrder.po_number}/notify-coa`, {
+            email: data.coa_stamp_notified_via
+        }, {
+            onSuccess: () => {
+                setData((prev: any) => ({ ...prev, coa_stamp_notified_date: new Date().toISOString().split('T')[0] }));
+                setProcessing(false);
+            },
+            onError: (errs) => {
+                setErrors(errs);
+                setProcessing(false);
+            }
+        });
+    };
+
+    const handleNotifyRelease = () => {
+        setProcessing(true);
+        router.post(`/purchase-orders/${purchaseOrder.po_number}/notify-release`, {
+            email: data.receipt_claimed_notified_via
+        }, {
+            onSuccess: () => {
+                setData((prev: any) => ({ ...prev, receipt_claimed_notified_date: new Date().toISOString().split('T')[0] }));
+                setProcessing(false);
+            },
+            onError: (errs) => {
+                setErrors(errs);
+                setProcessing(false);
+            }
+        });
+    };
+
     const isStepDone = (stepName: string) => {
         switch (stepName) {
             case 'PO From VPAD': return !!data.po_received_date;
             case 'End User': return !!data.date_forwarded_to_end_user;
-            case 'For Supplier\'s Signature': return !!data.supplier_signature_date;
             case 'For COA Stamp': return !!data.coa_date;
             case 'For Release': return !!data.date_received_by_supplier;
             case 'Payment Processing': return !!data.date_completed;
@@ -391,7 +428,6 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
         switch (stepName) {
             case 'PO From VPAD': return !!purchaseOrder?.po_received_date;
             case 'End User': return !!purchaseOrder?.date_forwarded_to_end_user;
-            case 'For Supplier\'s Signature': return !!purchaseOrder?.supplier_signature_date;
             case 'For COA Stamp': return !!purchaseOrder?.coa_date;
             case 'For Release': return !!purchaseOrder?.date_received_by_supplier;
             case 'Payment Processing': return !!purchaseOrder?.date_completed;
@@ -603,24 +639,9 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                     </div>
                                 )}
 
-                                {/* 2. For Supplier's Signature */}
-                                {activeTab === "For Supplier's Signature" && (
+                                {/* 3. For COA Stamp */}
+                                {activeTab === 'For COA Stamp' && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <Field
-                                            label="Date Forwarded to Supplier"
-                                            name="date_forwarded_supplier"
-                                            type="date"
-                                            value={data.date_forwarded_supplier}
-                                            onChange={handleChange}
-                                            error={errors.date_forwarded_supplier}
-                                        />
-                                        <Field
-                                            label="Claimed By (Supplier)"
-                                            name="claimed_by_supplier"
-                                            value={data.claimed_by_supplier}
-                                            onChange={handleChange}
-                                            error={errors.claimed_by_supplier}
-                                        />
                                         <Field
                                             label="Supplier Signature Date"
                                             name="supplier_signature_date"
@@ -630,12 +651,6 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             error={errors.supplier_signature_date}
                                             required={true}
                                         />
-                                    </div>
-                                )}
-
-                                {/* 3. For COA Stamp */}
-                                {activeTab === 'For COA Stamp' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <Field
                                             label="Date Forwarded to COA"
                                             name="date_forwarded_coa"
@@ -684,6 +699,39 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             onChange={handleChange}
                                             error={errors.claimed_by_coa}
                                         />
+                                        
+                                        {/* Notification Block */}
+                                        <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-border/50">
+                                            <Field
+                                                label="Notified Date"
+                                                name="coa_stamp_notified_date"
+                                                type="date"
+                                                value={data.coa_stamp_notified_date}
+                                                onChange={handleChange}
+                                                error={errors.coa_stamp_notified_date}
+                                            />
+                                            <Field
+                                                label="Notified via Email or Number"
+                                                name="coa_stamp_notified_via"
+                                                value={data.coa_stamp_notified_via}
+                                                onChange={handleChange}
+                                                error={errors.coa_stamp_notified_via}
+                                                placeholder="Enter email or number"
+                                            />
+                                            <div className="flex flex-col justify-end">
+                                                <p className="text-xs text-muted-foreground font-medium uppercase mb-2">Email COA</p>
+                                                <Button 
+                                                    type="button" 
+                                                    variant="outline" 
+                                                    onClick={handleNotifyCoa}
+                                                    disabled={processing}
+                                                    className="w-full gap-2 h-9 border-border text-foreground hover:bg-muted"
+                                                >
+                                                    <Mail className="h-4 w-4" />
+                                                    Notify Office
+                                                </Button>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
 
@@ -729,6 +777,186 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             onChange={handleChange}
                                             error={errors.items_claimed_by}
                                         />
+                                        
+                                        {/* Notification Block */}
+                                        <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-border/50">
+                                            <Field
+                                                label="Notified Date"
+                                                name="receipt_claimed_notified_date"
+                                                type="date"
+                                                value={data.receipt_claimed_notified_date}
+                                                onChange={handleChange}
+                                                error={errors.receipt_claimed_notified_date}
+                                            />
+                                            <Field
+                                                label="Notified via Email or Number"
+                                                name="receipt_claimed_notified_via"
+                                                value={data.receipt_claimed_notified_via}
+                                                onChange={handleChange}
+                                                error={errors.receipt_claimed_notified_via}
+                                                placeholder="Enter email or number"
+                                            />
+                                            <div className="flex flex-col justify-end">
+                                                <p className="text-xs text-muted-foreground font-medium uppercase mb-2">Email Release</p>
+                                                <Button 
+                                                    type="button" 
+                                                    variant="outline" 
+                                                    onClick={handleNotifyRelease}
+                                                    disabled={processing}
+                                                    className="w-full gap-2 h-9 border-border text-foreground hover:bg-muted"
+                                                >
+                                                    <Mail className="h-4 w-4" />
+                                                    Notify Office
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {/* Inspection Details */}
+                                        <div className="col-span-1 md:col-span-2 mt-4 space-y-4">
+                                            <div className="flex items-center justify-between border-b border-border pb-2 mb-2">
+                                                <h4 className="text-sm font-semibold text-foreground">
+                                                    Inspection Details
+                                                    {data.inspection_groups.length > 0 && (
+                                                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                                            {data.inspection_groups.length} Group{data.inspection_groups.length > 1 ? 's' : ''}
+                                                        </span>
+                                                    )}
+                                                </h4>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 border-dashed"
+                                                    onClick={addInspectionGroup}
+                                                    disabled={isStepLocked('For Release')}
+                                                >
+                                                    <Plus className="mr-1 h-3.5 w-3.5" />
+                                                    Add Inspection
+                                                </Button>
+                                            </div>
+                                            
+                                            <div className="space-y-4">
+                                                {data.inspection_groups.map((group: any, groupIndex: number) => (
+                                                    <div
+                                                        key={groupIndex}
+                                                        className="rounded-md border p-3 bg-muted/30 relative"
+                                                    >
+                                                        <div className="flex flex-wrap items-start gap-4 md:flex-nowrap">
+                                                            {/* IAR Number */}
+                                                            <div className="min-w-0 w-full md:w-1/4">
+                                                                <Field
+                                                                    label="IAR Number (Optional)"
+                                                                    name={`inspection_groups.${groupIndex}.iar_number`}
+                                                                    value={group.iar_number}
+                                                                    onChange={(e) => updateInspectionGroup(groupIndex, e.target.value)}
+                                                                    error={errors[`inspection_entries.${groupIndex}.iar_number`]}
+                                                                    readOnly={isStepLocked('For Release')}
+                                                                />
+                                                            </div>
+
+                                                            {/* Inspectors */}
+                                                            <div className="min-w-0 flex-1 w-full md:w-auto">
+                                                                <label className="mb-1 block text-xs text-muted-foreground">
+                                                                    Inspected By
+                                                                </label>
+                                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                                    {group.inspectors.map((inspector: string, inspectorIndex: number) => (
+                                                                        <div
+                                                                            key={`inspector-${groupIndex}-${inspectorIndex}`}
+                                                                            className="flex items-center gap-1"
+                                                                        >
+                                                                            <Input
+                                                                                value={inspector}
+                                                                                onChange={(e) => updateInspectionInspector(groupIndex, inspectorIndex, e.target.value)}
+                                                                                readOnly={isStepLocked('For Release')}
+                                                                                placeholder="Name"
+                                                                                className={cn("h-9 w-36", isStepLocked('For Release') && "bg-muted text-muted-foreground cursor-not-allowed")}
+                                                                            />
+                                                                            {group.inspectors.length > 1 && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => removeInspectionInspector(groupIndex, inspectorIndex)}
+                                                                                    disabled={isStepLocked('For Release')}
+                                                                                    className="text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                                    title="Remove inspector"
+                                                                                >
+                                                                                    <X className="h-3.5 w-3.5" />
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => addInspectionInspector(groupIndex)}
+                                                                        disabled={isStepLocked('For Release')}
+                                                                        className="flex h-9 w-9 items-center justify-center rounded-md border border-dashed text-muted-foreground hover:bg-muted/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                        title="Add inspector"
+                                                                    >
+                                                                        <Plus className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Dates */}
+                                                            <div className="min-w-0 flex-1 w-full md:w-auto">
+                                                                <label className="mb-1 block text-xs text-muted-foreground">
+                                                                    Inspection Date
+                                                                </label>
+                                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                                    {group.inspection_dates.map((date: string, dateIndex: number) => (
+                                                                        <div
+                                                                            key={`date-${groupIndex}-${dateIndex}`}
+                                                                            className="flex items-center gap-1"
+                                                                        >
+                                                                            <Input
+                                                                                type="date"
+                                                                                value={date}
+                                                                                onChange={(e) => updateInspectionDate(groupIndex, dateIndex, e.target.value)}
+                                                                                readOnly={isStepLocked('For Release')}
+                                                                                className={cn("h-9 w-[150px]", isStepLocked('For Release') && "bg-muted text-muted-foreground cursor-not-allowed")}
+                                                                            />
+                                                                            {group.inspection_dates.length > 1 && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => removeInspectionDate(groupIndex, dateIndex)}
+                                                                                    disabled={isStepLocked('For Release')}
+                                                                                    className="text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                                    title="Remove date"
+                                                                                >
+                                                                                    <X className="h-3.5 w-3.5" />
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => addInspectionDate(groupIndex)}
+                                                                        disabled={isStepLocked('For Release')}
+                                                                        className="flex h-9 w-9 items-center justify-center rounded-md border border-dashed text-muted-foreground hover:bg-muted/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                        title="Add date"
+                                                                    >
+                                                                        <Plus className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Remove whole IAR row */}
+                                                            <div className="flex items-center pt-5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeInspectionGroup(groupIndex)}
+                                                                    disabled={data.inspection_groups.length === 1 || isStepLocked('For Release')}
+                                                                    className="h-9 w-9 text-muted-foreground hover:text-red-600 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                                                    title="Remove inspection row"
+                                                                >
+                                                                    <X className="h-4 w-4" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
 
@@ -784,150 +1012,7 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             error={errors.ris_number}
                                         />
 
-                                        <div className="col-span-1 md:col-span-2 mt-4 space-y-4">
-                                            <div className="flex items-center justify-between border-b border-border pb-2 mb-2">
-                                                <h4 className="text-sm font-semibold text-foreground">
-                                                    Inspection Details
-                                                    {data.inspection_groups.length > 0 && (
-                                                        <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                                            {data.inspection_groups.length} IAR{data.inspection_groups.length > 1 ? 's' : ''}
-                                                        </span>
-                                                    )}
-                                                </h4>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={addInspectionGroup}
-                                                    disabled={isStepLocked('Payment Processing')}
-                                                >
-                                                    <Plus className="mr-1 h-3.5 w-3.5" />
-                                                    Add IAR
-                                                </Button>
-                                            </div>
-                                            
-                                            <div className="space-y-4">
-                                                {data.inspection_groups.map((group: any, groupIndex: number) => (
-                                                    <div
-                                                        key={groupIndex}
-                                                        className="rounded-md border p-3 bg-muted/30 relative"
-                                                    >
-                                                        <div className="flex flex-wrap items-start gap-4 md:flex-nowrap">
-                                                            {/* IAR Number */}
-                                                            <div className="min-w-0 w-full md:w-1/4">
-                                                                <Field
-                                                                    label="IAR Number"
-                                                                    name={`inspection_groups.${groupIndex}.iar_number`}
-                                                                    value={group.iar_number}
-                                                                    onChange={(e) => updateInspectionGroup(groupIndex, e.target.value)}
-                                                                    error={errors[`inspection_entries.${groupIndex}.iar_number`]}
-                                                                    readOnly={isStepLocked('Payment Processing')}
-                                                                />
-                                                            </div>
 
-                                                            {/* Inspectors */}
-                                                            <div className="min-w-0 flex-1 w-full md:w-auto">
-                                                                <label className="mb-1 block text-xs text-muted-foreground">
-                                                                    Inspected By
-                                                                </label>
-                                                                <div className="flex flex-wrap items-center gap-1.5">
-                                                                    {group.inspectors.map((inspector: string, inspectorIndex: number) => (
-                                                                        <div
-                                                                            key={`inspector-${groupIndex}-${inspectorIndex}`}
-                                                                            className="flex items-center gap-1"
-                                                                        >
-                                                                            <Input
-                                                                                value={inspector}
-                                                                                onChange={(e) => updateInspectionInspector(groupIndex, inspectorIndex, e.target.value)}
-                                                                                readOnly={isStepLocked('Payment Processing')}
-                                                                                placeholder="Name"
-                                                                                className={cn("h-9 w-36", isStepLocked('Payment Processing') && "bg-muted text-muted-foreground cursor-not-allowed")}
-                                                                            />
-                                                                            {group.inspectors.length > 1 && (
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => removeInspectionInspector(groupIndex, inspectorIndex)}
-                                                                                    disabled={isStepLocked('Payment Processing')}
-                                                                                    className="text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                                                                    title="Remove inspector"
-                                                                                >
-                                                                                    <X className="h-3.5 w-3.5" />
-                                                                                </button>
-                                                                            )}
-                                                                        </div>
-                                                                    ))}
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => addInspectionInspector(groupIndex)}
-                                                                        disabled={isStepLocked('Payment Processing')}
-                                                                        className="flex h-9 w-9 items-center justify-center rounded-md border border-dashed text-muted-foreground hover:bg-muted/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                                                        title="Add inspector"
-                                                                    >
-                                                                        <Plus className="h-3.5 w-3.5" />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Dates */}
-                                                            <div className="min-w-0 flex-1 w-full md:w-auto">
-                                                                <label className="mb-1 block text-xs text-muted-foreground">
-                                                                    Inspection Date
-                                                                </label>
-                                                                <div className="flex flex-wrap items-center gap-1.5">
-                                                                    {group.inspection_dates.map((date: string, dateIndex: number) => (
-                                                                        <div
-                                                                            key={`date-${groupIndex}-${dateIndex}`}
-                                                                            className="flex items-center gap-1"
-                                                                        >
-                                                                            <Input
-                                                                                type="date"
-                                                                                value={date}
-                                                                                onChange={(e) => updateInspectionDate(groupIndex, dateIndex, e.target.value)}
-                                                                                readOnly={isStepLocked('Payment Processing')}
-                                                                                className={cn("h-9 w-[150px]", isStepLocked('Payment Processing') && "bg-muted text-muted-foreground cursor-not-allowed")}
-                                                                            />
-                                                                            {group.inspection_dates.length > 1 && (
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => removeInspectionDate(groupIndex, dateIndex)}
-                                                                                    disabled={isStepLocked('Payment Processing')}
-                                                                                    className="text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                                                                    title="Remove date"
-                                                                                >
-                                                                                    <X className="h-3.5 w-3.5" />
-                                                                                </button>
-                                                                            )}
-                                                                        </div>
-                                                                    ))}
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => addInspectionDate(groupIndex)}
-                                                                        disabled={isStepLocked('Payment Processing')}
-                                                                        className="flex h-9 w-9 items-center justify-center rounded-md border border-dashed text-muted-foreground hover:bg-muted/40 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                                                        title="Add date"
-                                                                    >
-                                                                        <Plus className="h-3.5 w-3.5" />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Remove whole IAR row */}
-                                                            <div className="flex items-center pt-5">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => removeInspectionGroup(groupIndex)}
-                                                                    disabled={data.inspection_groups.length === 1 || isStepLocked('Payment Processing')}
-                                                                    className="h-9 w-9 text-muted-foreground hover:text-red-600 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                                                    title="Remove IAR row"
-                                                                >
-                                                                    <X className="h-4 w-4" />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-1 md:col-span-2 mt-4 pt-4 border-t border-border/50">
                                             <Field

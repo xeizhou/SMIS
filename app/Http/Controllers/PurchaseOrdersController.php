@@ -518,4 +518,62 @@ class PurchaseOrdersController extends Controller
 
         return back()->with('success', 'Office notified successfully.');
     }
+
+    public function notifyCoa(Request $request, ServePo $purchaseOrder): RedirectResponse
+    {
+        $request->validate([
+            'email' => 'nullable|string'
+        ]);
+
+        $email = $request->input('email');
+
+        if (!$email) {
+            $office = $purchaseOrder->office;
+            $email = $office ? $office->email : null;
+        }
+
+        if (!$email) {
+            return back()->with('error', 'No email address found for the office and none provided.');
+        }
+
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\OfficeNotificationMail($purchaseOrder));
+        }
+
+        $purchaseOrder->update([
+            'coa_stamp_notified_date' => now(),
+            'coa_stamp_notified_via' => $email,
+        ]);
+
+        return back()->with('success', 'COA/Office notified successfully.');
+    }
+
+    public function notifyRelease(Request $request, ServePo $purchaseOrder): RedirectResponse
+    {
+        $request->validate([
+            'email' => 'nullable|string'
+        ]);
+
+        $email = $request->input('email');
+
+        if (!$email) {
+            $office = $purchaseOrder->office;
+            $email = $office ? $office->email : null;
+        }
+
+        if (!$email) {
+            return back()->with('error', 'No email address found for the office and none provided.');
+        }
+
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\OfficeNotificationMail($purchaseOrder));
+        }
+
+        $purchaseOrder->update([
+            'receipt_claimed_notified_date' => now(),
+            'receipt_claimed_notified_via' => $email,
+        ]);
+
+        return back()->with('success', 'Recipient/Office notified successfully.');
+    }
 }
