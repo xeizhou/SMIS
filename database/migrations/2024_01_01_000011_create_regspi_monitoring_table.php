@@ -42,6 +42,12 @@ return new class extends Migration
                 ->references('fund_cluster_id')->on('fund_clusters')
                 ->nullOnDelete();
 
+            $table->string('stock_no', 50)->nullable();
+            $table->foreign('stock_no')
+                ->references('stock_no')->on('stock_items')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
+
             // Required for ProcessRegspiImport's upsert() — SQLite needs a
             // real unique constraint on these two columns to know what
             // counts as a "conflict" when upserting.

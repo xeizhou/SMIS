@@ -4,6 +4,7 @@ export interface RegSPIRecord {
     ics_no: string | null;
     rrsp_no: string | null;
     fund_cluster_id: string | null;
+    stock_no: string | null;
     semi_expendable_property_no: string;
     item_description: string;
     estimated_useful_life: number | string | null;
@@ -40,9 +41,11 @@ export interface PaginatedRegSPIRecords {
 
 export interface RrspItem {
     id: number;
+    stock_no?: string | null;
     item_description: string;
     property_no: string | null;
     cost: number | null;
+    quantity: number | null;
 }
 
 export interface RrspOption {

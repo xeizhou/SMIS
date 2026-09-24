@@ -28,6 +28,10 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { Plus } from 'lucide-react';
+import StockItemQuickAddModal from '@/components/purchase-order/stock-item-quick-add-modal';
+import ItemSingleSelect from '@/components/regspi-monitoring/item-single-select';
+import { type StockItemOption } from '@/pages/regspi-monitoring/index';
 
 import { RrspItem, RrspOption, FundClusterOption } from '@/types/regspi';
 
@@ -36,6 +40,7 @@ interface Props {
     onOpenChange: (open: boolean) => void;
     rrsps?: RrspOption[];
     fundClusters?: FundClusterOption[];
+    stockItems?: StockItemOption[];
 }
 
 interface FieldProps {
@@ -53,6 +58,7 @@ interface FieldProps {
     type?: string;
     readOnly?: boolean;
     disabled?: boolean;
+    enforcePrefix?: string;
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
@@ -70,7 +76,23 @@ function Field({
     type = 'text',
     readOnly = false,
     disabled = false,
+    enforcePrefix,
 }: FieldProps) {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (enforcePrefix && !e.target.value.startsWith(enforcePrefix)) {
+            // Prevent deleting the prefix. If the user tries to overwrite the entire field,
+            // we can try to append their new input to the prefix.
+            if (e.target.value.length < enforcePrefix.length) {
+                return; // They tried to backspace into the prefix, ignore.
+            } else {
+                // They might have selected everything and typed.
+                const newSuffix = e.target.value.replace(enforcePrefix, '');
+                e.target.value = enforcePrefix + newSuffix;
+            }
+        }
+        onChange(e);
+    };
+
     return (
         <div>
             <label className={labelClass}>
@@ -82,7 +104,7 @@ function Field({
                 type={type}
                 name={name}
                 value={value}
-                onChange={onChange}
+                onChange={handleChange}
                 placeholder={placeholder}
                 readOnly={readOnly}
                 disabled={disabled}
@@ -288,6 +310,7 @@ const emptyForm = {
     items: [{
         ics_no: '',
         fund_cluster_id: '',
+        stock_no: '',
         semi_expendable_property_no: '',
         item_description: '',
         amount: '',
@@ -313,13 +336,15 @@ function calculateBalance(values: Record<string, string>) {
     return issued - returned + reissued - disposed;
 }
 
-export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClusters = [] }: Props) {
+
+
+export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClusters = [], stockItems = [] }: Props) {
     const [refreshingField, setRefreshingField] = useState<string | null>(null);
 
     const handleRefreshData = (field: string) => {
         setRefreshingField(field);
         router.reload({
-            only: ['rrsps', 'fundClusters'],
+            only: ['rrsps', 'fundClusters', 'stockItems'],
             onFinish: () => setRefreshingField(null),
         });
     };
@@ -331,6 +356,10 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
     }>(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+
+    const [itemQuickAddOpen, setItemQuickAddOpen] = useState(false);
+    const [itemQuickAddQuery, setItemQuickAddQuery] = useState('');
+    const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
 
     useEffect(() => {
         if (open) {
@@ -344,26 +373,27 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
             HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
         >,
     ) => {
-        setData({
-            ...data,
+        setData(prev => ({
+            ...prev,
             [e.target.name]: e.target.value,
-        });
+        }));
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
-        setData({
-            ...data,
+        setData(prev => ({
+            ...prev,
             [name]: value,
-        });
+        }));
     };
 
     const handleRrspChange = (value: string) => {
         const selected = rrsps.find((r) => r.rrsp_no === value);
-        
+
         if (selected && selected.items && selected.items.length > 0) {
             const newItems = selected.items.map((item: any) => ({
                 ics_no: '',
                 fund_cluster_id: '',
+                stock_no: item.stock_no || '',
                 semi_expendable_property_no: item.property_no || '',
                 item_description: item.item_description || '',
                 amount: item.cost ? String(item.cost) : '',
@@ -378,24 +408,26 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                 balance_qty: '',
                 remarks: '',
             }));
-            
+
             setData((prev) => ({
                 ...prev,
                 rrsp_no: value,
                 items: newItems,
             }));
         } else {
-            setData((prev) => ({ 
-                ...prev, 
+            setData((prev) => ({
+                ...prev,
                 rrsp_no: value,
             }));
         }
     };
 
     const handleItemChange = (index: number, field: string, value: string) => {
-        const newItems = [...data.items];
-        newItems[index] = { ...newItems[index], [field]: value };
-        setData({ ...data, items: newItems });
+        setData(prev => {
+            const newItems = [...prev.items];
+            newItems[index] = { ...newItems[index], [field]: value };
+            return { ...prev, items: newItems };
+        });
     };
 
     const addItem = () => {
@@ -404,6 +436,7 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
             items: [...prev.items, {
                 ics_no: '',
                 fund_cluster_id: '',
+                stock_no: '',
                 semi_expendable_property_no: '',
                 item_description: '',
                 amount: '',
@@ -456,258 +489,309 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent
-                className="w-[95vw] max-h-[95vh] overflow-hidden p-0"
-                style={{ maxWidth: '1200px' }}
-            >
-                <ScrollArea className="max-h-[95vh] w-full">
-                    <div className="p-6">
-                        <DialogHeader>
-                            <DialogTitle>Add RegSPI Record</DialogTitle>
-                        </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent
+                    className="w-[95vw] max-h-[95vh] overflow-hidden p-0"
+                    style={{ maxWidth: '1200px' }}
+                >
+                    <ScrollArea className="max-h-[95vh] w-full">
+                        <div className="p-6">
+                            <DialogHeader>
+                                <DialogTitle>Add RegSPI Record</DialogTitle>
+                            </DialogHeader>
 
-                        <form onSubmit={handleSubmit} className="mt-6 space-y-8">
-                            {/* Section: General Information */}
-                            <div>
-                                <h3 className={sectionTitleClass}>General Information</h3>
-                                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-2">
-                                    <Field
-                                        label="Month / Year"
-                                        name="month_year"
-                                        value={data.month_year}
-                                        onChange={handleChange}
-                                        error={errors.month_year}
-                                        required
-                                        placeholder="e.g. 2025-01"
-                                    />
-                                    
-                                    <SearchableSelect
-                                        label="RRSP No."
-                                        value={data.rrsp_no}
-                                        onChange={handleRrspChange}
-                                        error={errors.rrsp_no}
-                                        
-                                        placeholder="Search or select RRSP..."
-                                        options={rrsps.map((rrsp) => ({
-                                            value: rrsp.rrsp_no,
-                                            label: rrsp.rrsp_no,
-                                        }))}
-                                        onRefresh={() => handleRefreshData('rrsps')}
-                                        isRefreshing={refreshingField === 'rrsps'}
-                                    />
+                            <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                                {/* Section: General Information */}
+                                <div>
+                                    <h3 className={sectionTitleClass}>General Information</h3>
+                                    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-2">
+                                        <Field
+                                            label="Month / Year"
+                                            name="month_year"
+                                            value={data.month_year}
+                                            onChange={handleChange}
+                                            error={errors.month_year}
+                                            required
+                                            placeholder="e.g. 2025-01"
+                                        />
+
+                                        <SearchableSelect
+                                            label="RRSP No."
+                                            value={data.rrsp_no}
+                                            onChange={handleRrspChange}
+                                            error={errors.rrsp_no}
+
+                                            placeholder="Search or select RRSP..."
+                                            options={rrsps.map((rrsp) => ({
+                                                value: rrsp.rrsp_no,
+                                                label: rrsp.rrsp_no,
+                                            }))}
+                                            onRefresh={() => handleRefreshData('rrsps')}
+                                            isRefreshing={refreshingField === 'rrsps'}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Dynamic Items */}
-                            {data.items.length > 0 && (
-                                <div className="space-y-6">
-                                    {data.items.map((item, index) => (
-                                        <div key={index} className="border rounded-md p-5 bg-card space-y-6">
-                                            <div className="flex justify-between items-center border-b pb-2">
-                                                <h3 className="text-sm font-semibold text-foreground">
-                                                    Item {index + 1}: {item.item_description || 'Unknown'}
-                                                </h3>
-                                                {data.items.length > 1 && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => removeItem(index)}
-                                                        className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                                    >
-                                                        <Archive className="size-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
+                                {/* Dynamic Items */}
+                                {data.items.length > 0 && (
+                                    <div className="space-y-6">
+                                        {data.items.map((item, index) => (
+                                            <div key={index} className="border rounded-md p-5 bg-card space-y-6">
+                                                <div className="flex justify-between items-center border-b pb-2">
+                                                    <h3 className="text-sm font-semibold text-foreground">
+                                                        Item {index + 1}: {item.item_description || 'Unknown'}
+                                                    </h3>
+                                                    {data.items.length > 1 && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => removeItem(index)}
+                                                            className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                        >
+                                                            <Archive className="size-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
 
-                                            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-                                                <SelectField
-                                                    label="Fund Cluster"
-                                                    value={item.fund_cluster_id}
-                                                    onChange={(value) => handleItemChange(index, 'fund_cluster_id', value)}
-                                                    error={errors[`items.${index}.fund_cluster_id`]}
-                                                    required
-                                                    placeholder="Select fund cluster"
-                                                    options={fundClusters.map((cluster) => ({
-                                                        value: cluster.fund_cluster_id,
-                                                        label: `${cluster.fund_cluster_id} - ${cluster.fund_description}`,
-                                                    }))}
-                                                    onRefresh={() => handleRefreshData('fundClusters')}
-                                                    isRefreshing={refreshingField === 'fundClusters'}
-                                                />
-                                                <Field
-                                                    label="ICS No."
-                                                    name={`items[${index}].ics_no`}
-                                                    value={item.ics_no}
-                                                    onChange={(e) => handleItemChange(index, 'ics_no', e.target.value)}
-                                                    error={errors[`items.${index}.ics_no`]}
-                                                    placeholder="e.g. ICS-05-IGF-2008020005"
-                                                />
-                                                <Field
-                                                    label="Semi-Expendable Property No."
-                                                    name={`items[${index}].semi_expendable_property_no`}
-                                                    value={item.semi_expendable_property_no}
-                                                    onChange={(e) => handleItemChange(index, 'semi_expendable_property_no', e.target.value)}
-                                                    error={errors[`items.${index}.semi_expendable_property_no`]}
-                                                    readOnly={!!data.rrsp_no}
-                                                    placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Property No."}
-                                                />
-                                                <Field
-                                                    label="Item Description"
-                                                    name={`items[${index}].item_description`}
-                                                    value={item.item_description}
-                                                    onChange={(e) => handleItemChange(index, 'item_description', e.target.value)}
-                                                    error={errors[`items.${index}.item_description`]}
-                                                    readOnly={!!data.rrsp_no}
-                                                    placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Item Description"}
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <h4 className="text-sm font-medium text-muted-foreground mb-3">Quantities & Offices</h4>
                                                 <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-                                                    <Field
-                                                        label="Issued Qty"
-                                                        name={`items[${index}].issued_qty`}
-                                                        type="number"
-                                                        value={item.issued_qty}
-                                                        onChange={(e) => handleItemChange(index, 'issued_qty', e.target.value)}
-                                                        error={errors[`items.${index}.issued_qty`]}
-                                                        placeholder="e.g. 1"
+                                                    <SelectField
+                                                        label="Fund Cluster"
+                                                        value={item.fund_cluster_id}
+                                                        onChange={(value) => {
+                                                            const oldClusterId = item.fund_cluster_id;
+                                                            handleItemChange(index, 'fund_cluster_id', value);
+                                                            const newCluster = fundClusters.find(c => c.fund_cluster_id === value);
+                                                            const oldCluster = fundClusters.find(c => c.fund_cluster_id === oldClusterId);
+                                                            
+                                                            if (newCluster) {
+                                                                const newPrefix = `ICS-${newCluster.fund_cluster_id}-`;
+                                                                let currentPropertyNo = item.semi_expendable_property_no || '';
+                                                                
+                                                                if (oldCluster) {
+                                                                    const oldPrefix = `ICS-${oldCluster.fund_cluster_id}-`;
+                                                                    if (currentPropertyNo.startsWith(oldPrefix)) {
+                                                                        currentPropertyNo = currentPropertyNo.replace(oldPrefix, newPrefix);
+                                                                    } else {
+                                                                        currentPropertyNo = newPrefix;
+                                                                    }
+                                                                } else {
+                                                                    currentPropertyNo = newPrefix;
+                                                                }
+                                                                
+                                                                handleItemChange(index, 'semi_expendable_property_no', currentPropertyNo);
+                                                            }
+                                                        }}
+                                                        error={errors[`items.${index}.fund_cluster_id`]}
+                                                        required
+                                                        placeholder="Select fund cluster"
+                                                        options={fundClusters.map((cluster) => ({
+                                                            value: cluster.fund_cluster_id,
+                                                            label: `${cluster.fund_cluster_id} - ${cluster.fund_description}`,
+                                                        }))}
+                                                        onRefresh={() => handleRefreshData('fundClusters')}
+                                                        isRefreshing={refreshingField === 'fundClusters'}
                                                     />
                                                     <Field
-                                                        label="Issued Office / Officer"
-                                                        name={`items[${index}].issued_office_officer`}
-                                                        value={item.issued_office_officer}
-                                                        onChange={(e) => handleItemChange(index, 'issued_office_officer', e.target.value)}
-                                                        error={errors[`items.${index}.issued_office_officer`]}
+                                                        label="ICS No."
+                                                        name={`items[${index}].ics_no`}
+                                                        value={item.ics_no}
+                                                        onChange={(e) => handleItemChange(index, 'ics_no', e.target.value)}
+                                                        error={errors[`items.${index}.ics_no`]}
+                                                        required
+                                                        placeholder="e.g. 2008020005"
+                                                    />
+                                                    <Field
+                                                        label="Semi-Expendable Property No."
+                                                        name={`items[${index}].semi_expendable_property_no`}
+                                                        value={item.semi_expendable_property_no}
+                                                        onChange={(e) => handleItemChange(index, 'semi_expendable_property_no', e.target.value)}
+                                                        error={errors[`items.${index}.semi_expendable_property_no`]}
+                                                        required
                                                         readOnly={!!data.rrsp_no}
-                                                        placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Issued Office/Officer"}
+                                                        placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "e.g. ICS-05-IGF-2008020005"}
+                                                        enforcePrefix={item.fund_cluster_id ? `ICS-${item.fund_cluster_id}-` : undefined}
                                                     />
-                                                    <Field
-                                                        label="Returned Qty"
-                                                        name={`items[${index}].returned_qty`}
-                                                        type="number"
-                                                        value={item.returned_qty}
-                                                        onChange={(e) => handleItemChange(index, 'returned_qty', e.target.value)}
-                                                        error={errors[`items.${index}.returned_qty`]}
-                                                        placeholder="e.g. 0"
+                                                    <ItemSingleSelect
+                                                        label="Item Description"
+                                                        value={item.stock_no || null}
+                                                        fallbackLabel={item.item_description || null}
+                                                        onChange={(stockNo: string | null, itemName: string | null) => {
+                                                            handleItemChange(index, 'stock_no', stockNo || '');
+                                                            handleItemChange(index, 'item_description', itemName || '');
+                                                        }}
+                                                        options={stockItems || []}
+                                                        error={errors[`items.${index}.item_description`]}
+                                                        readOnly={!!data.rrsp_no}
+                                                        placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Search stock items..."}
+                                                        onAddNew={(q: string) => {
+                                                            setItemQuickAddQuery(q);
+                                                            setActiveItemIndex(index);
+                                                            setItemQuickAddOpen(true);
+                                                        }}
                                                     />
-                                                    <Field
-                                                        label="Returned Office / Officer"
-                                                        name={`items[${index}].returned_office_officer`}
-                                                        value={item.returned_office_officer}
-                                                        onChange={(e) => handleItemChange(index, 'returned_office_officer', e.target.value)}
-                                                        error={errors[`items.${index}.returned_office_officer`]}
-                                                        placeholder="e.g. Records Section"
-                                                    />
-                                                    <Field
-                                                        label="Reissued Qty"
-                                                        name={`items[${index}].reissued_qty`}
-                                                        type="number"
-                                                        value={item.reissued_qty}
-                                                        onChange={(e) => handleItemChange(index, 'reissued_qty', e.target.value)}
-                                                        error={errors[`items.${index}.reissued_qty`]}
-                                                        placeholder="e.g. 0"
-                                                    />
-                                                    <Field
-                                                        label="Reissued Office / Officer"
-                                                        name={`items[${index}].reissued_office_officer`}
-                                                        value={item.reissued_office_officer}
-                                                        onChange={(e) => handleItemChange(index, 'reissued_office_officer', e.target.value)}
-                                                        error={errors[`items.${index}.reissued_office_officer`]}
-                                                        placeholder="e.g. Records Section"
-                                                    />
-                                                    <Field
-                                                        label="Disposed Qty"
-                                                        name={`items[${index}].disposed_qty`}
-                                                        type="number"
-                                                        value={item.disposed_qty}
-                                                        onChange={(e) => handleItemChange(index, 'disposed_qty', e.target.value)}
-                                                        error={errors[`items.${index}.disposed_qty`]}
-                                                        placeholder="e.g. 0"
-                                                    />
-                                                    <div>
-                                                        <label className={labelClass}>Balance Qty</label>
-                                                        <Input
-                                                            value={calculateBalance(item)}
-                                                            disabled
-                                                            className="bg-muted text-muted-foreground"
+                                                </div>
+
+                                                <div>
+                                                    <h4 className="text-sm font-medium text-muted-foreground mb-3">Quantities & Offices</h4>
+                                                    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                                                        <Field
+                                                            label="Issued Qty"
+                                                            name={`items[${index}].issued_qty`}
+                                                            type="number"
+                                                            value={item.issued_qty}
+                                                            onChange={(e) => handleItemChange(index, 'issued_qty', e.target.value)}
+                                                            error={errors[`items.${index}.issued_qty`]}
+                                                            placeholder="e.g. 1"
+                                                        />
+                                                        <Field
+                                                            label="Issued Office / Officer"
+                                                            name={`items[${index}].issued_office_officer`}
+                                                            value={item.issued_office_officer}
+                                                            onChange={(e) => handleItemChange(index, 'issued_office_officer', e.target.value)}
+                                                            error={errors[`items.${index}.issued_office_officer`]}
+                                                            readOnly={!!data.rrsp_no}
+                                                            placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Issued Office/Officer"}
+                                                        />
+                                                        <Field
+                                                            label="Returned Qty"
+                                                            name={`items[${index}].returned_qty`}
+                                                            type="number"
+                                                            value={item.returned_qty}
+                                                            onChange={(e) => handleItemChange(index, 'returned_qty', e.target.value)}
+                                                            error={errors[`items.${index}.returned_qty`]}
+                                                            placeholder="e.g. 0"
+                                                        />
+                                                        <Field
+                                                            label="Returned Office / Officer"
+                                                            name={`items[${index}].returned_office_officer`}
+                                                            value={item.returned_office_officer}
+                                                            onChange={(e) => handleItemChange(index, 'returned_office_officer', e.target.value)}
+                                                            error={errors[`items.${index}.returned_office_officer`]}
+                                                            placeholder="e.g. Records Section"
+                                                        />
+                                                        <Field
+                                                            label="Reissued Qty"
+                                                            name={`items[${index}].reissued_qty`}
+                                                            type="number"
+                                                            value={item.reissued_qty}
+                                                            onChange={(e) => handleItemChange(index, 'reissued_qty', e.target.value)}
+                                                            error={errors[`items.${index}.reissued_qty`]}
+                                                            placeholder="e.g. 0"
+                                                        />
+                                                        <Field
+                                                            label="Reissued Office / Officer"
+                                                            name={`items[${index}].reissued_office_officer`}
+                                                            value={item.reissued_office_officer}
+                                                            onChange={(e) => handleItemChange(index, 'reissued_office_officer', e.target.value)}
+                                                            error={errors[`items.${index}.reissued_office_officer`]}
+                                                            placeholder="e.g. Records Section"
+                                                        />
+                                                        <Field
+                                                            label="Disposed Qty"
+                                                            name={`items[${index}].disposed_qty`}
+                                                            type="number"
+                                                            value={item.disposed_qty}
+                                                            onChange={(e) => handleItemChange(index, 'disposed_qty', e.target.value)}
+                                                            error={errors[`items.${index}.disposed_qty`]}
+                                                            placeholder="e.g. 0"
+                                                        />
+                                                        <div>
+                                                            <label className={labelClass}>Balance Qty</label>
+                                                            <Input
+                                                                value={calculateBalance(item)}
+                                                                disabled
+                                                                className="bg-muted text-muted-foreground"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <h4 className="text-sm font-medium text-muted-foreground mb-3">Financial & Remarks</h4>
+                                                    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                                                        <Field
+                                                            label="Estimated Useful Life"
+                                                            name={`items[${index}].estimated_useful_life`}
+                                                            type="number"
+                                                            value={item.estimated_useful_life}
+                                                            onChange={(e) => handleItemChange(index, 'estimated_useful_life', e.target.value)}
+                                                            error={errors[`items.${index}.estimated_useful_life`]}
+                                                            placeholder="e.g. 5"
+                                                        />
+                                                        <Field
+                                                            label="Amount"
+                                                            name={`items[${index}].amount`}
+                                                            type="number"
+                                                            value={item.amount}
+                                                            onChange={(e) => handleItemChange(index, 'amount', e.target.value)}
+                                                            error={errors[`items.${index}.amount`]}
+                                                            required
+                                                            readOnly={!!data.rrsp_no}
+                                                            placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Amount"}
+                                                        />
+                                                        <Field
+                                                            label="Remarks"
+                                                            name={`items[${index}].remarks`}
+                                                            value={item.remarks}
+                                                            onChange={(e) => handleItemChange(index, 'remarks', e.target.value)}
+                                                            error={errors[`items.${index}.remarks`]}
+                                                            placeholder="e.g. Fully Depreciated / Beyond Useful Life"
                                                         />
                                                     </div>
                                                 </div>
                                             </div>
+                                        ))}
+                                    </div>
+                                )}
 
-                                            <div>
-                                                <h4 className="text-sm font-medium text-muted-foreground mb-3">Financial & Remarks</h4>
-                                                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                                                    <Field
-                                                        label="Estimated Useful Life"
-                                                        name={`items[${index}].estimated_useful_life`}
-                                                        type="number"
-                                                        value={item.estimated_useful_life}
-                                                        onChange={(e) => handleItemChange(index, 'estimated_useful_life', e.target.value)}
-                                                        error={errors[`items.${index}.estimated_useful_life`]}
-                                                        placeholder="e.g. 5"
-                                                    />
-                                                    <Field
-                                                        label="Amount"
-                                                        name={`items[${index}].amount`}
-                                                        type="number"
-                                                        value={item.amount}
-                                                        onChange={(e) => handleItemChange(index, 'amount', e.target.value)}
-                                                        error={errors[`items.${index}.amount`]}
-                                                        required
-                                                        readOnly={!!data.rrsp_no}
-                                                        placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Amount"}
-                                                    />
-                                                    <Field
-                                                        label="Remarks"
-                                                        name={`items[${index}].remarks`}
-                                                        value={item.remarks}
-                                                        onChange={(e) => handleItemChange(index, 'remarks', e.target.value)}
-                                                        error={errors[`items.${index}.remarks`]}
-                                                        placeholder="e.g. Fully Depreciated / Beyond Useful Life"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                {!data.rrsp_no && (
+                                    <div className="flex justify-center pt-4">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={addItem}
+                                            className="w-full md:w-auto"
+                                        >
+                                            + Add Another Item
+                                        </Button>
+                                    </div>
+                                )}
 
-                            {!data.rrsp_no && (
-                                <div className="flex justify-center pt-4">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={addItem}
-                                        className="w-full md:w-auto"
-                                    >
-                                        + Add Another Item
+                                {data.items.length === 0 && data.rrsp_no && (
+                                    <div className="p-4 text-center border rounded-md bg-muted/50">
+                                        <p className="text-sm text-muted-foreground">No items found for this RRSP.</p>
+                                    </div>
+                                )}
+
+                                <div className="flex justify-end gap-3 mt-8">
+                                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                                        Cancel
+                                    </Button>
+                                    <Button type="submit" disabled={processing} style={{ backgroundColor: '#370001' }}>
+                                        {processing ? 'Saving...' : 'Save New Data'}
                                     </Button>
                                 </div>
-                            )}
+                            </form>
+                        </div>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
 
-                            {data.items.length === 0 && data.rrsp_no && (
-                                <div className="p-4 text-center border rounded-md bg-muted/50">
-                                    <p className="text-sm text-muted-foreground">No items found for this RRSP.</p>
-                                </div>
-                            )}
-
-                            <div className="flex justify-end gap-3 mt-8">
-                                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                                    Cancel
-                                </Button>
-                                <Button type="submit" disabled={processing} style={{ backgroundColor: '#370001' }}>
-                                    {processing ? 'Saving...' : 'Save New Data'}
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
-                </ScrollArea>
-            </DialogContent>
-        </Dialog>
+            <StockItemQuickAddModal
+                open={itemQuickAddOpen}
+                onOpenChange={setItemQuickAddOpen}
+                initialName={itemQuickAddQuery}
+                onCreated={(newItem: any) => {
+                    handleRefreshData('stockItems');
+                    if (activeItemIndex !== null) {
+                        handleItemChange(activeItemIndex, 'stock_no', newItem.stock_no);
+                        handleItemChange(activeItemIndex, 'item_description', newItem.item_name);
+                        setActiveItemIndex(null);
+                    }
+                }}
+            />
+        </>
     );
 }
