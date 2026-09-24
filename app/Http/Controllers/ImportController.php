@@ -14,7 +14,9 @@ use App\Jobs\ProcessRrppeImport;
 use App\Jobs\ProcessWmrImport;
 use App\Jobs\ProcessBonaVidaImport;
 use App\Jobs\ProcessOfficesImport;
+use App\Models\ClearanceOffice;
 use App\Jobs\ProcessDataImport;
+use App\Jobs\ProcessClearanceImport;
 use App\Services\ImportProcessor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -540,6 +542,58 @@ class ImportController extends Controller
 
             fclose($handle);
         }, 'bona_vida_import_template.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * POST /import/clearance
+     * Queued CSV import for Clearance monitoring — flat single-table sheet
+     * (NAME, COLLEGE/ OFFICE, CLAIM DATE, RECEIVED BY, STATUS, CLEARED,
+     * PENDING, REMARKS). See ProcessClearanceImport for the column mapping
+     * and the status-derivation rule.
+     */
+    public function clearance(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:20480',
+        ]);
+
+        $path = $validated['file']->store('imports/clearance');
+        $import = Import::create([
+            'user_id' => $request->user()->getKey(),
+            'file_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        ProcessClearanceImport::dispatch($import->getKey());
+
+        return back()->with('success', "Clearance import started.|||import_id:{$import->getKey()}");
+    }
+
+    /**
+     * GET /import/template/clearance
+     * Registered BEFORE /import/template/{type} in web.php.
+     */
+    public function clearanceTemplate(): StreamedResponse
+    {
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'wb');
+
+            fputcsv($handle, ['USeP Clearance Monitoring']);
+            fputcsv($handle, [
+                'NAME', 'COLLEGE/ OFFICE', 'CLAIM DATE', 'RECEIVED BY',
+                'STATUS', 'CLEARED', 'PENDING', 'REMARKS',
+            ]);
+            fputcsv($handle, [
+                'Dela Cruz, Juan S.', 'Finance Division', '', '', 'RETIRED', 'FALSE', 'TRUE', '',
+            ]);
+            fputcsv($handle, [
+                'Santos, Maria P.', 'CAS', '12/19/2023', 'Maria Santos', 'RESIGNATION', 'TRUE', 'FALSE', '',
+            ]);
+
+            fclose($handle);
+        }, 'clearance_import_template.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
