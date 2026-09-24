@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FundCluster;
 use App\Models\RegspiMonitoring;
 use App\Models\RrspMonitoring;
+use App\Models\StockItem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -59,6 +60,7 @@ class RegSPIController extends Controller
             'fundClusters' => FundCluster::select('fund_cluster_id', 'fund_description')
                 ->orderByDesc('created_at')
                 ->get(),
+            'stockItems' => StockItem::select('stock_no', 'item_name', 'description')->get(),
         ]);
     }
 
@@ -71,10 +73,11 @@ class RegSPIController extends Controller
             'month_year' => ['required', 'string', 'max:20'],
             'rrsp_no' => ['nullable', 'string', 'max:50', 'exists:rrsp_monitoring,rrsp_no'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.ics_no' => ['nullable', 'string', 'max:50'],
-            'items.*.fund_cluster_id' => ['nullable', 'string', 'max:20', 'exists:fund_clusters,fund_cluster_id'],
-            'items.*.semi_expendable_property_no' => ['nullable', 'string', 'max:100'],
-            'items.*.item_description' => ['nullable', 'string', 'max:255'],
+            'items.*.ics_no' => ['required', 'string', 'max:50'],
+            'items.*.fund_cluster_id' => ['required', 'string', 'max:20', 'exists:fund_clusters,fund_cluster_id'],
+            'items.*.stock_no' => ['nullable', 'string', 'max:50'],
+            'items.*.semi_expendable_property_no' => ['required', 'string', 'max:100'],
+            'items.*.item_description' => ['required', 'string', 'max:255'],
             'items.*.estimated_useful_life' => ['nullable', 'integer', 'min:0'],
             'items.*.issued_qty' => ['nullable', 'integer', 'min:0'],
             'items.*.issued_office_officer' => ['nullable', 'string', 'max:255'],
@@ -86,6 +89,25 @@ class RegSPIController extends Controller
             'items.*.balance_qty' => ['nullable', 'integer', 'min:0'],
             'items.*.amount' => ['required', 'numeric', 'min:0'],
             'items.*.remarks' => ['nullable', 'string', 'max:255'],
+        ], [], [
+            'month_year' => 'Month / Year',
+            'items' => 'Items',
+            'items.*.ics_no' => 'ICS No.',
+            'items.*.fund_cluster_id' => 'Fund Cluster',
+            'items.*.stock_no' => 'Stock No.',
+            'items.*.semi_expendable_property_no' => 'Semi-Expendable Property No.',
+            'items.*.item_description' => 'Item Description',
+            'items.*.estimated_useful_life' => 'Estimated Useful Life',
+            'items.*.issued_qty' => 'Issued Qty',
+            'items.*.issued_office_officer' => 'Issued Office / Officer',
+            'items.*.returned_qty' => 'Returned Qty',
+            'items.*.returned_office_officer' => 'Returned Office / Officer',
+            'items.*.reissued_qty' => 'Reissued Qty',
+            'items.*.reissued_office_officer' => 'Reissued Office / Officer',
+            'items.*.disposed_qty' => 'Disposed Qty',
+            'items.*.balance_qty' => 'Balance Qty',
+            'items.*.amount' => 'Amount',
+            'items.*.remarks' => 'Remarks',
         ]);
 
         foreach ($validated['items'] as $itemData) {
@@ -100,7 +122,8 @@ class RegSPIController extends Controller
                 'ics_no' => $itemData['ics_no'] ?? null,
                 'rrsp_no' => $validated['rrsp_no'] ?? null,
                 'fund_cluster_id' => $itemData['fund_cluster_id'] ?? null,
-                'semi_expendable_property_no' => $itemData['semi_expendable_property_no'],
+                'stock_no' => $itemData['stock_no'] ?? null,
+                'semi_expendable_property_no' => $itemData['semi_expendable_property_no'] ?? '',
                 'item_description' => $itemData['item_description'] ?? null,
                 'estimated_useful_life' => $itemData['estimated_useful_life'] ?? null,
                 'issued_qty' => $issued,
@@ -126,11 +149,12 @@ class RegSPIController extends Controller
     {
         $validated = $request->validate([
             'month_year' => ['required', 'string', 'max:20'],
-            'ics_no' => ['nullable', 'string', 'max:50'],
+            'ics_no' => ['required', 'string', 'max:50'],
             'rrsp_no' => ['nullable', 'string', 'max:50', 'exists:rrsp_monitoring,rrsp_no'],
-            'fund_cluster_id' => ['nullable', 'string', 'max:20', 'exists:fund_clusters,fund_cluster_id'],
-            'semi_expendable_property_no' => ['nullable', 'string', 'max:100'],
-            'item_description' => ['nullable', 'string', 'max:255'],
+            'fund_cluster_id' => ['required', 'string', 'max:20', 'exists:fund_clusters,fund_cluster_id'],
+            'stock_no' => ['nullable', 'string', 'max:50'],
+            'semi_expendable_property_no' => ['required', 'string', 'max:100'],
+            'item_description' => ['required', 'string', 'max:255'],
             'estimated_useful_life' => ['nullable', 'integer', 'min:0'],
             'issued_qty' => ['nullable', 'integer', 'min:0'],
             'issued_office_officer' => ['nullable', 'string', 'max:255'],
@@ -142,9 +166,26 @@ class RegSPIController extends Controller
             'balance_qty' => ['nullable', 'integer', 'min:0'],
             'amount' => ['required', 'numeric', 'min:0'],
             'remarks' => ['nullable', 'string', 'max:255'],
+        ], [], [
+            'month_year' => 'Month / Year',
+            'ics_no' => 'ICS No.',
+            'rrsp_no' => 'RRSP No.',
+            'fund_cluster_id' => 'Fund Cluster',
+            'stock_no' => 'Stock No.',
+            'semi_expendable_property_no' => 'Semi-Expendable Property No.',
+            'item_description' => 'Item Description',
+            'estimated_useful_life' => 'Estimated Useful Life',
+            'issued_qty' => 'Issued Qty',
+            'issued_office_officer' => 'Issued Office / Officer',
+            'returned_qty' => 'Returned Qty',
+            'returned_office_officer' => 'Returned Office / Officer',
+            'reissued_qty' => 'Reissued Qty',
+            'reissued_office_officer' => 'Reissued Office / Officer',
+            'disposed_qty' => 'Disposed Qty',
+            'balance_qty' => 'Balance Qty',
+            'amount' => 'Amount',
+            'remarks' => 'Remarks',
         ]);
-
-
 
         $validated['issued_qty'] = (int) ($validated['issued_qty'] ?? 0);
         $validated['returned_qty'] = (int) ($validated['returned_qty'] ?? 0);

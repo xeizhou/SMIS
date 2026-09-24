@@ -30,11 +30,18 @@ import {
 } from '@/types/regspi';
 
 
+export interface StockItemOption {
+    stock_no: string;
+    item_name: string;
+    description: string | null;
+}
+
 interface Props {
     regspis: PaginatedRegSPIRecords;
     filters: Filters;
     rrsps: RrspOption[];
     fundClusters: FundClusterOption[];
+    stockItems: StockItemOption[];
 }
 
 
@@ -59,7 +66,7 @@ return '—';
 }
 
 
-export default function Index({ regspis, filters, rrsps, fundClusters }: Props) {
+export default function Index({ regspis, filters, rrsps, fundClusters, stockItems }: Props) {
         const [search, setSearch] = useState(filters.search ?? '');
     const [rrspNo, setRrspNo] = useState(filters.rrsp_no ?? 'all');
     const [fundClusterId, setFundClusterId] = useState(filters.fund_cluster_id ?? 'all');
@@ -221,7 +228,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                         <table className="w-full text-sm whitespace-nowrap">
                         <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                             <tr>
-                                {['Property No.', 'Item Description', 'Issued Qty', 'Balance Qty'].map((label, index) => <th key={label} className="p-0 text-left font-semibold text-white"><button type="button" onClick={() => handleSort(['semi_expendable_property_no', 'item_description', 'issued_qty', 'balance_qty'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
+                                {['Semi-Expendable Property No.', 'Item Description', 'Issued Qty', 'Balance Qty'].map((label, index) => <th key={label} className="p-0 text-left font-semibold text-white"><button type="button" onClick={() => handleSort(['semi_expendable_property_no', 'item_description', 'issued_qty', 'balance_qty'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
                                
                                 <th className="px-4 py-3 text-left font-semibold text-white">Actions</th>
                             </tr>
@@ -245,7 +252,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
                                         data-record-id={record.regspi_id}
                                     >
                                         <td className="px-4 py-3 font-medium">{record.semi_expendable_property_no}</td>
-                                        <td className="px-4 py-3">{record.item_description}</td>
+                                        <td className="px-4 py-3 max-w-0 w-full truncate" title={record.item_description}>{record.item_description}</td>
                                         <td className="px-4 py-3">{record.issued_qty ?? '—'}</td>
                                         <td className="px-4 py-3">{record.balance_qty ?? '—'}</td>
                                        
@@ -278,8 +285,8 @@ export default function Index({ regspis, filters, rrsps, fundClusters }: Props) 
             </div>
 
 
-            <RegSPIAddForm open={addDialogOpen} onOpenChange={setAddDialogOpen} rrsps={rrsps} fundClusters={fundClusters} />
-            <RegSPIEditForm open={editDialogOpen} onOpenChange={setEditDialogOpen} regspi={selectedRegSPI} rrsps={rrsps} fundClusters={fundClusters} />
+            <RegSPIAddForm open={addDialogOpen} onOpenChange={setAddDialogOpen} rrsps={rrsps} fundClusters={fundClusters} stockItems={stockItems} />
+            <RegSPIEditForm open={editDialogOpen} onOpenChange={setEditDialogOpen} regspi={selectedRegSPI} rrsps={rrsps} fundClusters={fundClusters} stockItems={stockItems} />
             <RegSPIViewForm open={viewDialogOpen} onOpenChange={setViewDialogOpen} regspi={selectedRegSPI} />
             <RegSPIDeleteModal open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} regspiId={regspiToDelete?.regspi_id ?? null} propertyNo={regspiToDelete?.semi_expendable_property_no ?? null} />
             <RegSPIImportDialog open={importOpen} onOpenChange={setImportOpen} fundClusters={fundClusters} />        </>

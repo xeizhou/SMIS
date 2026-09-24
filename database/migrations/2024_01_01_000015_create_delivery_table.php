@@ -38,10 +38,22 @@ return new class extends Migration
                 ->references('po_number')->on('serve_po')
                 ->nullOnDelete();
         });
+
+        Schema::create('delivery_dates', function (Blueprint $table) {
+            $table->id();
+            $table->string('delivery_id', 50);
+            $table->date('delivery_date');
+            $table->timestamps();
+
+            $table->foreign('delivery_id', 'fk_delivery_dates_delivery_id')
+                ->references('delivery_id')->on('delivery')
+                ->cascadeOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('delivery_dates');
         Schema::dropIfExists('delivery');
     }
 };

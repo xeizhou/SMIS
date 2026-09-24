@@ -29,6 +29,11 @@ import {
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 
+import { Plus } from 'lucide-react';
+import StockItemQuickAddModal from '@/components/purchase-order/stock-item-quick-add-modal';
+import ItemSingleSelect from '@/components/regspi-monitoring/item-single-select';
+import { type StockItemOption } from '@/pages/regspi-monitoring/index';
+
 import { RegSPIRecord, RrspItem, RrspOption, FundClusterOption } from '@/types/regspi';
 
 interface Props {
@@ -37,6 +42,7 @@ interface Props {
     regspi: RegSPIRecord | null;
     rrsps: RrspOption[];
     fundClusters: FundClusterOption[];
+    stockItems?: StockItemOption[];
 }
 
 interface FieldProps {
@@ -50,6 +56,7 @@ interface FieldProps {
     type?: string;
     readOnly?: boolean;
     disabled?: boolean;
+    enforcePrefix?: string;
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
@@ -66,7 +73,20 @@ function Field({
     type = 'text',
     readOnly = false,
     disabled = false,
+    enforcePrefix,
 }: FieldProps) {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (enforcePrefix && !e.target.value.startsWith(enforcePrefix)) {
+            if (e.target.value.length < enforcePrefix.length) {
+                return;
+            } else {
+                const newSuffix = e.target.value.replace(enforcePrefix, '');
+                e.target.value = enforcePrefix + newSuffix;
+            }
+        }
+        onChange(e);
+    };
+
     return (
         <div>
             <label className={labelClass}>
@@ -77,7 +97,7 @@ function Field({
                 type={type}
                 name={name}
                 value={value}
-                onChange={onChange}
+                onChange={handleChange}
                 placeholder={placeholder}
                 readOnly={readOnly}
                 disabled={disabled}
@@ -253,6 +273,7 @@ const emptyForm = {
     ics_no: '',
     rrsp_no: '',
     fund_cluster_id: '',
+    stock_no: '',
     semi_expendable_property_no: '',
     item_description: '',
     estimated_useful_life: '',
@@ -278,6 +299,7 @@ function toFormData(regspi: RegSPIRecord | null) {
         ics_no: regspi.ics_no ?? '',
         rrsp_no: regspi.rrsp_no ?? '',
         fund_cluster_id: regspi.fund_cluster_id ?? '',
+        stock_no: regspi.stock_no ?? '',
         semi_expendable_property_no: regspi.semi_expendable_property_no ?? '',
         item_description: regspi.item_description ?? '',
         estimated_useful_life:
@@ -312,14 +334,16 @@ function calculateBalance(values: Record<string, string>) {
     return issued - returned + reissued - disposed;
 }
 
-export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [], fundClusters = [] }: Props) {
+
+
+export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [], fundClusters = [], stockItems = [] }: Props) {
     const [refreshingField, setRefreshingField] = useState<string | null>(null);
     const [selectedItem, setSelectedItem] = useState<string>('');
 
     const handleRefreshData = (field: string) => {
         setRefreshingField(field);
         router.reload({
-            only: ['rrsps', 'fundClusters'],
+            only: ['rrsps', 'fundClusters', 'stockItems'],
             onFinish: () => setRefreshingField(null),
         });
     };
@@ -328,18 +352,21 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
 
+    const [itemQuickAddOpen, setItemQuickAddOpen] = useState(false);
+    const [itemQuickAddQuery, setItemQuickAddQuery] = useState('');
+
     useEffect(() => {
         if (open) {
             const formData = toFormData(regspi);
             setData(formData);
             setErrors({});
-            
+
             // Try to set the selected item based on current data
             if (formData.rrsp_no && rrsps.length > 0) {
                 const rrsp = rrsps.find((r) => r.rrsp_no === formData.rrsp_no);
                 if (rrsp && rrsp.items) {
-                    const match = rrsp.items.find((i) => 
-                        i.item_description === formData.item_description && 
+                    const match = rrsp.items.find((i) =>
+                        i.item_description === formData.item_description &&
                         i.property_no === formData.semi_expendable_property_no
                     );
                     if (match) {
@@ -355,22 +382,22 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
     }, [open, regspi, rrsps]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setData({
-            ...data,
+        setData(prev => ({
+            ...prev,
             [e.target.name]: e.target.value,
-        });
+        }));
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
-        setData({
-            ...data,
+        setData(prev => ({
+            ...prev,
             [name]: value,
-        });
+        }));
     };
 
     const handleRrspChange = (value: string) => {
         const selected = rrsps.find((r) => r.rrsp_no === value);
-        
+
         if (selected && selected.items && selected.items.length === 1) {
             const item = selected.items[0];
             setData((prev) => ({
@@ -383,8 +410,8 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
             }));
             setSelectedItem(String(item.id));
         } else {
-            setData((prev) => ({ 
-                ...prev, 
+            setData((prev) => ({
+                ...prev,
                 rrsp_no: value,
                 item_description: '',
                 semi_expendable_property_no: '',
@@ -436,231 +463,274 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent
-                className="w-[95vw] max-h-[95vh] overflow-hidden p-0"
-                style={{ maxWidth: '1200px' }}
-            >
-                <ScrollArea className="max-h-[95vh] w-full">
-                    <div className="p-6">
-                        <DialogHeader>
-                            <DialogTitle>Edit RegSPI Record — {regspi?.regspi_id}</DialogTitle>
-                        </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent
+                    className="w-[95vw] max-h-[95vh] overflow-hidden p-0"
+                    style={{ maxWidth: '1200px' }}
+                >
+                    <ScrollArea className="max-h-[95vh] w-full">
+                        <div className="p-6">
+                            <DialogHeader>
+                                <DialogTitle>Edit RegSPI Record</DialogTitle>
+                            </DialogHeader>
 
-                        <form onSubmit={handleSubmit} className="mt-6 space-y-8">
-                            {/* Section: General Information */}
-                            <div>
-                                <h3 className={sectionTitleClass}>General Information</h3>
-                                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-2">
-                                    <Field
-                                        label="Month / Year"
-                                        name="month_year"
-                                        value={data.month_year}
-                                        onChange={handleChange}
-                                        error={errors.month_year}
-                                        required
-                                        placeholder="e.g. 2025-01"
-                                    />
-                                    
-                                    <SearchableSelect
-                                        label="RRSP No."
-                                        value={data.rrsp_no}
-                                        onChange={handleRrspChange}
-                                        error={errors.rrsp_no}
-                                        
-                                        placeholder="Search or select RRSP..."
-                                        options={rrsps.map((rrsp) => ({
-                                            value: rrsp.rrsp_no,
-                                            label: rrsp.rrsp_no,
-                                        }))}
-                                        onRefresh={() => handleRefreshData('rrsps')}
-                                        isRefreshing={refreshingField === 'rrsps'}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="border rounded-md p-5 bg-card space-y-6">
-                                <div className="flex justify-between items-center border-b pb-2">
-                                    <h3 className="text-sm font-semibold text-foreground">
-                                        Item Details: {data.item_description || 'Unknown'}
-                                    </h3>
-                                </div>
-
-                                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-                                    <SelectField
-                                        label="Fund Cluster"
-                                        value={data.fund_cluster_id}
-                                        onChange={handleSelectChange('fund_cluster_id')}
-                                        error={errors.fund_cluster_id}
-                                        placeholder="Select fund cluster"
-                                        options={fundClusters.map((cluster) => ({
-                                            value: cluster.fund_cluster_id,
-                                            label: `${cluster.fund_cluster_id} - ${cluster.fund_description}`,
-                                        }))}
-                                        onRefresh={() => handleRefreshData('fundClusters')}
-                                        isRefreshing={refreshingField === 'fundClusters'}
-                                    />
-                                    <Field
-                                        label="ICS No."
-                                        name="ics_no"
-                                        value={data.ics_no}
-                                        onChange={handleChange}
-                                        error={errors.ics_no}
-                                        placeholder="ICS-001"
-                                    />
-                                    <Field
-                                        label="Semi-Expendable Property No."
-                                        name="semi_expendable_property_no"
-                                        value={data.semi_expendable_property_no}
-                                        onChange={handleChange}
-                                        error={errors.semi_expendable_property_no}
-                                        readOnly={!!data.rrsp_no}
-                                        placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Property No."}
-                                    />
-                                    <Field
-                                        label="Item Description"
-                                        name="item_description"
-                                        value={data.item_description}
-                                        onChange={handleChange}
-                                        error={errors.item_description}
-                                        readOnly={!!data.rrsp_no}
-                                        placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Item Description"}
-                                    />
-                                </div>
-
-                                {(() => {
-                                    const selectedRrsp = rrsps.find((r) => r.rrsp_no === data.rrsp_no);
-                                    if (selectedRrsp && selectedRrsp.items && selectedRrsp.items.length > 1) {
-                                        return (
-                                            <SelectField
-                                                label="Select Item from RRSP to Autofill"
-                                                value={selectedItem}
-                                                onChange={handleItemChange}
-                                                placeholder="Select item..."
-                                                options={selectedRrsp.items.map((item) => ({
-                                                    value: String(item.id),
-                                                    label: item.item_description || 'Unknown Item'
-                                                }))}
-                                            />
-                                        );
-                                    }
-                                    return null;
-                                })()}
-
+                            <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                                {/* Section: General Information */}
                                 <div>
-                                    <h4 className="text-sm font-medium text-muted-foreground mb-3">Quantities & Offices</h4>
+                                    <h3 className={sectionTitleClass}>General Information</h3>
+                                    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-2">
+                                        <Field
+                                            label="Month / Year"
+                                            name="month_year"
+                                            value={data.month_year}
+                                            onChange={handleChange}
+                                            error={errors.month_year}
+                                            required
+                                            placeholder="e.g. 2025-01"
+                                        />
+
+                                        <SearchableSelect
+                                            label="RRSP No."
+                                            value={data.rrsp_no}
+                                            onChange={handleRrspChange}
+                                            error={errors.rrsp_no}
+
+                                            placeholder="Search or select RRSP..."
+                                            options={rrsps.map((rrsp) => ({
+                                                value: rrsp.rrsp_no,
+                                                label: rrsp.rrsp_no,
+                                            }))}
+                                            onRefresh={() => handleRefreshData('rrsps')}
+                                            isRefreshing={refreshingField === 'rrsps'}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Section: Item Information */}
+                                <div>
+                                    <h3 className={sectionTitleClass}>Item Details</h3>
                                     <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-                                        <Field
-                                            label="Issued Qty"
-                                            name="issued_qty"
-                                            type="number"
-                                            value={data.issued_qty}
-                                            onChange={handleChange}
-                                            error={errors.issued_qty}
+                                        <SelectField
+                                            label="Fund Cluster"
+                                            value={data.fund_cluster_id}
+                                            onChange={(value) => {
+                                                const oldClusterId = data.fund_cluster_id;
+                                                handleChange({ target: { name: 'fund_cluster_id', value } } as any);
+                                                const newCluster = fundClusters.find(c => c.fund_cluster_id === value);
+                                                const oldCluster = fundClusters.find(c => c.fund_cluster_id === oldClusterId);
+                                                
+                                                if (newCluster) {
+                                                    const newPrefix = `ICS-${newCluster.fund_cluster_id}-`;
+                                                    let currentPropertyNo = data.semi_expendable_property_no || '';
+                                                    
+                                                    if (oldCluster) {
+                                                        const oldPrefix = `ICS-${oldCluster.fund_cluster_id}-`;
+                                                        if (currentPropertyNo.startsWith(oldPrefix)) {
+                                                            currentPropertyNo = currentPropertyNo.replace(oldPrefix, newPrefix);
+                                                        } else {
+                                                            currentPropertyNo = newPrefix;
+                                                        }
+                                                    } else {
+                                                        currentPropertyNo = newPrefix;
+                                                    }
+                                                    
+                                                    handleChange({ target: { name: 'semi_expendable_property_no', value: currentPropertyNo } } as any);
+                                                }
+                                            }}
+                                            error={errors.fund_cluster_id}
+                                            required
+                                            placeholder="Select fund cluster"
+                                            options={fundClusters.map((cluster) => ({
+                                                value: cluster.fund_cluster_id,
+                                                label: `${cluster.fund_cluster_id} - ${cluster.fund_description}`,
+                                            }))}
+                                            onRefresh={() => handleRefreshData('fundClusters')}
+                                            isRefreshing={refreshingField === 'fundClusters'}
                                         />
                                         <Field
-                                            label="Issued Office / Officer"
-                                            name="issued_office_officer"
-                                            value={data.issued_office_officer}
+                                            label="ICS No."
+                                            name="ics_no"
+                                            value={data.ics_no}
                                             onChange={handleChange}
-                                            error={errors.issued_office_officer}
+                                            error={errors.ics_no}
+                                            required
+                                            placeholder="e.g. 2008020005"
+                                        />
+                                        <Field
+                                            label="Semi-Expendable Property No."
+                                            name="semi_expendable_property_no"
+                                            value={data.semi_expendable_property_no}
+                                            onChange={handleChange}
+                                            error={errors.semi_expendable_property_no}
+                                            required
                                             readOnly={!!data.rrsp_no}
-                                            placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Issued Office/Officer"}
+                                            placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "e.g. ICS-05-IGF-2008020005"}
+                                            enforcePrefix={data.fund_cluster_id ? `ICS-${data.fund_cluster_id}-` : undefined}
                                         />
-                                        <Field
-                                            label="Returned Qty"
-                                            name="returned_qty"
-                                            type="number"
-                                            value={data.returned_qty}
-                                            onChange={handleChange}
-                                            error={errors.returned_qty}
+                                        <ItemSingleSelect
+                                            label="Item Description"
+                                            value={data.stock_no || null}
+                                            fallbackLabel={data.item_description || null}
+                                            onChange={(stockNo: string | null, itemName: string | null) => {
+                                                handleChange({ target: { name: 'stock_no', value: stockNo || '' } } as any);
+                                                handleChange({ target: { name: 'item_description', value: itemName || '' } } as any);
+                                            }}
+                                            options={stockItems || []}
+                                            error={errors.item_description}
+                                            readOnly={!!data.rrsp_no}
+                                            placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Search stock items..."}
+                                            onAddNew={(q: string) => {
+                                                setItemQuickAddQuery(q);
+                                                setItemQuickAddOpen(true);
+                                            }}
                                         />
-                                        <Field
-                                            label="Returned Office / Officer"
-                                            name="returned_office_officer"
-                                            value={data.returned_office_officer}
-                                            onChange={handleChange}
-                                            error={errors.returned_office_officer}
-                                        />
-                                        <Field
-                                            label="Reissued Qty"
-                                            name="reissued_qty"
-                                            type="number"
-                                            value={data.reissued_qty}
-                                            onChange={handleChange}
-                                            error={errors.reissued_qty}
-                                        />
-                                        <Field
-                                            label="Reissued Office / Officer"
-                                            name="reissued_office_officer"
-                                            value={data.reissued_office_officer}
-                                            onChange={handleChange}
-                                            error={errors.reissued_office_officer}
-                                        />
-                                        <Field
-                                            label="Disposed Qty"
-                                            name="disposed_qty"
-                                            type="number"
-                                            value={data.disposed_qty}
-                                            onChange={handleChange}
-                                            error={errors.disposed_qty}
-                                        />
-                                        <div>
-                                            <label className={labelClass}>Balance Qty</label>
-                                            <Input
-                                                value={calculateBalance(data)}
-                                                disabled
-                                                className="bg-muted text-muted-foreground"
+                                    </div>
+
+                                    {(() => {
+                                        const selectedRrsp = rrsps.find((r) => r.rrsp_no === data.rrsp_no);
+                                        if (selectedRrsp && selectedRrsp.items && selectedRrsp.items.length > 1) {
+                                            return (
+                                                <SelectField
+                                                    label="Select Item from RRSP to Autofill"
+                                                    value={selectedItem}
+                                                    onChange={handleItemChange}
+                                                    placeholder="Select item..."
+                                                    options={selectedRrsp.items.map((item) => ({
+                                                        value: String(item.id),
+                                                        label: item.item_description || 'Unknown Item'
+                                                    }))}
+                                                />
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+
+                                    <div>
+                                        <h4 className="text-sm font-medium text-muted-foreground mb-3">Quantities & Offices</h4>
+                                        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                                            <Field
+                                                label="Issued Qty"
+                                                name="issued_qty"
+                                                type="number"
+                                                value={data.issued_qty}
+                                                onChange={handleChange}
+                                                error={errors.issued_qty}
+                                            />
+                                            <Field
+                                                label="Issued Office / Officer"
+                                                name="issued_office_officer"
+                                                value={data.issued_office_officer}
+                                                onChange={handleChange}
+                                                error={errors.issued_office_officer}
+                                                readOnly={!!data.rrsp_no}
+                                                placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Issued Office/Officer"}
+                                            />
+                                            <Field
+                                                label="Returned Qty"
+                                                name="returned_qty"
+                                                type="number"
+                                                value={data.returned_qty}
+                                                onChange={handleChange}
+                                                error={errors.returned_qty}
+                                            />
+                                            <Field
+                                                label="Returned Office / Officer"
+                                                name="returned_office_officer"
+                                                value={data.returned_office_officer}
+                                                onChange={handleChange}
+                                                error={errors.returned_office_officer}
+                                            />
+                                            <Field
+                                                label="Reissued Qty"
+                                                name="reissued_qty"
+                                                type="number"
+                                                value={data.reissued_qty}
+                                                onChange={handleChange}
+                                                error={errors.reissued_qty}
+                                            />
+                                            <Field
+                                                label="Reissued Office / Officer"
+                                                name="reissued_office_officer"
+                                                value={data.reissued_office_officer}
+                                                onChange={handleChange}
+                                                error={errors.reissued_office_officer}
+                                            />
+                                            <Field
+                                                label="Disposed Qty"
+                                                name="disposed_qty"
+                                                type="number"
+                                                value={data.disposed_qty}
+                                                onChange={handleChange}
+                                                error={errors.disposed_qty}
+                                            />
+                                            <div>
+                                                <label className={labelClass}>Balance Qty</label>
+                                                <Input
+                                                    value={calculateBalance(data)}
+                                                    disabled
+                                                    className="bg-muted text-muted-foreground"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-sm font-medium text-muted-foreground mb-3">Financial & Remarks</h4>
+                                        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                                            <Field
+                                                label="Estimated Useful Life"
+                                                name="estimated_useful_life"
+                                                type="number"
+                                                value={data.estimated_useful_life}
+                                                onChange={handleChange}
+                                                error={errors.estimated_useful_life}
+                                            />
+                                            <Field
+                                                label="Amount"
+                                                name="amount"
+                                                type="number"
+                                                value={data.amount}
+                                                onChange={handleChange}
+                                                error={errors.amount}
+                                                required
+                                                readOnly={!!data.rrsp_no}
+                                                placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Amount"}
+                                            />
+                                            <Field
+                                                label="Remarks"
+                                                name="remarks"
+                                                value={data.remarks}
+                                                onChange={handleChange}
+                                                error={errors.remarks}
                                             />
                                         </div>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <h4 className="text-sm font-medium text-muted-foreground mb-3">Financial & Remarks</h4>
-                                    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                                        <Field
-                                            label="Estimated Useful Life"
-                                            name="estimated_useful_life"
-                                            type="number"
-                                            value={data.estimated_useful_life}
-                                            onChange={handleChange}
-                                            error={errors.estimated_useful_life}
-                                        />
-                                        <Field
-                                            label="Amount"
-                                            name="amount"
-                                            type="number"
-                                            value={data.amount}
-                                            onChange={handleChange}
-                                            error={errors.amount}
-                                            required
-                                            readOnly={!!data.rrsp_no}
-                                            placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Amount"}
-                                        />
-                                        <Field
-                                            label="Remarks"
-                                            name="remarks"
-                                            value={data.remarks}
-                                            onChange={handleChange}
-                                            error={errors.remarks}
-                                        />
-                                    </div>
+                                <div className="flex justify-end gap-3 mt-8">
+                                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                                        Cancel
+                                    </Button>
+                                    <Button type="submit" disabled={processing} style={{ backgroundColor: '#370001' }}>
+                                        {processing ? 'Saving...' : 'Update Data'}
+                                    </Button>
                                 </div>
-                            </div>
-
-                            <div className="flex justify-end gap-3 mt-8">
-                                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                                    Cancel
-                                </Button>
-                                <Button type="submit" disabled={processing} style={{ backgroundColor: '#370001' }}>
-                                    {processing ? 'Saving...' : 'Update Data'}
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
-                </ScrollArea>
-            </DialogContent>
-        </Dialog>
+                            </form>
+                        </div>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
+            <StockItemQuickAddModal
+                open={itemQuickAddOpen}
+                onOpenChange={setItemQuickAddOpen}
+                initialName={itemQuickAddQuery}
+                onCreated={(newItem: any) => {
+                    handleRefreshData('stockItems');
+                    handleChange({ target: { name: 'stock_no', value: newItem.stock_no } } as any);
+                    handleChange({ target: { name: 'item_description', value: newItem.item_name } } as any);
+                }}
+            />
+        </>
     );
 }
