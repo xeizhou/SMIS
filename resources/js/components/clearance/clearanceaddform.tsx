@@ -17,10 +17,11 @@ import {
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import OfficeMultiSelect from '@/components/clearance/officemultiselect';
 
 interface OfficeOption {
-    office_code: string;
-    office_name: string;
+    id: number;
+    clearance_office_name: string;
 }
 
 interface Props {
@@ -31,7 +32,6 @@ interface Props {
 
 const emptyForm: Record<string, string> = {
     name: '',
-    office: '',
     received_by: '',
     cleared: 'false',
     remarks: '',
@@ -186,6 +186,7 @@ interface PreviewTarget {
 
 export default function ClearanceAddForm({ open, onOpenChange, offices }: Props) {
     const [data, setData] = useState<Record<string, string>>(emptyForm);
+    const [officeIds, setOfficeIds] = useState<number[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [newFiles, setNewFiles] = useState<StagedFile[]>([]);
@@ -198,6 +199,7 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
 
     useEffect(() => {
         if (!open) {
+            setOfficeIds([]);
             setData(emptyForm);
             setErrors({});
             newFiles.forEach((f) => {
@@ -288,7 +290,7 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
 
         const formData = new FormData();
         formData.append('name', data.name);
-        formData.append('office', data.office);
+        officeIds.forEach((id) => formData.append('offices[]', String(id)));
         formData.append('received_by', data.received_by);
         if (data.remarks) formData.append('remarks', data.remarks);
         if (data.form_attribute) formData.append('form_attribute', data.form_attribute);
@@ -337,17 +339,12 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                                 {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
                             </div>
 
-                            <SearchableSelect
-                                label="Office"
-                                value={data.office}
-                                onChange={(value) => handleSelectChange(value, 'office')}
-                                error={errors.office}
+                            <OfficeMultiSelect
+                                value={officeIds}
+                                onChange={setOfficeIds}
+                                options={offices}
+                                error={errors.offices}
                                 required
-                                placeholder="Search office..."
-                                options={offices.map((office) => ({
-                                    value: office.office_code,
-                                    label: office.office_code,
-                                }))}
                             />
                             
                             <div>

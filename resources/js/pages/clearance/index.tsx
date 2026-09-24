@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
 import { Search, Pencil, Archive, ClipboardCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -12,27 +12,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { StatusBadge } from '@/components/ui/status-badge';
 import SortableTable, { ColumnDef } from '@/components/table/SortableTable';
 
-interface OfficeOption {
-    office_code: string;
-    office_name: string;
-}
-
 interface UserOption {
     id: number;
     name: string;
 }
 
+interface OfficeOption {
+    id: number;
+    clearance_office_name: string;
+}
+
 interface ClearanceRecord {
     clearance_id: number;
     name: string;
-    office: string | OfficeOption;
+    offices: OfficeOption[];
     claim_date: string;
     received_by: string;
     status: string;
     cleared: boolean | string;
     pending: boolean | string;
     remarks: string | null;
-    office_data?: OfficeOption | null;
     checker?: UserOption | null;
     checked_by_id?: number | null;
     form_attribute?: string | null;
@@ -129,13 +128,13 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
     const columns: ColumnDef<ClearanceRecord>[] = [
         { key: 'name', label: 'Name', sortable: true, width: 'w-[15%]' },
         {
-            key: 'office',
-            label: 'Office',
-            sortable: true, // sorts by foreign key 'office'
+            key: 'offices',
+            label: 'Offices',
+            sortable: false,
             width: 'w-[15%]',
-            render: (record) => typeof record.office === 'string'
-                ? record.office
-                : record.office?.office_name ?? record.office_data?.office_name ?? '—'
+            render: (record) => record.offices?.length
+                ? record.offices.map((o) => o.clearance_office_name).join(', ')
+                : '—'
         },
         {
             key: 'form_attribute',
@@ -206,6 +205,21 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">Clearance</h1>
                         <p className="mt-1 text-sm text-muted-foreground">Manage clearance records.</p>
+                    </div>
+                    <div className="bg-muted/50 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
+                        <Link
+                            href="/clearance"
+                            preserveState
+                            className="bg-background text-foreground shadow-sm inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                        >
+                            Clearance Records
+                        </Link>
+                        <Link
+                            href="/clearance/offices"
+                            className="text-muted-foreground hover:text-foreground inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                        >
+                            Office Settings
+                        </Link>
                     </div>
                 </div>
 
