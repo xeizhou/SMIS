@@ -33,10 +33,22 @@ use Illuminate\Support\Facades\Validator;
  *                      "COE/KTTD", "KTTD/ COE") are normalized to the
  *                      same office set — see splitOffices()/officeKey().
  *   CLAIM DATE      -> clearance.claim_date (n/j/Y, e.g. "12/19/2023")
- *   RECEIVED BY     -> clearance.received_by
- *   STATUS          -> clearance.form_attribute (lowercased, stored
- *                      as-is — this is the clearance *type*, e.g.
- *                      "retired"/"resignation", not the workflow status)
+ *   RECEIVED BY     -> clearance.received_by. Despite the header, this
+ *                      is who RELEASED the clearance to the person
+ *                      (Released By), not who received something from
+ *                      them — the sheet's own naming is just backwards.
+ *                      No transformation needed, stored as-is.
+ *   STATUS          -> clearance.form_attribute — this is the clearance
+ *                      *type* (e.g. "retired"/"resignation"), not the
+ *                      workflow status. Normalized via
+ *                      formAttributeValue() so typo/wording variants of
+ *                      the same type collapse to one canonical value —
+ *                      e.g. "JO/COS", "JO / COS", "Job Order", "COS",
+ *                      "Reliever" all become "jo/cos/reliever", and
+ *                      "Teachers Clearance", "Teacher", "TEACHER'S
+ *                      CLEARANCE" all become "teacher's clearance".
+ *                      Anything that doesn't match a known pattern is
+ *                      just lowercased and kept as-is.
  *   CLEARED         -> "TRUE"/"FALSE" -> clearance.cleared
  *   PENDING         -> ignored; clearance.status/pending are derived
  *                      instead, using the exact same rule as
@@ -64,6 +76,25 @@ class ProcessClearanceImport implements ShouldQueue
     public int $timeout = 3600;
 
     private const PROGRESS_EVERY = 50;
+
+    /**
+     * form_attribute normalization rules, checked in order. Each entry
+     * is [pattern, canonical value]; pattern is matched against the
+     * lowercased, whitespace-collapsed STATUS cell. First match wins.
+     *
+     * Add new variants here rather than in formAttributeValue() itself
+     * so the mapping stays a flat, scannable list.
+     */
+    private const FORM_ATTRIBUTE_PATTERNS = [
+        // JO (Job Order) / COS (Contract of Service) / Reliever — these
+        // three are treated as one clearance type in practice, however
+        // the sheet happens to spell/combine them.
+        '/\bjo\b|\bcos\b|job\s*order|contract\s*of\s*service|reliever/' => 'jo/cos/reliever',
+
+        // Teacher's clearance — with or without the apostrophe/"'s",
+        // with or without the trailing "clearance".
+        '/\bteacher/' => "teacher's clearance",
+    ];
 
     public function __construct(
         public int $importId,
@@ -310,6 +341,8 @@ class ProcessClearanceImport implements ShouldQueue
             'name' => $name,
             'offices' => $offices,
             'claim_date' => $this->dateValue($line[2] ?? null),
+            // Header says "RECEIVED BY" but this is actually who
+            // RELEASED the clearance to the person (Released By).
             'received_by' => $this->nullableTrim($line[3] ?? null),
             'form_attribute' => $this->formAttributeValue($line[4] ?? null),
             'cleared' => $this->boolValue($line[5] ?? null),
@@ -391,10 +424,32 @@ class ProcessClearanceImport implements ShouldQueue
         return $value === '' ? null : $value;
     }
 
+    /**
+     * Normalizes the STATUS cell (the clearance *type*) against
+     * FORM_ATTRIBUTE_PATTERNS so wording/spacing variants of the same
+     * type collapse to one canonical value — e.g. any of "JO/COS",
+     * "JO / COS", "Job Order", "COS", "Reliever" become
+     * "jo/cos/reliever"; any of "Teachers Clearance", "Teacher",
+     * "TEACHER'S CLEARANCE" become "teacher's clearance". Falls back to
+     * a plain lowercase of the original cell when nothing matches.
+     */
     private function formAttributeValue($value): ?string
     {
         $value = trim((string) $value);
-        return $value === '' ? null : strtolower($value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        $normalized = strtolower(preg_replace('/\s+/', ' ', $value) ?? $value);
+
+        foreach (self::FORM_ATTRIBUTE_PATTERNS as $pattern => $canonical) {
+            if (preg_match($pattern, $normalized) === 1) {
+                return $canonical;
+            }
+        }
+
+        return $normalized;
     }
 
     private function boolValue($value): bool

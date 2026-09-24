@@ -1,12 +1,13 @@
 import { Head, Link, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Archive, ClipboardCheck, Upload } from 'lucide-react';
+import { Search, Pencil, Archive, ClipboardCheck, Upload, Eye } from 'lucide-react';
 import { useState } from 'react';
 import ClearanceAddForm from '@/components/clearance/clearanceaddform';
 import ClearanceDeleteModal from '@/components/clearance/clearancedeletemodal';
 import ClearanceEditForm from '@/components/clearance/clearanceeditform';
 import ClearanceImportDialog from '@/components/clearance/clearance-import-dialog';
 import ClearanceProcessModal from '@/components/clearance/clearanceprocessmodal';
+import ClearanceViewForm from '@/components/clearance/clearanceviewform';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -74,6 +75,7 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isProcessOpen, setIsProcessOpen] = useState(false);
     const [isImportOpen, setIsImportOpen] = useState(false);
+    const [isViewOpen, setIsViewOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<ClearanceRecord | null>(null);
 
     const updateFilters = (newSearch: string, newStatus: string, newType: string) => {
@@ -125,6 +127,11 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
     const openProcess = (record: ClearanceRecord) => {
         setSelectedRecord(record);
         setIsProcessOpen(true);
+    };
+
+    const openView = (record: ClearanceRecord) => {
+        setSelectedRecord(record);
+        setIsViewOpen(true);
     };
 
     const columns: ColumnDef<ClearanceRecord>[] = [
@@ -185,14 +192,17 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
                     <button type="button" onClick={() => openEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
                         <Pencil className="size-4" />
                     </button>
-                    <button type="button" onClick={() => openDelete(record)} className="text-red-600 hover:text-red-800" title="Archive">
-                        <Archive className="size-4" />
-                    </button>
                     {record.status !== 'Completed' && (
                         <button type="button" onClick={() => openProcess(record)} className="text-green-600 hover:text-green-800" title="Process Clearance">
                             <ClipboardCheck className="size-4" />
                         </button>
                     )}
+                    <button type="button" onClick={() => openDelete(record)} className="text-red-600 hover:text-red-800" title="Archive">
+                        <Archive className="size-4" />
+                    </button>
+                    <button type="button" onClick={() => openView(record)} className="text-muted-foreground hover:text-foreground" title="View">
+                        <Eye className="size-4" />
+                    </button>
                 </div>
             )
         }
@@ -303,6 +313,10 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
             <ClearanceDeleteModal open={isDeleteOpen} onOpenChange={setIsDeleteOpen} record={selectedRecord} />
             <ClearanceProcessModal open={isProcessOpen} onOpenChange={setIsProcessOpen} record={selectedRecord} />
             <ClearanceImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
+            {/* ClearanceViewForm's own record type still models a single `office`
+                field, while this page's ClearanceRecord has `offices` (array) —
+                see note below. Casting here until that type is reconciled. */}
+            <ClearanceViewForm open={isViewOpen} onOpenChange={setIsViewOpen} record={selectedRecord as any} />
         </>
     );
 }
