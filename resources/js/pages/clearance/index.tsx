@@ -1,10 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Archive, ClipboardCheck } from 'lucide-react';
+import { Search, Pencil, Archive, ClipboardCheck, Upload } from 'lucide-react';
 import { useState } from 'react';
 import ClearanceAddForm from '@/components/clearance/clearanceaddform';
 import ClearanceDeleteModal from '@/components/clearance/clearancedeletemodal';
 import ClearanceEditForm from '@/components/clearance/clearanceeditform';
+import ClearanceImportDialog from '@/components/clearance/clearance-import-dialog';
 import ClearanceProcessModal from '@/components/clearance/clearanceprocessmodal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,6 +73,7 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isProcessOpen, setIsProcessOpen] = useState(false);
+    const [isImportOpen, setIsImportOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<ClearanceRecord | null>(null);
 
     const updateFilters = (newSearch: string, newStatus: string, newType: string) => {
@@ -258,9 +260,20 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
                         <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
                     </div>
 
-                    <Button type="button" onClick={() => setIsAddOpen(true)} className="w-full lg:w-auto" style={{ backgroundColor: '#612A35' }}>
-                        Add Clearance
-                    </Button>
+                    <div className="flex flex-col gap-2 w-full lg:w-auto lg:flex-row">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsImportOpen(true)}
+                            className="w-full lg:w-auto"
+                        >
+                            <Upload className="mr-2 size-4" />
+                            Import
+                        </Button>
+                        <Button type="button" onClick={() => setIsAddOpen(true)} className="w-full lg:w-auto" style={{ backgroundColor: '#612A35' }}>
+                            Add Clearance
+                        </Button>
+                    </div>
                 </form>
 
                 <SortableTable
@@ -289,6 +302,7 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
             <ClearanceEditForm open={isEditOpen} onOpenChange={setIsEditOpen} record={selectedRecord} offices={offices} />
             <ClearanceDeleteModal open={isDeleteOpen} onOpenChange={setIsDeleteOpen} record={selectedRecord} />
             <ClearanceProcessModal open={isProcessOpen} onOpenChange={setIsProcessOpen} record={selectedRecord} />
+            <ClearanceImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
         </>
     );
 }

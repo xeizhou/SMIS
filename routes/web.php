@@ -585,6 +585,12 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/clearance/{clearance}/attachments', [ClearanceController::class, 'uploadAttachments'])
         ->name('clearance.attachments.upload');
 
+    Route::get('/import/template/clearance', [ImportController::class, 'clearanceTemplate']); // before the {type} catch-all
+
+    Route::post('/import/clearance', [ImportController::class, 'clearance'])->name('import.clearance');
+    Route::get('/import/clearance/{import}/status', [ImportController::class, 'status'])->name('import.clearance.status');
+    Route::post('/import/clearance/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.clearance.cancel');
+
     // ==========================================================
     // Stock Cards (sidebar: "Stock Cards")
     // ==========================================================
