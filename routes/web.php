@@ -504,6 +504,10 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::delete('/purchase-orders/{purchaseOrder}', [PurchaseOrdersController::class, 'destroy'])->name('purchase-orders.destroy');
     Route::post('/purchase-orders/{purchaseOrder}/notify-office', [PurchaseOrdersController::class, 'notifyOffice'])
         ->name('purchase-orders.notify-office');
+    Route::post('/purchase-orders/{purchaseOrder}/notify-coa', [PurchaseOrdersController::class, 'notifyCoa'])
+        ->name('purchase-orders.notify-coa');
+    Route::post('/purchase-orders/{purchaseOrder}/notify-release', [PurchaseOrdersController::class, 'notifyRelease'])
+        ->name('purchase-orders.notify-release');
     Route::post('/purchase-orders/{purchaseOrder}/attachments', [PurchaseOrdersController::class, 'uploadAttachments'])
         ->name('purchase-orders.attachments.upload');
 
