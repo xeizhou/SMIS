@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Traits\LogsActivity;
@@ -22,7 +23,6 @@ class Clearance extends Model
 
     protected $fillable = [
         'name',
-        'office',
         'claim_date',
         'received_by',
         'status',
@@ -40,9 +40,14 @@ class Clearance extends Model
         'pending' => 'boolean',
     ];
 
-    public function office(): BelongsTo
+    public function offices(): BelongsToMany
     {
-        return $this->belongsTo(Office::class, 'office', 'office_code');
+        return $this->belongsToMany(
+            ClearanceOffice::class,
+            'clearance_clearance_office',
+            'clearance_id',
+            'clearance_office_id'
+        );
     }
 
     public function checker(): BelongsTo

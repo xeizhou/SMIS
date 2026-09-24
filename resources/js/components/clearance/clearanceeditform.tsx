@@ -17,12 +17,12 @@ import {
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import OfficeMultiSelect from '@/components/clearance/officemultiselect';
 
 interface OfficeOption {
-    office_code: string;
-    office_name: string;
+    id: number;
+    clearance_office_name: string;
 }
-
 
 interface Attachment {
     id: number;
@@ -82,14 +82,13 @@ interface PreviewTarget {
 interface ClearanceRecord {
     clearance_id: number;
     name: string;
-    office: string | OfficeOption; // Can be a string or an OfficeOption object due to relation overlap
+    offices: OfficeOption[];
     claim_date: string;
     received_by: string;
     status: string;
     cleared: boolean | string;
     pending: boolean | string;
     remarks: string | null;
-    office_data?: OfficeOption | null;
     attachments?: Attachment[];
     checker?: { id: number; name: string } | null;
     clearance_type?: string | null;
@@ -105,7 +104,6 @@ interface Props {
 
 const emptyForm: Record<string, string> = {
     name: '',
-    office: '',
     claim_date: '',
     received_by: '',
     cleared: 'false',
@@ -213,6 +211,7 @@ function SearchableSelect({
 export default function ClearanceEditForm({ open, onOpenChange, record, offices }: Props) {
 
     const [data, setData] = useState<Record<string, string>>(emptyForm);
+    const [officeIds, setOfficeIds] = useState<number[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [newFiles, setNewFiles] = useState<StagedFile[]>([]);
@@ -226,9 +225,9 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
 
     useEffect(() => {
         if (record) {
+            setOfficeIds(record.offices?.map((o) => o.id) ?? []);
             setData({
                 name: record.name,
-                office: typeof record.office === 'object' && record.office !== null ? record.office.office_code : (record.office || ''),
                 received_by: record.received_by,
                 remarks: record.remarks ?? '',
                 form_attribute: record.form_attribute ?? '',
@@ -349,6 +348,7 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
 
         const payload = {
             ...data,
+            offices: officeIds,
             deleted_attachment_ids: deletedAttachmentIds,
         };
 
@@ -412,17 +412,12 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
                                 {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
                             </div>
 
-                            <SearchableSelect
-                                label="Office"
-                                value={data.office}
-                                onChange={(value) => handleSelectChange(value, 'office')}
-                                error={errors.office}
+                            <OfficeMultiSelect
+                                value={officeIds}
+                                onChange={setOfficeIds}
+                                options={offices}
+                                error={errors.offices}
                                 required
-                                placeholder="Search office..."
-                                options={offices.map((office) => ({
-                                    value: office.office_code,
-                                    label: office.office_code,
-                                }))}
                             />
                         </div>
                     </div>

@@ -19,6 +19,7 @@ use App\Models\RRPPEMonitoring;
 use App\Models\RrspMonitoring;
 use App\Models\RegspiMonitoring;
 use App\Models\BonaVidaMonitoring;
+
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -136,6 +137,14 @@ class DatabaseSeeder extends Seeder
         } else {
             $bonaVida = BonaVidaMonitoring::all();
         }
+
+        if (Office::count() === 0) {
+            $offices = Office::factory(8)->create();
+        } else {
+            $offices = Office::all();
+        }
+
+        $this->call(ClearanceOfficeSeeder::class);
 
         if (ServePo::count() === 0) {
             $purchaseOrders = ServePo::factory(30)->create();

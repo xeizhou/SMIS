@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attachment;
 use App\Models\Clearance;
-use App\Models\Office;
+use App\Models\ClearanceOffice;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -29,22 +29,21 @@ public function index(Request $request): Response
         $sortDirection = $request->input('sort_direction', 'desc');
 
         // 2. Validate sort fields
-        $allowedSorts = ['name', 'office', 'form_attribute', 'received_by', 'end_user_claim', 'claim_date', 'status'];
+        $allowedSorts = ['name', 'form_attribute', 'received_by', 'end_user_claim', 'claim_date', 'status'];
         if (!in_array($sortField, $allowedSorts)) {
             $sortField = 'claim_date';
         }
         $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
         $query = Clearance::query()
-            ->with(['office:office_code,office_name', 'checker:id,name'])
+            ->with(['offices:id,clearance_office_name', 'checker:id,name'])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('received_by', 'like', "%{$search}%")
-                        ->orWhere('office', 'like', "%{$search}%")
                         ->orWhere('remarks', 'like', "%{$search}%")
-                        ->orWhereHas('office', fn ($officeQuery) => $officeQuery->where('office_name', 'like', "%{$search}%"))
-                        ->orWhereHas('checker', fn ($userQuery) => $userQuery->where('name', 'like', "%{$search}%"));
+                        ->orWhereHas('offices', fn ($o) => $o->where('clearance_office_name', 'like', "%{$search}%"))
+                        ->orWhereHas('checker', fn ($u) => $u->where('name', 'like', "%{$search}%"));
                 });
             })
             ->when($status, fn ($query, $status) => $query->where('status', $status))
@@ -89,8 +88,8 @@ public function index(Request $request): Response
             ],
             'statuses' => $statuses,
             'forms' => $forms,
-            'offices' => Office::select('office_code', 'office_name')
-                ->orderBy('office_name')
+            'offices' => ClearanceOffice::select('id', 'clearance_office_name')
+                ->orderBy('clearance_office_name')
                 ->get(),
         ]);
     }
@@ -102,17 +101,22 @@ public function index(Request $request): Response
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'office' => ['required', 'exists:offices,office_code'],
+            'offices' => ['required', 'array', 'min:1'],
+            'offices.*' => ['integer', 'exists:clearance_offices,id'],
             'received_by' => ['required', 'string', 'max:100'],
             'remarks' => ['nullable', 'string', 'max:255'],
             'form_attribute' => ['nullable', 'string', 'max:100'],
         ]);
+
+        $officeIds = $validated['offices'];
+        unset($validated['offices']);
 
         $validated['status'] = 'Pending';
         $validated['pending'] = true;
         $validated['cleared'] = false;
 
         $clearance = Clearance::create($validated);
+        $clearance->offices()->sync($officeIds);
 
         if ($request->hasFile('files')) {
             $request->validate([
@@ -142,13 +146,20 @@ public function index(Request $request): Response
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'office' => ['required', 'exists:offices,office_code'],
+            'offices' => ['required', 'array', 'min:1'],
+            'offices.*' => ['integer', 'exists:clearance_offices,id'],
             'received_by' => ['required', 'string', 'max:100'],
             'remarks' => ['nullable', 'string', 'max:255'],
             'form_attribute' => ['nullable', 'string', 'max:100'],
             'deleted_attachment_ids' => ['nullable', 'array'],
             'deleted_attachment_ids.*' => ['integer'],
         ]);
+
+        $officeIds = $validated['offices'];
+        unset($validated['offices'], $validated['deleted_attachment_ids']);
+
+        $clearance->update($validated);
+        $clearance->offices()->sync($officeIds);
 
         // Handle deleted attachments before updating clearance
         $deletedAttachmentIds = $validated['deleted_attachment_ids'] ?? [];

@@ -12,14 +12,14 @@ interface UserOption {
 }
 
 interface OfficeOption {
-    office_code: string;
-    office_name: string;
+    id: number;
+    clearance_office_name: string;
 }
 
 interface ClearanceRecord {
     clearance_id: number;
     name: string;
-    office: string | OfficeOption;
+    offices: OfficeOption[];
     claim_date: string;
     received_by: string;
     status: string;
@@ -79,7 +79,14 @@ export default function ClearanceProcessModal({ open, onOpenChange, record }: Pr
                 {record && (
                     <div className="mt-4 rounded-md border p-4 bg-muted/30">
                         <p className="text-sm font-medium">Name: <span className="font-normal text-muted-foreground">{record.name}</span></p>
-                        <p className="text-sm font-medium mt-1">Office: <span className="font-normal text-muted-foreground">{typeof record.office === 'string' ? record.office : (record.office as OfficeOption)?.office_name}</span></p>
+                        <p className="text-sm font-medium mt-1">
+                            Offices:{' '}
+                            <span className="font-normal text-muted-foreground">
+                                {record.offices?.length
+                                    ? record.offices.map((o) => o.clearance_office_name).join(', ')
+                                    : '—'}
+                            </span>
+                        </p>
                         {record.checker && (
                             <p className="text-sm font-medium mt-1">Released By: <span className="font-normal text-muted-foreground">{record.checker.name}</span></p>
                         )}

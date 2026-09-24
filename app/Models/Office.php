@@ -38,11 +38,6 @@ class Office extends Model
         return 'office_code';
     }
 
-    public function clearances(): HasMany
-    {
-        return $this->hasMany(Clearance::class, 'office', 'office_code');
-    }
-
     public function bonaVidaMonitorings(): HasMany
     {
         return $this->hasMany(BonaVidaMonitoring::class, 'office_code', 'office_code');

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuditLogsController;
 use App\Http\Controllers\BonaVidaController;
+use App\Http\Controllers\ClearanceOfficeController;
 use App\Http\Controllers\ClearanceController;
 use App\Http\Controllers\DeliveriesController;
 use App\Http\Controllers\EmployeeFileLocatorController;
@@ -564,6 +565,13 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/offices', [OfficesController::class, 'store'])->name('offices.store');
     Route::put('/offices/{office}', [OfficesController::class, 'update'])->name('offices.update');
     Route::delete('/offices/{office}', [OfficesController::class, 'destroy']);
+
+    Route::prefix('clearance/offices')->name('clearance.offices.')->group(function () {
+    Route::get('/', [ClearanceOfficeController::class, 'index'])->name('index');
+    Route::post('/', [ClearanceOfficeController::class, 'store'])->name('store');
+    Route::put('/{clearanceOffice}', [ClearanceOfficeController::class, 'update'])->name('update');
+    Route::delete('/{clearanceOffice}', [ClearanceOfficeController::class, 'destroy'])->name('destroy');
+    });
 
     Route::get('/clearance', [ClearanceController::class, 'index'])->name('clearance.index');
     Route::post('/clearance', [ClearanceController::class, 'store'])->name('clearance.store');
