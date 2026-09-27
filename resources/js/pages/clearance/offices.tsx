@@ -1,7 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
 import { Search, Pencil, Archive } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,6 +12,9 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { buildFilterUrl } from '@/lib/filterUrl';
+
+// Make sure your import matches where your SortableTable is located
 import SortableTable, { ColumnDef } from '@/components/table/SortableTable';
 
 interface Office {
@@ -38,6 +41,10 @@ interface Props {
     offices: PaginatedOffices;
     filters: {
         search: string | null;
+        // 1. Added sort filters
+        sort_field?: string;
+        sort_direction?: 'asc' | 'desc';
+        per_page?: number;  
     };
 }
 
@@ -48,6 +55,14 @@ export default function ClearanceOffices({ offices, filters }: Props) {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [selectedOffice, setSelectedOffice] = useState<Office | null>(null);
+    const [deleteProcessing, setDeleteProcessing] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isDeleteOpen) {
+            setDeleteError(null);
+        }
+    }, [isDeleteOpen]);
 
     const addForm = useForm({ clearance_office_name: '' });
     const editForm = useForm({ clearance_office_name: '' });
@@ -56,14 +71,18 @@ export default function ClearanceOffices({ offices, filters }: Props) {
         e.preventDefault();
         router.get(
             '/clearance/offices',
-            { search },
+            buildFilterUrl({ search, page: 1 }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
 
     const handleClear = () => {
         setSearch('');
-        router.get('/clearance/offices', {}, { preserveState: true, preserveScroll: true, replace: true });
+        router.get(
+            '/clearance/offices',
+            buildFilterUrl({ search: '', page: 1 }),
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
     };
 
     const openAddModal = () => {
@@ -101,8 +120,22 @@ export default function ClearanceOffices({ offices, filters }: Props) {
 
     const handleDelete = () => {
         if (!selectedOffice) return;
+        setDeleteProcessing(true);
+        setDeleteError(null);
         router.delete(`/clearance/offices/${selectedOffice.id}`, {
-            onSuccess: () => setIsDeleteOpen(false),
+            preserveScroll: true,
+            onSuccess: (page) => {
+                const flash = (page.props as any)?.flash;
+                if (flash?.error) {
+                    setDeleteError(flash.error);
+                    return;
+                }
+                setIsDeleteOpen(false);
+            },
+            onError: () => {
+                setDeleteError('Something went wrong while archiving this office.');
+            },
+            onFinish: () => setDeleteProcessing(false),
         });
     };
 
@@ -110,7 +143,7 @@ export default function ClearanceOffices({ offices, filters }: Props) {
         {
             key: 'clearance_office_name',
             label: 'Office Name',
-            sortable: false,
+            sortable: true, // 2. Turned sorting ON
             width: 'w-[85%]',
         },
         {
@@ -179,20 +212,22 @@ export default function ClearanceOffices({ offices, filters }: Props) {
                     <Button
                         type="button"
                         onClick={openAddModal}
-                        className="w-full lg:w-auto"
+                        className="w-full lg:w-auto text-white"
                         style={{ backgroundColor: '#612A35' }}
                     >
                         Add Office
                     </Button>
                 </form>
 
+                {/* 3. Passed the sort props into SortableTable */}
                 <SortableTable
                     data={offices.data}
                     columns={columns}
+                    sortField={filters.sort_field}
+                    sortDirection={filters.sort_direction}
                     url="/clearance/offices"
                     currentFilters={{ search }}
                     emptyMessage="No offices added yet."
-                    getRowId={(office) => office.id}
                 />
 
                 {offices.data.length > 0 && (
@@ -261,21 +296,45 @@ export default function ClearanceOffices({ offices, filters }: Props) {
             </Dialog>
 
             {/* Delete Modal */}
-            <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Confirm Deletion</DialogTitle>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <p>Are you sure you want to delete the office <strong>{selectedOffice?.clearance_office_name}</strong>?</p>
-                        <p className="text-sm text-muted-foreground mt-2">This action cannot be undone.</p>
-                    </div>
-                    <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
-                        <Button type="button" variant="destructive" onClick={handleDelete}>Delete</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Confirm Archive</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4 space-y-2">
+                            <p>Are you sure you want to archive the office <strong>{selectedOffice?.clearance_office_name}</strong>?</p>
+                            <p className="text-sm text-muted-foreground">You can restore it later from the Document Center.</p>
+                            {deleteError && (
+                                <div className="text-sm text-red-600 bg-red-50 dark:bg-red-950 rounded-md px-3 py-2">
+                                    {deleteError.includes('\n') ? (
+                                        <>
+                                            <p>{deleteError.split('\n')[0]}</p>
+                                            <ul className="list-disc pl-5 mt-1 space-y-0.5">
+                                                {deleteError.split('\n').slice(1).map((line, i) => (
+                                                    <li key={i}>{line}</li>
+                                                ))}
+                                            </ul>
+                                        </>
+                                    ) : (
+                                        <p>{deleteError}</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={deleteProcessing}>Cancel</Button>
+                            <Button
+                                type="button"
+                                onClick={handleDelete}
+                                disabled={deleteProcessing}
+                                style={{ backgroundColor: '#612A35' }}
+                                className="text-white hover:opacity-90"
+                            >
+                                {deleteProcessing ? 'Archiving...' : 'Archive'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
         </>
     );
 }

@@ -52,7 +52,7 @@ const procurementNavItems: NavItem[] = [
 const HRNavItems: NavItem[] = [
     { title: 'Employee File Locator', href: '/employee-file-locator' },
     { title: 'Offices', href: '/offices' },
-    { title: 'Clearance', href: '/clearance' },
+    { title: 'Clearance', href: '/clearance', activeUrls: ['/clearance', '/clearance/offices'] },
 ];
 
 const StockNavItems: NavItem[] = [

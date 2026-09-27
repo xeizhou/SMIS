@@ -58,6 +58,7 @@ import RegSpiViewForm from '@/components/regspi-monitoring/regspiviewform';
 import BonaVidaViewForm from '@/components/bona-vida-monitoring/bonavidaviewform';
 import WmrViewForm from '@/components/wmr-monitoring/wmrviewform';
 import ClearanceViewForm from '@/components/clearance/clearanceviewform';
+import ClearanceOfficeViewForm from '@/components/clearance/clearanceofficeviewform';
 import EmployeeFileViewForm from '@/components/employee-file-locator/employeefileviewform';
 import OfficeViewForm from '@/components/offices/officeviewform';
 import StockItemViewForm from '@/components/stock-items/stockitemviewform';
@@ -1813,6 +1814,13 @@ function ArchiveTab({ archives }: { archives: any }) {
                     open={true}
                     onOpenChange={(open) => !open && setSelectedArchiveData(null)}
                     record={selectedArchiveData.data}
+                />
+            )}
+            {selectedArchiveData?.type === 'ClearanceOffice' && (
+                <ClearanceOfficeViewForm
+                    open={true}
+                    onOpenChange={(open) => !open && setSelectedArchiveData(null)}
+                    clearanceOffice={selectedArchiveData.data}
                 />
             )}
             {selectedArchiveData?.type === 'EmployeeFileLocator' && (

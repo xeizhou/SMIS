@@ -64,13 +64,13 @@ class DocumentCenterController extends Controller
                 'attachment_count' => $totalsByPo[$po->po_number] ?? 0,
             ]);
 
-        $clearances = Clearance::with('office:office_code,office_name')
+        $clearances = Clearance::with('offices:id,clearance_office_name')
             ->orderBy('claim_date', 'desc')
             ->get()
             ->map(fn ($clearance) => [
                 'id' => $clearance->clearance_id,
                 'label' => $clearance->name,
-                'subtitle' => $clearance->getRelation('office')?->office_name,
+                'subtitle' => $clearance->offices->pluck('clearance_office_name')->implode(', '),
                 'attachment_count' => $clearanceCounts[$clearance->clearance_id] ?? 0,
             ]);
 
@@ -154,7 +154,7 @@ class DocumentCenterController extends Controller
 
     public function clearanceAttachments(int $id)
     {
-        $clearance = Clearance::with('office:office_code,office_name')->findOrFail($id);
+        $clearance = Clearance::with('offices:id,clearance_office_name')->findOrFail($id);
 
         $attachments = Attachment::where('attachable_type', Clearance::class)
             ->where('attachable_id', $id)
@@ -164,7 +164,7 @@ class DocumentCenterController extends Controller
 
         return response()->json([
             'label' => $clearance->name,
-            'subtitle' => $clearance->getRelation('office')?->office_name,
+            'subtitle' => $clearance->offices->pluck('clearance_office_name')->implode(', '),
             'stats' => $this->buildStats($attachments, ['from_clearance' => 'Clearance']),
             'attachments' => $attachments->values(),
         ]);
@@ -186,6 +186,7 @@ class DocumentCenterController extends Controller
             \App\Models\BonaVidaMonitoring::class => \App\Models\BonaVidaMonitoring::withTrashed()->with(['office'])->find($id),
             \App\Models\WmrMonitoring::class => \App\Models\WmrMonitoring::withTrashed()->with(['supplier', 'office', 'fundCluster'])->find($id),
             \App\Models\Clearance::class => \App\Models\Clearance::withTrashed()->with(['attachments'])->find($id),
+            \App\Models\ClearanceOffice::class => \App\Models\ClearanceOffice::withTrashed()->find($id),
             \App\Models\EmployeeFileLocator::class => \App\Models\EmployeeFileLocator::withTrashed()->with(['attachments'])->find($id),
             \App\Models\Office::class => \App\Models\Office::withTrashed()->find($id),
             \App\Models\StockItem::class => \App\Models\StockItem::withTrashed()->with(['units', 'fundCluster'])->find($id),
@@ -330,6 +331,7 @@ class DocumentCenterController extends Controller
                 \App\Models\BonaVidaMonitoring::class => \App\Models\BonaVidaMonitoring::withTrashed()->find($id),
                 \App\Models\WmrMonitoring::class => \App\Models\WmrMonitoring::withTrashed()->find($id),
                 \App\Models\Clearance::class => \App\Models\Clearance::withTrashed()->find($id),
+                \App\Models\ClearanceOffice::class => \App\Models\ClearanceOffice::withTrashed()->find($id),
                 \App\Models\EmployeeFileLocator::class => \App\Models\EmployeeFileLocator::withTrashed()->find($id),
                 \App\Models\Office::class => \App\Models\Office::withTrashed()->find($id),
                 \App\Models\StockItem::class => \App\Models\StockItem::withTrashed()->find($id),
