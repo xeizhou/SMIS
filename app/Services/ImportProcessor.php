@@ -6,10 +6,12 @@ use App\Models\{StockItem, Transaction, Unit, FundCluster, Office};
 use Illuminate\Support\Facades\{DB, Validator, Log};
 
 /**
- * Shared row-processing logic for items/transactions imports, used by
- * both the synchronous xlsx/csv path (ImportController::handleImport)
- * and the queued json path (ProcessDataImport job). Keeping this in one
- * place means the two paths can never silently drift apart.
+ * Shared row-processing logic for items/units/offices/transactions
+ * imports. The queued path (ProcessDataImport job -> runQueued) handles
+ * all four types; the synchronous importItems()/importTransactions()
+ * helpers are still used by ImportController::handleImport() for the
+ * types that haven't been moved to the queue yet. Keeping the row logic
+ * in one place means the two paths can never silently drift apart.
  */
 class ImportProcessor
 {
@@ -47,11 +49,16 @@ class ImportProcessor
     }
 
     /**
-     * Chunked variant with progress reporting via the Import model. Used
-     * by the queued json path only. Runs each chunk in its own DB
-     * transaction so a failure partway through doesn't roll back
-     * everything already committed, and so we're not holding one giant
-     * transaction open for the whole file.
+     * Chunked variant with progress reporting via the Import model.
+     * Runs each chunk in its own DB transaction so a failure partway
+     * through doesn't roll back everything already committed, and so
+     * we're not holding one giant transaction open for the whole file.
+     *
+     * Cancel support: after each chunk the Import row is re-read; if it
+     * was flipped to 'cancelled' (ImportController::regspiCancel) we stop
+     * there. Chunks already committed stay in the database, same as the
+     * Bona-Vida / Clearance jobs, and the status is left as 'cancelled'
+     * instead of being overwritten with 'completed'.
      */
     public function runQueued(\App\Models\Import $import, string $type, bool $merge, array $rows): void
     {
@@ -62,6 +69,7 @@ class ImportProcessor
         $updated = 0;
         $skipped = [];
         $processed = 0;
+        $cancelled = false;
 
         // Transaction dedupe state must persist across the whole run,
         // not reset per chunk, or a fingerprint repeated in two
@@ -69,11 +77,16 @@ class ImportProcessor
         $existingCounts = [];
         $consumed = [];
 
-        $model = $type === 'items' ? StockItem::class : Transaction::class;
+        $model = match ($type) {
+            'items' => StockItem::class,
+            'units' => Unit::class,
+            'offices' => Office::class,
+            default => Transaction::class,
+        };
 
         $model::withoutActivityLogging(function () use (
             $rows, $type, $merge, &$created, &$updated, &$skipped,
-            &$processed, &$existingCounts, &$consumed, $import
+            &$processed, &$existingCounts, &$consumed, &$cancelled, $import
         ) {
             foreach (array_chunk($rows, self::CHUNK_SIZE, true) as $chunk) {
                 DB::transaction(function () use (
@@ -83,6 +96,10 @@ class ImportProcessor
                     foreach ($chunk as $i => $row) {
                         if ($type === 'items') {
                             $this->processItemRow($i, $row, $merge, $created, $updated, $skipped);
+                        } elseif ($type === 'units') {
+                            $this->processUnitRow($i, $row, $merge, $created, $updated, $skipped);
+                        } elseif ($type === 'offices') {
+                            $this->processOfficeRow($i, $row, $merge, $created, $updated, $skipped);
                         } else {
                             $this->processTransactionRow($i, $row, $merge, $created, $skipped, $existingCounts, $consumed);
                         }
@@ -96,8 +113,17 @@ class ImportProcessor
                     'updated_rows' => $updated,
                     'skipped_rows' => count($skipped),
                 ]);
+
+                if ($import->fresh()->status === 'cancelled') {
+                    $cancelled = true;
+                    break;
+                }
             }
         });
+
+        if ($cancelled) {
+            return;
+        }
 
         $import->update([
             'status' => 'completed',
@@ -176,6 +202,83 @@ class ImportProcessor
             } else {
                 $skipped[] = "Row {$this->rowLabel($i)}: unit '{$row['unit_short_name']}' not found, item saved without it.";
             }
+        }
+    }
+
+    /**
+     * Lifted verbatim from ImportController::units()'s closure body.
+     * A unit is identified by unit_short_name.
+     */
+    private function processUnitRow(int $i, array $row, bool $merge, int &$created, int &$updated, array &$skipped): void
+    {
+        $validator = Validator::make($row, [
+            'unit_name' => 'required|string|max:255',
+            'unit_short_name' => 'required|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            $skipped[] = "Row {$this->rowLabel($i)}: " . $validator->errors()->first();
+            return;
+        }
+
+        $existing = Unit::where('unit_short_name', $row['unit_short_name'])->first();
+
+        if ($existing && ! $merge) {
+            $skipped[] = "Row {$this->rowLabel($i)}: unit '{$row['unit_short_name']}' already exists (merge is off).";
+            return;
+        }
+
+        if ($existing) {
+            $existing->update(['unit_name' => $row['unit_name']]);
+            $updated++;
+        } else {
+            Unit::create([
+                'unit_name' => $row['unit_name'],
+                'unit_short_name' => $row['unit_short_name'],
+            ]);
+            $created++;
+        }
+    }
+
+    /**
+     * Lifted verbatim from ImportController::offices()'s closure body.
+     * An office is identified by office_code.
+     */
+    private function processOfficeRow(int $i, array $row, bool $merge, int &$created, int &$updated, array &$skipped): void
+    {
+        $validator = Validator::make($row, [
+            'office_code' => 'required|string|max:20',
+            'office_name' => 'required|string|max:255',
+            'entity_name' => 'nullable|string|max:255',
+            'office_head' => 'nullable|string|max:150',
+            'email' => 'nullable|email|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            $skipped[] = "Row {$this->rowLabel($i)}: " . $validator->errors()->first();
+            return;
+        }
+
+        $existing = Office::where('office_code', $row['office_code'])->first();
+
+        if ($existing && ! $merge) {
+            $skipped[] = "Row {$this->rowLabel($i)}: office '{$row['office_code']}' already exists (merge is off).";
+            return;
+        }
+
+        $attrs = [
+            'office_name' => $row['office_name'],
+            'entity_name' => $row['entity_name'] ?? null,
+            'office_head' => $row['office_head'] ?? null,
+            'email' => $row['email'] ?? null,
+        ];
+
+        if ($existing) {
+            $existing->update($attrs);
+            $updated++;
+        } else {
+            Office::create(['office_code' => $row['office_code'], ...$attrs]);
+            $created++;
         }
     }
 

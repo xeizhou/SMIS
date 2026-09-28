@@ -42,7 +42,7 @@ interface TransactionRecord {
     unit?: Unit | null;
     reference: string;
     quantity: number;
-    office_code: string;
+    office_code: string | null;
     office?: Office | null;
 }
 

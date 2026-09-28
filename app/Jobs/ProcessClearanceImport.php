@@ -75,7 +75,7 @@ class ProcessClearanceImport implements ShouldQueue
 
     public int $timeout = 3600;
 
-    private const PROGRESS_EVERY = 50;
+    private const PROGRESS_EVERY = 200;
 
     /**
      * form_attribute normalization rules, checked in order. Each entry

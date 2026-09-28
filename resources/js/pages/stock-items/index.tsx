@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Archive, Eye, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Search, Pencil, Archive, Eye, Upload, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useState } from 'react';
 import StockItemAddForm from '@/components/stock-items/stockitemaddform';
 import StockItemDeleteModal from '@/components/stock-items/stockitemdeletemodal';
@@ -18,6 +18,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { buildFilterUrl } from '@/lib/filterUrl';
+import StockItemImportDialog from '@/components/stock-items/stock-item-import-dialog';
 
 interface Unit {
     unitID: number;
@@ -82,6 +83,7 @@ export default function Index({
     filters,
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const [importOpen, setImportOpen] = useState(false);
     const [fundClusterFilter, setFundClusterFilter] = useState(filters.fund_cluster_id ?? '');
     const [needsAttention, setNeedsAttention] = useState(filters.needs_attention ?? false);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -227,13 +229,24 @@ export default function Index({
                             Clear
                         </Button>
                     </div>
-                    <Button
-                        type="button"
-                        onClick={() => setDialogOpen(true)}
-                        className="w-full lg:w-auto bg-[#612A35] hover:bg-[#612A35]/90 text-white"
-                    >
-                        Add Stock Item
-                    </Button>
+                    <div className="flex flex-col gap-2 w-full lg:w-auto lg:flex-row">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setImportOpen(true)}
+                            className="w-full lg:w-auto"
+                        >
+                            <Upload className="mr-2 size-4" />
+                            Import
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => setDialogOpen(true)}
+                            className="w-full lg:w-auto bg-[#612A35] hover:bg-[#612A35]/90 text-white"
+                        >
+                            Add Stock Item
+                        </Button>
+                    </div>
                 </form>
 
                 {/* Table */}
@@ -400,6 +413,10 @@ export default function Index({
                 open={isDeleteModalOpen}
                 onOpenChange={setIsDeleteModalOpen}
                 stockNo={stockToDelete}
+            />
+            <StockItemImportDialog 
+                open={importOpen} 
+                onOpenChange={setImportOpen} 
             />
         </>
     );

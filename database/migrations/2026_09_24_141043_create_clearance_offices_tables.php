@@ -13,6 +13,7 @@ return new class extends Migration
             $table->id();
             $table->string('clearance_office_name', 100)->unique();
             $table->timestamps();
+            $table->softDeletes();
         });
 
         Schema::create('clearance_clearance_office', function (Blueprint $table) {

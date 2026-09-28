@@ -25,9 +25,11 @@ interface StockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
-    fund_cluster_id: string | null;
+    remarks?: string | null;
+    fund_cluster_id?: string | null;
     fund_cluster?: FundCluster | null;
     units?: Unit[];
+    is_pending_setup?: boolean;
 }
 
 interface Props {

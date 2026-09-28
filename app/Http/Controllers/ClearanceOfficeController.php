@@ -15,15 +15,34 @@ class ClearanceOfficeController extends Controller
     {
         $search = $request->string('search')->toString() ?: null;
 
+        // 1. Get Sort Parameters (Default to alphabetical)
+        $sortField = $request->input('sort_field', 'clearance_office_name');
+        $sortDirection = $request->input('sort_direction', 'asc');
+
+        // 2. Validate Allowed Sort Fields
+        $allowedSorts = ['clearance_office_name'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'clearance_office_name';
+        }
+        $sortDirection = strtolower($sortDirection) === 'desc' ? 'desc' : 'asc';
+
+        $perPage = $request->integer('per_page', 10);
+
         $offices = ClearanceOffice::query()
             ->when($search, fn ($q, $s) => $q->where('clearance_office_name', 'like', "%{$s}%"))
-            ->orderBy('clearance_office_name')
-            ->paginateWithHighlight($request->integer('per_page', 10))
+            ->orderBy($sortField, $sortDirection)
+            ->paginateWithHighlight($perPage)
             ->withQueryString();
 
         return Inertia::render('clearance/offices', [
             'offices' => $offices,
-            'filters' => ['search' => $search],
+            'filters' => [
+                'search' => $search,
+                // 4. Return Sort State
+                'sort_field' => $sortField,
+                'sort_direction' => $sortDirection,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 
@@ -52,14 +71,24 @@ class ClearanceOfficeController extends Controller
         return redirect()->back()->with('success', 'Office updated successfully.');
     }
 
-    public function destroy(ClearanceOffice $clearanceOffice): RedirectResponse
+    public function destroy(Request $request, ClearanceOffice $clearanceOffice): RedirectResponse
     {
-        if ($clearanceOffice->clearances()->exists()) {
-            return redirect()->back()->with('error', 'This office is used by existing clearance records.');
+        $clearanceCount = $clearanceOffice->clearances()->count();
+
+        if ($clearanceCount > 0) {
+            return redirect()->back()->with('error',
+                "Cannot archive this office because it has linked records. Please remove them first:\n{$clearanceCount} Linked Clearance" . ($clearanceCount > 1 ? 's' : '')
+            );
         }
+
+        $clearanceOffice->archiveMetadata()->create([
+            'identity_document' => $clearanceOffice->clearance_office_name,
+            'archived_from' => 'Personnel Files > Clearance Office Settings',
+            'archived_by' => $request->user()?->id,
+        ]);
 
         $clearanceOffice->delete();
 
-        return redirect()->back()->with('success', 'Office deleted successfully.');
+        return redirect()->back()->with('success', 'Office archived successfully.');
     }
 }
