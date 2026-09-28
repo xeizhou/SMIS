@@ -71,7 +71,7 @@ interface Transaction {
     unitID: number;
     reference: string;
     quantity: number;
-    office_code: string;
+    office_code: string | null;
 }
 
 interface Props {
@@ -390,7 +390,7 @@ export default function TransactionEditForm({
                 unitID: String(transaction.unitID),
                 reference: transaction.reference,
                 quantity: String(transaction.quantity),
-                office_code: transaction.office_code,
+                office_code: transaction.office_code ?? '',
             });
             setOriginalType(transaction.transaction_type);
             setOriginalQuantity(transaction.quantity);

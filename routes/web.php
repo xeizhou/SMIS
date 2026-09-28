@@ -627,6 +627,12 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     // ==========================================================
     Route::get('/import/{import}/status', [ImportController::class, 'status'])->name('import.status');
     Route::post('/import/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.cancel');
+    Route::get('/import/items/{import}/status', [ImportController::class, 'status'])->name('import.items.status');
+    Route::post('/import/items/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.items.cancel');
+    Route::get('/import/units/{import}/status', [ImportController::class, 'status'])->name('import.units.status');
+    Route::post('/import/units/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.units.cancel');
+    Route::get('/import/transactions/{import}/status', [ImportController::class, 'status'])->name('import.transactions.status');
+    Route::post('/import/transactions/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.transactions.cancel');
 
     // RRSP / RRPPE / WMR / Bona-Vida / Offices templates — must be registered
     // BEFORE /import/template/{type}, otherwise the wildcard below catches

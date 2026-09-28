@@ -6,9 +6,7 @@ import {
     FileText,
     FileUp,
     Loader2,
-    Package,
     Ruler,
-    Receipt,
     Building2,
     Upload,
     X,
@@ -48,28 +46,10 @@ interface ImportStatus {
 
 const DATA_TYPE_OPTIONS: { value: DataType; label: string; description: string; icon: React.ReactNode }[] = [
     {
-        value: 'items',
-        label: 'Items',
-        description: 'Import item master data including stock numbers, description, and units',
-        icon: <Package className="size-4" />,
-    },
-    {
-        value: 'units',
-        label: 'Units',
-        description: 'Import unit of measurement data',
-        icon: <Ruler className="size-4" />,
-    },
-    {
         value: 'offices',
         label: 'Offices',
         description: 'Import office directory: code, name, entity, head, and email',
         icon: <Building2 className="size-4" />,
-    },
-    {
-        value: 'transactions',
-        label: 'Transactions',
-        description: 'Import transaction history (receipts and issues)',
-        icon: <Receipt className="size-4" />,
     },
 ];
 
@@ -89,10 +69,10 @@ const IMPORT_ROUTES: Record<DataType, string> = {
 
 // Only items/transactions have a queued json path (see ImportController).
 // units/offices always run synchronously, json or not.
-const QUEUEABLE_TYPES: DataType[] = ['items', 'transactions'];
+const QUEUEABLE_TYPES: DataType[] = [];
 
 export default function ImportDataModal({ open, onOpenChange }: Props) {
-    const [dataType, setDataType] = useState<DataType>('items');
+    const [dataType, setDataType] = useState<DataType>('offices');
     const [fileFormat, setFileFormat] = useState<FileFormat>('xlsx');
     const [file, setFile] = useState<File | null>(null);
     const [mergeExisting, setMergeExisting] = useState(true);
@@ -114,7 +94,7 @@ export default function ImportDataModal({ open, onOpenChange }: Props) {
             : 0;
 
     function resetForm() {
-        setDataType('items');
+        setDataType('offices');
         setFileFormat('xlsx');
         setFile(null);
         setMergeExisting(true);

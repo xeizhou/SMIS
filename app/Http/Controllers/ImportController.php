@@ -121,59 +121,20 @@ class ImportController extends Controller
 
     /**
      * POST /import/items
-     * xlsx/csv -> synchronous (unchanged). json -> queued.
+     * Every format (xlsx / csv / json) is queued now.
      */
     public function items(Request $request)
     {
-        if ($request->input('file_format') === 'json') {
-            return $this->dispatchJsonImport($request, 'items');
-        }
-
-        return $this->handleImport($request, 'items', function (array $rows, bool $merge) {
-            return $this->processor->importItems($rows, $merge);
-        });
+        return $this->dispatchQueuedImport($request, 'items');
     }
 
     /**
      * POST /import/units
-     * Unchanged — small enough to always run synchronously.
+     * Every format (xlsx / csv / json) is queued now.
      */
     public function units(Request $request)
     {
-        return $this->handleImport($request, 'units', function (array $rows, bool $merge) {
-            $created = 0;
-            $updated = 0;
-            $skipped = [];
-
-            foreach ($rows as $i => $row) {
-                $validator = Validator::make($row, [
-                    'unit_name' => 'required|string|max:255',
-                    'unit_short_name' => 'required|string|max:255',
-                ]);
-
-                if ($validator->fails()) {
-                    $skipped[] = "Row {$this->rowLabel($i)}: " . $validator->errors()->first();
-                    continue;
-                }
-
-                $existing = Unit::where('unit_short_name', $row['unit_short_name'])->first();
-
-                if ($existing && ! $merge) {
-                    $skipped[] = "Row {$this->rowLabel($i)}: unit '{$row['unit_short_name']}' already exists (merge is off).";
-                    continue;
-                }
-
-                if ($existing) {
-                    $existing->update(['unit_name' => $row['unit_name']]);
-                    $updated++;
-                } else {
-                    Unit::create($row);
-                    $created++;
-                }
-            }
-
-            return [$created, $updated, $skipped];
-        });
+        return $this->dispatchQueuedImport($request, 'units');
     }
 
     /**
@@ -647,15 +608,21 @@ class ImportController extends Controller
      * + fund_cluster, compared by COUNT not existence — see
      * ImportProcessor::processTransactionRow() for the full reasoning.
      */
+
+    /**
+     * POST /import/transactions
+     * Every format (xlsx / csv / json) is queued now.
+     *
+     * Transactions are always additive (there's no natural unique key to
+     * "merge" against, two receipts can legitimately have the same item,
+     * date, and quantity). The merge flag only controls whether unmatched
+     * office / fund cluster values are created on the fly (on) or the row
+     * is skipped (off). Duplicate detection uses a fingerprint compared by
+     * COUNT, see ImportProcessor::processTransactionRow().
+     */
     public function transactions(Request $request)
     {
-        if ($request->input('file_format') === 'json') {
-            return $this->dispatchJsonImport($request, 'transactions');
-        }
-
-        return $this->handleImport($request, 'transactions', function (array $rows, bool $merge) {
-            return $this->processor->importTransactions($rows, $merge);
-        });
+        return $this->dispatchQueuedImport($request, 'transactions');
     }
 
     /**
@@ -664,11 +631,30 @@ class ImportController extends Controller
      * and hands off to ProcessDataImport — the job re-reads and parses
      * the file itself so this request can return immediately.
      */
-    private function dispatchJsonImport(Request $request, string $type)
+
+    /**
+     * Shared dispatch path for queued imports that accept xlsx, csv or json.
+     * Stores the raw upload, creates the Import tracking row, and hands off
+     * to ProcessDataImport, which reads and parses the file itself so this
+     * request returns immediately.
+     */
+    private function dispatchQueuedImport(Request $request, string $type)
     {
         $request->validate([
-            'file' => 'required|file|mimes:json|max:20480',
+            'file_format' => 'required|in:xlsx,csv,json',
             'merge_existing' => 'nullable|boolean',
+        ]);
+
+        $format = $request->input('file_format');
+
+        $mimes = match ($format) {
+            'xlsx' => 'xlsx,xls',
+            'csv' => 'csv,txt',
+            default => 'json',
+        };
+
+        $request->validate([
+            'file' => "required|file|mimes:{$mimes}|max:20480",
         ]);
 
         $path = $request->file('file')->store("imports/{$type}");
@@ -683,7 +669,8 @@ class ImportController extends Controller
             $import->getKey(),
             $type,
             $path,
-            $request->boolean('merge_existing', true)
+            $request->boolean('merge_existing', true),
+            $format
         );
 
         return back()->with('success', "Import started.|||import_id:{$import->getKey()}");
