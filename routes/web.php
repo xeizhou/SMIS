@@ -644,6 +644,14 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/import/template/bona-vida', [ImportController::class, 'bonaVidaTemplate'])->name('import.bona-vida.template');
     Route::get('/import/template/offices', [ImportController::class, 'officesTemplate'])->name('import.offices.template');
 
+    // In the "must be registered BEFORE /import/template/{type}" block:
+    Route::get('/import/template/employee-files', [ImportController::class, 'employeeFileTemplate'])->name('import.employee-files.template');
+
+    // Near the other import POST/status/cancel routes:
+    Route::post('/import/employee-files', [ImportController::class, 'employeeFiles'])->name('import.employee-files');
+    Route::get('/import/employee-files/{import}/status', [ImportController::class, 'status'])->name('import.employee-files.status');
+    Route::post('/import/employee-files/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.employee-files.cancel');
+
     Route::get('/import/template/{type}', [ImportController::class, 'template'])->name('import.template');
     Route::post('/import/items', [ImportController::class, 'items'])->name('import.items');
     Route::post('/import/units', [ImportController::class, 'units'])->name('import.units');

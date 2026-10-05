@@ -14,6 +14,7 @@ use App\Jobs\ProcessRrppeImport;
 use App\Jobs\ProcessWmrImport;
 use App\Jobs\ProcessBonaVidaImport;
 use App\Jobs\ProcessOfficesImport;
+use App\Jobs\ProcessEmployeeFileImport;
 use App\Models\ClearanceOffice;
 use App\Jobs\ProcessDataImport;
 use App\Jobs\ProcessClearanceImport;
@@ -555,6 +556,58 @@ class ImportController extends Controller
 
             fclose($handle);
         }, 'clearance_import_template.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * POST /import/employee-files
+     * Queued CSV import for Employee File Locator — two side-by-side
+     * tables (Active / Dead) on the same physical rows. See
+     * ProcessEmployeeFileImport for the column layout and parsing rules.
+     */
+    public function employeeFiles(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:20480',
+        ]);
+
+        $path = $validated['file']->store('imports/employee-files');
+        $import = Import::create([
+            'user_id' => $request->user()->getKey(),
+            'file_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        ProcessEmployeeFileImport::dispatch($import->getKey());
+
+        return back()->with('success', "Employee File Locator import started.|||import_id:{$import->getKey()}");
+    }
+
+    /**
+     * GET /import/template/employee-files
+     * Registered BEFORE /import/template/{type} in web.php.
+     */
+    public function employeeFileTemplate(): StreamedResponse
+    {
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'wb');
+
+            fputcsv($handle, ['EMPLOYEE FILE LOCATOR']);
+            fputcsv($handle, ['ACTIVE FILES', '', '', '', '', '', '', 'DEAD FILES']);
+            fputcsv($handle, []);
+            fputcsv($handle, [
+                'NO.', 'LAST NAME', 'FIRST NAME', 'MIDDLE NAME', 'AREA', 'STATUS', '',
+                'NO.', 'LAST NAME', 'FIRST NAME', 'MIDDLE NAME', 'AREA', 'STATUS',
+            ]);
+            fputcsv($handle, []);
+            fputcsv($handle, [
+                1, 'DELA CRUZ', 'JUAN', 'S.', '1-L1', 'Active', '',
+                1, 'SANTOS', 'MARIA', 'P.', 'DEAD FILES', 'Dead',
+            ]);
+
+            fclose($handle);
+        }, 'employee_file_locator_import_template.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
