@@ -1,8 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Archive, Upload } from 'lucide-react';
+import { Search, Pencil, Archive } from 'lucide-react';
 import { useRef, useState } from 'react';
-import OfficesImportDialog from '@/components/offices/office-import-dialog';
 import OfficeAddForm from '@/components/offices/officeaddform';
 import OfficeDeleteModal from '@/components/offices/officedeletemodal';
 import OfficeEditForm from '@/components/offices/officeeditform';
@@ -50,7 +49,6 @@ interface Props {
 export default function Index({ offices, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [importOpen, setImportOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [selectedOffice, setSelectedOffice] = useState<Office | null>(null);
@@ -155,15 +153,6 @@ export default function Index({ offices, filters }: Props) {
                         <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
                     </div>
 
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setImportOpen(true)}
-                        className="w-full lg:w-auto"
-                    >
-                        <Upload className="mr-2 size-4" />
-                        Import
-                    </Button>
 
                     <Button
                         type="button"
@@ -198,7 +187,6 @@ export default function Index({ offices, filters }: Props) {
             {/* Modals */}
             <OfficeAddForm open={dialogOpen} onOpenChange={setDialogOpen} />
             <OfficeEditForm open={editOpen} onOpenChange={setEditOpen} office={selectedOffice} />
-            <OfficesImportDialog open={importOpen} onOpenChange={setImportOpen} />
             <OfficeDeleteModal open={deleteOpen} onOpenChange={setDeleteOpen} officeCode={selectedOfficeCode} />
         </>
     );

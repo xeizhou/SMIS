@@ -17,9 +17,8 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Printer, FileText, FileSpreadsheet, Upload, Archive, Loader2 } from 'lucide-react';
+import { Printer, FileText, FileSpreadsheet, Archive, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import ImportDataModal from '@/components/stock-reports/ImportDataModal';
 import BackupModal from '@/components/stock-reports/BackupModal';
 import { buildFilterUrl } from '@/lib/filterUrl';
 import { printUrl } from '@/lib/print-utils';
@@ -70,7 +69,6 @@ export default function Index({ items, fundClusters, filters }: Props) {
     const [cutoffDate, setCutoffDate] = useState(filters.cutoff_date ?? '');
     const [fundClusterId, setFundClusterId] = useState(filters.fund_cluster_id ?? 'all');
     const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
-    const [importOpen, setImportOpen] = useState(false);
     const [backupOpen, setBackupOpen] = useState(false);
 
     const applyFilters = (
@@ -167,13 +165,6 @@ export default function Index({ items, fundClusters, filters }: Props) {
                 </div>
 
                 <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={() => setImportOpen(true)}
-                    >
-                        <Upload className="size-4" />
-                        Import Data
-                    </Button>
                     <Button
                         variant="outline"
                         onClick={() => setBackupOpen(true)}
@@ -361,7 +352,6 @@ export default function Index({ items, fundClusters, filters }: Props) {
                 </DialogContent>
             </Dialog>
 
-            <ImportDataModal open={importOpen} onOpenChange={setImportOpen} />
             <BackupModal open={backupOpen} onOpenChange={setBackupOpen} />
         </>
     );

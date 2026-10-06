@@ -39,6 +39,15 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
+    Route::get('/imports', function () {
+        return Inertia::render('imports/index', [
+            'fundClusters' => \App\Models\FundCluster::query()
+                ->select('fund_cluster_id', 'fund_description')
+                ->orderBy('fund_description')
+                ->get(),
+        ]);
+    })->name('imports.index');
+
     Route::get('dashboard', function (\Illuminate\Http\Request $request) {
         $recentActivity = \App\Models\AuditLog::with('user')
             ->orderBy('log_timestamp', 'desc')
@@ -536,6 +545,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
     Route::post('/supplier', [SupplierController::class, 'store'])->name('supplier.store');
     Route::post('/supplier/quick-add', [SupplierController::class, 'quickAdd'])->name('supplier.quick-add');
+    Route::get('/supplier/import/template', [SupplierController::class, 'importTemplate'])->name('supplier.import.template');
     Route::put('/supplier/{supplier}', [SupplierController::class, 'update']);
     Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
     Route::post('/supplier/import', [SupplierController::class, 'import'])->name('supplier.import');

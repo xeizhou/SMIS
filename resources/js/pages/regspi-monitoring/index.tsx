@@ -2,13 +2,12 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 
-import { Eye, Pencil, Search, Archive, Upload } from 'lucide-react';
+import { Eye, Pencil, Search, Archive } from 'lucide-react';
 import { useState } from 'react';
 import RegSPIAddForm from '@/components/regspi-monitoring/regspiaddform';
 import RegSPIDeleteModal from '@/components/regspi-monitoring/regspideletemodal';
 import RegSPIEditForm from '@/components/regspi-monitoring/regspieditform';
 import RegSPIViewForm from '@/components/regspi-monitoring/regspiviewform';
-import RegSPIImportDialog from '@/components/regspi-monitoring/regspi-import-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -76,7 +75,6 @@ export default function Index({ regspis, filters, rrsps, fundClusters, stockItem
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedRegSPI, setSelectedRegSPI] = useState<RegSPIRecord | null>(null);
     const [regspiToDelete, setRegspiToDelete] = useState<RegSPIRecord | null>(null);
-    const [importOpen, setImportOpen] = useState(false);
 
     const handleSort = (field: string) => {
         const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
@@ -207,10 +205,6 @@ export default function Index({ regspis, filters, rrsps, fundClusters, stockItem
 
 
                         <div className="flex w-full gap-2 lg:w-auto">
-                            <Button type="button" variant="outline" onClick={() => setImportOpen(true)} className="flex-1 lg:flex-initial">
-                                <Upload className="mr-2 size-4" />
-                                Import
-                            </Button>
                             <Button type="button" onClick={() => setAddDialogOpen(true)} className="flex-1 lg:flex-initial" style={{ backgroundColor: '#612A35' }}>
                                 Add RegSPI Record
                             </Button>
@@ -289,7 +283,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters, stockItem
             <RegSPIEditForm open={editDialogOpen} onOpenChange={setEditDialogOpen} regspi={selectedRegSPI} rrsps={rrsps} fundClusters={fundClusters} stockItems={stockItems} />
             <RegSPIViewForm open={viewDialogOpen} onOpenChange={setViewDialogOpen} regspi={selectedRegSPI} />
             <RegSPIDeleteModal open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} regspiId={regspiToDelete?.regspi_id ?? null} propertyNo={regspiToDelete?.semi_expendable_property_no ?? null} />
-            <RegSPIImportDialog open={importOpen} onOpenChange={setImportOpen} fundClusters={fundClusters} />        </>
+        </>
     );
 }
 
@@ -306,4 +300,3 @@ Index.layout = {
         },
     ],
 };
-

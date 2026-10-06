@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Archive, Upload, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Search, Pencil, Archive, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,6 @@ import UnitAddForm from '@/components/units/unitaddform';
 import UnitDeleteModal from '@/components/units/unitdeletemodal';
 import UnitEditForm from '@/components/units/uniteditform';
 import { buildFilterUrl } from '@/lib/filterUrl';
-import UnitImportDialog from '@/components/units/unit-import-dialog';
 
 interface Unit {
     unitID: number;
@@ -47,7 +46,6 @@ interface Props {
 
 export default function Index({ units, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
-    const [importOpen, setImportOpen] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
@@ -136,15 +134,6 @@ export default function Index({ units, filters }: Props) {
                         </Button>
                     </div>
                     <div className="flex flex-col gap-2 w-full lg:w-auto lg:flex-row">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setImportOpen(true)}
-                            className="w-full lg:w-auto"
-                        >
-                            <Upload className="mr-2 size-4" />
-                            Import
-                        </Button>
                         <Button
                             type="button"
                             onClick={() => setDialogOpen(true)}
@@ -254,10 +243,6 @@ export default function Index({ units, filters }: Props) {
                 open={isDeleteModalOpen}
                 onOpenChange={setIsDeleteModalOpen}
                 unitID={unitToDelete}
-            />
-            <UnitImportDialog 
-                open={importOpen} 
-                onOpenChange={setImportOpen} 
             />
         </>
     );

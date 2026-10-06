@@ -733,19 +733,19 @@ class ImportController extends Controller
      * GET /import/template/{type}
      * Unchanged.
      */
-    public function template(string $type): StreamedResponse
+    public function template(string $type, Request $request): StreamedResponse
     {
         abort_unless(isset(self::SCHEMAS[$type]), 404);
 
         $headers = array_keys(self::SCHEMAS[$type]);
 
-        if ($type === 'regspi') {
-            return response()->streamDownload(function () use ($headers) {
+        if ($type === 'regspi' || $request->boolean('preview')) {
+            return response()->streamDownload(function () use ($headers, $type) {
                 $handle = fopen('php://output', 'wb');
                 fputcsv($handle, $headers);
-                fputcsv($handle, $this->exampleRow('regspi'));
+                fputcsv($handle, $this->exampleRow($type));
                 fclose($handle);
-            }, 'regspi_import_template.csv', [
+            }, "{$type}_import_template.csv", [
                 'Content-Type' => 'text/csv; charset=UTF-8',
             ]);
         }

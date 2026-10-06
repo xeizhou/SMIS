@@ -1,11 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Archive, ClipboardCheck, Upload, Eye } from 'lucide-react';
+import { Search, Pencil, Archive, ClipboardCheck, Eye } from 'lucide-react';
 import { useState } from 'react';
 import ClearanceAddForm from '@/components/clearance/clearanceaddform';
 import ClearanceDeleteModal from '@/components/clearance/clearancedeletemodal';
 import ClearanceEditForm from '@/components/clearance/clearanceeditform';
-import ClearanceImportDialog from '@/components/clearance/clearance-import-dialog';
 import ClearanceProcessModal from '@/components/clearance/clearanceprocessmodal';
 import ClearanceViewForm from '@/components/clearance/clearanceviewform';
 import { Button } from '@/components/ui/button';
@@ -74,7 +73,6 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isProcessOpen, setIsProcessOpen] = useState(false);
-    const [isImportOpen, setIsImportOpen] = useState(false);
     const [isViewOpen, setIsViewOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<ClearanceRecord | null>(null);
 
@@ -271,15 +269,6 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
                     </div>
 
                     <div className="flex flex-col gap-2 w-full lg:w-auto lg:flex-row">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsImportOpen(true)}
-                            className="w-full lg:w-auto"
-                        >
-                            <Upload className="mr-2 size-4" />
-                            Import
-                        </Button>
                         <Button type="button" onClick={() => setIsAddOpen(true)} className="w-full lg:w-auto" style={{ backgroundColor: '#612A35' }}>
                             Add Clearance
                         </Button>
@@ -312,7 +301,6 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
             <ClearanceEditForm open={isEditOpen} onOpenChange={setIsEditOpen} record={selectedRecord} offices={offices} />
             <ClearanceDeleteModal open={isDeleteOpen} onOpenChange={setIsDeleteOpen} record={selectedRecord} />
             <ClearanceProcessModal open={isProcessOpen} onOpenChange={setIsProcessOpen} record={selectedRecord} />
-            <ClearanceImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
             {/* ClearanceViewForm's own record type still models a single `office`
                 field, while this page's ClearanceRecord has `offices` (array) —
                 see note below. Casting here until that type is reconciled. */}

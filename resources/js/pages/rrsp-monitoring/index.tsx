@@ -1,9 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
-import RrspImportDialog from '@/components/rrsp-monitoring/rrsp-import-dialog';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Search, Archive, Upload } from 'lucide-react';
+import { Eye, Pencil, Search, Archive } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import RrspAddForm from '@/components/rrsp-monitoring/rrspaddform';
 import RrspDeleteModal from '@/components/rrsp-monitoring/rrspdeletemodal';
@@ -124,7 +123,6 @@ export default function Index({ rrspMonitorings, filters, areas, stockItems }: P
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [importOpen, setImportOpen] = useState(false);
     const [selectedRrsp, setSelectedRrsp] = useState<RrspMonitoring | null>(
         null
     );
@@ -258,9 +256,6 @@ export default function Index({ rrspMonitorings, filters, areas, stockItems }: P
                             </Button>
                         </div>
 
-                        <Button variant="outline" onClick={() => setImportOpen(true)}>
-                            <Upload className="mr-2 size-4" /> Import
-                        </Button>
 
                         <Button
                             type="button"
@@ -450,11 +445,6 @@ export default function Index({ rrspMonitorings, filters, areas, stockItems }: P
                 onOpenChange={setDeleteDialogOpen}
                 rrspNo={rrspToDelete?.rrspNo ?? null}
             />
-            <RrspImportDialog 
-                open={importOpen} 
-                onOpenChange={setImportOpen} 
-            />
-
         </>
     );
 }
