@@ -74,6 +74,7 @@ const footerNavItems: NavItem[] = [
         title: 'System Documentation',
         href: 'https://docs.google.com/document/d/1-w0jtf2gAn7zBeCYlMCpVVMj9K19KNHWgp8PagAGQwQ/edit?usp=drive_web&ouid=103824623666035606057',
         icon: FolderGit2,
+        external: true,
     },
 ];
 
