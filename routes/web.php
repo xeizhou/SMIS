@@ -570,6 +570,9 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::put('/offices/{office}', [OfficesController::class, 'update'])->name('offices.update');
     Route::delete('/offices/{office}', [OfficesController::class, 'destroy']);
 
+    Route::post('/clearance/offices/quick-add', [ClearanceOfficeController::class, 'quickAdd'])
+        ->name('clearance.offices.quick-add');
+
     Route::prefix('clearance/offices')->name('clearance.offices.')->group(function () {
     Route::get('/', [ClearanceOfficeController::class, 'index'])->name('index');
     Route::post('/', [ClearanceOfficeController::class, 'store'])->name('store');
@@ -596,7 +599,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     // ==========================================================
 
     Route::get('/stock-items-dashboard', [StockItemDashboardController::class, 'index'])
-    ->name('stock-items-dashboard.index');
+        ->name('stock-items-dashboard.index');
 
     Route::get('/stock-items', [StockItemsController::class, 'index'])->name('stock-items.index');
     Route::post('/stock-items', [StockItemsController::class, 'store'])->name('stock-items.store');

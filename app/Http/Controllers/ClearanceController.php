@@ -9,8 +9,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+
 
 class ClearanceController extends Controller
 {
@@ -155,28 +157,26 @@ public function index(Request $request): Response
             'deleted_attachment_ids.*' => ['integer'],
         ]);
 
+        // Pull out the non-column fields BEFORE unsetting them.
         $officeIds = $validated['offices'];
+        $deletedAttachmentIds = $validated['deleted_attachment_ids'] ?? [];
         unset($validated['offices'], $validated['deleted_attachment_ids']);
 
-        $clearance->update($validated);
-        $clearance->offices()->sync($officeIds);
+        DB::transaction(function () use ($clearance, $validated, $officeIds, $deletedAttachmentIds) {
+            $clearance->update($validated);
+            $clearance->offices()->sync($officeIds);
 
-        // Handle deleted attachments before updating clearance
-        $deletedAttachmentIds = $validated['deleted_attachment_ids'] ?? [];
-        if ($deletedAttachmentIds) {
+            // Scoped to this clearance's own attachments, so a caller can't delete
+            // another record's files by passing an arbitrary ID.
             foreach ($deletedAttachmentIds as $attachmentId) {
-                $attachment = Attachment::find($attachmentId);
+                $attachment = $clearance->attachments()->find($attachmentId);
+
                 if ($attachment) {
                     Storage::disk('public')->delete($attachment->file_path);
                     $attachment->delete();
                 }
             }
-        }
-
-        // Remove deleted_attachment_ids from validated data before saving
-        unset($validated['deleted_attachment_ids']);
-
-        $clearance->update($validated);
+        });
 
         return redirect()->back()->with('success', 'Clearance record updated successfully.');
     }
