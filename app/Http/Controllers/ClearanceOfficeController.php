@@ -6,6 +6,7 @@ use App\Models\ClearanceOffice;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,7 +31,8 @@ class ClearanceOfficeController extends Controller
 
         $offices = ClearanceOffice::query()
             ->when($search, fn ($q, $s) => $q->where('clearance_office_name', 'like', "%{$s}%"))
-            ->orderBy($sortField, $sortDirection)
+            ->orderByRaw("LOWER(clearance_office_name) {$sortDirection}")
+            ->orderBy('id')
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 
@@ -69,6 +71,23 @@ class ClearanceOfficeController extends Controller
         $clearanceOffice->update($validated);
 
         return redirect()->back()->with('success', 'Office updated successfully.');
+    }
+
+    public function quickAdd(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'clearance_office_name' => [
+                'required', 'string', 'max:100',
+                Rule::unique('clearance_offices', 'clearance_office_name')->whereNull('deleted_at'),
+            ],
+        ]);
+
+        $office = ClearanceOffice::create($validated);
+
+        return response()->json([
+            'id' => $office->id,
+            'clearance_office_name' => $office->clearance_office_name,
+        ]);
     }
 
     public function destroy(Request $request, ClearanceOffice $clearanceOffice): RedirectResponse

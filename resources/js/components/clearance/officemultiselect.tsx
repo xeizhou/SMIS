@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Check, ChevronsUpDown, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Check, ChevronsUpDown, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -17,15 +17,39 @@ interface Props {
     options: Option[];
     error?: string;
     required?: boolean;
+    onAddNew?: (query: string) => void;
 }
 
-export default function OfficeMultiSelect({ value, onChange, options, error, required }: Props) {
+export default function OfficeMultiSelect({ value, onChange, options, error, required, onAddNew }: Props) {
     const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState('');
+
+    const sortedOptions = useMemo(
+        () =>
+            [...options].sort((a, b) =>
+                a.clearance_office_name.localeCompare(b.clearance_office_name, undefined, {
+                    sensitivity: 'base',
+                    numeric: true,
+                })
+            ),
+        [options]
+    );
 
     const toggle = (id: number) =>
         onChange(value.includes(id) ? value.filter((v) => v !== id) : [...value, id]);
 
     const selected = options.filter((o) => value.includes(o.id));
+
+    const trimmedQuery = query.trim();
+    const hasExactMatch = options.some(
+        (o) => o.clearance_office_name.trim().toLowerCase() === trimmedQuery.toLowerCase()
+    );
+    const showAddNew = !!onAddNew && trimmedQuery !== '' && !hasExactMatch;
+
+    const handleOpenChange = (next: boolean) => {
+        setOpen(next);
+        if (!next) setQuery('');
+    };
 
     return (
         <div>
@@ -33,7 +57,7 @@ export default function OfficeMultiSelect({ value, onChange, options, error, req
                 Offices{required && <span className="text-red-500"> *</span>}
             </label>
 
-            <Popover open={open} onOpenChange={setOpen} modal={true}>
+            <Popover open={open} onOpenChange={handleOpenChange} modal={true}>
                 <PopoverTrigger asChild>
                     <Button
                         type="button"
@@ -57,15 +81,44 @@ export default function OfficeMultiSelect({ value, onChange, options, error, req
                             value.toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
                         }
                     >
-                        <CommandInput placeholder="Search offices..." />
+                        <CommandInput
+                            placeholder="Search offices..."
+                            value={query}
+                            onValueChange={setQuery}
+                        />
                         <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                            <CommandEmpty>No office found.</CommandEmpty>
+                            <CommandEmpty>
+                                <p className="px-2 py-3 text-center text-sm text-muted-foreground">
+                                    No office found.
+                                </p>
+                            </CommandEmpty>
+
+                            {showAddNew && (
+                                <CommandGroup>
+                                    <CommandItem
+                                        // contains the query so the custom filter never hides it
+                                        value={`__add_new__${trimmedQuery}`}
+                                        onSelect={() => {
+                                            onAddNew!(trimmedQuery);
+                                            handleOpenChange(false);
+                                        }}
+                                        className="text-primary"
+                                    >
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Add "{trimmedQuery}" as new office
+                                    </CommandItem>
+                                </CommandGroup>
+                            )}
+
                             <CommandGroup>
-                                {options.map((opt) => (
+                                {sortedOptions.map((opt) => (
                                     <CommandItem
                                         key={opt.id}
                                         value={opt.clearance_office_name}
-                                        onSelect={() => toggle(opt.id)}
+                                        onSelect={() => {
+                                            toggle(opt.id);
+                                            handleOpenChange(false);
+                                        }}
                                     >
                                         <Check className={cn('mr-2 h-4 w-4', value.includes(opt.id) ? 'opacity-100' : 'opacity-0')} />
                                         {opt.clearance_office_name}

@@ -1,23 +1,14 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState, useRef } from 'react';
-import { Check, ChevronsUpDown, Paperclip, X, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive, Archive } from 'lucide-react';
+import { Paperclip, X, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from '@/components/ui/command';
-import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import OfficeMultiSelect from '@/components/clearance/officemultiselect';
+import OfficeQuickAddModal from '@/components/clearance/office-quick-add-modal';
 
 interface OfficeOption {
     id: number;
@@ -118,98 +109,13 @@ const clearanceTypes = [
     'external campus',
     'transfer',
     'faculty clearance',
-    'others'
+    'others',
 ];
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
 const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
-// Custom Searchable Dropdown for Office
-interface SearchableSelectProps {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    error?: string;
-    required?: boolean;
-    placeholder?: string;
-    options: { value: string; label: string }[];
-}
-
-function SearchableSelect({
-    label,
-    value,
-    onChange,
-    error,
-    required = false,
-    placeholder = 'Search...',
-    options,
-}: SearchableSelectProps) {
-    const [open, setOpen] = useState(false);
-
-    const selectedLabel = options.find((o) => o.value === value)?.label;
-
-    return (
-        <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
-
-            <Popover open={open} onOpenChange={setOpen} modal={true}>
-                <PopoverTrigger asChild>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className={cn(
-                            'w-full justify-between font-normal',
-                            !selectedLabel && 'text-muted-foreground',
-                            error && 'border-red-500'
-                        )}
-                    >
-                        {selectedLabel || placeholder}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                </PopoverTrigger>
-
-                <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
-                    <Command>
-                        <CommandInput placeholder={placeholder} />
-                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                            <CommandEmpty>No office found.</CommandEmpty>
-                            <CommandGroup>
-                                {options.map((opt) => (
-                                    <CommandItem
-                                        key={opt.value}
-                                        value={opt.label}
-                                        onSelect={() => {
-                                            onChange(opt.value);
-                                            setOpen(false);
-                                        }}
-                                    >
-                                        <Check
-                                            className={cn(
-                                                'mr-2 h-4 w-4',
-                                                value === opt.value ? 'opacity-100' : 'opacity-0'
-                                            )}
-                                        />
-                                        {opt.label}
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-            </Popover>
-
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-        </div>
-    );
-}
-
 export default function ClearanceEditForm({ open, onOpenChange, record, offices }: Props) {
-
     const [data, setData] = useState<Record<string, string>>(emptyForm);
     const [officeIds, setOfficeIds] = useState<number[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -220,8 +126,22 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
     const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null);
     const [isOtherType, setIsOtherType] = useState(false);
 
+    // Office quick-add state
+    const [officeOptions, setOfficeOptions] = useState<OfficeOption[]>(offices);
+    const [officeQuickAddOpen, setOfficeQuickAddOpen] = useState(false);
+    const [officeQuickAddQuery, setOfficeQuickAddQuery] = useState('');
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Keep local list in sync with fresh props, without dropping offices
+    // created via quick-add that the server props don't include yet.
+    useEffect(() => {
+        setOfficeOptions((prev) => {
+            const incomingIds = new Set(offices.map((o) => o.id));
+            const localOnly = prev.filter((o) => !incomingIds.has(o.id));
+            return [...offices, ...localOnly];
+        });
+    }, [offices]);
 
     useEffect(() => {
         if (record) {
@@ -263,13 +183,6 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
         setData({
             ...data,
             [e.target.name]: e.target.value,
-        });
-    };
-
-    const handleSelectChange = (value: string, name: string) => {
-        setData({
-            ...data,
-            [name]: value,
         });
     };
 
@@ -329,15 +242,6 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
         }
     };
 
-
-    const handleBooleanSelectChange = (value: string, name: 'cleared') => {
-        setData((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-    };
-
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!record) {
@@ -389,284 +293,301 @@ export default function ClearanceEditForm({ open, onOpenChange, record, offices 
         });
     };
 
-
-
     return (
         <>
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-[95vw]" style={{ maxWidth: '1000px' }}>
-                <ScrollArea className="max-h-[95vh] w-full">
-                    <div className="p-6">
-                <DialogHeader>
-                    <DialogTitle>Edit Clearance Record — {record?.clearance_id}</DialogTitle>
-                </DialogHeader>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-[95vw]" style={{ maxWidth: '1000px' }}>
+                    <ScrollArea className="max-h-[95vh] w-full">
+                        <div className="p-6">
+                            <DialogHeader>
+                                <DialogTitle>Edit Clearance Record — {record?.clearance_id}</DialogTitle>
+                            </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-4 space-y-8">
-                    {/* Section: Requester Information */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Requester Information</h3>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label className={labelClass} htmlFor="edit_name">Name <span className="text-red-500">*</span></label>
-                                <Input id="edit_name" name="name" value={data.name} onChange={handleChange} />
-                                {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
-                            </div>
-
-                            <OfficeMultiSelect
-                                value={officeIds}
-                                onChange={setOfficeIds}
-                                options={offices}
-                                error={errors.offices}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    {/* Section: Processing Details */}
-                    <div>
-                        <h3 className={sectionTitleClass}>Processing Details</h3>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label className={labelClass} htmlFor="edit_received_by">Received By <span className="text-red-500">*</span></label>
-                                <Input id="edit_received_by" name="received_by" value={data.received_by} onChange={handleChange} />
-                                {errors.received_by && <p className="mt-1 text-xs text-red-500">{errors.received_by}</p>}
-                            </div>
-                            
-                            {record?.checker && (
+                            <form onSubmit={handleSubmit} className="mt-4 space-y-8">
+                                {/* Section: Requester Information */}
                                 <div>
-                                    <label className={labelClass}>Released By</label>
-                                    <Input value={record.checker.name} readOnly className="bg-muted" />
-                                </div>
-                            )}
+                                    <h3 className={sectionTitleClass}>Requester Information</h3>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div>
+                                            <label className={labelClass} htmlFor="edit_name">Name <span className="text-red-500">*</span></label>
+                                            <Input id="edit_name" name="name" value={data.name} onChange={handleChange} />
+                                            {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
+                                        </div>
 
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 className={sectionTitleClass}>Clearance Details</h3>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label className={labelClass}>Form</label>
-                                <Select 
-                                    value={isOtherType ? 'others' : (clearanceTypes.includes(data.form_attribute) ? data.form_attribute : (data.form_attribute ? 'others' : ''))}
-                                    onValueChange={handleTypeSelect}
-                                >
-                                    <SelectTrigger className={errors.form_attribute ? 'border-red-500' : ''}>
-                                        <SelectValue placeholder="Select form" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {clearanceTypes.map((type) => (
-                                            <SelectItem key={type} value={type} className="capitalize">
-                                                {type}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {isOtherType && (
-                                    <Input 
-                                        className="mt-2" 
-                                        placeholder="Specify other form" 
-                                        name="form_attribute" 
-                                        value={data.form_attribute} 
-                                        onChange={handleChange} 
-                                    />
-                                )}
-                                {errors.form_attribute && <p className="mt-1 text-xs text-red-500">{errors.form_attribute}</p>}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className={labelClass} htmlFor="edit_remarks">Remarks</label>
-                        <textarea id="edit_remarks" name="remarks" value={data.remarks} onChange={handleChange} rows={3} className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-                        {errors.remarks && <p className="mt-1 text-xs text-red-500">{errors.remarks}</p>}
-                    </div>
-
-
-                    {/* Attachments Section */}
-                    <div className="mt-8">
-                        <h3 className={sectionTitleClass}>Attachments</h3>
-                        <div className="md:col-span-3">
-
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40 mt-2"
-                        >
-                            <Paperclip className="size-4" />
-                            Click to select files (PDF, JPG, PNG)
-                        </button>
-
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            multiple
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            className="hidden"
-                            onChange={handleFileSelect}
-                        />
-
-                        {/* Existing Attachments */}
-                        {existingAttachments.length > 0 && (
-                            <div className="mt-3">
-                                <p className="text-xs font-medium text-muted-foreground mb-2">Existing Files</p>
-                                <ScrollArea className="max-h-[180px]">
-                                    <div className="space-y-1.5">
-                                        {existingAttachments.map((att) => {
-                                            const type = getFileType(att.original_name);
-                                            return (
-                                                <div
-                                                    key={att.id}
-                                                    role="button"
-                                                    tabIndex={0}
-                                                    onClick={() => openExistingAttachmentPreview(att)}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter' || e.key === ' ') {
-                                                            openExistingAttachmentPreview(att);
-                                                        }
-                                                    }}
-                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer"
-                                                >
-                                                    <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
-                                                        {type === 'image' ? (
-                                                            <img
-                                                                src={att.url}
-                                                                alt={att.original_name}
-                                                                className="h-full w-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <FileIcon type={type} />
-                                                        )}
-                                                    </div>
-                                                    <div className="min-w-0 flex-1">
-                                                        <p className="truncate text-sm">{att.original_name}</p>
-                                                        <p className="text-[11px] text-muted-foreground">{formatBytes(att.file_size)}</p>
-                                                    </div>
-                                                    <Badge variant="outline" className="text-[10px] h-5">
-                                                        {getExtension(att.original_name).toUpperCase()}
-                                                    </Badge>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-7 w-7 text-red-500 hover:text-red-600"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            removeExistingAttachment(att.id);
-                                                        }}
-                                                        title="Remove/Archive"
-                                                    >
-                                                        <Archive className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </div>
-                                            );
-                                        })}
+                                        <OfficeMultiSelect
+                                            value={officeIds}
+                                            onChange={setOfficeIds}
+                                            options={officeOptions}
+                                            error={errors.offices}
+                                            required
+                                            onAddNew={(query) => {
+                                                setOfficeQuickAddQuery(query);
+                                                setOfficeQuickAddOpen(true);
+                                            }}
+                                        />
                                     </div>
-                                </ScrollArea>
-                            </div>
-                        )}
+                                </div>
 
-                        {/* New Files */}
-                        {newFiles.length > 0 && (
-                            <div className="mt-3">
-                                <p className="text-xs font-medium text-muted-foreground mb-2">New Files</p>
-                                <ul className="divide-y divide-border rounded-md border border-border">
-                                    {newFiles.map((staged) => {
-                                        const { id, file } = staged;
-                                        const type = getFileType(file.name);
-                                        return (
-                                            <li key={id}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openNewFilePreview(staged)}
-                                                    className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/50 transition-colors cursor-pointer"
-                                                >
-                                                    <div className="h-9 w-9 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
-                                                        {staged.previewUrl ? (
-                                                            <img
-                                                                src={staged.previewUrl}
-                                                                alt={file.name}
-                                                                className="h-full w-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <FileIcon type={type} />
-                                                        )}
+                                {/* Section: Processing Details */}
+                                <div>
+                                    <h3 className={sectionTitleClass}>Processing Details</h3>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div>
+                                            <label className={labelClass} htmlFor="edit_received_by">Received By <span className="text-red-500">*</span></label>
+                                            <Input id="edit_received_by" name="received_by" value={data.received_by} onChange={handleChange} />
+                                            {errors.received_by && <p className="mt-1 text-xs text-red-500">{errors.received_by}</p>}
+                                        </div>
+
+                                        {record?.checker && (
+                                            <div>
+                                                <label className={labelClass}>Released By</label>
+                                                <Input value={record.checker.name} readOnly className="bg-muted" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 className={sectionTitleClass}>Clearance Details</h3>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div>
+                                            <label className={labelClass}>Form</label>
+                                            <Select
+                                                value={isOtherType ? 'others' : (clearanceTypes.includes(data.form_attribute) ? data.form_attribute : (data.form_attribute ? 'others' : ''))}
+                                                onValueChange={handleTypeSelect}
+                                            >
+                                                <SelectTrigger className={errors.form_attribute ? 'border-red-500' : ''}>
+                                                    <SelectValue placeholder="Select form" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {clearanceTypes.map((type) => (
+                                                        <SelectItem key={type} value={type} className="capitalize">
+                                                            {type}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {isOtherType && (
+                                                <Input
+                                                    className="mt-2"
+                                                    placeholder="Specify other form"
+                                                    name="form_attribute"
+                                                    value={data.form_attribute}
+                                                    onChange={handleChange}
+                                                />
+                                            )}
+                                            {errors.form_attribute && <p className="mt-1 text-xs text-red-500">{errors.form_attribute}</p>}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className={labelClass} htmlFor="edit_remarks">Remarks</label>
+                                    <textarea
+                                        id="edit_remarks"
+                                        name="remarks"
+                                        value={data.remarks}
+                                        onChange={handleChange}
+                                        rows={3}
+                                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    />
+                                    {errors.remarks && <p className="mt-1 text-xs text-red-500">{errors.remarks}</p>}
+                                </div>
+
+                                {/* Attachments Section */}
+                                <div className="mt-8">
+                                    <h3 className={sectionTitleClass}>Attachments</h3>
+                                    <div className="md:col-span-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40 mt-2"
+                                        >
+                                            <Paperclip className="size-4" />
+                                            Click to select files (PDF, JPG, PNG)
+                                        </button>
+
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            multiple
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            className="hidden"
+                                            onChange={handleFileSelect}
+                                        />
+
+                                        {/* Existing Attachments */}
+                                        {existingAttachments.length > 0 && (
+                                            <div className="mt-3">
+                                                <p className="text-xs font-medium text-muted-foreground mb-2">Existing Files</p>
+                                                <ScrollArea className="max-h-[180px]">
+                                                    <div className="space-y-1.5">
+                                                        {existingAttachments.map((att) => {
+                                                            const type = getFileType(att.original_name);
+                                                            return (
+                                                                <div
+                                                                    key={att.id}
+                                                                    role="button"
+                                                                    tabIndex={0}
+                                                                    onClick={() => openExistingAttachmentPreview(att)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                                            openExistingAttachmentPreview(att);
+                                                                        }
+                                                                    }}
+                                                                    className="flex items-center gap-2.5 rounded-md border px-2.5 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer"
+                                                                >
+                                                                    <div className="h-8 w-8 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                                        {type === 'image' ? (
+                                                                            <img
+                                                                                src={att.url}
+                                                                                alt={att.original_name}
+                                                                                className="h-full w-full object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <FileIcon type={type} />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <p className="truncate text-sm">{att.original_name}</p>
+                                                                        <p className="text-[11px] text-muted-foreground">{formatBytes(att.file_size)}</p>
+                                                                    </div>
+                                                                    <Badge variant="outline" className="text-[10px] h-5">
+                                                                        {getExtension(att.original_name).toUpperCase()}
+                                                                    </Badge>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-7 w-7 text-red-500 hover:text-red-600"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            removeExistingAttachment(att.id);
+                                                                        }}
+                                                                        title="Remove/Archive"
+                                                                    >
+                                                                        <Archive className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
-                                                    <span className="min-w-0 flex-1 truncate text-sm">
-                                                        {file.name}
-                                                    </span>
-                                                    <span className="shrink-0 text-xs text-muted-foreground">
-                                                        {formatBytes(file.size)}
-                                                    </span>
-                                                    <span
-                                                        role="button"
-                                                        tabIndex={0}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            removeNewFile(id);
-                                                        }}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                                e.stopPropagation();
-                                                                removeNewFile(id);
-                                                            }
-                                                        }}
-                                                        className="shrink-0 text-red-600 hover:text-red-800"
-                                                        title="Remove/Archive"
-                                                    >
-                                                        <X className="size-4" />
-                                                    </span>
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        )}
+                                                </ScrollArea>
+                                            </div>
+                                        )}
+
+                                        {/* New Files */}
+                                        {newFiles.length > 0 && (
+                                            <div className="mt-3">
+                                                <p className="text-xs font-medium text-muted-foreground mb-2">New Files</p>
+                                                <ul className="divide-y divide-border rounded-md border border-border">
+                                                    {newFiles.map((staged) => {
+                                                        const { id, file } = staged;
+                                                        const type = getFileType(file.name);
+                                                        return (
+                                                            <li key={id}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openNewFilePreview(staged)}
+                                                                    className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/50 transition-colors cursor-pointer"
+                                                                >
+                                                                    <div className="h-9 w-9 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden">
+                                                                        {staged.previewUrl ? (
+                                                                            <img
+                                                                                src={staged.previewUrl}
+                                                                                alt={file.name}
+                                                                                className="h-full w-full object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <FileIcon type={type} />
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="min-w-0 flex-1 truncate text-sm">
+                                                                        {file.name}
+                                                                    </span>
+                                                                    <span className="shrink-0 text-xs text-muted-foreground">
+                                                                        {formatBytes(file.size)}
+                                                                    </span>
+                                                                    <span
+                                                                        role="button"
+                                                                        tabIndex={0}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            removeNewFile(id);
+                                                                        }}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                                                e.stopPropagation();
+                                                                                removeNewFile(id);
+                                                                            }
+                                                                        }}
+                                                                        className="shrink-0 text-red-600 hover:text-red-800"
+                                                                        title="Remove"
+                                                                    >
+                                                                        <X className="size-4" />
+                                                                    </span>
+                                                                </button>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3 mt-6">
+                                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                                    <Button type="submit" disabled={processing} style={{ backgroundColor: '#612A35' }}>
+                                        {processing ? 'Saving...' : 'Save Changes'}
+                                    </Button>
+                                </div>
+                            </form>
                         </div>
-                    </div>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
 
-
-                    <div className="flex justify-end gap-3 mt-6">
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit" disabled={processing} style={{ backgroundColor: '#612A35' }}>
-                            {processing ? 'Saving...' : 'Save Changes'}
+            {/* Image Lightbox */}
+            <Dialog open={!!previewTarget} onOpenChange={(o) => !o && setPreviewTarget(null)}>
+                <DialogContent className="w-[95vw] p-0 overflow-hidden" style={{ maxWidth: '900px' }}>
+                    <div className="flex items-center justify-between px-4 py-3 border-b">
+                        <p className="text-sm font-medium truncate pr-4">
+                            {previewTarget?.name}
+                        </p>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 mr-6" asChild>
+                            <a
+                                href={previewTarget?.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Open in new tab"
+                            >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
                         </Button>
                     </div>
-                </form>
-            </div>
-                </ScrollArea>
-            </DialogContent>
-        </Dialog>
+                    <div className="flex items-center justify-center bg-muted/30 p-4 max-h-[80vh] overflow-auto">
+                        {previewTarget && (
+                            <img
+                                src={previewTarget.url}
+                                alt={previewTarget.name}
+                                className="max-w-full max-h-[75vh] object-contain rounded"
+                            />
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
-        {/* Image Lightbox */}
-        <Dialog open={!!previewTarget} onOpenChange={(o) => !o && setPreviewTarget(null)}>
-            <DialogContent className="w-[95vw] p-0 overflow-hidden" style={{ maxWidth: '900px' }}>
-                <div className="flex items-center justify-between px-4 py-3 border-b">
-                    <p className="text-sm font-medium truncate pr-4">
-                        {previewTarget?.name}
-                    </p>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 mr-6" asChild>
-                        <a
-                            href={previewTarget?.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Open in new tab"
-                        >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                    </Button>
-                </div>
-                <div className="flex items-center justify-center bg-muted/30 p-4 max-h-[80vh] overflow-auto">
-                    {previewTarget && (
-                        <img
-                            src={previewTarget.url}
-                            alt={previewTarget.name}
-                            className="max-w-full max-h-[75vh] object-contain rounded"
-                        />
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
+            {/* Office Quick-Add — sibling dialog, not nested inside the form dialog */}
+            <OfficeQuickAddModal
+                open={officeQuickAddOpen}
+                onOpenChange={setOfficeQuickAddOpen}
+                initialName={officeQuickAddQuery}
+                onCreated={(created) => {
+                    setOfficeOptions((prev) => [...prev, created]);
+                    setOfficeIds((prev) => [...prev, created.id]);
+                }}
+            />
         </>
     );
 }
