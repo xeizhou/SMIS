@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SupplierController extends Controller
 {
@@ -169,6 +170,34 @@ public function index(Request $request)
         }
 
         return back()->with('success', $message);
+    }
+
+    public function importTemplate(): StreamedResponse
+    {
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'wb');
+
+            fputcsv($handle, [
+                'SUPPLIER NAME',
+                'ADDRESS',
+                'EMAIL',
+                'CONTACT NO.',
+                'CONTACT PERSON',
+                'POSITION',
+            ]);
+            fputcsv($handle, [
+                'Sample Supplier Inc.',
+                '123 Sample Street',
+                'contact@example.com',
+                '09171234567',
+                'Juan Dela Cruz',
+                'Sales Representative',
+            ]);
+
+            fclose($handle);
+        }, 'supplier_import_template.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function store(Request $request)

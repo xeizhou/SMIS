@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Archive, Eye, Pencil, Search, Upload } from 'lucide-react';
+import { Archive, Eye, Pencil, Search } from 'lucide-react';
 import { useState } from 'react';
 import Pagination from '@/components/Pagination';
 import SortableTable from '@/components/table/SortableTable';
@@ -17,7 +17,6 @@ import WmrAddForm from '@/components/wmr-monitoring/wmraddform';
 import WmrDeleteModal from '@/components/wmr-monitoring/wmrdeletemodal';
 import WmrEditForm from '@/components/wmr-monitoring/wmreditform';
 import WmrViewForm from '@/components/wmr-monitoring/wmrviewform';
-import WmrImportDialog from '@/components/wmr-monitoring/wmrimportdialog';
 import { buildFilterUrl } from '@/lib/filterUrl';
 
 interface Supplier {
@@ -129,7 +128,6 @@ export default function Index({
 }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [supplierId, setSupplierId] = useState(filters.supplier_id ?? 'all');
-    const [isImportOpen, setIsImportOpen] = useState(false);
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isViewOpen, setIsViewOpen] = useState(false);
@@ -340,15 +338,6 @@ export default function Index({
 
                         <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row">
 
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsImportOpen(true)}
-                                className="w-full lg:w-auto"
-                            >
-                                <Upload className="mr-2 size-4" />
-                                Import CSV
-                            </Button>
 
                             <Button
                                 type="button"
@@ -414,10 +403,6 @@ export default function Index({
                 record={selectedRecord}
             />
 
-            <WmrImportDialog
-                open={isImportOpen}
-                onOpenChange={setIsImportOpen}
-            />
         </>
     );
 }

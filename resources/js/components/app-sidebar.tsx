@@ -9,6 +9,7 @@ import {
     ClipboardCheck,
     UsersRound,
     Search as SearchIcon,
+    FileUp,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -207,6 +208,17 @@ export function AppSidebar() {
                         searchQuery={searchQuery}
                         sections={sections}
                     />
+
+                    <SidebarMenu className="px-2">
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={url.startsWith('/imports')}>
+                                <Link href="/imports" prefetch>
+                                    <FileUp className="size-4" />
+                                    <span>Data Imports</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
 
                     <SidebarMenu className="px-2">
                         <SidebarMenuItem>
