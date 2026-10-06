@@ -731,15 +731,35 @@ class ImportController extends Controller
 
     /**
      * GET /import/template/{type}
-     * Unchanged.
+     * Downloads or previews a CSV, Excel, or JSON template.
      */
-    public function template(string $type, Request $request): StreamedResponse
+    public function template(string $type, Request $request)
     {
         abort_unless(isset(self::SCHEMAS[$type]), 404);
 
         $headers = array_keys(self::SCHEMAS[$type]);
+        $format = $request->query(
+            'format',
+            $request->boolean('preview') ? 'csv' : 'xlsx'
+        );
 
-        if ($type === 'regspi' || $request->boolean('preview')) {
+        abort_unless(in_array($format, ['csv', 'xlsx', 'json'], true), 404);
+
+        if ($type === 'regspi' || $format === 'csv') {
+            if ($request->boolean('preview')) {
+                $exampleRow = $this->exampleRow($type);
+                $jsonRow = array_combine($headers, $exampleRow);
+
+                return response()->json([
+                    'headers' => $headers,
+                    'rows' => [$exampleRow],
+                    'json' => json_encode(
+                        ['data' => [$jsonRow]],
+                        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+                    ),
+                ]);
+            }
+
             return response()->streamDownload(function () use ($headers, $type) {
                 $handle = fopen('php://output', 'wb');
                 fputcsv($handle, $headers);
@@ -747,6 +767,37 @@ class ImportController extends Controller
                 fclose($handle);
             }, "{$type}_import_template.csv", [
                 'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
+        }
+
+        if ($format === 'json') {
+            $jsonRow = array_combine($headers, $this->exampleRow($type));
+
+            if ($request->boolean('preview')) {
+                return response()->json([
+                    'headers' => $headers,
+                    'rows' => [$this->exampleRow($type)],
+                    'json' => json_encode(
+                        ['data' => [$jsonRow]],
+                        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+                    ),
+                ]);
+            }
+
+            return response()->streamDownload(function () use ($jsonRow) {
+                echo json_encode(
+                    ['data' => [$jsonRow]],
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+                );
+            }, "{$type}_import_template.json", [
+                'Content-Type' => 'application/json; charset=UTF-8',
+            ]);
+        }
+
+        if ($request->boolean('preview')) {
+            return response()->json([
+                'headers' => $headers,
+                'rows' => [$this->exampleRow($type)],
             ]);
         }
 
