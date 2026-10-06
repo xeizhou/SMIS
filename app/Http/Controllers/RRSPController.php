@@ -83,6 +83,10 @@ class RRSPController extends Controller
 
         $areas = \App\Models\Area::orderBy('name')->pluck('name');
 
+        $stockItems = \App\Models\StockItem::select('stock_no', 'item_name', 'description')
+            ->orderBy('item_name')
+            ->get();
+
         return Inertia::render('rrsp-monitoring/index', [
             'rrspMonitorings' => $rrspMonitorings,
             'filters' => [
@@ -93,6 +97,7 @@ class RRSPController extends Controller
             ],
             'statuses' => $statuses,
             'areas' => $areas,
+            'stockItems' => $stockItems,
         ]);
     }
 

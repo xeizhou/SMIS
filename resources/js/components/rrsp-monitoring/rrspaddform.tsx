@@ -175,16 +175,23 @@ interface StagedFile {
     previewUrl: string | null;
 }
 
+interface StockItem {
+    stock_no: string;
+    item_name: string;
+    description: string | null;
+}
+
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     areas: string[];
+    stockItems: StockItem[];
 }
 
 const ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-export default function RrspAddForm({ open, onOpenChange, areas }: Props) {
+export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: Props) {
     const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
     const [pos, setPos] = useState<any[]>([]);
@@ -228,6 +235,7 @@ export default function RrspAddForm({ open, onOpenChange, areas }: Props) {
         returnBy: '',
         items: [
             {
+                stockNo: '',
                 itemName: '',
                 itemDescription: '',
                 quantity: '',
@@ -241,10 +249,16 @@ export default function RrspAddForm({ open, onOpenChange, areas }: Props) {
         ]
     });
 
+    const stockOptions = stockItems.map((s) => ({
+        value: s.stock_no,
+        label: s.description ? `${s.item_name} — ${s.description}` : s.item_name,
+    }));
+
     const addItem = () => {
         setData('items', [
             ...data.items,
             {
+                stockNo: '',
                 itemName: '',
                 itemDescription: '',
                 quantity: '',
@@ -267,6 +281,18 @@ export default function RrspAddForm({ open, onOpenChange, areas }: Props) {
     const updateItem = (index: number, field: string, value: any) => {
         const newItems = [...data.items];
         newItems[index] = { ...newItems[index], [field]: value };
+        setData('items', newItems);
+    };
+
+    const selectStockItem = (index: number, stockNo: string) => {
+        const match = stockItems.find((s) => s.stock_no === stockNo);
+        const newItems = [...data.items];
+        newItems[index] = {
+            ...newItems[index],
+            stockNo,
+            itemName: match?.item_name ?? '',
+            itemDescription: match?.description ?? '',
+        };
         setData('items', newItems);
     };
 
@@ -401,6 +427,7 @@ export default function RrspAddForm({ open, onOpenChange, areas }: Props) {
                                                 const newItems = availableItems.map((ai: any) => {
                                                     const desc = ai.description ? `${ai.item_name} - ${ai.description}` : ai.item_name;
                                                     return {
+                                                        stockNo: ai.stock_no ?? '',
                                                         itemName: ai.item_name,
                                                         itemDescription: desc,
                                                         quantity: '',
@@ -416,6 +443,7 @@ export default function RrspAddForm({ open, onOpenChange, areas }: Props) {
                                             } else {
                                                 setData('items', [
                                                     {
+                                                        stockNo: '',
                                                         itemName: '',
                                                         itemDescription: '',
                                                         quantity: '',
@@ -492,32 +520,28 @@ export default function RrspAddForm({ open, onOpenChange, areas }: Props) {
                                         )}
                                         <h4 className="mb-3 text-sm font-medium">Item #{index + 1}</h4>
                                         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                                            <div className="space-y-1.5 md:col-span-2">
-                                                <Label htmlFor={`item-${index}-name`}>Item Name <span className="text-destructive">*</span></Label>
-                                                <Input
-                                                    id={`item-${index}-name`}
-                                                    required
-                                                    placeholder="Enter Item Name"
-                                                    value={item.itemName}
-                                                    onChange={(e) => updateItem(index, 'itemName', e.target.value)}
-                                                />
-                                                {(errors as any)[`items.${index}.itemName`] && (
-                                                    <p className="text-sm text-destructive">{(errors as any)[`items.${index}.itemName`]}</p>
-                                                )}
-                                            </div>
-                                            <div className="space-y-1.5 md:col-span-2">
-                                                <Label htmlFor={`item-${index}-desc`}>Item Description (from P.O.) <span className="text-destructive">*</span></Label>
-                                                <Input
-                                                    id={`item-${index}-desc`}
-                                                    required
-                                                    readOnly
-                                                    className="bg-muted text-muted-foreground"
-                                                    placeholder="Auto-filled from P.O."
-                                                    value={item.itemDescription}
-                                                />
-                                                {(errors as any)[`items.${index}.itemDescription`] && (
-                                                    <p className="text-sm text-destructive">{(errors as any)[`items.${index}.itemDescription`]}</p>
-                                                )}
+                                            <div className="md:col-span-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                                                <div className="space-y-1.5">
+                                                    <SearchableSelect
+                                                        label="Stock Item"
+                                                        required={true}
+                                                        value={item.stockNo}
+                                                        onChange={(val) => selectStockItem(index, val)}
+                                                        placeholder="Search item name or description..."
+                                                        options={stockOptions}
+                                                        error={(errors as any)[`items.${index}.stockNo`]}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <Label>Item Name</Label>
+                                                    <Input value={item.itemName} disabled readOnly
+                                                    placeholder="Auto fill from selected stock item"/>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <Label>Item Description</Label>
+                                                    <Input value={item.itemDescription} disabled readOnly 
+                                                    placeholder="Auto fill from selected stock item"/>
+                                                </div>
                                             </div>
                                             <div className="space-y-1.5">
                                                 <Label htmlFor={`item-${index}-qty`}>Quantity <span className="text-destructive">*</span></Label>

@@ -380,23 +380,27 @@ export default function RrppeAddForm({ open, onOpenChange, areas, stockItems }: 
                                                 )}
                                                 <h4 className="mb-3 text-sm font-medium">Item #{index + 1}</h4>
                                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                                                    <div className="space-y-1.5 md:col-span-2">
-                                                        <Label>Stock Item <span className="text-destructive">*</span></Label>
-                                                        <SearchableSelect
-                                                            value={item.stockNo}
-                                                            onChange={(val) => selectStockItem(index, val)}
-                                                            placeholder="Search item name or description..."
-                                                            options={stockOptions}
-                                                            error={(errors as any)[`items.${index}.stockNo`]}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <Label>Item Name</Label>
-                                                        <Input value={item.itemName} disabled readOnly />
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <Label>Item Description</Label>
-                                                        <Input value={item.itemDescription} disabled readOnly />
+                                                    <div className="md:col-span-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                                                        <div className="space-y-1.5">
+                                                            <Label>Stock Item <span className="text-destructive">*</span></Label>
+                                                            <SearchableSelect
+                                                                value={item.stockNo}
+                                                                onChange={(val) => selectStockItem(index, val)}
+                                                                placeholder="Search item name or description..."
+                                                                options={stockOptions}
+                                                                error={(errors as any)[`items.${index}.stockNo`]}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <Label>Item Name</Label>
+                                                            <Input value={item.itemName} disabled readOnly 
+                                                            placeholder="Auto fill from selected stock item"/>
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <Label>Item Description</Label>
+                                                            <Input value={item.itemDescription} disabled readOnly 
+                                                            placeholder="Auto fill from selected stock item"/>
+                                                        </div>
                                                     </div>
                                                     <div className="space-y-1.5">
                                                         <Label htmlFor={`item-${index}-qty`}>Quantity <span className="text-destructive">*</span></Label>

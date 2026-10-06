@@ -75,10 +75,17 @@ interface Filters {
     sort_direction?: 'asc' | 'desc';
 }
 
+interface StockItem {
+    stock_no: string;
+    item_name: string;
+    description: string | null;
+}
+
 interface Props {
     rrspMonitorings: PaginatedRrspMonitoring;
     filters: Filters;
     areas: string[];
+    stockItems: StockItem[];
 }
 
 const STATUS_OPTIONS = ['SERVICEABLE', 'UNSERVICEABLE'];
@@ -110,7 +117,7 @@ return '—';
     });
 }
 
-export default function Index({ rrspMonitorings, filters, areas }: Props) {
+export default function Index({ rrspMonitorings, filters, areas, stockItems }: Props) {
         const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -421,6 +428,7 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                 open={addDialogOpen}
                 onOpenChange={setAddDialogOpen}
                 areas={areas}
+                stockItems={stockItems}
             />
 
             <RrspEditForm
@@ -428,6 +436,7 @@ export default function Index({ rrspMonitorings, filters, areas }: Props) {
                 onOpenChange={setEditDialogOpen}
                 rrsp={selectedRrsp}
                 areas={areas}
+                stockItems={stockItems}
             />
 
             <RrspViewForm
