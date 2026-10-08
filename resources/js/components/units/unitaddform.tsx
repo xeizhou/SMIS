@@ -50,7 +50,7 @@ function Field({
                 placeholder={placeholder}
             />
             {error && (
-                <p className="mt-1 text-xs text-red-500">
+                <p className="mt-1 text-[11px] text-red-500 font-medium">
                     {error}
                 </p>
             )}
@@ -119,6 +119,7 @@ export default function UnitAddForm({
                                 required
                                 placeholder="e.g. Piece"
                             />
+                                            {errors.unit_name && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.unit_name}</p>}
                             <Field
                                 label="Short Name"
                                 name="unit_short_name"

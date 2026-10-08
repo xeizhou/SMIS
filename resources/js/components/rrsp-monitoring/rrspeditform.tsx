@@ -1,6 +1,8 @@
 import { useForm, router } from '@inertiajs/react';
+import { PATTERNS, MESSAGES } from '@/lib/validation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect, useRef } from 'react';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
 import { Button } from '@/components/ui/button';
 import {
     Plus,
@@ -257,7 +259,7 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
         }
     }, [open]);
 
-    const { data, setData, put, processing, errors, reset } = useForm({
+    const { data, setData, put, processing, errors, reset, setError, clearErrors } = useForm({
         rrspNo: '',
         poNumber: '',
         dateReceived: '',
@@ -334,6 +336,8 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors as any);
 
     const stockOptions = stockItems.map((s) => ({
         value: s.stock_no,
@@ -498,21 +502,22 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
                         <DialogTitle>Edit RRSP Record — {rrsp?.id}, {rrsp?.rrspNo}</DialogTitle>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                    <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} className="mt-6 space-y-8">
                         {/* Section: General Information */}
                         <div>
                             <h3 className={sectionTitleClass}>General Information</h3>
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                                 <div className="space-y-1.5">
                                     <Label htmlFor="edit-rrspNo">RRSP No <span className="text-destructive">*</span></Label>
-                                    <Input
-                                        id="edit-rrspNo"
+                                    <Input name="rrspNo" id="edit-rrspNo"
                                         required
+                                        pattern={PATTERNS.rrspNo.source}
+                                        title={MESSAGES.numbersAndHyphens}
                                         value={data.rrspNo}
                                         onChange={(e) => setData('rrspNo', e.target.value)}
                                     />
                                     {errors.rrspNo && (
-                                        <p className="text-sm text-destructive">{errors.rrspNo}</p>
+                                        <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.rrspNo}</p>
                                     )}
                                 </div>
                                 <div className="space-y-1.5">
@@ -566,33 +571,35 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="edit-dateReceived">Date Received <span className="text-destructive">*</span></Label>
-                                    <Input
-                                        required
-                                        id="edit-dateReceived"
+                                    <Input name="dateReceived" required id="edit-dateReceived"
                                         type="date"
                                         value={data.dateReceived}
                                         onChange={(e) => setData('dateReceived', e.target.value)}
                                     />
                                     {errors.dateReceived && (
-                                        <p className="text-sm text-destructive">{errors.dateReceived}</p>
+                                        <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.dateReceived}</p>
                                     )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="edit-endUserName">End User</Label>
-                                    <Input
-                                        id="edit-endUserName"
+                                    <Input name="endUserName" id="edit-endUserName"
+                                        pattern={PATTERNS.nameOrOffice.source}
+                                        title={MESSAGES.names}
                                         value={data.endUserName}
                                         onChange={(e) => setData('endUserName', e.target.value)}
                                     />
+                                            {errors.endUserName && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.endUserName}</p>}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="edit-returnBy">Return by</Label>
-                                    <Input
-                                        id="edit-returnBy"
+                                    <Input name="returnBy" id="edit-returnBy"
+                                        pattern={PATTERNS.nameOrOffice.source}
+                                        title={MESSAGES.names}
                                         placeholder="Name/Person"
                                         value={data.returnBy}
                                         onChange={(e) => setData('returnBy', e.target.value)}
                                     />
+                                            {errors.returnBy && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.returnBy}</p>}
                                 </div>
                             </div>
                         </div>
@@ -649,24 +656,28 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
                                             <div className="space-y-1.5">
                                                 <Label htmlFor={`edit-item-${index}-qty`}>Quantity <span className="text-destructive">*</span></Label>
                                                 <Input
-                                                    id={`edit-item-${index}-qty`}
+                                                    name={`items.${index}.quantity`} id={`edit-item-${index}-qty`}
                                                     required
                                                     type="number"
                                                     min="1"
                                                     value={item.quantity}
                                                     onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                                                 />
+                                            {errors[`items.${index}.quantity`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.quantity`]}</p>}
                                                 {(errors as any)[`items.${index}.quantity`] && (
-                                                    <p className="text-sm text-destructive">{(errors as any)[`items.${index}.quantity`]}</p>
+                                                    <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.quantity`]}</p>
                                                 )}
                                             </div>
                                             <div className="space-y-1.5">
                                                 <Label htmlFor={`edit-item-${index}-prop`}>Property No</Label>
                                                 <Input
-                                                    id={`edit-item-${index}-prop`}
+                                                    name={`items.${index}.propertyNo`} id={`edit-item-${index}-prop`}
+                                                    pattern={PATTERNS.propertyNo.source}
+                                                    title={MESSAGES.numbersAndHyphens}
                                                     value={item.propertyNo}
                                                     onChange={(e) => updateItem(index, 'propertyNo', e.target.value)}
                                                 />
+                                            {errors[`items.${index}.propertyNo`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.propertyNo`]}</p>}
                                             </div>
                                             <div className="space-y-1.5">
                                                 <Label htmlFor={`edit-item-${index}-kind`}>Kind of Semi-Expendable</Label>
@@ -686,7 +697,7 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
                                             <div className="space-y-1.5">
                                                 <Label htmlFor={`edit-item-${index}-cost`}>Cost</Label>
                                                 <Input
-                                                    id={`edit-item-${index}-cost`}
+                                                    name={`items.${index}.cost`} id={`edit-item-${index}-cost`}
                                                     type="number"
                                                     min="0"
                                                     step="0.01"
@@ -694,8 +705,9 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
                                                     value={item.cost}
                                                     onChange={(e) => updateItem(index, 'cost', e.target.value)}
                                                 />
+                                            {errors[`items.${index}.cost`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.cost`]}</p>}
                                                 {(errors as any)[`items.${index}.cost`] && (
-                                                    <p className="text-sm text-destructive">{(errors as any)[`items.${index}.cost`]}</p>
+                                                    <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.cost`]}</p>
                                                 )}
                                             </div>
                                             <div className="space-y-1.5">
@@ -743,11 +755,12 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
                                                 <div className="space-y-1.5 md:col-span-4">
                                                     <Label htmlFor={`edit-item-${index}-remarks`}>Remarks / Findings</Label>
                                                     <Textarea
-                                                        id={`edit-item-${index}-remarks`}
+                                                        name={`items.${index}.remarks`} id={`edit-item-${index}-remarks`}
                                                         placeholder="Remarks or Findings..."
                                                         value={item.remarks || ''}
                                                         onChange={(e) => updateItem(index, 'remarks', e.target.value)}
                                                     />
+                                            {errors[`items.${index}.remarks`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.remarks`]}</p>}
                                                 </div>
                                             )}
                                         </div>

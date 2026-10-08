@@ -55,7 +55,7 @@ function Field({
                 placeholder={placeholder}
             />
             {error && (
-                <p className="mt-1 text-xs text-red-500">
+                <p className="mt-1 text-[11px] text-red-500 font-medium">
                     {error}
                 </p>
             )}
@@ -135,6 +135,7 @@ return null;
                         required
                         placeholder="e.g. General Fund"
                     />
+                                            {errors.fund_description && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.fund_description}</p>}
 
                     <div className="flex justify-end gap-3 pt-2">
                         <Button

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Helpers\ValidationHelper;
 
 class WmrController extends Controller
 {
@@ -71,7 +72,7 @@ class WmrController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        WmrMonitoring::create($request->validate($this->rules()));
+        WmrMonitoring::create($request->validate($this->rules(), $this->messages()));
 
         return redirect()->back()->with('success', 'WMR record added successfully.');
     }
@@ -81,7 +82,7 @@ class WmrController extends Controller
      */
     public function update(Request $request, WmrMonitoring $wmr): RedirectResponse
     {
-        $wmr->update($request->validate($this->rules($wmr->id)));
+        $wmr->update($request->validate($this->rules($wmr->id), $this->messages()));
 
         return redirect()->back()->with('success', 'WMR record updated successfully.');
     }
@@ -111,7 +112,7 @@ class WmrController extends Controller
     {
         return [
             'wmr_no' => [
-                'required', 'string', 'max:50',
+                'required', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('wmrNo'),
                 Rule::unique('wmr_monitoring', 'wmr_no')->whereNull('deleted_at')->ignore($ignoreId),
             ],
             'wmr_date' => ['required', 'date'],
@@ -119,29 +120,29 @@ class WmrController extends Controller
                 'nullable', 'integer',
                 Rule::exists('supplier_list', 'supplier_id')->whereNull('deleted_at'),
             ],
-            'iar_no' => ['nullable', 'string', 'max:100'],
+            'iar_no' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('iarNo')],
             'iar_date' => ['nullable', 'date'],
-            'item_vehicle' => ['required', 'string', 'max:255'],
+            'item_vehicle' => ['required', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('vehicleType')],
 
-            'job_order_no' => ['nullable', 'string', 'max:100'],
+            'job_order_no' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('jobOrderNo')],
             'job_order_date' => ['nullable', 'date'],
             'fund_cluster_id' => [
                 'nullable', 'string', 'max:20',
                 Rule::exists('fund_clusters', 'fund_cluster_id')->whereNull('deleted_at'),
             ],
 
-            'vehicle_type' => ['nullable', 'string', 'max:50'],
-            'brand_name' => ['nullable', 'string', 'max:100'],
-            'model' => ['nullable', 'string', 'max:100'],
+            'vehicle_type' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('vehicleType')],
+            'brand_name' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('vehicleType')],
+            'model' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('vehicleType')],
             'plate_no' => ['nullable', 'string', 'max:50'],
             'serial_engine_no' => ['nullable', 'string', 'max:100'],
             'acquisition_date' => ['nullable', 'string', 'max:20'],
-            'property_no' => ['nullable', 'string', 'max:100'],
+            'property_no' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('propertyNo')],
 
-            'inspector_name' => ['nullable', 'string', 'max:150'],
+            'inspector_name' => ['nullable', 'string', 'max:150', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'inspection_date' => ['nullable', 'date'],
-            'invoice_no' => ['nullable', 'string', 'max:255'],
-            'invoice_date' => ['nullable', 'string', 'max:255'],
+            'invoice_no' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('invoiceNumberComma')],
+            'invoice_date' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('invoiceNumberComma')],
 
             'defects_complaints' => ['nullable', 'string'],
             'materials' => ['nullable', 'string'],
@@ -152,9 +153,27 @@ class WmrController extends Controller
                 Rule::exists('offices', 'office_code')->whereNull('deleted_at'),
             ],
             'requested_by' => ['nullable', 'string', 'max:150'],
-            'received_by' => ['nullable', 'string', 'max:150'],
+            'received_by' => ['nullable', 'string', 'max:150', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'received_date' => ['nullable', 'date'],
             'remarks' => ['nullable', 'string'],
+        ];
+    }
+
+    private function messages(): array
+    {
+        return [
+            'wmr_no.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'iar_no.regex' => ValidationHelper::message('iarNo'),
+            'item_vehicle.regex' => ValidationHelper::message('basicText'),
+            'job_order_no.regex' => ValidationHelper::message('jobOrderNo'),
+            'vehicle_type.regex' => ValidationHelper::message('basicText'),
+            'brand_name.regex' => ValidationHelper::message('basicText'),
+            'model.regex' => ValidationHelper::message('basicText'),
+            'property_no.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'inspector_name.regex' => ValidationHelper::message('names'),
+            'invoice_no.regex' => ValidationHelper::message('invoiceNumberComma'),
+            'invoice_date.regex' => ValidationHelper::message('invoiceNumberComma'),
+            'received_by.regex' => ValidationHelper::message('names'),
         ];
     }
 }

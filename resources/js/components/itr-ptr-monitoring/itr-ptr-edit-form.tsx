@@ -60,7 +60,7 @@ function Field({
                 placeholder={placeholder}
             />
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -88,7 +88,7 @@ function TextareaField({
                 placeholder={placeholder}
             />
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -182,6 +182,7 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                                 error={errors.transaction_no}
                                 required
                             />
+                                            {errors.transaction_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.transaction_no}</p>}
                             <Field
                                 label="Property No."
                                 name="property_no"
@@ -216,6 +217,7 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                                     error={errors.description}
                                     required
                                 />
+                                            {errors.description && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.description}</p>}
                             </div>
                         </div>
                     </div>
@@ -255,7 +257,7 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                                     <SelectItem value="UNSERVICEABLE">UNSERVICEABLE</SelectItem>
                                 </SelectContent>
                                 </Select>
-                                {errors.condition_of_ppe && <p className="mt-1 text-xs text-red-500">{errors.condition_of_ppe}</p>}
+                                {errors.condition_of_ppe && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.condition_of_ppe}</p>}
                             </div>
 
                             {data.condition_of_ppe === 'UNSERVICEABLE' && (
@@ -267,6 +269,7 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                                         onChange={handleChange}
                                         error={errors.remarks}
                                     />
+                                            {errors.remarks && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.remarks}</p>}
                                 </div>
                             )}
                         </div>

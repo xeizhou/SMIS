@@ -236,7 +236,7 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                                         <div>
                                             <label className={labelClass} htmlFor="name">Name <span className="text-red-500">*</span></label>
                                             <Input id="name" name="name" value={data.name} onChange={handleChange} placeholder="Enter full name" />
-                                            {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
+                                            {errors.name && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.name}</p>}
                                         </div>
 
                                         <OfficeMultiSelect
@@ -254,7 +254,7 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                                         <div>
                                             <label className={labelClass} htmlFor="received_by">Received By <span className="text-red-500">*</span></label>
                                             <Input id="received_by" name="received_by" value={data.received_by} onChange={handleChange} placeholder="Enter receiver name" />
-                                            {errors.received_by && <p className="mt-1 text-xs text-red-500">{errors.received_by}</p>}
+                                            {errors.received_by && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.received_by}</p>}
                                         </div>
 
                                         <div>
@@ -283,7 +283,7 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                                                     onChange={handleChange}
                                                 />
                                             )}
-                                            {errors.form_attribute && <p className="mt-1 text-xs text-red-500">{errors.form_attribute}</p>}
+                                            {errors.form_attribute && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.form_attribute}</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -299,7 +299,7 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                                         className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                         placeholder="Add any remarks or notes"
                                     />
-                                    {errors.remarks && <p className="mt-1 text-xs text-red-500">{errors.remarks}</p>}
+                                    {errors.remarks && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.remarks}</p>}
                                 </div>
 
                                 {/* Attachments Section */}

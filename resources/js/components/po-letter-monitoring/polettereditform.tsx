@@ -146,7 +146,7 @@ function Field({
                 onChange={onChange}
                 placeholder={placeholder}
             />
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -168,7 +168,7 @@ function LockedField({ label, value, error, placeholder }: LockedFieldProps) {
                 placeholder={placeholder}
                 className="bg-muted text-muted-foreground"
             />
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -227,7 +227,7 @@ function SelectField({
                     ))}
                 </SelectContent>
             </Select>
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -326,7 +326,7 @@ function SearchableSelect({
                 </PopoverContent>
             </Popover>
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -626,6 +626,7 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                                 onChange={handleChange}
                                 error={errors.reference_no}
                             />
+                                            {errors.reference_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.reference_no}</p>}
 
                             <LockedField
                                 label="Supplier"
