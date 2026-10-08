@@ -41,9 +41,11 @@ public function index(Request $request): Response
             })
             ->when($status, fn ($query, $status) => $query->where('status', $status));
 
-        // 3. Apply the dynamic sort
+        // 3. Apply the dynamic sort (case-insensitive)
         $records = (clone $query)
-            ->orderBy($sortField, $sortDirection)
+            ->orderByRaw("LOWER({$sortField}) {$sortDirection}")
+            ->orderByRaw('LOWER(last_name) asc')
+            ->orderByRaw('LOWER(first_name) asc')
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 
