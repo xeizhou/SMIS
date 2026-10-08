@@ -1,6 +1,8 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
+import { PATTERNS, MESSAGES } from '@/lib/validation';
 import { Check, ChevronsUpDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -57,6 +59,8 @@ interface FieldProps {
     readOnly?: boolean;
     disabled?: boolean;
     enforcePrefix?: string;
+    pattern?: string;
+    title?: string;
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
@@ -74,6 +78,8 @@ function Field({
     readOnly = false,
     disabled = false,
     enforcePrefix,
+    pattern,
+    title,
 }: FieldProps) {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (enforcePrefix && !e.target.value.startsWith(enforcePrefix)) {
@@ -101,9 +107,11 @@ function Field({
                 placeholder={placeholder}
                 readOnly={readOnly}
                 disabled={disabled}
+                pattern={pattern}
+                title={title}
                 className={readOnly ? "bg-muted text-muted-foreground cursor-not-allowed" : ""}
             />
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -204,7 +212,7 @@ function SearchableSelect({
                 </PopoverContent>
             </Popover>
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -263,7 +271,7 @@ function SelectField({
                     ))}
                 </SelectContent>
             </Select>
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -350,6 +358,10 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
 
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const setError = (field: string, message: string) => setErrors(prev => ({ ...prev, [field]: message }));
+    const clearErrors = (field: string) => setErrors(prev => { const newErrors = { ...prev }; delete newErrors[field]; return newErrors; });
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
+        
     const [processing, setProcessing] = useState(false);
 
     const [itemQuickAddOpen, setItemQuickAddOpen] = useState(false);
@@ -475,7 +487,7 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                 <DialogTitle>Edit RegSPI Record</DialogTitle>
                             </DialogHeader>
 
-                            <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                            <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} className="mt-6 space-y-8">
                                 {/* Section: General Information */}
                                 <div>
                                     <h3 className={sectionTitleClass}>General Information</h3>
@@ -487,8 +499,11 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                             onChange={handleChange}
                                             error={errors.month_year}
                                             required
+                                            pattern={PATTERNS.monthYear.source}
+                                            title={MESSAGES.monthYear}
                                             placeholder="e.g. 2025-01"
                                         />
+
 
                                         <SearchableSelect
                                             label="RRSP No."
@@ -555,6 +570,8 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                             onChange={handleChange}
                                             error={errors.ics_no}
                                             required
+                                            pattern={PATTERNS.icsNo.source}
+                                            title={MESSAGES.numbersAndHyphens}
                                             placeholder="e.g. 2008020005"
                                         />
                                         <Field
@@ -567,6 +584,8 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                             readOnly={!!data.rrsp_no}
                                             placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "e.g. ICS-05-IGF-2008020005"}
                                             enforcePrefix={data.fund_cluster_id ? `ICS-${data.fund_cluster_id}-` : undefined}
+                                            pattern={PATTERNS.semiExpendablePropertyNo.source}
+                                            title={MESSAGES.semiExpendablePropertyNo}
                                         />
                                         <ItemSingleSelect
                                             label="Item Description"
@@ -624,6 +643,8 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                                 onChange={handleChange}
                                                 error={errors.issued_office_officer}
                                                 readOnly={!!data.rrsp_no}
+                                                pattern={PATTERNS.nameOrOffice.source}
+                                                title={MESSAGES.names}
                                                 placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Issued Office/Officer"}
                                             />
                                             <Field
@@ -640,6 +661,8 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                                 value={data.returned_office_officer}
                                                 onChange={handleChange}
                                                 error={errors.returned_office_officer}
+                                                pattern={PATTERNS.nameOrOffice.source}
+                                                title={MESSAGES.names}
                                             />
                                             <Field
                                                 label="Reissued Qty"
@@ -655,6 +678,8 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                                 value={data.reissued_office_officer}
                                                 onChange={handleChange}
                                                 error={errors.reissued_office_officer}
+                                                pattern={PATTERNS.nameOrOffice.source}
+                                                title={MESSAGES.names}
                                             />
                                             <Field
                                                 label="Disposed Qty"
@@ -686,6 +711,7 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                                 onChange={handleChange}
                                                 error={errors.estimated_useful_life}
                                             />
+                                            {errors.estimated_useful_life && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.estimated_useful_life}</p>}
                                             <Field
                                                 label="Amount"
                                                 name="amount"

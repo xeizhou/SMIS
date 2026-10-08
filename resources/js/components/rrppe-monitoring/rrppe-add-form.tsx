@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
 import { useForm, router } from '@inertiajs/react';
+import { PATTERNS, MESSAGES } from '@/lib/validation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Archive, RefreshCw, Check, ChevronsUpDown, Paperclip, X } from 'lucide-react';
@@ -130,7 +132,7 @@ function SearchableSelect({
                     </Command>
                 </PopoverContent>
             </Popover>
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -165,13 +167,19 @@ export default function RrppeAddForm({ open, onOpenChange, areas, stockItems }: 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset, setError, clearErrors } = useForm({
         rrppeNo: '',
         dateReceived: '',
         endUserName: '',
         returnBy: '',
         items: [emptyItem()],
     });
+
+    
+    const setValidationErr = (field: string, message: string) => setError && setError(field as any, message);
+    const clearValidationErr = (field: string) => clearErrors && clearErrors(field as any);
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setValidationErr, clearValidationErr);
+        
 
     const stockOptions = stockItems.map((s) => ({
         value: s.stock_no,
@@ -306,54 +314,56 @@ export default function RrppeAddForm({ open, onOpenChange, areas, stockItems }: 
                                 <DialogTitle>Add RRPPE Record</DialogTitle>
                             </DialogHeader>
 
-                            <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                            <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} className="mt-6 space-y-8">
                                 {/* Section: General Information */}
                                 <div>
                                     <h3 className={sectionTitleClass}>General Information</h3>
                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                                         <div className="space-y-1.5">
                                             <Label htmlFor="rrppeNo">RRPPE No <span className="text-destructive">*</span></Label>
-                                            <Input
-                                                required
-                                                id="rrppeNo"
+                                            <Input name="rrppeNo" required id="rrppeNo"
+                                                pattern={PATTERNS.rrppeNo.source}
+                                                title={MESSAGES.numbersAndHyphens}
                                                 placeholder="e.g. 2025-03-0001"
                                                 value={data.rrppeNo}
                                                 onChange={(e) => setData('rrppeNo', e.target.value)}
                                             />
                                             {errors.rrppeNo && (
-                                                <p className="text-sm text-destructive">{errors.rrppeNo}</p>
+                                                <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.rrppeNo}</p>
                                             )}
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label htmlFor="dateReceived">Date Received <span className="text-destructive">*</span></Label>
-                                            <Input
-                                                required
-                                                id="dateReceived"
+                                            <Input name="dateReceived" required id="dateReceived"
                                                 type="date"
                                                 value={data.dateReceived}
                                                 onChange={(e) => setData('dateReceived', e.target.value)}
                                             />
                                             {errors.dateReceived && (
-                                                <p className="text-sm text-destructive">{errors.dateReceived}</p>
+                                                <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.dateReceived}</p>
                                             )}
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label htmlFor="endUserName">End User</Label>
-                                            <Input
-                                                id="endUserName"
+                                            <Input name="endUserName" id="endUserName"
+                                                pattern={PATTERNS.nameOrOffice.source}
+                                                title={MESSAGES.names}
                                                 placeholder="e.g. Pier Lolita D. Sy"
                                                 value={data.endUserName}
                                                 onChange={(e) => setData('endUserName', e.target.value)}
                                             />
+                                            {errors.endUserName && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.endUserName}</p>}
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label htmlFor="returnBy">Return by</Label>
-                                            <Input
-                                                id="returnBy"
+                                            <Input name="returnBy" id="returnBy"
+                                                pattern={PATTERNS.nameOrOffice.source}
+                                                title={MESSAGES.names}
                                                 placeholder="Name/Person"
                                                 value={data.returnBy}
                                                 onChange={(e) => setData('returnBy', e.target.value)}
                                             />
+                                            {errors.returnBy && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.returnBy}</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -404,8 +414,7 @@ export default function RrppeAddForm({ open, onOpenChange, areas, stockItems }: 
                                                     </div>
                                                     <div className="space-y-1.5">
                                                         <Label htmlFor={`item-${index}-qty`}>Quantity <span className="text-destructive">*</span></Label>
-                                                        <Input
-                                                            id={`item-${index}-qty`}
+                                                        <Input name={`items.${index}.quantity`} id={`item-${index}-qty`}
                                                             required
                                                             type="number"
                                                             min="1"
@@ -413,35 +422,38 @@ export default function RrppeAddForm({ open, onOpenChange, areas, stockItems }: 
                                                             value={item.quantity}
                                                             onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                                                         />
+                                            {errors[`items.${index}.quantity`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.quantity`]}</p>}
                                                         {(errors as any)[`items.${index}.quantity`] && (
-                                                            <p className="text-sm text-destructive">{(errors as any)[`items.${index}.quantity`]}</p>
+                                                            <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.quantity`]}</p>
                                                         )}
                                                     </div>
                                                     <div className="space-y-1.5">
                                                         <Label htmlFor={`item-${index}-prop`}>Property No <span className="text-destructive">*</span></Label>
-                                                        <Input
-                                                            id={`item-${index}-prop`}
+                                                        <Input name={`items.${index}.propertyNo`} id={`item-${index}-prop`}
                                                             required
+                                                            pattern={PATTERNS.propertyNo.source}
+                                                            title={MESSAGES.numbersAndHyphens}
                                                             placeholder="e.g. 223-01-08-00-0000"
                                                             value={item.propertyNo}
                                                             onChange={(e) => updateItem(index, 'propertyNo', e.target.value)}
                                                         />
+                                            {errors[`items.${index}.propertyNo`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.propertyNo`]}</p>}
                                                         {(errors as any)[`items.${index}.propertyNo`] && (
-                                                            <p className="text-sm text-destructive">{(errors as any)[`items.${index}.propertyNo`]}</p>
+                                                            <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.propertyNo`]}</p>
                                                         )}
                                                     </div>
                                                     <div className="space-y-1.5">
                                                         <Label htmlFor={`item-${index}-cost`}>Cost</Label>
-                                                        <Input
-                                                            id={`item-${index}-cost`}
+                                                        <Input name={`items.${index}.cost`} id={`item-${index}-cost`}
                                                             type="number"
                                                             step="0.01"
                                                             placeholder="0.00"
                                                             value={item.cost}
                                                             onChange={(e) => updateItem(index, 'cost', e.target.value)}
                                                         />
+                                            {errors[`items.${index}.cost`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.cost`]}</p>}
                                                         {(errors as any)[`items.${index}.cost`] && (
-                                                            <p className="text-sm text-destructive">{(errors as any)[`items.${index}.cost`]}</p>
+                                                            <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.cost`]}</p>
                                                         )}
                                                     </div>
                                                     <div className="space-y-1.5">
@@ -488,12 +500,12 @@ export default function RrppeAddForm({ open, onOpenChange, areas, stockItems }: 
                                                     {item.status === 'UNSERVICEABLE' && (
                                                         <div className="space-y-1.5 md:col-span-4">
                                                             <Label htmlFor={`item-${index}-remarks`}>Remarks / Findings</Label>
-                                                            <Textarea
-                                                                id={`item-${index}-remarks`}
+                                                            <Textarea name={`items.${index}.remarks`} id={`item-${index}-remarks`}
                                                                 placeholder="Remarks or Findings..."
                                                                 value={item.remarks || ''}
                                                                 onChange={(e) => updateItem(index, 'remarks', e.target.value)}
                                                             />
+                                            {errors[`items.${index}.remarks`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.remarks`]}</p>}
                                                         </div>
                                                     )}
                                                 </div>

@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Helpers\ValidationHelper;
 
 class RegSPIController extends Controller
 {
@@ -70,26 +71,32 @@ class RegSPIController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'month_year' => ['required', 'string', 'max:20'],
+            'month_year' => ['required', 'string', 'max:20', 'regex:' . ValidationHelper::pattern('monthYear')],
             'rrsp_no' => ['nullable', 'string', 'max:50', 'exists:rrsp_monitoring,rrsp_no'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.ics_no' => ['required', 'string', 'max:50'],
+            'items.*.ics_no' => ['required', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('icsNo')],
             'items.*.fund_cluster_id' => ['required', 'string', 'max:20', 'exists:fund_clusters,fund_cluster_id'],
             'items.*.stock_no' => ['nullable', 'string', 'max:50'],
             'items.*.semi_expendable_property_no' => ['required', 'string', 'max:100'],
             'items.*.item_description' => ['required', 'string', 'max:255'],
             'items.*.estimated_useful_life' => ['nullable', 'integer', 'min:0'],
             'items.*.issued_qty' => ['nullable', 'integer', 'min:0'],
-            'items.*.issued_office_officer' => ['nullable', 'string', 'max:255'],
+            'items.*.issued_office_officer' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameWithAmpersand')],
             'items.*.returned_qty' => ['nullable', 'integer', 'min:0'],
-            'items.*.returned_office_officer' => ['nullable', 'string', 'max:255'],
+            'items.*.returned_office_officer' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameWithAmpersand')],
             'items.*.reissued_qty' => ['nullable', 'integer', 'min:0'],
-            'items.*.reissued_office_officer' => ['nullable', 'string', 'max:255'],
+            'items.*.reissued_office_officer' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameWithAmpersand')],
             'items.*.disposed_qty' => ['nullable', 'integer', 'min:0'],
             'items.*.balance_qty' => ['nullable', 'integer', 'min:0'],
             'items.*.amount' => ['required', 'numeric', 'min:0'],
             'items.*.remarks' => ['nullable', 'string', 'max:255'],
-        ], [], [
+        ], [
+            'month_year.regex' => ValidationHelper::message('monthYear'),
+            'items.*.ics_no.regex' => ValidationHelper::message('numbersOnly'),
+            'items.*.issued_office_officer.regex' => ValidationHelper::message('namesWithAmpersand'),
+            'items.*.returned_office_officer.regex' => ValidationHelper::message('namesWithAmpersand'),
+            'items.*.reissued_office_officer.regex' => ValidationHelper::message('namesWithAmpersand'),
+        ], [
             'month_year' => 'Month / Year',
             'items' => 'Items',
             'items.*.ics_no' => 'ICS No.',
@@ -148,8 +155,8 @@ class RegSPIController extends Controller
     public function update(Request $request, RegspiMonitoring $regspi): RedirectResponse
     {
         $validated = $request->validate([
-            'month_year' => ['required', 'string', 'max:20'],
-            'ics_no' => ['required', 'string', 'max:50'],
+            'month_year' => ['required', 'string', 'max:20', 'regex:' . ValidationHelper::pattern('monthYear')],
+            'ics_no' => ['required', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('icsNo')],
             'rrsp_no' => ['nullable', 'string', 'max:50', 'exists:rrsp_monitoring,rrsp_no'],
             'fund_cluster_id' => ['required', 'string', 'max:20', 'exists:fund_clusters,fund_cluster_id'],
             'stock_no' => ['nullable', 'string', 'max:50'],
@@ -157,16 +164,22 @@ class RegSPIController extends Controller
             'item_description' => ['required', 'string', 'max:255'],
             'estimated_useful_life' => ['nullable', 'integer', 'min:0'],
             'issued_qty' => ['nullable', 'integer', 'min:0'],
-            'issued_office_officer' => ['nullable', 'string', 'max:255'],
+            'issued_office_officer' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameWithAmpersand')],
             'returned_qty' => ['nullable', 'integer', 'min:0'],
-            'returned_office_officer' => ['nullable', 'string', 'max:255'],
+            'returned_office_officer' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameWithAmpersand')],
             'reissued_qty' => ['nullable', 'integer', 'min:0'],
-            'reissued_office_officer' => ['nullable', 'string', 'max:255'],
+            'reissued_office_officer' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameWithAmpersand')],
             'disposed_qty' => ['nullable', 'integer', 'min:0'],
             'balance_qty' => ['nullable', 'integer', 'min:0'],
             'amount' => ['required', 'numeric', 'min:0'],
             'remarks' => ['nullable', 'string', 'max:255'],
-        ], [], [
+        ], [
+            'month_year.regex' => ValidationHelper::message('monthYear'),
+            'ics_no.regex' => ValidationHelper::message('numbersOnly'),
+            'issued_office_officer.regex' => ValidationHelper::message('namesWithAmpersand'),
+            'returned_office_officer.regex' => ValidationHelper::message('namesWithAmpersand'),
+            'reissued_office_officer.regex' => ValidationHelper::message('namesWithAmpersand'),
+        ], [
             'month_year' => 'Month / Year',
             'ics_no' => 'ICS No.',
             'rrsp_no' => 'RRSP No.',

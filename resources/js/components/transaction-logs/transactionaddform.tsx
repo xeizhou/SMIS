@@ -128,7 +128,7 @@ function Field({
                 min={min}
             />
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -192,7 +192,7 @@ function SelectField({
                 </SelectContent>
             </Select>
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -298,7 +298,7 @@ function SearchableSelect({
                 </PopoverContent>
             </Popover>
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -467,6 +467,7 @@ export default function TransactionAddForm({
                                         error={errors.transaction_date}
                                         required
                                     />
+                                            {errors.transaction_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.transaction_date}</p>}
                                     <Field
                                         label="Reference"
                                         name="reference"

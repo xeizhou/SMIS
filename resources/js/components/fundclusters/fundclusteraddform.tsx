@@ -49,7 +49,7 @@ function Field({
                 placeholder={placeholder}
             />
             {error && (
-                <p className="mt-1 text-xs text-red-500">
+                <p className="mt-1 text-[11px] text-red-500 font-medium">
                     {error}
                 </p>
             )}
@@ -114,6 +114,7 @@ export default function FundClusterAddForm({
                         required
                         placeholder="e.g. 101"
                     />
+                                            {errors.fund_cluster_id && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.fund_cluster_id}</p>}
                     <Field
                         label="Fund Description"
                         name="fund_description"

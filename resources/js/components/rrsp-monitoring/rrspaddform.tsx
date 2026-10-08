@@ -1,5 +1,7 @@
 import { useForm, router } from '@inertiajs/react';
+import { PATTERNS, MESSAGES } from '@/lib/validation';
 import { useState, useEffect, useRef } from 'react';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import {
@@ -227,7 +229,7 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset, setError, clearErrors } = useForm({
         rrspNo: '',
         poNumber: '',
         dateReceived: '',
@@ -248,6 +250,8 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
             }
         ]
     });
+
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors as any);
 
     const stockOptions = stockItems.map((s) => ({
         value: s.stock_no,
@@ -396,7 +400,7 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
                         <DialogTitle>Add RRSP Record</DialogTitle>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                    <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} className="mt-6 space-y-8">
                         {/* Section: General Information */}
                         <div>
                             <h3 className={sectionTitleClass}>General Information</h3>
@@ -404,14 +408,17 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
                                 <div className="space-y-1.5">
                                     <Label htmlFor="rrspNo">RRSP No <span className="text-destructive">*</span></Label>
                                     <Input
+                                        name="rrspNo"
                                         required
                                         id="rrspNo"
+                                        pattern={PATTERNS.rrspNo.source}
+                                        title={MESSAGES.numbersAndHyphens}
                                         placeholder="e.g. 2025-03-0001"
                                         value={data.rrspNo}
                                         onChange={(e) => setData('rrspNo', e.target.value)}
                                     />
                                     {errors.rrspNo && (
-                                        <p className="text-sm text-destructive">{errors.rrspNo}</p>
+                                        <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.rrspNo}</p>
                                     )}
                                 </div>
                                 <div className="space-y-1.5">
@@ -466,6 +473,7 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
                                 <div className="space-y-1.5">
                                     <Label htmlFor="dateReceived">Date Received <span className="text-destructive">*</span></Label>
                                     <Input
+                                        name="dateReceived"
                                         required
                                         id="dateReceived"
                                         type="date"
@@ -473,26 +481,34 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
                                         onChange={(e) => setData('dateReceived', e.target.value)}
                                     />
                                     {errors.dateReceived && (
-                                        <p className="text-sm text-destructive">{errors.dateReceived}</p>
+                                        <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.dateReceived}</p>
                                     )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="endUserName">End User</Label>
                                     <Input
+                                        name="endUserName"
                                         id="endUserName"
+                                        pattern={PATTERNS.nameOrOffice.source}
+                                        title={MESSAGES.names}
                                         placeholder="e.g. Pier Lolita D. Sy"
                                         value={data.endUserName}
                                         onChange={(e) => setData('endUserName', e.target.value)}
                                     />
+                                            {errors.endUserName && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.endUserName}</p>}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="returnBy">Return by</Label>
                                     <Input
+                                        name="returnBy"
                                         id="returnBy"
+                                        pattern={PATTERNS.nameOrOffice.source}
+                                        title={MESSAGES.names}
                                         placeholder="Name/Person"
                                         value={data.returnBy}
                                         onChange={(e) => setData('returnBy', e.target.value)}
                                     />
+                                            {errors.returnBy && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.returnBy}</p>}
                                 </div>
                             </div>
                         </div>
@@ -546,6 +562,7 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
                                             <div className="space-y-1.5">
                                                 <Label htmlFor={`item-${index}-qty`}>Quantity <span className="text-destructive">*</span></Label>
                                                 <Input
+                                                    name={`items.${index}.quantity`}
                                                     id={`item-${index}-qty`}
                                                     required
                                                     type="number"
@@ -554,18 +571,23 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
                                                     value={item.quantity}
                                                     onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                                                 />
+                                            {errors[`items.${index}.quantity`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.quantity`]}</p>}
                                                 {(errors as any)[`items.${index}.quantity`] && (
-                                                    <p className="text-sm text-destructive">{(errors as any)[`items.${index}.quantity`]}</p>
+                                                    <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.quantity`]}</p>
                                                 )}
                                             </div>
                                             <div className="space-y-1.5">
                                                 <Label htmlFor={`item-${index}-prop`}>Property No</Label>
                                                 <Input
+                                                    name={`items.${index}.propertyNo`}
                                                     id={`item-${index}-prop`}
+                                                    pattern={PATTERNS.propertyNo.source}
+                                                    title={MESSAGES.numbersAndHyphens}
                                                     placeholder="e.g. 223-01-08-00-0000"
                                                     value={item.propertyNo}
                                                     onChange={(e) => updateItem(index, 'propertyNo', e.target.value)}
                                                 />
+                                            {errors[`items.${index}.propertyNo`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.propertyNo`]}</p>}
                                             </div>
                                             <div className="space-y-1.5">
                                                 <Label htmlFor={`item-${index}-kind`}>Kind of Semi-Expendable</Label>
@@ -585,6 +607,7 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
                                             <div className="space-y-1.5">
                                                 <Label htmlFor={`item-${index}-cost`}>Cost</Label>
                                                 <Input
+                                                    name={`items.${index}.cost`}
                                                     id={`item-${index}-cost`}
                                                     type="number"
                                                     min="0"
@@ -593,8 +616,9 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
                                                     value={item.cost}
                                                     onChange={(e) => updateItem(index, 'cost', e.target.value)}
                                                 />
+                                            {errors[`items.${index}.cost`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.cost`]}</p>}
                                                 {(errors as any)[`items.${index}.cost`] && (
-                                                    <p className="text-sm text-destructive">{(errors as any)[`items.${index}.cost`]}</p>
+                                                    <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.cost`]}</p>
                                                 )}
                                             </div>
                                             <div className="space-y-1.5">
@@ -642,11 +666,15 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
                                                 <div className="space-y-1.5 md:col-span-4">
                                                     <Label htmlFor={`item-${index}-remarks`}>Remarks / Findings</Label>
                                                     <Textarea
+                                                        name={`items.${index}.remarks`}
                                                         id={`item-${index}-remarks`}
+                                                        data-pattern={PATTERNS.basicText.source}
+                                                        title={MESSAGES.basicText}
                                                         placeholder="Remarks or Findings..."
                                                         value={item.remarks || ''}
                                                         onChange={(e) => updateItem(index, 'remarks', e.target.value)}
                                                     />
+                                            {errors[`items.${index}.remarks`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.remarks`]}</p>}
                                                 </div>
                                             )}
                                         </div>
