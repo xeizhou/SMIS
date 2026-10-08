@@ -51,10 +51,17 @@ public function index(Request $request): Response
             ->when($status, fn ($query, $status) => $query->where('status', $status))
             ->when($formAttribute, fn ($query, $formAttribute) => $query->where('form_attribute', $formAttribute));
 
-        // 3. Apply the dynamic sort
-        $records = (clone $query)
-            ->with('attachments')
-            ->orderBy($sortField, $sortDirection)
+        // 3. Apply the dynamic sort (case-insensitive for text columns)
+        $textSorts = ['name', 'form_attribute', 'received_by', 'end_user_claim', 'status'];
+
+        $recordsQuery = (clone $query)->with('attachments');
+
+        $recordsQuery = in_array($sortField, $textSorts, true)
+            ? $recordsQuery->orderByRaw("LOWER({$sortField}) {$sortDirection}")
+            : $recordsQuery->orderBy($sortField, $sortDirection);
+
+        $records = $recordsQuery
+            ->orderBy('clearance_id')
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 
@@ -91,7 +98,7 @@ public function index(Request $request): Response
             'statuses' => $statuses,
             'forms' => $forms,
             'offices' => ClearanceOffice::select('id', 'clearance_office_name')
-                ->orderBy('clearance_office_name')
+                ->orderByRaw('LOWER(clearance_office_name)')
                 ->get(),
         ]);
     }

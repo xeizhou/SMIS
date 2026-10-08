@@ -71,7 +71,8 @@ class StockReportsController extends Controller
                 'i.description',
                 'u.unit_short_name'
             )
-            ->orderBy('i.item_name');
+            ->orderByRaw('LOWER(i.item_name) asc')
+            ->orderBy('i.stock_no');
 
         $items = $query->paginate($perPage)->withQueryString();
 
@@ -139,7 +140,8 @@ class StockReportsController extends Controller
                 'i.description',
                 'u.unit_short_name'
             )
-            ->orderBy('i.item_name');
+            ->orderByRaw('LOWER(i.item_name) asc')
+            ->orderBy('i.stock_no');
 
         return [$query, $cutoffDate, $fundClusterId];
     }
