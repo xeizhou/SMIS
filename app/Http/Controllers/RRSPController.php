@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\RrspMonitoring;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Helpers\ValidationHelper;
 
 class RRSPController extends Controller
 {
@@ -104,21 +105,26 @@ class RRSPController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'rrspNo' => 'required|string|max:255|unique:rrsp_monitoring,rrsp_no',
+            'rrspNo' => ['required', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('rrspNo'), 'unique:rrsp_monitoring,rrsp_no'],
             'poNumber' => 'required|string|exists:serve_po,po_number',
             'dateReceived' => 'required|date',
-            'endUserName' => 'nullable|string|max:255',
-            'returnBy' => 'nullable|string|max:255',
+            'endUserName' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'returnBy' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'items' => 'required|array|min:1',
             'items.*.itemName' => 'required|string|max:255',
             'items.*.itemDescription' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.propertyNo' => 'nullable|string|max:255',
+            'items.*.propertyNo' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('propertyNo')],
             'items.*.kindOfSemiExpendable' => 'nullable|string|max:255',
             'items.*.status' => 'nullable|string|max:100',
             'items.*.area' => 'nullable|string|max:255',
             'items.*.cost' => 'nullable|numeric',
             'items.*.remarks' => 'nullable|string',
+        ], [
+            'rrspNo.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'endUserName.regex' => ValidationHelper::message('names'),
+            'returnBy.regex' => ValidationHelper::message('names'),
+            'items.*.propertyNo.regex' => ValidationHelper::message('numbersAndHyphens'),
         ]);
 
         $po = \App\Models\ServePo::with('items')->where('po_number', $validated['poNumber'])->firstOrFail();
@@ -160,21 +166,26 @@ class RRSPController extends Controller
     public function update(Request $request, RrspMonitoring $rrsp)
     {
         $validated = $request->validate([
-            'rrspNo' => 'required|string|max:255|unique:rrsp_monitoring,rrsp_no,'.$rrsp->id,
+            'rrspNo' => ['required', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('rrspNo'), 'unique:rrsp_monitoring,rrsp_no,'.$rrsp->id],
             'poNumber' => 'required|string|exists:serve_po,po_number',
             'dateReceived' => 'required|date',
-            'endUserName' => 'nullable|string|max:255',
-            'returnBy' => 'nullable|string|max:255',
+            'endUserName' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'returnBy' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'items' => 'required|array|min:1',
             'items.*.itemName' => 'required|string|max:255',
             'items.*.itemDescription' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.propertyNo' => 'nullable|string|max:255',
+            'items.*.propertyNo' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('propertyNo')],
             'items.*.kindOfSemiExpendable' => 'nullable|string|max:255',
             'items.*.status' => 'nullable|string|max:100',
             'items.*.area' => 'nullable|string|max:255',
             'items.*.cost' => 'nullable|numeric',
             'items.*.remarks' => 'nullable|string',
+        ], [
+            'rrspNo.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'endUserName.regex' => ValidationHelper::message('names'),
+            'returnBy.regex' => ValidationHelper::message('names'),
+            'items.*.propertyNo.regex' => ValidationHelper::message('numbersAndHyphens'),
         ]);
 
         $po = \App\Models\ServePo::with('items')->where('po_number', $validated['poNumber'])->firstOrFail();

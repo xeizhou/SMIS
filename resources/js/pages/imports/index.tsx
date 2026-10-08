@@ -36,8 +36,9 @@ type ImportId =
     | 'clearance'
     | 'stock-items'
     | 'units'
-    | 'transactions'
-    | 'data-reports';
+    | 'transactions';
+
+type ImportFileFormat = 'csv' | 'xlsx' | 'json';
 
 interface ImportOption {
     id: ImportId;
@@ -136,11 +137,6 @@ const importGroups: { title: string; options: ImportOption[] }[] = [
                 title: 'Transactions',
                 description: 'Import stock transaction records.',
             },
-            {
-                id: 'data-reports',
-                title: 'Data & Reports',
-                description: 'Import supported data files and reports.',
-            },
         ],
     },
 ];
@@ -160,6 +156,7 @@ const IMPORT_CONFIG: Record<
         sendFileFormat?: boolean;
         sendMergeOption?: boolean;
         needsFundCluster?: boolean;
+        fileFormats?: ImportFileFormat[];
     }
 > = {
     rrsp: {
@@ -211,42 +208,100 @@ const IMPORT_CONFIG: Record<
     },
     'stock-items': {
         endpoint: '/import/items',
-        templateUrl: '/import/template/items?preview=1',
+        templateUrl: '/import/template/items',
         cancelPath: '/import/items',
         sendFileFormat: true,
         sendMergeOption: true,
+        fileFormats: ['csv', 'xlsx', 'json'],
     },
     units: {
         endpoint: '/import/units',
-        templateUrl: '/import/template/units?preview=1',
+        templateUrl: '/import/template/units',
         cancelPath: '/import/units',
         sendFileFormat: true,
         sendMergeOption: true,
+        fileFormats: ['csv', 'xlsx', 'json'],
     },
     transactions: {
         endpoint: '/import/transactions',
-        templateUrl: '/import/template/transactions?preview=1',
+        templateUrl: '/import/template/transactions',
         cancelPath: '/import/transactions',
         sendFileFormat: true,
         sendMergeOption: true,
-    },
-    'data-reports': {
-        endpoint: '/import/offices',
-        templateUrl: '/import/template/offices',
-        cancelPath: '/import/offices',
-        sendFileFormat: true,
-        sendMergeOption: true,
+        fileFormats: ['csv', 'xlsx', 'json'],
     },
 };
 
-const templatePreviewUrl = (id: ImportId) => IMPORT_CONFIG[id].templateUrl;
+const templatePreviewUrl = (id: ImportId, format: ImportFileFormat) => {
+    const config = IMPORT_CONFIG[id];
+    if (!config.fileFormats) {
+        return config.templateUrl;
+    }
+
+    return `${config.templateUrl}?preview=1&format=${format}`;
+};
+
+const templateDownloadUrl = (id: ImportId, format: ImportFileFormat) => {
+    const config = IMPORT_CONFIG[id];
+    return config.fileFormats
+        ? `${config.templateUrl}?format=${format}`
+        : config.templateUrl;
+};
 
 const MAX_PREVIEW_ROWS = 100;
+
+const FILE_FORMAT_DETAILS: Record<
+    ImportFileFormat,
+    { label: string; accept: string; extensions: string[]; mimeTypes: string[] }
+> = {
+    csv: {
+        label: 'CSV',
+        accept: '.csv,text/csv',
+        extensions: ['.csv'],
+        mimeTypes: ['text/csv'],
+    },
+    xlsx: {
+        label: 'Excel',
+        accept: '.xlsx,.xls',
+        extensions: ['.xlsx', '.xls'],
+        mimeTypes: [
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel',
+        ],
+    },
+    json: {
+        label: 'JSON',
+        accept: '.json,application/json',
+        extensions: ['.json'],
+        mimeTypes: ['application/json'],
+    },
+};
+
+function matchesFileFormat(file: File, format: ImportFileFormat): boolean {
+    const name = file.name.toLowerCase();
+    const details = FILE_FORMAT_DETAILS[format];
+    return (
+        details.extensions.some((extension) => name.endsWith(extension)) ||
+        details.mimeTypes.includes(file.type)
+    );
+}
+
+function describeFileFormats(formats: ImportFileFormat[]): string {
+    return formats
+        .map((format) => FILE_FORMAT_DETAILS[format].label)
+        .join(', ');
+}
 
 type TemplateState =
     | { status: 'loading' }
     | { status: 'error' }
-    | { status: 'ready'; rows: string[][] };
+    | { status: 'ready'; rows: string[][]; jsonPreview?: string };
+
+interface TemplatePreviewResponse {
+    headers: string[];
+    rows: string[][];
+    json?: string;
+}
 
 function parseCsv(text: string): string[][] {
     const input = text.replace(/^\uFEFF/, '');
@@ -299,15 +354,16 @@ const allOptions = importGroups.flatMap((group) => group.options);
 
 export default function Index({ fundClusters }: Props) {
     const [selectedImport, setSelectedImport] = useState<ImportId | ''>('');
-    const [templates, setTemplates] = useState<
-        Partial<Record<ImportId, TemplateState>>
-    >({});
+    const [templates, setTemplates] = useState<Record<string, TemplateState>>(
+        {},
+    );
     const [isUploading, setIsUploading] = useState(false);
     const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
     const [isCancelling, setIsCancelling] = useState(false);
     const [importMessage, setImportMessage] = useState('');
     const [importError, setImportError] = useState('');
     const [selectedFileName, setSelectedFileName] = useState('');
+    const [fileFormat, setFileFormat] = useState<ImportFileFormat>('csv');
     const [uploadProgress, setUploadProgress] = useState(0);
     const [fundClusterId, setFundClusterId] = useState('');
     const [mergeExisting, setMergeExisting] = useState(true);
@@ -315,10 +371,20 @@ export default function Index({ fundClusters }: Props) {
 
     const selectedOption = allOptions.find((o) => o.id === selectedImport);
     const hasSelection = Boolean(selectedOption);
-    const template: TemplateState | undefined = selectedImport
-        ? (templates[selectedImport] ?? { status: 'loading' })
-        : undefined;
     const config = selectedImport ? IMPORT_CONFIG[selectedImport] : null;
+    const allowedFileFormats = config?.fileFormats ?? ['csv'];
+    const selectedFileFormat: ImportFileFormat = allowedFileFormats.includes(
+        fileFormat,
+    )
+        ? fileFormat
+        : (allowedFileFormats[0] ?? 'csv');
+    const fileFormatDescription = describeFileFormats(allowedFileFormats);
+    const templateKey = selectedImport
+        ? `${selectedImport}:${selectedFileFormat}`
+        : '';
+    const template = templateKey
+        ? (templates[templateKey] ?? { status: 'loading' as const })
+        : undefined;
     const requirementsReady = Boolean(
         selectedOption &&
         template?.status === 'ready' &&
@@ -348,14 +414,15 @@ export default function Index({ fundClusters }: Props) {
     };
 
     useEffect(() => {
-        if (!selectedImport || templates[selectedImport]?.status === 'ready') {
+        if (!selectedImport || templates[templateKey]?.status === 'ready') {
             return;
         }
 
         const id = selectedImport;
+        const key = templateKey;
         const controller = new AbortController();
 
-        fetch(templatePreviewUrl(id), {
+        fetch(templatePreviewUrl(id, selectedFileFormat), {
             signal: controller.signal,
             credentials: 'same-origin',
         })
@@ -364,12 +431,22 @@ export default function Index({ fundClusters }: Props) {
                 if (!response.ok || type.includes('text/html')) {
                     throw new Error('Template not found');
                 }
+                if (type.includes('application/json')) {
+                    return response.json() as Promise<TemplatePreviewResponse>;
+                }
                 return response.text();
             })
-            .then((text) => {
+            .then((content) => {
                 setTemplates((prev) => ({
                     ...prev,
-                    [id]: { status: 'ready', rows: parseCsv(text) },
+                    [key]:
+                        typeof content === 'string'
+                            ? { status: 'ready', rows: parseCsv(content) }
+                            : {
+                                  status: 'ready',
+                                  rows: [content.headers, ...content.rows],
+                                  jsonPreview: content.json,
+                              },
                 }));
             })
             .catch((error: unknown) => {
@@ -381,13 +458,13 @@ export default function Index({ fundClusters }: Props) {
                 }
                 setTemplates((prev) => ({
                     ...prev,
-                    [id]: { status: 'error' },
+                    [key]: { status: 'error' },
                 }));
             });
 
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedImport]);
+    }, [selectedImport, selectedFileFormat, templateKey]);
 
     useEffect(() => {
         if (
@@ -487,6 +564,7 @@ export default function Index({ fundClusters }: Props) {
     const handleModuleChange = (value: string) => {
         resetImport();
         setSelectedImport(value as ImportId);
+        setFileFormat('csv');
         setFundClusterId('');
         setMergeExisting(true);
     };
@@ -496,10 +574,11 @@ export default function Index({ fundClusters }: Props) {
         if (!file || !selectedImport || !config) {
             return;
         }
-
         setSelectedFileName(file.name);
-        if (!file.name.toLowerCase().endsWith('.csv')) {
-            setImportError('Please select a CSV file.');
+        if (!matchesFileFormat(file, selectedFileFormat)) {
+            setImportError(
+                `Choose a ${FILE_FORMAT_DETAILS[selectedFileFormat].label} file to match the selected format.`,
+            );
             event.target.value = '';
             return;
         }
@@ -521,7 +600,7 @@ export default function Index({ fundClusters }: Props) {
         const data = new FormData();
         data.append('file', file);
         if (config.sendFileFormat) {
-            data.append('file_format', 'csv');
+            data.append('file_format', selectedFileFormat);
         }
         if (config.sendMergeOption) {
             data.append('merge_existing', mergeExisting ? '1' : '0');
@@ -561,7 +640,7 @@ export default function Index({ fundClusters }: Props) {
                         skipped_rows: 0,
                         error_message: null,
                     });
-                    setImportMessage('Import started. Processing your CSV...');
+                    setImportMessage('Import started. Processing your file...');
                 } else {
                     setImportMessage(message);
                     setImportStatus({
@@ -581,7 +660,7 @@ export default function Index({ fundClusters }: Props) {
                 setImportError(
                     typeof firstError === 'string'
                         ? firstError
-                        : 'Import failed. Check the CSV and try again.',
+                        : 'Import failed. Check the file and try again.',
                 );
             },
             onFinish: () => {
@@ -597,23 +676,10 @@ export default function Index({ fundClusters }: Props) {
         <>
             <Head title="Data Imports" />
             <main className="mx-auto w-full max-w-screen-2xl space-y-8 p-4 sm:p-6 lg:p-8">
-                <header className="flex items-start gap-4 border-b border-border pb-6">
-                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted">
-                        <FileUp
-                            aria-hidden="true"
-                            className="size-6 text-foreground"
-                        />
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-                            Data Imports
-                        </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Choose a module, review its CSV template, then
+                            Choose a module, review its file template, then
                             select a file to start importing.
                         </p>
-                    </div>
-                </header>
 
                 <div className="grid items-start gap-6 lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,2fr)] xl:gap-10">
                     {/* Left: module picker and import steps */}
@@ -713,7 +779,7 @@ export default function Index({ fundClusters }: Props) {
                                                         ? 'Select the required fund cluster to continue.'
                                                         : 'Template loaded and required options are ready.'
                                               : isUploading
-                                                ? `Uploading ${selectedFileName || 'CSV file'} (${uploadProgress}%).`
+                                                ? `Uploading ${selectedFileName || 'file'} (${uploadProgress}%).`
                                                 : importStatus?.status ===
                                                     'pending'
                                                   ? 'Import queued; waiting for a worker.'
@@ -726,11 +792,11 @@ export default function Index({ fundClusters }: Props) {
                                                       ? importMessage ||
                                                         'Import completed successfully.'
                                                       : isImportCancelled
-                                                        ? 'Import cancelled. Choose another CSV to retry.'
+                                                        ? 'Import cancelled. Choose another file to retry.'
                                                         : importError
                                                           ? 'Import failed. Review the message and try again.'
                                                           : requirementsReady
-                                                            ? 'Choose a CSV file to start the import.'
+                                                            ? `Choose a file (${fileFormatDescription}) to start the import.`
                                                             : 'Complete the previous steps first.';
 
                                     return (
@@ -771,7 +837,7 @@ export default function Index({ fundClusters }: Props) {
                         </section>
                     </div>
 
-                    {/* Right: CSV template preview, then the import action */}
+                    {/* Right: file template preview, then the import action */}
                     {selectedOption ? (
                         <section
                             key={selectedOption.id}
@@ -791,7 +857,11 @@ export default function Index({ fundClusters }: Props) {
                                     </p>
                                 </div>
                                 <span className="w-fit shrink-0 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
-                                    CSV format
+                                    {
+                                        FILE_FORMAT_DETAILS[selectedFileFormat]
+                                            .label
+                                    }{' '}
+                                    template · Accepts {fileFormatDescription}
                                 </span>
                             </div>
 
@@ -804,7 +874,12 @@ export default function Index({ fundClusters }: Props) {
                                                     aria-hidden="true"
                                                     className="size-4"
                                                 />
-                                                CSV template
+                                                {
+                                                    FILE_FORMAT_DETAILS[
+                                                        selectedFileFormat
+                                                    ].label
+                                                }{' '}
+                                                template
                                             </h3>
                                             {template?.status === 'ready' &&
                                                 template.rows.length > 0 && (
@@ -843,6 +918,7 @@ export default function Index({ fundClusters }: Props) {
                                                     <code className="font-mono text-xs">
                                                         {templatePreviewUrl(
                                                             selectedOption.id,
+                                                            selectedFileFormat,
                                                         )}
                                                     </code>
                                                     .
@@ -853,71 +929,85 @@ export default function Index({ fundClusters }: Props) {
                                         {template?.status === 'ready' &&
                                             template.rows.length > 0 && (
                                                 <>
-                                                    <div className="max-h-[min(65vh,34rem)] overflow-auto rounded-lg border border-border">
-                                                        <table className="w-full min-w-max text-left text-sm">
-                                                            <thead className="sticky top-0 bg-muted">
-                                                                <tr>
-                                                                    {template.rows[0].map(
-                                                                        (
-                                                                            cell,
-                                                                            i,
-                                                                        ) => (
-                                                                            <th
-                                                                                key={
-                                                                                    i
-                                                                                }
-                                                                                scope="col"
-                                                                                className="px-4 py-3 font-semibold whitespace-nowrap text-foreground"
-                                                                            >
-                                                                                {
-                                                                                    cell
-                                                                                }
-                                                                            </th>
-                                                                        ),
+                                                    {selectedFileFormat ===
+                                                    'json' ? (
+                                                        <pre className="max-h-[min(65vh,34rem)] overflow-auto rounded-lg border border-border bg-muted/30 p-4 text-sm leading-relaxed text-foreground">
+                                                            <code>
+                                                                {template.jsonPreview ??
+                                                                    JSON.stringify(
+                                                                        template.rows,
+                                                                        null,
+                                                                        2,
                                                                     )}
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {template.rows
-                                                                    .slice(
-                                                                        1,
-                                                                        MAX_PREVIEW_ROWS +
+                                                            </code>
+                                                        </pre>
+                                                    ) : (
+                                                        <div className="max-h-[min(65vh,34rem)] overflow-auto rounded-lg border border-border">
+                                                            <table className="w-full min-w-max text-left text-sm">
+                                                                <thead className="sticky top-0 bg-muted">
+                                                                    <tr>
+                                                                        {template.rows[0].map(
+                                                                            (
+                                                                                cell,
+                                                                                i,
+                                                                            ) => (
+                                                                                <th
+                                                                                    key={
+                                                                                        i
+                                                                                    }
+                                                                                    scope="col"
+                                                                                    className="px-4 py-3 font-semibold whitespace-nowrap text-foreground"
+                                                                                >
+                                                                                    {
+                                                                                        cell
+                                                                                    }
+                                                                                </th>
+                                                                            ),
+                                                                        )}
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {template.rows
+                                                                        .slice(
                                                                             1,
-                                                                    )
-                                                                    .map(
-                                                                        (
-                                                                            row,
-                                                                            r,
-                                                                        ) => (
-                                                                            <tr
-                                                                                key={
-                                                                                    r
-                                                                                }
-                                                                                className="border-t border-border"
-                                                                            >
-                                                                                {row.map(
-                                                                                    (
-                                                                                        cell,
-                                                                                        c,
-                                                                                    ) => (
-                                                                                        <td
-                                                                                            key={
-                                                                                                c
-                                                                                            }
-                                                                                            className="border-t border-border px-4 py-3 whitespace-nowrap text-muted-foreground"
-                                                                                        >
-                                                                                            {
-                                                                                                cell
-                                                                                            }
-                                                                                        </td>
-                                                                                    ),
-                                                                                )}
-                                                                            </tr>
-                                                                        ),
-                                                                    )}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
+                                                                            MAX_PREVIEW_ROWS +
+                                                                                1,
+                                                                        )
+                                                                        .map(
+                                                                            (
+                                                                                row,
+                                                                                r,
+                                                                            ) => (
+                                                                                <tr
+                                                                                    key={
+                                                                                        r
+                                                                                    }
+                                                                                    className="border-t border-border"
+                                                                                >
+                                                                                    {row.map(
+                                                                                        (
+                                                                                            cell,
+                                                                                            c,
+                                                                                        ) => (
+                                                                                            <td
+                                                                                                key={
+                                                                                                    c
+                                                                                                }
+                                                                                                className="border-t border-border px-4 py-3 whitespace-nowrap text-muted-foreground"
+                                                                                            >
+                                                                                                {
+                                                                                                    cell
+                                                                                                }
+                                                                                            </td>
+                                                                                        ),
+                                                                                    )}
+                                                                                </tr>
+                                                                            ),
+                                                                        )}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    )}
                                                     <p className="text-sm text-muted-foreground">
                                                         Your file should use
                                                         these column headers and
@@ -1021,7 +1111,7 @@ export default function Index({ fundClusters }: Props) {
                                             <p className="font-medium text-foreground">
                                                 {isImportActive
                                                     ? isUploading
-                                                        ? 'Uploading your CSV...'
+                                                        ? 'Uploading your file...'
                                                         : importStatus?.total_rows
                                                           ? `Importing ${importStatus.processed_rows.toLocaleString()} of ${importStatus.total_rows.toLocaleString()} rows`
                                                           : 'Import queued and starting...'
@@ -1052,32 +1142,45 @@ export default function Index({ fundClusters }: Props) {
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="min-h-36 space-y-2 bg-background px-4 py-3 font-mono text-xs leading-relaxed">
-                                            <p className="break-all text-foreground">
+                                        <div className="min-h-44 space-y-2.5 bg-background px-4 py-3 font-mono text-xs leading-relaxed">
+                                            <p className="animate-in break-all text-foreground duration-300 fade-in slide-in-from-bottom-1 motion-reduce:animate-none">
                                                 <span className="mr-2 text-emerald-600">
                                                     $
                                                 </span>
-                                                {selectedFileName || 'CSV file'}
+                                                import --module "
+                                                {selectedOption.title}" --format
+                                                {` ${FILE_FORMAT_DETAILS[selectedFileFormat].label.toLowerCase()}`}
                                             </p>
-                                            {importError ? (
-                                                <p className="break-words text-destructive">
-                                                    <span className="mr-2">
-                                                        [error]
-                                                    </span>
-                                                    {importError}
-                                                </p>
-                                            ) : (
-                                                <p className="text-muted-foreground">
-                                                    <span className="mr-2 text-emerald-600">
-                                                        {uploadProgress >= 100
-                                                            ? '[done]'
-                                                            : '[upload]'}
-                                                    </span>
-                                                    {isUploading
-                                                        ? `Sending file to server... ${uploadProgress}%`
-                                                        : 'File uploaded successfully.'}
-                                                </p>
-                                            )}
+                                            <p className="animate-in break-all text-muted-foreground duration-300 fade-in slide-in-from-bottom-1 motion-reduce:animate-none">
+                                                <span className="mr-2 text-emerald-600">
+                                                    [file]
+                                                </span>
+                                                {selectedFileName ||
+                                                    'Waiting for file'}
+                                            </p>
+                                            <p className="animate-in text-muted-foreground duration-300 fade-in slide-in-from-bottom-1 motion-reduce:animate-none">
+                                                <span className="mr-2 text-emerald-600">
+                                                    [config]
+                                                </span>
+                                                {config?.sendMergeOption
+                                                    ? `Merge matching records: ${mergeExisting ? 'on' : 'off'}`
+                                                    : 'Import settings ready'}
+                                                {config?.needsFundCluster &&
+                                                    ` · Fund cluster: ${fundClusterId || 'not selected'}`}
+                                            </p>
+                                            <p className="animate-in text-muted-foreground duration-300 fade-in slide-in-from-bottom-1 motion-reduce:animate-none">
+                                                <span className="mr-2 text-emerald-600">
+                                                    [upload]
+                                                </span>
+                                                {isUploading
+                                                    ? `Sending file to server · ${uploadProgress}%`
+                                                    : importError &&
+                                                        !importStatus
+                                                      ? 'Upload or validation needs attention'
+                                                      : uploadProgress >= 100
+                                                        ? 'Upload complete'
+                                                        : 'Ready to upload'}
+                                            </p>
                                             {importStatus?.id ? (
                                                 <>
                                                     <p className="text-muted-foreground">
@@ -1085,8 +1188,11 @@ export default function Index({ fundClusters }: Props) {
                                                             [job]
                                                         </span>
                                                         Import #
-                                                        {importStatus.id}{' '}
+                                                        {importStatus.id} ·{' '}
                                                         {importStatus.status}
+                                                        {isImportActive && (
+                                                            <span className="ml-2 inline-block size-1.5 animate-pulse rounded-full bg-emerald-500 align-middle motion-reduce:animate-none" />
+                                                        )}
                                                     </p>
                                                     {importStatus.total_rows !==
                                                         null && (
@@ -1100,19 +1206,61 @@ export default function Index({ fundClusters }: Props) {
                                                             {' processed'}
                                                         </p>
                                                     )}
+                                                    {(importStatus.created_rows >
+                                                        0 ||
+                                                        importStatus.updated_rows >
+                                                            0 ||
+                                                        importStatus.skipped_rows >
+                                                            0) && (
+                                                        <p className="text-muted-foreground">
+                                                            <span className="mr-2 text-emerald-600">
+                                                                [results]
+                                                            </span>
+                                                            {importStatus.created_rows.toLocaleString()}
+                                                            {' created · '}
+                                                            {importStatus.updated_rows.toLocaleString()}
+                                                            {' updated · '}
+                                                            {importStatus.skipped_rows.toLocaleString()}
+                                                            {' skipped'}
+                                                        </p>
+                                                    )}
                                                 </>
-                                            ) : (
-                                                !isUploading &&
-                                                !importError && (
-                                                    <p className="text-emerald-700">
-                                                        <span className="mr-2">
-                                                            [success]
-                                                        </span>
-                                                        {importMessage ||
-                                                            'Import completed.'}
-                                                    </p>
-                                                )
-                                            )}
+                                            ) : null}
+                                            {importError ? (
+                                                <p className="break-words text-destructive">
+                                                    <span className="mr-2">
+                                                        [error]
+                                                    </span>
+                                                    {importError}
+                                                </p>
+                                            ) : isImportCancelled ? (
+                                                <p className="text-amber-700">
+                                                    <span className="mr-2">
+                                                        [cancelled]
+                                                    </span>
+                                                    Import stopped. Your data
+                                                    was not processed further.
+                                                </p>
+                                            ) : isImportComplete ||
+                                              (importStatus?.id === 0 &&
+                                                  !isUploading) ? (
+                                                <p className="text-emerald-700">
+                                                    <span className="mr-2">
+                                                        [done]
+                                                    </span>
+                                                    {importMessage ||
+                                                        'Import completed successfully.'}
+                                                </p>
+                                            ) : isImportActive ? (
+                                                <p className="text-muted-foreground">
+                                                    <span className="mr-2 text-emerald-600">
+                                                        [system]
+                                                    </span>
+                                                    {isUploading
+                                                        ? 'Preparing a secure upload...'
+                                                        : 'Worker is processing the import...'}
+                                                </p>
+                                            ) : null}
                                         </div>
                                     </div>
                                     {importStatus?.total_rows &&
@@ -1140,7 +1288,7 @@ export default function Index({ fundClusters }: Props) {
                                         <div
                                             className="h-2 overflow-hidden rounded-full bg-muted"
                                             role="progressbar"
-                                            aria-label="CSV upload progress"
+                                            aria-label="File upload progress"
                                             aria-valuemin={0}
                                             aria-valuemax={100}
                                             aria-valuenow={uploadProgress}
@@ -1159,7 +1307,7 @@ export default function Index({ fundClusters }: Props) {
                                             variant="outline"
                                             onClick={resetImport}
                                         >
-                                            Choose another CSV
+                                            Choose another file
                                         </Button>
                                     )}
                                     {isImportActive &&
@@ -1181,7 +1329,10 @@ export default function Index({ fundClusters }: Props) {
                             ) : (
                                 <div className="flex flex-col gap-3 border-t border-border p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                                     <a
-                                        href={config?.templateUrl}
+                                        href={templateDownloadUrl(
+                                            selectedOption.id,
+                                            selectedFileFormat,
+                                        )}
                                         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground shadow-xs transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                                     >
                                         <FileSpreadsheet
@@ -1190,12 +1341,59 @@ export default function Index({ fundClusters }: Props) {
                                         />
                                         Download template
                                     </a>
+                                    {allowedFileFormats.length > 1 && (
+                                        <div className="grid gap-1.5 sm:min-w-40">
+                                            <Label
+                                                htmlFor="import-file-format"
+                                                className="text-xs text-muted-foreground"
+                                            >
+                                                Import file type
+                                            </Label>
+                                            <Select
+                                                value={selectedFileFormat}
+                                                disabled={isImportActive}
+                                                onValueChange={(value) => {
+                                                    setFileFormat(
+                                                        value as ImportFileFormat,
+                                                    );
+                                                    setImportError('');
+                                                }}
+                                            >
+                                                <SelectTrigger
+                                                    id="import-file-format"
+                                                    className="h-11"
+                                                >
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {allowedFileFormats.map(
+                                                        (format) => (
+                                                            <SelectItem
+                                                                key={format}
+                                                                value={format}
+                                                            >
+                                                                {
+                                                                    FILE_FORMAT_DETAILS[
+                                                                        format
+                                                                    ].label
+                                                                }
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
                                     <input
                                         ref={fileInputRef}
                                         type="file"
-                                        accept=".csv,text/csv"
+                                        accept={
+                                            FILE_FORMAT_DETAILS[
+                                                selectedFileFormat
+                                            ].accept
+                                        }
                                         className="sr-only"
-                                        aria-label={`Choose ${selectedOption.title} CSV file`}
+                                        aria-label={`Choose ${selectedOption.title} ${FILE_FORMAT_DETAILS[selectedFileFormat].label} file`}
                                         onChange={handleFileChange}
                                         disabled={
                                             isImportActive ||
@@ -1224,7 +1422,13 @@ export default function Index({ fundClusters }: Props) {
                                             aria-hidden="true"
                                             className="mr-2 size-4"
                                         />
-                                        Choose CSV & Import
+                                        Choose{' '}
+                                        {
+                                            FILE_FORMAT_DETAILS[
+                                                selectedFileFormat
+                                            ].label
+                                        }{' '}
+                                        File & Import
                                         <ChevronRight
                                             aria-hidden="true"
                                             className="ml-2 size-4"

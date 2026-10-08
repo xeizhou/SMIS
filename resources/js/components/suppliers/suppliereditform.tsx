@@ -72,7 +72,7 @@ function Field({
             />
 
             {error && (
-                <p className="mt-1 text-xs text-red-500">
+                <p className="mt-1 text-[11px] text-red-500 font-medium">
                     {error}
                 </p>
             )}
@@ -157,6 +157,7 @@ export default function SupplierEditForm({
                         onChange={handleChange}
                         disabled
                     />
+                                            {errors.supplier_id && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.supplier_id}</p>}
 
                     <Field
                         label="Supplier Name"
@@ -223,7 +224,7 @@ export default function SupplierEditForm({
                         </Select>
 
                         {errors.status && (
-                            <p className="mt-1 text-xs text-red-500">
+                            <p className="mt-1 text-[11px] text-red-500 font-medium">
                                 {errors.status}
                             </p>
                         )}

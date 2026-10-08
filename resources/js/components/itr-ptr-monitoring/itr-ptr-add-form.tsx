@@ -67,7 +67,7 @@ function Field({
                 placeholder={placeholder}
             />
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -96,7 +96,7 @@ function TextareaField({
                 placeholder={placeholder}
             />
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -177,6 +177,7 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                         error={errors.transaction_no}
                                         required
                                     />
+                                            {errors.transaction_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.transaction_no}</p>}
                                     <Field
                                         label="Property No."
                                         name="property_no"
@@ -211,6 +212,7 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                             error={errors.description}
                                             required
                                         />
+                                            {errors.description && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.description}</p>}
                                     </div>
                                 </div>
                             </div>
@@ -270,7 +272,7 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                             </SelectContent>
                                         </Select>
                                         {errors.condition_of_ppe && (
-                                            <p className="mt-1 text-xs text-red-500">
+                                            <p className="mt-1 text-[11px] text-red-500 font-medium">
                                                 {errors.condition_of_ppe}
                                             </p>
                                         )}
@@ -285,6 +287,7 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                                 onChange={handleChange}
                                                 error={errors.remarks}
                                             />
+                                            {errors.remarks && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.remarks}</p>}
                                         </div>
                                     )}
                                 </div>

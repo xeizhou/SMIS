@@ -1,6 +1,8 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState } from 'react';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
+import { PATTERNS, MESSAGES } from '@/lib/validation';
 import { Check, ChevronsUpDown, Plus, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -155,6 +157,10 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
     const [defaults, setDefaults] = useState<DefaultFormState>(emptyDefaults);
     const [rows, setRows] = useState<RowState[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const setError = (field: string, message: string) => setErrors(prev => ({ ...prev, [field]: message }));
+    const clearErrors = (field: string) => setErrors(prev => { const newErrors = { ...prev }; delete newErrors[field]; return newErrors; });
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
+        
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -322,7 +328,7 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
                                 <span className="text-muted-foreground">Loading related records...</span>
                             </div>
                         ) : (
-                            <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                            <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} className="mt-6 space-y-8">
                                 {/* Section: Shared Defaults */}
                                 <div className="bg-muted/30 p-4 rounded-md border">
                                     <h3 className={sectionTitleClass}>Default Values (Applied to all rows)</h3>
@@ -331,47 +337,51 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
                                             <label className={labelClass} htmlFor="edit_default_date_received">
                                                 Date Received <span className="text-red-500">*</span>
                                             </label>
-                                            <Input
-                                                id="edit_default_date_received"
+                                            <Input name="edit_default_date_received" id="edit_default_date_received"
                                                 name="date_received"
                                                 type="date"
                                                 value={defaults.date_received}
                                                 onChange={handleDefaultChange}
                                             />
+                                            {errors.edit_default_date_received && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.edit_default_date_received}</p>}
+                                            {errors.date_received && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.date_received}</p>}
                                         </div>
                                         
                                         <div>
                                             <label className={labelClass} htmlFor="edit_default_invoice_no">
                                                 Invoice No <span className="text-red-500">*</span>
                                             </label>
-                                            <Input
-                                                id="edit_default_invoice_no"
+                                            <Input name="edit_default_invoice_no" id="edit_default_invoice_no"
                                                 name="invoice_no"
+                                                pattern={PATTERNS.invoiceNo.source}
+                                                title={MESSAGES.invoiceNo}
                                                 value={defaults.invoice_no}
                                                 onChange={handleDefaultChange}
                                                 placeholder="Invoice number"
                                             />
+                                            {errors.edit_default_invoice_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.edit_default_invoice_no}</p>}
+                                            {errors.invoice_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.invoice_no}</p>}
                                         </div>
 
                                         <div>
                                             <label className={labelClass} htmlFor="edit_default_invoice_date">
                                                 Invoice Date <span className="text-red-500">*</span>
                                             </label>
-                                            <Input
-                                                id="edit_default_invoice_date"
+                                            <Input name="edit_default_invoice_date" id="edit_default_invoice_date"
                                                 name="invoice_date"
                                                 type="date"
                                                 value={defaults.invoice_date}
                                                 onChange={handleDefaultChange}
                                             />
+                                            {errors.edit_default_invoice_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.edit_default_invoice_date}</p>}
+                                            {errors.invoice_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.invoice_date}</p>}
                                         </div>
 
                                         <div>
                                             <label className={labelClass} htmlFor="edit_default_price">
                                                 Default Price <span className="text-red-500">*</span>
                                             </label>
-                                            <Input
-                                                id="edit_default_price"
+                                            <Input name="edit_default_price" id="edit_default_price"
                                                 name="price"
                                                 type="number"
                                                 step="0.01"
@@ -380,6 +390,8 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
                                                 onChange={handleDefaultChange}
                                                 placeholder="Default Price"
                                             />
+                                            {errors.edit_default_price && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.edit_default_price}</p>}
+                                            {errors.price && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.price}</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -467,6 +479,8 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
                                                                 <Input
                                                                     id={`edit-remarks-${index}`}
                                                                     value={row.remarks}
+                                                                    pattern={PATTERNS.basicText.source}
+                                                                    title={MESSAGES.basicText}
                                                                     onChange={(e) => handleRowChange(index, 'remarks', e.target.value)}
                                                                     onKeyDown={(e) => handleKeyDown(e, index, 'remarks')}
                                                                     className="h-10"
@@ -495,7 +509,7 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
 
                                 {/* Form validation errors for missing defaults when rows exist */}
                                 {Object.keys(errors).some(k => k.startsWith('records.0.') && k.includes('date_received')) && (
-                                    <p className="text-sm text-red-500">Please ensure all default fields are filled if adding rows.</p>
+                                    <p className="mt-1 text-[11px] text-red-500 font-medium">Please ensure all default fields are filled if adding rows.</p>
                                 )}
 
                                 <div className="flex justify-end gap-3 border-t pt-4">

@@ -122,7 +122,7 @@ function Field({
                 placeholder={placeholder}
                 disabled={disabled}
             />
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -146,7 +146,7 @@ function LockedField({ label, value, error, placeholder }: LockedFieldProps) {
                 placeholder={placeholder}
                 className="bg-muted text-muted-foreground"
             />
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -207,7 +207,7 @@ function SelectField({
                     ))}
                 </SelectContent>
             </Select>
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -310,7 +310,7 @@ function SearchableSelect({
                 </PopoverContent>
             </Popover>
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -945,6 +945,7 @@ export default function PirEditForm({
                                 error={errors.po_number}
                                 disabled
                             />
+                                            {errors.po_number && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.po_number}</p>}
                             <LockedField
                                 label="Supplier"
                                 value={supplierName}
@@ -1357,7 +1358,7 @@ export default function PirEditForm({
                                     }`}
                                 />
                                 {data.iar_number.length > 0 && !isValidIarNumber(data.iar_number) && (
-                                    <p className="mt-1 text-xs text-red-500">
+                                    <p className="mt-1 text-[11px] text-red-500 font-medium">
                                         {data.iar_number.length < 12
                                             ? `${12 - data.iar_number.length} more digit(s) needed`
                                             : 'Invalid IAR number format (YYYYMMDDNNNN)'}
@@ -1373,6 +1374,7 @@ export default function PirEditForm({
                                 error={errors.receipt_receiving_date}
                                 disabled={!forReleaseComplete}
                             />
+                                            {errors.receipt_receiving_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.receipt_receiving_date}</p>}
                             <Field
                                 label="Claimed By"
                                 name="receipt_claimed_by"
@@ -1472,7 +1474,7 @@ export default function PirEditForm({
                                 <p className="mt-1 text-xs text-muted-foreground">
                                     Auto-CANCELLED if this PO has an approved cancellation letter; otherwise COMPLETED once For Release and Inspection Entries are fully filled out.
                                 </p>
-                                {errors.status && <p className="mt-1 text-xs text-red-500">{errors.status}</p>}
+                                {errors.status && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.status}</p>}
                             </div>
                             <Field
                                 label="Date Forwarded to Finance"
@@ -1482,6 +1484,7 @@ export default function PirEditForm({
                                 onChange={handleChange}
                                 error={errors.date_forwarded_to_finance}
                             />
+                                            {errors.date_forwarded_to_finance && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.date_forwarded_to_finance}</p>}
                             <div className="col-span-2">
                                 <Field
                                     label="Remarks"

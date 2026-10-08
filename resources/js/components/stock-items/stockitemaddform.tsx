@@ -88,7 +88,7 @@ function Field({
                 min={min}
             />
             {error && (
-                <p className="mt-1 text-xs text-red-500">{error}</p>
+                <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>
             )}
         </div>
     );
@@ -181,7 +181,7 @@ function SearchableSelect({
                 </PopoverContent>
             </Popover>
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -306,6 +306,7 @@ export default function StockItemAddForm({
                                         required
                                         placeholder="Enter stock number"
                                     />
+                                            {errors.stock_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.stock_no}</p>}
                                     <Field
                                         label="Item Name"
                                         name="item_name"
@@ -348,7 +349,7 @@ export default function StockItemAddForm({
                                             </SelectContent>
                                         </Select>
                                         {errors.fund_cluster_id && (
-                                            <p className="mt-1 text-xs text-red-500">{errors.fund_cluster_id}</p>
+                                            <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.fund_cluster_id}</p>
                                         )}
                                     </div>
 
@@ -362,7 +363,7 @@ export default function StockItemAddForm({
                                             className={cn("min-h-[100px]", errors.description && 'border-red-500')}
                                         />
                                         {errors.description && (
-                                            <p className="mt-1 text-xs text-red-500">{errors.description}</p>
+                                            <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.description}</p>
                                         )}
                                     </div>
                                 </div>

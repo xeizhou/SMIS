@@ -55,7 +55,7 @@ function Field({
             />
 
             {error && (
-                <p className="mt-1 text-xs text-red-500">
+                <p className="mt-1 text-[11px] text-red-500 font-medium">
                     {error}
                 </p>
             )}
@@ -126,6 +126,7 @@ export default function OfficeAddForm({
                                 required
                                 placeholder="e.g. ICT"
                             />
+                                            {errors.office_code && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.office_code}</p>}
 
                             <Field
                                 label="Office Name"

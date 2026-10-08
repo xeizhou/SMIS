@@ -65,7 +65,7 @@ function Field({
             />
 
             {error && (
-                <p className="mt-1 text-xs text-red-500">
+                <p className="mt-1 text-[11px] text-red-500 font-medium">
                     {error}
                 </p>
             )}
@@ -193,7 +193,7 @@ export default function SupplierForm({
                         </Select>
 
                         {errors.status && (
-                            <p className="mt-1 text-xs text-red-500">
+                            <p className="mt-1 text-[11px] text-red-500 font-medium">
                                 {errors.status}
                             </p>
                         )}

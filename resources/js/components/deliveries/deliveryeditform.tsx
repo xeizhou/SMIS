@@ -179,7 +179,7 @@ function Field({
                 readOnly={readOnly}
                 disabled={disabled}
             />
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -238,7 +238,7 @@ function SelectField({
                     ))}
                 </SelectContent>
             </Select>
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -339,7 +339,7 @@ function SearchableSelect({
                 </PopoverContent>
             </Popover>
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -707,6 +707,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         readOnly
                                         disabled
                                     />
+                                            {errors.supplier_name && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.supplier_name}</p>}
 
                                     <Field
                                         label="PO Date Received"
@@ -780,7 +781,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                                 <Plus className="h-3.5 w-3.5" />
                                             </button>
                                         </div>
-                                        {errors.delivery_dates && <p className="mt-1 text-xs text-red-500">{errors.delivery_dates}</p>}
+                                        {errors.delivery_dates && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.delivery_dates}</p>}
                                     </div>
 
                                     <Field
@@ -793,6 +794,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         readOnly
                                         disabled
                                     />
+                                            {errors.no_of_days_ld && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.no_of_days_ld}</p>}
 
                                     <Field
                                         label="Received By (1)"
@@ -887,7 +889,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         <p className="mt-1 text-xs text-muted-foreground">
                                             PENDING until a delivery date is set; PARTIAL if amounts don't match; COMPLETE if they do.
                                         </p>
-                                        {errors.status && <p className="mt-1 text-xs text-red-500">{errors.status}</p>}
+                                        {errors.status && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.status}</p>}
                                     </div>
                                 </div>
                             </div>
@@ -904,6 +906,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         error={errors.folder_link}
                                         placeholder="https://drive.google.com/drive/folders/..."
                                     />
+                                            {errors.folder_link && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.folder_link}</p>}
 
                                     <div className="md:col-span-2">
                                         <label className={labelClass}>Remarks</label>
@@ -913,7 +916,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                             onChange={handleChange}
                                             placeholder="e.g. Partial delivery received"
                                         />
-                                        {errors.remarks && <p className="mt-1 text-xs text-red-500">{errors.remarks}</p>}
+                                        {errors.remarks && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.remarks}</p>}
                                     </div>
                                 </div>
                             </div>

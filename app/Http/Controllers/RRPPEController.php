@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\RRPPEMonitoring;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Helpers\ValidationHelper;
 
 class RRPPEController extends Controller
 {
@@ -95,18 +96,23 @@ class RRPPEController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'rrppeNo' => 'required|string|max:50',
+            'rrppeNo' => ['required', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('rrppeNo')],
             'dateReceived' => 'required|date',
-            'endUserName' => 'nullable|string|max:100',
-            'returnBy' => 'nullable|string|max:100',
+            'endUserName' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'returnBy' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'items' => 'required|array|min:1',
             'items.*.stockNo' => 'required|string|exists:stock_items,stock_no',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.propertyNo' => 'required|string|max:50',
+            'items.*.propertyNo' => ['required', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('propertyNo')],
             'items.*.cost' => 'nullable|numeric',
             'items.*.status' => 'nullable|string|max:50',
             'items.*.area' => 'nullable|string|max:100',
             'items.*.remarks' => 'nullable|string',
+        ], [
+            'rrppeNo.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'endUserName.regex' => ValidationHelper::message('names'),
+            'returnBy.regex' => ValidationHelper::message('names'),
+            'items.*.propertyNo.regex' => ValidationHelper::message('numbersAndHyphens'),
         ]);
 
         $rrppe = RRPPEMonitoring::create([
@@ -140,18 +146,23 @@ class RRPPEController extends Controller
         $record = RRPPEMonitoring::findOrFail($id);
 
         $validated = $request->validate([
-            'rrppeNo' => 'required|string|max:50',
+            'rrppeNo' => ['required', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('rrppeNo')],
             'dateReceived' => 'required|date',
-            'endUserName' => 'nullable|string|max:100',
-            'returnBy' => 'nullable|string|max:100',
+            'endUserName' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'returnBy' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'items' => 'required|array|min:1',
             'items.*.stockNo' => 'required|string|exists:stock_items,stock_no',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.propertyNo' => 'required|string|max:50',
+            'items.*.propertyNo' => ['required', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('propertyNo')],
             'items.*.cost' => 'nullable|numeric',
             'items.*.status' => 'nullable|string|max:50',
             'items.*.area' => 'nullable|string|max:100',
             'items.*.remarks' => 'nullable|string',
+        ], [
+            'rrppeNo.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'endUserName.regex' => ValidationHelper::message('names'),
+            'returnBy.regex' => ValidationHelper::message('names'),
+            'items.*.propertyNo.regex' => ValidationHelper::message('numbersAndHyphens'),
         ]);
 
         $record->update([

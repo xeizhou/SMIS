@@ -111,7 +111,7 @@ export default function EmployeeFileEditForm({ open, onOpenChange, record }: Pro
                                     onChange={handleChange}
                                 />
                                 {errors.first_name && (
-                                    <p className="mt-1 text-xs text-red-500">{errors.first_name}</p>
+                                    <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.first_name}</p>
                                 )}
                             </div>
 
@@ -126,7 +126,7 @@ export default function EmployeeFileEditForm({ open, onOpenChange, record }: Pro
                                     onChange={handleChange}
                                 />
                                 {errors.middle_name && (
-                                    <p className="mt-1 text-xs text-red-500">{errors.middle_name}</p>
+                                    <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.middle_name}</p>
                                 )}
                             </div>
 
@@ -141,7 +141,7 @@ export default function EmployeeFileEditForm({ open, onOpenChange, record }: Pro
                                     onChange={handleChange}
                                 />
                                 {errors.last_name && (
-                                    <p className="mt-1 text-xs text-red-500">{errors.last_name}</p>
+                                    <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.last_name}</p>
                                 )}
                             </div>
                         </div>
@@ -162,7 +162,7 @@ export default function EmployeeFileEditForm({ open, onOpenChange, record }: Pro
                                     onChange={handleChange}
                                 />
                                 {errors.area && (
-                                    <p className="mt-1 text-xs text-red-500">{errors.area}</p>
+                                    <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.area}</p>
                                 )}
                             </div>
 
@@ -180,7 +180,7 @@ export default function EmployeeFileEditForm({ open, onOpenChange, record }: Pro
                                     </SelectContent>
                                 </Select>
                                 {errors.status && (
-                                    <p className="mt-1 text-xs text-red-500">{errors.status}</p>
+                                    <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.status}</p>
                                 )}
                             </div>
                         </div>

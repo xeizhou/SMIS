@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Helpers\ValidationHelper;
 
 class BonaVidaController extends Controller
 {
@@ -73,9 +74,12 @@ class BonaVidaController extends Controller
             'qty' => ['required', 'integer', 'min:1'],
             'price' => ['required', 'numeric', 'min:0'],
             'total_amount' => ['required', 'numeric', 'min:0'],
-            'invoice_no' => ['required', 'string', 'max:100'],
+            'invoice_no' => ['required', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('invoiceNo')],
             'invoice_date' => ['required', 'date'],
-            'remarks' => ['nullable', 'string', 'max:255'],
+            'remarks' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('basicText')],
+        ], [
+            'invoice_no.regex' => ValidationHelper::message('invoiceNo'),
+            'remarks.regex' => ValidationHelper::message('basicText'),
         ]);
 
         BonaVidaMonitoring::create($validated);
@@ -95,9 +99,12 @@ class BonaVidaController extends Controller
             'records.*.qty' => ['required', 'integer', 'min:1'],
             'records.*.price' => ['required', 'numeric', 'min:0'],
             'records.*.total_amount' => ['required', 'numeric', 'min:0'],
-            'records.*.invoice_no' => ['required', 'string', 'max:100'],
+            'records.*.invoice_no' => ['required', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('invoiceNo')],
             'records.*.invoice_date' => ['required', 'date'],
-            'records.*.remarks' => ['nullable', 'string', 'max:255'],
+            'records.*.remarks' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('basicText')],
+        ], [
+            'records.*.invoice_no.regex' => ValidationHelper::message('invoiceNo'),
+            'records.*.remarks.regex' => ValidationHelper::message('basicText'),
         ]);
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($validated) {
@@ -131,9 +138,12 @@ class BonaVidaController extends Controller
             'records.*.qty' => ['required', 'integer', 'min:1'],
             'records.*.price' => ['required', 'numeric', 'min:0'],
             'records.*.total_amount' => ['required', 'numeric', 'min:0'],
-            'records.*.invoice_no' => ['required', 'string', 'max:100'],
+            'records.*.invoice_no' => ['required', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('invoiceNo')],
             'records.*.invoice_date' => ['required', 'date'],
-            'records.*.remarks' => ['nullable', 'string', 'max:255'],
+            'records.*.remarks' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('basicText')],
+        ], [
+            'records.*.invoice_no.regex' => ValidationHelper::message('invoiceNo'),
+            'records.*.remarks.regex' => ValidationHelper::message('basicText'),
         ]);
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $invoice_no) {
@@ -175,9 +185,12 @@ class BonaVidaController extends Controller
             'qty' => ['required', 'integer', 'min:1'],
             'price' => ['required', 'numeric', 'min:0'],
             'total_amount' => ['required', 'numeric', 'min:0'],
-            'invoice_no' => ['required', 'string', 'max:100'],
+            'invoice_no' => ['required', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('invoiceNo')],
             'invoice_date' => ['required', 'date'],
-            'remarks' => ['nullable', 'string', 'max:255'],
+            'remarks' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('basicText')],
+        ], [
+            'invoice_no.regex' => ValidationHelper::message('invoiceNo'),
+            'remarks.regex' => ValidationHelper::message('basicText'),
         ]);
 
         $bonavida->update($validated);

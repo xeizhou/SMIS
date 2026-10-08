@@ -1,6 +1,8 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
+import { PATTERNS, MESSAGES } from '@/lib/validation';
 import { Check, ChevronsUpDown, RefreshCw, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -59,6 +61,8 @@ interface FieldProps {
     readOnly?: boolean;
     disabled?: boolean;
     enforcePrefix?: string;
+    pattern?: string;
+    title?: string;
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
@@ -77,6 +81,8 @@ function Field({
     readOnly = false,
     disabled = false,
     enforcePrefix,
+    pattern,
+    title,
 }: FieldProps) {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (enforcePrefix && !e.target.value.startsWith(enforcePrefix)) {
@@ -108,10 +114,12 @@ function Field({
                 placeholder={placeholder}
                 readOnly={readOnly}
                 disabled={disabled}
+                pattern={pattern}
+                title={title}
                 className={readOnly ? "bg-muted text-muted-foreground cursor-not-allowed" : ""}
             />
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -139,7 +147,7 @@ function TextareaField({
                 placeholder={placeholder}
             />
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -240,7 +248,7 @@ function SearchableSelect({
                 </PopoverContent>
             </Popover>
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -299,7 +307,7 @@ function SelectField({
                     ))}
                 </SelectContent>
             </Select>
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -355,6 +363,10 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
         items: Record<string, string>[];
     }>(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const setError = (field: string, message: string) => setErrors(prev => ({ ...prev, [field]: message }));
+    const clearErrors = (field: string) => setErrors(prev => { const newErrors = { ...prev }; delete newErrors[field]; return newErrors; });
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
+        
     const [processing, setProcessing] = useState(false);
 
     const [itemQuickAddOpen, setItemQuickAddOpen] = useState(false);
@@ -501,7 +513,7 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                 <DialogTitle>Add RegSPI Record</DialogTitle>
                             </DialogHeader>
 
-                            <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                            <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} className="mt-6 space-y-8">
                                 {/* Section: General Information */}
                                 <div>
                                     <h3 className={sectionTitleClass}>General Information</h3>
@@ -513,8 +525,11 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                             onChange={handleChange}
                                             error={errors.month_year}
                                             required
+                                            pattern={PATTERNS.monthYear.source}
+                                            title={MESSAGES.monthYear}
                                             placeholder="e.g. 2025-01"
                                         />
+
 
                                         <SearchableSelect
                                             label="RRSP No."
@@ -600,8 +615,11 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                                         onChange={(e) => handleItemChange(index, 'ics_no', e.target.value)}
                                                         error={errors[`items.${index}.ics_no`]}
                                                         required
+                                                        pattern={PATTERNS.icsNo.source}
+                                                        title={MESSAGES.numbersAndHyphens}
                                                         placeholder="e.g. 2008020005"
                                                     />
+
                                                     <Field
                                                         label="Semi-Expendable Property No."
                                                         name={`items[${index}].semi_expendable_property_no`}
@@ -612,6 +630,8 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                                         readOnly={!!data.rrsp_no}
                                                         placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "e.g. ICS-05-IGF-2008020005"}
                                                         enforcePrefix={item.fund_cluster_id ? `ICS-${item.fund_cluster_id}-` : undefined}
+                                                        pattern={PATTERNS.semiExpendablePropertyNo.source}
+                                                        title={MESSAGES.semiExpendablePropertyNo}
                                                     />
                                                     <ItemSingleSelect
                                                         label="Item Description"
@@ -652,6 +672,8 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                                             onChange={(e) => handleItemChange(index, 'issued_office_officer', e.target.value)}
                                                             error={errors[`items.${index}.issued_office_officer`]}
                                                             readOnly={!!data.rrsp_no}
+                                                            pattern={PATTERNS.nameOrOffice.source}
+                                                            title={MESSAGES.names}
                                                             placeholder={data.rrsp_no ? "Auto-filled from RRSP" : "Enter Issued Office/Officer"}
                                                         />
                                                         <Field
@@ -669,6 +691,8 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                                             value={item.returned_office_officer}
                                                             onChange={(e) => handleItemChange(index, 'returned_office_officer', e.target.value)}
                                                             error={errors[`items.${index}.returned_office_officer`]}
+                                                            pattern={PATTERNS.nameOrOffice.source}
+                                                            title={MESSAGES.names}
                                                             placeholder="e.g. Records Section"
                                                         />
                                                         <Field
@@ -686,6 +710,8 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                                             value={item.reissued_office_officer}
                                                             onChange={(e) => handleItemChange(index, 'reissued_office_officer', e.target.value)}
                                                             error={errors[`items.${index}.reissued_office_officer`]}
+                                                            pattern={PATTERNS.nameOrOffice.source}
+                                                            title={MESSAGES.names}
                                                             placeholder="e.g. Records Section"
                                                         />
                                                         <Field
@@ -720,6 +746,7 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
                                                             error={errors[`items.${index}.estimated_useful_life`]}
                                                             placeholder="e.g. 5"
                                                         />
+
                                                         <Field
                                                             label="Amount"
                                                             name={`items[${index}].amount`}

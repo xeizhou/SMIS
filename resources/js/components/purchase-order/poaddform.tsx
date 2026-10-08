@@ -97,7 +97,7 @@ function Field({
                 placeholder={placeholder}
             />
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -159,7 +159,7 @@ function SelectField({
                 </SelectContent>
             </Select>
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -302,7 +302,7 @@ function SearchableSelect({
                 </PopoverContent>
             </Popover>
 
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
 }
@@ -677,6 +677,7 @@ export default function PurchaseOrderAddForm({
                                             placeholder="2026-01-0001"
                                             required
                                         />
+                                            {errors.po_number && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.po_number}</p>}
                                         <SelectField
                                             label="Mode of Procurement"
                                             value={data.mode_of_procurement}
@@ -834,6 +835,7 @@ export default function PurchaseOrderAddForm({
                                             error={errors.ors_burs_no}
                                             placeholder="00-000000-2025-00-0000"
                                         />
+                                            {errors.ors_burs_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.ors_burs_no}</p>}
                                         <Field
                                             label="ORS/BURS Date"
                                             name="ors_burs_date"
@@ -851,7 +853,7 @@ export default function PurchaseOrderAddForm({
                                                 placeholder="Fund Cluster + End User"
                                             />
                                             {errors.responsibility_center && (
-                                                <p className="mt-1 text-xs text-red-500">{errors.responsibility_center}</p>
+                                                <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.responsibility_center}</p>
                                             )}
                                         </div>
                                         <Field
@@ -862,6 +864,7 @@ export default function PurchaseOrderAddForm({
                                             error={errors.uacs_object_code}
                                             placeholder="00000000"
                                         />
+                                            {errors.uacs_object_code && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.uacs_object_code}</p>}
                                     </div>
                                 </div>
 
