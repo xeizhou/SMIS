@@ -205,18 +205,7 @@ export default function Index({ suppliers, filters }: Props) {
                         <Button type="submit" variant="secondary">Search</Button>
                         <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
                     </div>
-
-                    <div className="flex gap-2 w-full lg:w-auto">
-                        <Button
-                            type="button"
-                            onClick={() => setDialogOpen(true)}
-                            className="flex-1 lg:flex-none"
-                            style={{ backgroundColor: '#612A35' }}
-                        >
-                            Add Supplier
-                        </Button>
-                    </div>
-
+                    
                     <Button
                         type="button"
                         onClick={() => setDialogOpen(true)}

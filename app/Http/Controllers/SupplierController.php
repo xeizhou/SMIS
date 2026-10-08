@@ -41,12 +41,22 @@ public function index(Request $request)
         }
         $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
+        // 3. Apply Dynamic Sort (case-insensitive for text columns)
+        $textSorts = ['supplier_name', 'contact_person', 'contact_number', 'email_address', 'status'];
+
+        if (in_array($sortField, $textSorts, true)) {
+            $query->orderByRaw("LOWER({$sortField}) {$sortDirection}");
+        } else {
+            $query->orderBy($sortField, $sortDirection);
+        }
+
+        $suppliers = $query
+            ->orderBy('supplier_id')
+            ->paginateWithHighlight($perPage)
+            ->withQueryString();
+
         return Inertia::render('supplier/index', [
-            'suppliers' => $query
-                // 3. Apply Dynamic Sort
-                ->orderBy($sortField, $sortDirection)
-                ->paginateWithHighlight($perPage)
-                ->withQueryString(),
+            'suppliers' => $suppliers,
 
             'filters' => [
                 'search' => $request->search,
