@@ -46,7 +46,13 @@ class StockItemsController extends Controller
             });
 
         // 3. Apply the dynamic sorting
-        $stockItems = $query->orderBy($sortField, $sortDirection)
+        $textSorts = ['stock_no', 'item_name', 'description'];
+
+        $query = in_array($sortField, $textSorts, true)
+            ? $query->orderByRaw("LOWER({$sortField}) {$sortDirection}")
+            : $query->orderBy($sortField, $sortDirection);
+
+        $stockItems = $query->orderBy('stock_no')
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 

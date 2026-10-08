@@ -236,7 +236,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                                 <th className="p-0 font-semibold text-white bg-[#370001]">
                                     <button
                                         type="button"
-                                        className="flex w-full items-center justify-center gap-2 px-4 py-3 outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
+                                        className="flex w-full items-center gap-2 px-4 py-3 text-left outline-none transition-colors hover:bg-[#4C0002] focus:bg-[#4C0002] active:bg-[#4C0002]"
                                         onClick={() => handleSort('balance_per_stock_card')}
                                     >
                                         Balance per Stock Card

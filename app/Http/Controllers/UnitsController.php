@@ -29,16 +29,24 @@ class UnitsController extends Controller
         // Validate the sort direction
         $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
 
-        $units = Unit::when($search, function ($query, $search) {
+        $textSorts = ['unit_name', 'unit_short_name'];
+
+        $query = Unit::when($search, function ($query, $search) {
             $query->where(function ($q) use ($search) {
                 $q->where('unit_name', 'like', "%{$search}%")
                     ->orWhere('unit_short_name', 'like', "%{$search}%");
             });
-        })
-            // 3. Apply the dynamic sorting
-            ->orderBy($sortField, $sortDirection)
+        });
+
+        // 3. Apply the dynamic sorting (case-insensitive for text columns)
+        $query = in_array($sortField, $textSorts, true)
+            ? $query->orderByRaw("LOWER({$sortField}) {$sortDirection}")
+            : $query->orderBy($sortField, $sortDirection);
+
+        $units = $query->orderBy('unitID')
             ->paginateWithHighlight($perPage)
             ->withQueryString();
+        // ---- REPLACED BLOCK ENDS HERE ----
 
         return Inertia::render('units/index', [
             'units' => $units,
