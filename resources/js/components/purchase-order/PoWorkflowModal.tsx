@@ -761,6 +761,7 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             value={data.receipt_claimed_by}
                                             onChange={handleChange}
                                             error={errors.receipt_claimed_by}
+                                            placeholder="Enter name"
                                         />
                                         <Field
                                             label="Items Receiving Date"
@@ -776,6 +777,7 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             value={data.items_claimed_by}
                                             onChange={handleChange}
                                             error={errors.items_claimed_by}
+                                            placeholder="Enter name"
                                         />
                                         
                                         {/* Notification Block */}
@@ -963,17 +965,13 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                 {/* 5. Payment Processing */}
                                 {activeTab === 'Payment Processing' && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <SelectField
-                                            label="Payment Status"
-                                            value={data.payment_status}
-                                            onChange={handleSelectChange('payment_status')}
-                                            error={errors.payment_status}
-                                            placeholder="-- Select Status --"
-                                            options={[
-                                                { value: 'Pending', label: 'Pending' },
-                                                { value: 'Processing', label: 'Processing' },
-                                                { value: 'Paid', label: 'Paid' },
-                                            ]}
+                                        <Field
+                                            label="RIS Number"
+                                            name="ris_number"
+                                            value={data.ris_number}
+                                            onChange={handleChange}
+                                            error={errors.ris_number}
+                                            placeholder="Enter RIS number"
                                         />
                                         <Field
                                             label="Invoice Number"
@@ -981,6 +979,7 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             value={data.invoice_number}
                                             onChange={handleChange}
                                             error={errors.invoice_number}
+                                            placeholder="Enter invoice number"
                                         />
                                         <Field
                                             label="Invoice Date"
@@ -996,6 +995,7 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             value={data.delivery_receipt}
                                             onChange={handleChange}
                                             error={errors.delivery_receipt}
+                                            placeholder="Enter delivery receipt"
                                         />
                                         <Field
                                             label="PAR/ICS Number"
@@ -1003,13 +1003,19 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             value={data.par_ics_number}
                                             onChange={handleChange}
                                             error={errors.par_ics_number}
+                                            placeholder="Enter PAR/ICS number"
                                         />
-                                        <Field
-                                            label="RIS Number"
-                                            name="ris_number"
-                                            value={data.ris_number}
-                                            onChange={handleChange}
-                                            error={errors.ris_number}
+                                        <SelectField
+                                            label="Payment Status"
+                                            value={data.payment_status}
+                                            onChange={handleSelectChange('payment_status')}
+                                            error={errors.payment_status}
+                                            placeholder="-- Select Status --"
+                                            options={[
+                                                { value: 'Pending', label: 'Pending' },
+                                                { value: 'Processing', label: 'Processing' },
+                                                { value: 'Paid', label: 'Paid' },
+                                            ]}
                                         />
 
 
