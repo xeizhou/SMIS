@@ -19,7 +19,7 @@ use App\Models\RRPPEMonitoring;
 use App\Models\RrspMonitoring;
 use App\Models\RegspiMonitoring;
 use App\Models\BonaVidaMonitoring;
-
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -28,12 +28,13 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Order matters — parents before children. Create only when empty to be idempotent.
-        if (FundCluster::count() === 0) {
-            $fundClusters = FundCluster::factory(5)->create();
-        } else {
-            $fundClusters = FundCluster::all();
-        }
+        DB::transaction(function () {
+            // Order matters — parents before children. Create only when empty to be idempotent.
+            if (FundCluster::count() === 0) {
+                $fundClusters = FundCluster::factory(5)->create();
+            } else {
+                $fundClusters = FundCluster::all();
+            }
 
         if (Office::count() === 0) {
             $offices = Office::factory(8)->create();
@@ -169,6 +170,7 @@ class DatabaseSeeder extends Seeder
             });
 
             PirMonitoring::factory()->forServePo($po)->create();
+        });
         });
     }
 }
