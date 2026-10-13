@@ -40,6 +40,8 @@ import {
 import SupplierQuickAddModal from '@/components/suppliers/supplier-quick-add-modal';
 import ItemMultiSelect, { type StockItemOption } from '@/components/purchase-order/item-multi-select';
 import StockItemQuickAddModal from '@/components/purchase-order/stock-item-quick-add-modal';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
+import { PATTERNS, MESSAGES, formatPoNumberInput } from '@/lib/validation';
 
 interface Supplier {
     supplier_id: number;
@@ -127,6 +129,11 @@ interface PurchaseOrder {
 
     attachments?: Attachment[];
     items?: { stock_no: string }[];
+    inspection_entries?: Array<{
+        iar_number?: string | null;
+        inspected_by?: string | null;
+        inspection_date?: string | null;
+    }>;
 }
 
 interface Props {
@@ -148,6 +155,10 @@ interface FieldProps {
     required?: boolean;
     placeholder?: string;
     type?: string;
+    pattern?: string;
+    title?: string;
+    readOnly?: boolean;
+    disabled?: boolean;
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
@@ -211,10 +222,14 @@ function Field({
     required = false,
     placeholder = '',
     type = 'text',
+    pattern,
+    title,
+    readOnly,
+    disabled,
 }: FieldProps) {
     return (
         <div>
-            <label className={labelClass}>
+            <label className={labelClass} htmlFor={name}>
                 {label}
                 {required && <span className="text-red-500"> *</span>}
             </label>
@@ -222,9 +237,15 @@ function Field({
             <Input
                 type={type}
                 name={name}
+                id={name}
+                pattern={pattern}
+                title={title}
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                required={required}
+                readOnly={readOnly}
+                disabled={disabled}
             />
 
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
@@ -640,28 +661,6 @@ function calculateResponsibilityCenter(fundClusterId: string, endUser: string) {
     return [fundClusterId, endUser].filter(Boolean).join(' ');
 }
 
-function formatPoNumberInput(raw: string): string {
-    const digits = raw.replace(/\D/g, '');
-
-    let year = digits.slice(0, 4);
-    let month = digits.slice(4, 6);
-    let seq = digits.slice(6, 10);
-
-    if (month.length === 1 && !['0', '1'].includes(month)) {
-        month = ''; 
-    }
-    if (month.length === 2) {
-        const m = parseInt(month, 10);
-        if (m < 1 || m > 12) {
-            month = month[0]; 
-        }
-    }
-
-    let out = year;
-    if (month) out += '-' + month;
-    if (seq) out += '-' + seq;
-    return out;
-}
 
 function formatBytes(bytes: number) {
     const kb = bytes / 1024;
@@ -702,6 +701,9 @@ export default function PurchaseOrderEditForm({
 }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const setError = (field: string, message: string) => setErrors((prev) => ({ ...prev, [field]: message }));
+    const clearErrors = (field: string) => setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
     const [processing, setProcessing] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [newFiles, setNewFiles] = useState<StagedFile[]>([]);
@@ -928,7 +930,7 @@ export default function PurchaseOrderEditForm({
                         <DialogTitle>Edit Purchase Order Record — {purchaseOrder?.po_number}</DialogTitle>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                    <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} noValidate className="mt-6 space-y-8">
                         {/* Section: Purchase Order Details */}
                         <div>
                             <h3 className={sectionTitleClass}>Purchase Order Details</h3>
@@ -940,9 +942,10 @@ export default function PurchaseOrderEditForm({
                                     onChange={handlePoNumberChange}
                                     error={errors.po_number}
                                     placeholder="2026-01-0001"
+                                    pattern={PATTERNS.poNo.source}
+                                    title={MESSAGES.numbersAndHyphens}
                                     required
                                 />
-                                            {errors.po_number && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.po_number}</p>}
                                 <SelectField
                                     label="Mode of Procurement"
                                     value={data.mode_of_procurement}
@@ -983,6 +986,8 @@ export default function PurchaseOrderEditForm({
                                     onChange={handleChange}
                                     error={errors.inclusive_date}
                                     placeholder="e.g. Jan 1 - Jan 15, 2026"
+                                    pattern={PATTERNS.inclusiveDate.source}
+                                    title={MESSAGES.inclusiveDate}
                                 />
                                 <Field
                                     label="PR No."
@@ -990,6 +995,9 @@ export default function PurchaseOrderEditForm({
                                     value={data.pr_number}
                                     onChange={handleChange}
                                     error={errors.pr_number}
+                                    placeholder="20XX-0X-XXXX"
+                                    pattern={PATTERNS.prNo.source}
+                                    title={MESSAGES.numbersAndHyphens}
                                 />
                                 <Field
                                     label="PR Date"
@@ -1006,6 +1014,8 @@ export default function PurchaseOrderEditForm({
                                     onChange={handleChange}
                                     error={errors.philgeps_reference_no}
                                     placeholder="00000000"
+                                    pattern={PATTERNS.philgepsRefNo.source}
+                                    title={MESSAGES.numbersOnly}
                                 />
 
                                 <SelectField
@@ -1031,6 +1041,8 @@ export default function PurchaseOrderEditForm({
                                         onChange={handleChange}
                                         error={errors.inclusive_date}
                                         placeholder="e.g. Jan 1 - Jan 15, 2026"
+                                        pattern={PATTERNS.inclusiveDate.source}
+                                        title={MESSAGES.inclusiveDate}
                                     />
                                 )}                 
                                 <div className="md:col-span-2">
@@ -1094,8 +1106,10 @@ export default function PurchaseOrderEditForm({
                                     value={data.ors_burs_no}
                                     onChange={handleChange}
                                     error={errors.ors_burs_no}
+                                    placeholder="02-206441-2026-01-0001"
+                                    pattern={PATTERNS.orsBursNo.source}
+                                    title={MESSAGES.numbersAndHyphens}
                                 />
-                                            {errors.ors_burs_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.ors_burs_no}</p>}
                                 <Field
                                     label="ORS/BURS Date"
                                     name="ors_burs_date"
@@ -1122,8 +1136,10 @@ export default function PurchaseOrderEditForm({
                                     value={data.uacs_object_code}
                                     onChange={handleChange}
                                     error={errors.uacs_object_code}
+                                    placeholder="50299030"
+                                    pattern={PATTERNS.uacsObjectCode.source}
+                                    title={MESSAGES.numbersOnly}
                                 />
-                                            {errors.uacs_object_code && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.uacs_object_code}</p>}
                             </div>
                         </div>
 
@@ -1197,9 +1213,9 @@ export default function PurchaseOrderEditForm({
                                 <div>
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">PO From VPAD</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Forwarded By" name="po_vpad_forwarded_by" value={data.po_vpad_forwarded_by} onChange={handleChange} error={errors.po_vpad_forwarded_by} />
+                                        <Field label="Forwarded By" name="po_vpad_forwarded_by" value={data.po_vpad_forwarded_by} onChange={handleChange} error={errors.po_vpad_forwarded_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
                                         <Field label="Notified Date" name="po_vpad_notified_date" type="date" value={data.po_vpad_notified_date} onChange={handleChange} error={errors.po_vpad_notified_date} />
-                                        <Field label="Notified Via" name="po_vpad_notified_via" value={data.po_vpad_notified_via} onChange={handleChange} error={errors.po_vpad_notified_via} />
+                                        <Field label="Notified Via" name="po_vpad_notified_via" value={data.po_vpad_notified_via} onChange={handleChange} error={errors.po_vpad_notified_via} pattern={PATTERNS.contactInfo.source} title={MESSAGES.contactInfo} placeholder="email@example.com or +639..." />
                                     </div>
                                 </div>
 
@@ -1207,7 +1223,7 @@ export default function PurchaseOrderEditForm({
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">End User</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         <Field label="Date Forwarded" name="date_forwarded_to_end_user" type="date" value={data.date_forwarded_to_end_user} onChange={handleChange} error={errors.date_forwarded_to_end_user} />
-                                        <Field label="Forwarded By" name="end_user_forwarded_by" value={data.end_user_forwarded_by} onChange={handleChange} error={errors.end_user_forwarded_by} />
+                                        <Field label="Forwarded By" name="end_user_forwarded_by" value={data.end_user_forwarded_by} onChange={handleChange} error={errors.end_user_forwarded_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
                                     </div>
                                 </div>
 
@@ -1215,8 +1231,8 @@ export default function PurchaseOrderEditForm({
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">For Supplier's Signature</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         <Field label="Date Forwarded" name="date_forwarded_supplier" type="date" value={data.date_forwarded_supplier} onChange={handleChange} error={errors.date_forwarded_supplier} />
-                                        <Field label="Forwarded By" name="forwarded_by_supplier" value={data.forwarded_by_supplier} onChange={handleChange} error={errors.forwarded_by_supplier} />
-                                        <Field label="Claimed By" name="claimed_by_supplier" value={data.claimed_by_supplier} onChange={handleChange} error={errors.claimed_by_supplier} />
+                                        <Field label="Forwarded By" name="forwarded_by_supplier" value={data.forwarded_by_supplier} onChange={handleChange} error={errors.forwarded_by_supplier} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
+                                        <Field label="Claimed By" name="claimed_by_supplier" value={data.claimed_by_supplier} onChange={handleChange} error={errors.claimed_by_supplier} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
                                         <Field label="Signature Date" name="supplier_signature_date" type="date" value={data.supplier_signature_date} onChange={handleChange} error={errors.supplier_signature_date} />
                                     </div>
                                 </div>
@@ -1225,13 +1241,13 @@ export default function PurchaseOrderEditForm({
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">For COA Stamp</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         <Field label="Date Forwarded" name="date_forwarded_coa" type="date" value={data.date_forwarded_coa} onChange={handleChange} error={errors.date_forwarded_coa} />
-                                        <Field label="Forwarded By" name="forwarded_by_coa" value={data.forwarded_by_coa} onChange={handleChange} error={errors.forwarded_by_coa} />
+                                        <Field label="Forwarded By" name="forwarded_by_coa" value={data.forwarded_by_coa} onChange={handleChange} error={errors.forwarded_by_coa} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
                                         <Field label="Date Returned" name="date_returned_from_coa" type="date" value={data.date_returned_from_coa} onChange={handleChange} error={errors.date_returned_from_coa} />
                                         <Field label="COA Date" name="coa_date" type="date" value={data.coa_date} onChange={handleChange} error={errors.coa_date} />
                                         <Field label="Claim Date" name="claim_date" type="date" value={data.claim_date} onChange={handleChange} error={errors.claim_date} />
-                                        <Field label="Claimed By" name="claimed_by_coa" value={data.claimed_by_coa} onChange={handleChange} error={errors.claimed_by_coa} />
+                                        <Field label="Claimed By" name="claimed_by_coa" value={data.claimed_by_coa} onChange={handleChange} error={errors.claimed_by_coa} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
                                         <Field label="Notified Date" name="coa_stamp_notified_date" type="date" value={data.coa_stamp_notified_date} onChange={handleChange} error={errors.coa_stamp_notified_date} />
-                                        <Field label="Notified Via" name="coa_stamp_notified_via" value={data.coa_stamp_notified_via} onChange={handleChange} error={errors.coa_stamp_notified_via} />
+                                        <Field label="Notified Via" name="coa_stamp_notified_via" value={data.coa_stamp_notified_via} onChange={handleChange} error={errors.coa_stamp_notified_via} pattern={PATTERNS.contactInfo.source} title={MESSAGES.contactInfo} placeholder="email@example.com or +639..." />
                                     </div>
                                 </div>
 
@@ -1240,22 +1256,22 @@ export default function PurchaseOrderEditForm({
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         <Field label="Date Received by Supplier" name="date_received_by_supplier" type="date" value={data.date_received_by_supplier} onChange={handleChange} error={errors.date_received_by_supplier} />
                                         <Field label="Receipt Receiving Date" name="receipt_receiving_date" type="date" value={data.receipt_receiving_date} onChange={handleChange} error={errors.receipt_receiving_date} />
-                                        <Field label="Receipt Claimed By" name="receipt_claimed_by" value={data.receipt_claimed_by} onChange={handleChange} error={errors.receipt_claimed_by} />
+                                        <Field label="Receipt Claimed By" name="receipt_claimed_by" value={data.receipt_claimed_by} onChange={handleChange} error={errors.receipt_claimed_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
                                         <Field label="Notified Date" name="receipt_claimed_notified_date" type="date" value={data.receipt_claimed_notified_date} onChange={handleChange} error={errors.receipt_claimed_notified_date} />
-                                        <Field label="Notified Via" name="receipt_claimed_notified_via" value={data.receipt_claimed_notified_via} onChange={handleChange} error={errors.receipt_claimed_notified_via} />
+                                        <Field label="Notified Via" name="receipt_claimed_notified_via" value={data.receipt_claimed_notified_via} onChange={handleChange} error={errors.receipt_claimed_notified_via} pattern={PATTERNS.contactInfo.source} title={MESSAGES.contactInfo} placeholder="email@example.com or +639..." />
                                         <Field label="Items Receiving Date" name="items_receiving_date" type="date" value={data.items_receiving_date} onChange={handleChange} error={errors.items_receiving_date} />
-                                        <Field label="Items Claimed By" name="items_claimed_by" value={data.items_claimed_by} onChange={handleChange} error={errors.items_claimed_by} />
+                                        <Field label="Items Claimed By" name="items_claimed_by" value={data.items_claimed_by} onChange={handleChange} error={errors.items_claimed_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
                                     </div>
                                 </div>
 
                                 <div>
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Additional Reference & Status</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Invoice No." name="invoice_number" value={data.invoice_number} onChange={handleChange} error={errors.invoice_number} />
+                                        <Field label="Invoice No." name="invoice_number" value={data.invoice_number} onChange={handleChange} error={errors.invoice_number} pattern={PATTERNS.invoiceDocumentRef.source} title={MESSAGES.invoiceDocumentRef} />
                                         <Field label="Invoice Date" name="invoice_date" type="date" value={data.invoice_date} onChange={handleChange} error={errors.invoice_date} />
-                                        <Field label="Delivery Receipt" name="delivery_receipt" value={data.delivery_receipt} onChange={handleChange} error={errors.delivery_receipt} />
-                                        <Field label="PAR/ICS No." name="par_ics_number" value={data.par_ics_number} onChange={handleChange} error={errors.par_ics_number} />
-                                        <Field label="RIS No." name="ris_number" value={data.ris_number} onChange={handleChange} error={errors.ris_number} />
+                                        <Field label="Delivery Receipt" name="delivery_receipt" value={data.delivery_receipt} onChange={handleChange} error={errors.delivery_receipt} pattern={PATTERNS.deliveryReceiptRef.source} title={MESSAGES.deliveryReceiptRef} />
+                                        <Field label="PAR/ICS No." name="par_ics_number" value={data.par_ics_number} onChange={handleChange} error={errors.par_ics_number} pattern={PATTERNS.parIcsMultiRef.source} title={MESSAGES.parIcsMultiRef} />
+                                        <Field label="RIS No." name="ris_number" value={data.ris_number} onChange={handleChange} error={errors.ris_number} pattern={PATTERNS.risMultiRef.source} title={MESSAGES.risMultiRef} />
                                         <Field label="Payment Status" name="payment_status" value={data.payment_status} onChange={handleChange} error={errors.payment_status} />
                                         <Field label="Workflow Remarks" name="workflow_remarks" value={data.workflow_remarks} onChange={handleChange} error={errors.workflow_remarks} />
                                     </div>
@@ -1266,7 +1282,7 @@ export default function PurchaseOrderEditForm({
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         <Field label="Date Completed" name="date_completed" type="date" value={data.date_completed} onChange={handleChange} error={errors.date_completed} />
                                         <Field label="Forwarded to Finance" name="date_forwarded_to_finance" type="date" value={data.date_forwarded_to_finance} onChange={handleChange} error={errors.date_forwarded_to_finance} />
-                                        <Field label="Forwarded By" name="finance_forwarded_by" value={data.finance_forwarded_by} onChange={handleChange} error={errors.finance_forwarded_by} />
+                                        <Field label="Forwarded By" name="finance_forwarded_by" value={data.finance_forwarded_by} onChange={handleChange} error={errors.finance_forwarded_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
                                         <SelectField
                                             label="PO Step"
                                             value={data.po_step}
