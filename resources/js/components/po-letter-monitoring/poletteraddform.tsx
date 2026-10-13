@@ -28,6 +28,8 @@ import {
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert } from '@/components/ui/alert';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
+import { PATTERNS, MESSAGES } from '@/lib/validation';
 
 interface Supplier {
     supplier_id: number;
@@ -58,6 +60,8 @@ interface FieldProps {
     required?: boolean;
     placeholder?: string;
     type?: string;
+    pattern?: string;
+    title?: string;
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
@@ -103,19 +107,26 @@ function Field({
     required = false,
     placeholder = '',
     type = 'text',
+    pattern,
+    title,
 }: FieldProps) {
     return (
         <div>
-            <label className={labelClass}>
+            <label htmlFor={name} className={labelClass}>
                 {label}
                 {required && <span className="text-red-500"> *</span>}
             </label>
             <Input
+                id={name}
                 type={type}
                 name={name}
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                required={required}
+                pattern={pattern}
+                title={title}
+                className={cn(error && 'border-red-500')}
             />
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
@@ -412,6 +423,9 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
     };
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const setError = (field: string, message: string) => setErrors((prev) => ({ ...prev, [field]: message }));
+    const clearErrors = (field: string) => setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
     const [processing, setProcessing] = useState(false);
     const [files, setFiles] = useState<StagedFile[]>([]);
     const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null);
@@ -602,7 +616,7 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                             </div>
                         </Alert>
 
-                        <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                        <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} noValidate className="mt-6 space-y-8">
                             {/* Section: Basic Information */}
                             <div>
                                 <h3 className={sectionTitleClass}>Basic Information</h3>
@@ -637,7 +651,6 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                                         error={errors.po_date}
                                         required
                                     />
-                                            {errors.po_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.po_date}</p>}
                                 </div>
                             </div>
 
@@ -713,6 +726,8 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                                 onChange={handleChange}
                                 error={errors.received_by}
                                 placeholder="JOHN"
+                                pattern={PATTERNS.nameOrOffice.source}
+                                title={MESSAGES.names}
                             />
 
                             <SelectField
@@ -733,6 +748,8 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                                 onChange={handleChange}
                                 error={errors.document_link}
                                 placeholder="https://"
+                                pattern={PATTERNS.documentLink.source}
+                                title={MESSAGES.documentLink}
                             />
 
                             <Field
