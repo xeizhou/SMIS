@@ -8,6 +8,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
@@ -15,6 +16,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
+import { PATTERNS, MESSAGES } from '@/lib/validation';
 
 interface Props {
     open: boolean;
@@ -30,10 +34,9 @@ interface FieldProps {
     error?: string;
     required?: boolean;
     placeholder?: string;
+    pattern?: string;
+    title?: string;
 }
-
-const inputClass =
-    "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring";
 
 const labelClass =
     "mb-1 block text-sm font-medium text-foreground";
@@ -47,21 +50,27 @@ function Field({
     error,
     required = false,
     placeholder = '',
+    pattern,
+    title,
 }: FieldProps) {
     return (
         <div>
-            <label className={labelClass}>
+            <label htmlFor={name} className={labelClass}>
                 {label}
                 {required && <span className="text-red-500"> *</span>}
             </label>
 
-            <input
+            <Input
+                id={name}
                 type={type}
                 name={name}
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
-                className={inputClass}
+                required={required}
+                pattern={pattern}
+                title={title}
+                className={cn(error && 'border-red-500')}
             />
 
             {error && (
@@ -87,6 +96,9 @@ export default function SupplierForm({
 }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const setError = (field: string, message: string) => setErrors((prev) => ({ ...prev, [field]: message }));
+    const clearErrors = (field: string) => setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -124,6 +136,9 @@ export default function SupplierForm({
 
                 <form
                     onSubmit={handleSubmit}
+                    onBlur={handleBlur}
+                    onChange={handleValidationChange}
+                    noValidate
                     className="mt-4 space-y-4"
                 >
                     <Field
@@ -152,6 +167,8 @@ export default function SupplierForm({
                         onChange={handleChange}
                         error={errors.contact_number}
                         placeholder="e.g. 09171234567"
+                        pattern={PATTERNS.contactNumber.source}
+                        title={MESSAGES.contactNumber}
                     />
 
                     <Field
@@ -162,6 +179,8 @@ export default function SupplierForm({
                         onChange={handleChange}
                         error={errors.email_address}
                         placeholder="e.g. supplier@email.com"
+                        pattern={PATTERNS.email.source}
+                        title={MESSAGES.email}
                     />
                     <div>
                         <label className={labelClass}>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\ValidationHelper;
 use App\Models\Delivery;
 use App\Models\ServePo;
 use App\Models\Supplier;
@@ -93,15 +94,20 @@ class DeliveriesController extends Controller
         'delivery_term' => ['nullable', 'integer', 'min:0'],
         'due_date' => ['nullable', 'date'],
         'no_of_days_ld' => ['nullable', 'integer', 'min:0'],
-        'received_by_1' => ['nullable', 'string', 'max:150'],
-        'received_by_2' => ['nullable', 'string', 'max:150'],
+        'received_by_1' => ['nullable', 'string', 'max:150', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+        'received_by_2' => ['nullable', 'string', 'max:150', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
         'end_user' => ['nullable', 'string', 'max:150'],
-        'place_of_delivery' => ['nullable', 'string', 'max:255'],
+        'place_of_delivery' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('address')],
         'status' => ['nullable', 'string', 'max:50'],
         'remarks' => ['nullable', 'string'],
         'total_amount_delivered' => ['nullable', 'numeric', 'min:0'],
         'po_total_amount' => ['nullable', 'numeric', 'min:0'],
-        'folder_link' => ['nullable', 'string', 'max:500'],
+        'folder_link' => ['nullable', 'string', 'max:500', 'regex:' . ValidationHelper::pattern('documentLink')],
+    ], [
+        'received_by_1.regex' => ValidationHelper::message('names'),
+        'received_by_2.regex' => ValidationHelper::message('names'),
+        'place_of_delivery.regex' => ValidationHelper::message('address'),
+        'folder_link.regex' => ValidationHelper::message('documentLink'),
     ]);
 
     $dates = collect($validated['delivery_dates'] ?? [])->filter()->values();
@@ -138,15 +144,20 @@ class DeliveriesController extends Controller
             'delivery_term' => ['nullable', 'integer', 'min:0'],
             'due_date' => ['nullable', 'date'],
             'no_of_days_ld' => ['nullable', 'integer', 'min:0'],
-            'received_by_1' => ['nullable', 'string', 'max:150'],
-            'received_by_2' => ['nullable', 'string', 'max:150'],
+            'received_by_1' => ['nullable', 'string', 'max:150', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'received_by_2' => ['nullable', 'string', 'max:150', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'end_user' => ['nullable', 'string', 'max:150'],
-            'place_of_delivery' => ['nullable', 'string', 'max:255'],
+            'place_of_delivery' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('address')],
             'status' => ['nullable', 'string', 'max:50'],
             'remarks' => ['nullable', 'string'],
             'total_amount_delivered' => ['nullable', 'numeric', 'min:0'],
             'po_total_amount' => ['nullable', 'numeric', 'min:0'],
-            'folder_link' => ['nullable', 'string', 'max:500'],
+            'folder_link' => ['nullable', 'string', 'max:500', 'regex:' . ValidationHelper::pattern('documentLink')],
+        ], [
+            'received_by_1.regex' => ValidationHelper::message('names'),
+            'received_by_2.regex' => ValidationHelper::message('names'),
+            'place_of_delivery.regex' => ValidationHelper::message('address'),
+            'folder_link.regex' => ValidationHelper::message('documentLink'),
         ]);
 
         $dates = collect($validated['delivery_dates'] ?? [])->filter()->values();

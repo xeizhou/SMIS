@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\ValidationHelper;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -74,8 +75,11 @@ public function index(Request $request)
         $validated = $request->validate([
             'supplier_name'   => 'required|string|max:255|unique:supplier_list,supplier_name',
             'contact_person'  => 'nullable|string|max:255',
-            'contact_number'  => 'nullable|string|max:20',
-            'email_address'   => 'nullable|email|max:255',
+            'contact_number'  => ['nullable', 'string', 'max:20', 'regex:' . ValidationHelper::pattern('contactNumber')],
+            'email_address'   => ['nullable', 'email', 'max:255', 'regex:' . ValidationHelper::pattern('email')],
+        ], [
+            'contact_number.regex' => ValidationHelper::message('contactNumber'),
+            'email_address.regex' => ValidationHelper::message('email'),
         ]);
 
         $validated['status'] = 'active';
@@ -228,16 +232,21 @@ public function index(Request $request)
                 'nullable',
                 'string',
                 'max:20',
+                'regex:' . ValidationHelper::pattern('contactNumber'),
             ],
             'email_address' => [
                 'nullable',
                 'email',
                 'max:255',
+                'regex:' . ValidationHelper::pattern('email'),
             ],
             'status' => [
                 'required',
                 'in:active,inactive',
             ],
+        ], [
+            'contact_number.regex' => ValidationHelper::message('contactNumber'),
+            'email_address.regex' => ValidationHelper::message('email'),
         ]);
 
         Supplier::create($validated);
@@ -263,16 +272,21 @@ public function index(Request $request)
                 'nullable',
                 'string',
                 'max:20',
+                'regex:' . ValidationHelper::pattern('contactNumber'),
             ],
             'email_address' => [
                 'nullable',
                 'email',
                 'max:255',
+                'regex:' . ValidationHelper::pattern('email'),
             ],
             'status' => [
                 'required',
                 'in:active,inactive',
             ],
+        ], [
+            'contact_number.regex' => ValidationHelper::message('contactNumber'),
+            'email_address.regex' => ValidationHelper::message('email'),
         ]);
 
         $supplier->update($validated);

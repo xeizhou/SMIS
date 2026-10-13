@@ -28,6 +28,8 @@ import {
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { toDateInputValue, addDays, daysBetween } from '@/lib/date';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
+import { PATTERNS, MESSAGES } from '@/lib/validation';
 
 interface SupplierOption {
     supplier_id: number;
@@ -62,6 +64,8 @@ interface FieldProps {
     type?: string;
     readOnly?: boolean;
     disabled?: boolean;
+    pattern?: string;
+    title?: string;
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
@@ -109,14 +113,17 @@ function Field({
     type = 'text',
     readOnly = false,
     disabled = false,
+    pattern,
+    title,
 }: FieldProps) {
     return (
         <div>
-            <label className={labelClass}>
+            <label htmlFor={name} className={labelClass}>
                 {label}
                 {required && <span className="text-red-500"> *</span>}
             </label>
             <Input
+                id={name}
                 type={type}
                 name={name}
                 value={value}
@@ -124,6 +131,10 @@ function Field({
                 placeholder={placeholder}
                 readOnly={readOnly}
                 disabled={disabled}
+                required={required}
+                pattern={pattern}
+                title={title}
+                className={cn(error && 'border-red-500')}
             />
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
@@ -324,6 +335,9 @@ interface StagedFile {
 export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, statuses }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const setError = (field: string, message: string) => setErrors((prev) => ({ ...prev, [field]: message }));
+    const clearErrors = (field: string) => setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
     const [processing, setProcessing] = useState(false);
     const [files, setFiles] = useState<StagedFile[]>([]);
     const [newDeliveryId, setNewDeliveryId] = useState<string | null>(null);
@@ -574,7 +588,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                     <DialogTitle>Add Delivery Record</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} noValidate className="mt-6 space-y-8">
                     {/* Section: Order Details */}
                     <div>
                         <h3 className={sectionTitleClass}>Order Details</h3>
@@ -604,7 +618,6 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                 readOnly
                                 disabled
                             />
-                                            {errors.supplier_name && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.supplier_name}</p>}
 
                             <Field
                                 label="PO Date Received"
@@ -691,7 +704,6 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                 readOnly
                                 disabled
                             />
-                                            {errors.no_of_days_ld && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.no_of_days_ld}</p>}
 
                             <Field
                                 label="Received By (1)"
@@ -700,6 +712,8 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                 onChange={handleChange}
                                 error={errors.received_by_1}
                                 placeholder="e.g. Alvin B."
+                                pattern={PATTERNS.nameOrOffice.source}
+                                title={MESSAGES.names}
                             />
 
                             <Field
@@ -709,6 +723,8 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                 onChange={handleChange}
                                 error={errors.received_by_2}
                                 placeholder="e.g. J. Santos"
+                                pattern={PATTERNS.nameOrOffice.source}
+                                title={MESSAGES.names}
                             />
 
                             <Field
@@ -727,6 +743,8 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                 onChange={handleChange}
                                 error={errors.place_of_delivery}
                                 placeholder="e.g. BGH, Davao City"
+                                pattern={PATTERNS.address.source}
+                                title={MESSAGES.address}
                             />
                         </div>
                     </div>
@@ -802,8 +820,9 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                 onChange={handleChange}
                                 error={errors.folder_link}
                                 placeholder="https://drive.google.com/drive/folders/..."
+                                pattern={PATTERNS.documentLink.source}
+                                title={MESSAGES.documentLink}
                             />
-                                            {errors.folder_link && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.folder_link}</p>}
 
                             <div className="md:col-span-2">
                                 <label className={labelClass}>Remarks</label>
