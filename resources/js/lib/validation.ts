@@ -32,6 +32,7 @@ export const PATTERNS = {
     deliveryReceiptRef: /^[a-zA-Z0-9\s\/;\-]+$/,
     parIcsMultiRef: /^[0-9\s\/;\-]+$/,
     risMultiRef: /^[0-9\s\/;\-]+$/,
+    documentLink: /^https?:\/\/[a-zA-Z0-9]+([.\-][a-zA-Z0-9]+)*(?::[0-9]+)?(?:[\/?#][^\s<>"{}|\\^`]*)?$/,
 };
 
 export const MESSAGES = {
@@ -58,6 +59,7 @@ export const MESSAGES = {
     deliveryReceiptRef: "Only letters, numbers, hyphens, slashes, semicolons, and spaces are allowed.",
     parIcsMultiRef: "Only numbers, slashes, semicolons, hyphens, and spaces are allowed.",
     risMultiRef: "Only numbers, slashes, semicolons, hyphens, and spaces are allowed.",
+    documentLink: "Please enter a valid URL (e.g. https://example.com).",
 };
 
 export function validateInput(

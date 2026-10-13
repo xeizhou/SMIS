@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\ValidationHelper;
 use App\Models\Attachment;
 use App\Models\PoLetterMonitoring;
 use App\Models\ServePo;
@@ -100,11 +101,14 @@ class POLetterMonitoringController extends Controller
             'type_of_letter' => ['required', 'string', 'in:EXTENSION,WAIVER,CANCELLATION,REPLACEMENT/ALTERNATIVE OFFER'],
             'date_received_by_smu' => ['nullable', 'date'],
             'date_forwarded_to_ovpad' => ['nullable', 'date'],
-            'received_by' => ['nullable', 'string', 'max:50'],
+            'received_by' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'status_of_the_letter' => ['required', 'string', 'max:50'],
-            'document_link' => ['nullable', 'string', 'max:500'],
+            'document_link' => ['nullable', 'string', 'max:500', 'regex:' . ValidationHelper::pattern('documentLink')],
             'date_forwarded_to_end_user' => ['nullable', 'date'],
             'remarks' => ['nullable', 'string'],
+        ], [
+            'received_by.regex' => ValidationHelper::message('names'),
+            'document_link.regex' => ValidationHelper::message('documentLink'),
         ]);
 
         $poLetterMonitoring = PoLetterMonitoring::create($validated);
@@ -134,13 +138,16 @@ class POLetterMonitoringController extends Controller
             'type_of_letter' => ['required', 'string', 'in:EXTENSION,WAIVER,CANCELLATION,REPLACEMENT/ALTERNATIVE OFFER'],
             'date_received_by_smu' => ['nullable', 'date'],
             'date_forwarded_to_ovpad' => ['nullable', 'date'],
-            'received_by' => ['nullable', 'string', 'max:50'],
+            'received_by' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'status_of_the_letter' => ['required', 'string', 'max:50'],
-            'document_link' => ['nullable', 'string', 'max:500'],
+            'document_link' => ['nullable', 'string', 'max:500', 'regex:' . ValidationHelper::pattern('documentLink')],
             'date_forwarded_to_end_user' => ['nullable', 'date'],
             'remarks' => ['nullable', 'string'],
             'deleted_attachment_ids' => ['nullable', 'array'],
             'deleted_attachment_ids.*' => ['integer'],
+        ], [
+            'received_by.regex' => ValidationHelper::message('names'),
+            'document_link.regex' => ValidationHelper::message('documentLink'),
         ]);
 
         // Handle deleted attachments before updating the record
