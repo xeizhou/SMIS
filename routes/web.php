@@ -510,6 +510,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     // ==========================================================
     Route::get('/purchase-orders', [PurchaseOrdersController::class, 'index'])->name('purchase-orders.index');
     Route::post('/purchase-orders', [PurchaseOrdersController::class, 'store'])->name('purchase-orders.store');
+    Route::post('/purchase-orders/import', [PurchaseOrdersController::class, 'import'])->name('purchase-orders.import');
+    Route::get('/purchase-orders/import/template', [PurchaseOrdersController::class, 'importTemplate'])->name('purchase-orders.import.template');
     Route::put('/purchase-orders/{servePo}', [PurchaseOrdersController::class, 'update'])->name('purchase-orders.update');
     Route::delete('/purchase-orders/{purchaseOrder}', [PurchaseOrdersController::class, 'destroy'])->name('purchase-orders.destroy');
     Route::post('/purchase-orders/{purchaseOrder}/notify-office', [PurchaseOrdersController::class, 'notifyOffice'])
@@ -659,11 +661,13 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
 
     // In the "must be registered BEFORE /import/template/{type}" block:
     Route::get('/import/template/employee-files', [ImportController::class, 'employeeFileTemplate'])->name('import.employee-files.template');
+    Route::get('/import/template/purchase-orders', [PurchaseOrdersController::class, 'importTemplate'])->name('import.purchase-orders.template');
 
     // Near the other import POST/status/cancel routes:
     Route::post('/import/employee-files', [ImportController::class, 'employeeFiles'])->name('import.employee-files');
     Route::get('/import/employee-files/{import}/status', [ImportController::class, 'status'])->name('import.employee-files.status');
     Route::post('/import/employee-files/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.employee-files.cancel');
+    Route::post('/import/purchase-orders', [PurchaseOrdersController::class, 'import'])->name('import.purchase-orders');
 
     Route::get('/import/template/{type}', [ImportController::class, 'template'])->name('import.template');
     Route::post('/import/items', [ImportController::class, 'items'])->name('import.items');

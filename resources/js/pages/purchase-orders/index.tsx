@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Plus, Search, Trash2, Archive } from 'lucide-react';
+import { Eye, Pencil, Plus, Search, Trash2, Archive, Upload } from 'lucide-react';
 import { useState } from 'react';
 import PurchaseOrderAddForm from '@/components/purchase-order/poaddform';
 import type { StockItemOption } from '@/components/purchase-order/item-multi-select';
@@ -9,6 +9,7 @@ import PurchaseOrderDeleteModal from '@/components/purchase-order/podeletemodal'
 import PurchaseOrderEditForm from '@/components/purchase-order/poeditform';
 import PurchaseOrderViewForm from '@/components/purchase-order/poviewform';
 import PoWorkflowModal from '@/components/purchase-order/PoWorkflowModal';
+import PurchaseOrderImportDialog from '@/components/purchase-order/po-import-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -146,6 +147,7 @@ export default function Index({
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
     const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [importDialogOpen, setImportDialogOpen] = useState(false);
     const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
     const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
 
@@ -302,14 +304,26 @@ export default function Index({
                         </Button>
                     </div>
 
-                    <Button
-                        type="button"
-                        onClick={() => setAddDialogOpen(true)}
-                        className="w-full lg:w-auto"
-                        style={{ backgroundColor: '#612A35' }}
-                    >
-                        Add Purchase Order
-                    </Button>
+                    <div className="flex w-full flex-col sm:flex-row gap-2 lg:w-auto">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setImportDialogOpen(true)}
+                            className="w-full sm:w-auto"
+                        >
+                            <Upload className="mr-2 size-4" />
+                            Import
+                        </Button>
+
+                        <Button
+                            type="button"
+                            onClick={() => setAddDialogOpen(true)}
+                            className="w-full sm:w-auto text-white"
+                            style={{ backgroundColor: '#612A35' }}
+                        >
+                            Add Purchase Order
+                        </Button>
+                    </div>
                 </form>
 
                 {/* Table */}
@@ -476,7 +490,7 @@ export default function Index({
             <PurchaseOrderEditForm
                 open={editDialogOpen}
                 onOpenChange={setEditDialogOpen}
-                purchaseOrder={selectedPO}
+                purchaseOrder={selectedPO as any}
                 suppliers={suppliers}
                 fundClusters={fundClusters}
                 offices={offices}
@@ -486,19 +500,24 @@ export default function Index({
             <PurchaseOrderViewForm
                 open={viewDialogOpen}
                 onOpenChange={setViewDialogOpen}
-                purchaseOrder={selectedPO}
+                purchaseOrder={selectedPO as any}
             />
 
             <PoWorkflowModal
                 open={workflowDialogOpen}
                 onOpenChange={setWorkflowDialogOpen}
-                purchaseOrder={selectedPO}
+                purchaseOrder={selectedPO as any}
             />
 
             <PurchaseOrderDeleteModal
                 open={deleteDialogOpen}
                 onOpenChange={setDeleteDialogOpen}
                 poNumber={poToDelete?.po_number ?? null}
+            />
+
+            <PurchaseOrderImportDialog
+                open={importDialogOpen}
+                onOpenChange={setImportDialogOpen}
             />
         </>
     );
