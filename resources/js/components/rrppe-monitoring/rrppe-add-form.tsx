@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNativeValidation } from '@/hooks/useNativeValidation';
 import { useForm, router } from '@inertiajs/react';
-import { PATTERNS, MESSAGES } from '@/lib/validation';
+import { PATTERNS, MESSAGES, formatReferenceNumberInput } from '@/lib/validation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Archive, RefreshCw, Check, ChevronsUpDown, Paperclip, X } from 'lucide-react';
@@ -326,7 +326,7 @@ export default function RrppeAddForm({ open, onOpenChange, areas, stockItems }: 
                                                 title={MESSAGES.numbersAndHyphens}
                                                 placeholder="e.g. 2025-03-0001"
                                                 value={data.rrppeNo}
-                                                onChange={(e) => setData('rrppeNo', e.target.value)}
+                                                onChange={(e) => setData('rrppeNo', formatReferenceNumberInput(e.target.value))}
                                             />
                                             {errors.rrppeNo && (
                                                 <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.rrppeNo}</p>

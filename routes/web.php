@@ -49,136 +49,140 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     })->name('imports.index');
 
     Route::get('dashboard', function (\Illuminate\Http\Request $request) {
-        $recentActivity = \App\Models\AuditLog::with('user')
-            ->orderBy('log_timestamp', 'desc')
-            ->take(50)
-            ->get()
-            ->map(function ($log) {
-                return [
-                    'log_id' => $log->auditLogID,
-                    'timestamp' => $log->log_timestamp->format('Y-m-d H:i:s'),
-                    'user' => $log->user ? $log->user->name : 'Unknown',
-                    'role' => $log->role,
-                    'action' => $log->action,
-                    'target_url' => $log->target_url ? str_replace('search=', 'highlight_search=', $log->target_url) : null,
-                ];
-            });
+        $getRecentActivity = function () {
+            return \App\Models\AuditLog::with('user')
+                ->orderBy('log_timestamp', 'desc')
+                ->take(50)
+                ->get()
+                ->map(function ($log) {
+                    return [
+                        'log_id' => $log->auditLogID,
+                        'timestamp' => $log->log_timestamp->format('Y-m-d H:i:s'),
+                        'user' => $log->user ? $log->user->name : 'Unknown',
+                        'role' => $log->role,
+                        'action' => $log->action,
+                        'target_url' => $log->target_url ? str_replace('search=', 'highlight_search=', $log->target_url) : null,
+                    ];
+                });
+        };
 
-        $recentDeliveries = \App\Models\Delivery::where('status', 'PENDING')
-            ->orderBy('data_entry_timestamp', 'desc')
-            ->take(10)
-            ->get()
-            ->map(function ($delivery) {
-                $due = $delivery->due_date ? \Carbon\Carbon::parse($delivery->due_date) : null;
-                $deliveryDate = $delivery->delivery_date;
-                $today = now()->startOfDay();
+        $getRecentDeliveries = function () {
+            return \App\Models\Delivery::with('servePo')
+                ->where('status', 'PENDING')
+                ->orderBy('data_entry_timestamp', 'desc')
+                ->take(10)
+                ->get()
+                ->map(function ($delivery) {
+                    $due = $delivery->due_date ? \Carbon\Carbon::parse($delivery->due_date) : null;
+                    $deliveryDate = $delivery->delivery_date;
+                    $today = now()->startOfDay();
 
-                $isOverdue = false;
-                $daysOverdue = 0;
-                $diffDays = null;
+                    $isOverdue = false;
+                    $daysOverdue = 0;
+                    $diffDays = null;
 
-                if ($due) {
-                    $dueStart = $due->copy()->startOfDay();
-                    $diffDays = (int) $today->diffInDays($dueStart, false);
-                    if ($deliveryDate && $deliveryDate->gt($due)) {
-                        $isOverdue = true;
-                        $daysOverdue = (int) $due->diffInDays($deliveryDate);
-                    } else if (!$deliveryDate && $today->gt($dueStart)) {
-                        $isOverdue = true;
-                        $daysOverdue = (int) $dueStart->diffInDays($today);
+                    if ($due) {
+                        $dueStart = $due->copy()->startOfDay();
+                        $diffDays = (int) $today->diffInDays($dueStart, false);
+                        if ($deliveryDate && $deliveryDate->gt($due)) {
+                            $isOverdue = true;
+                            $daysOverdue = (int) $due->diffInDays($deliveryDate);
+                        } else if (!$deliveryDate && $today->gt($dueStart)) {
+                            $isOverdue = true;
+                            $daysOverdue = (int) $dueStart->diffInDays($today);
+                        }
                     }
-                }
 
-                return [
-                    'delivery_id' => $delivery->delivery_id,
-                    'po_number' => $delivery->po_number,
-                    'time_ago' => ($delivery->data_entry_timestamp ?? now())->diffForHumans(),
-                    'is_overdue' => $isOverdue,
-                    'daysOverdue' => $daysOverdue,
-                    'diff_days' => $diffDays,
-                    'due_date' => $due ? $due->format('Y-m-d') : null,
-                    'due_date_formatted' => $due ? $due->format('M d, Y') : null,
-                    'status' => $delivery->status,
-                ];
-            });
+                    return [
+                        'delivery_id' => $delivery->delivery_id,
+                        'po_number' => $delivery->po_number,
+                        'time_ago' => ($delivery->data_entry_timestamp ?? now())->diffForHumans(),
+                        'is_overdue' => $isOverdue,
+                        'daysOverdue' => $daysOverdue,
+                        'diff_days' => $diffDays,
+                        'due_date' => $due ? $due->format('Y-m-d') : null,
+                        'due_date_formatted' => $due ? $due->format('M d, Y') : null,
+                        'status' => $delivery->status,
+                    ];
+                });
+        };
 
-        $dueDeliveries = \App\Models\Delivery::with('supplier')
-            ->withExists('deliveryFollowUps')
-            ->where(function($query) {
-                $query->whereNull('status')
-                      ->orWhere('status', '!=', 'CANCELLED');
-            })
-            ->get()
-            ->filter(function ($delivery) {
-                return $delivery->due_date !== null;
-            })
-            ->sortByDesc(function ($delivery) {
-                return $delivery->due_date;
-            })
-            ->map(function ($delivery) {
-                $due = $delivery->due_date ? \Carbon\Carbon::parse($delivery->due_date) : null;
-                $deliveryDate = $delivery->delivery_date;
-                $today = now()->startOfDay();
+        $getDueDeliveries = function () {
+            return \App\Models\Delivery::with(['supplier', 'servePo'])
+                ->withExists('deliveryFollowUps')
+                ->where(function($query) {
+                    $query->whereNull('status')
+                          ->orWhere('status', '!=', 'CANCELLED');
+                })
+                ->get()
+                ->filter(function ($delivery) {
+                    return $delivery->due_date !== null;
+                })
+                ->sortByDesc(function ($delivery) {
+                    return $delivery->due_date;
+                })
+                ->map(function ($delivery) {
+                    $due = $delivery->due_date ? \Carbon\Carbon::parse($delivery->due_date) : null;
+                    $deliveryDate = $delivery->delivery_date;
+                    $today = now()->startOfDay();
 
-                $isOverdue = false;
-                $daysOverdue = 0;
-                $diffDays = 0;
+                    $isOverdue = false;
+                    $daysOverdue = 0;
+                    $diffDays = 0;
 
-                if ($due) {
-                    $dueStart = $due->copy()->startOfDay();
-                    $diffDays = (int) $today->diffInDays($dueStart, false);
-                    if ($deliveryDate && $deliveryDate->gt($due)) {
-                        $isOverdue = true;
-                        $daysOverdue = (int) $due->diffInDays($deliveryDate);
-                    } else if (!$deliveryDate && $today->gt($dueStart)) {
-                        $isOverdue = true;
-                        $daysOverdue = (int) $dueStart->diffInDays($today);
+                    if ($due) {
+                        $dueStart = $due->copy()->startOfDay();
+                        $diffDays = (int) $today->diffInDays($dueStart, false);
+                        if ($deliveryDate && $deliveryDate->gt($due)) {
+                            $isOverdue = true;
+                            $daysOverdue = (int) $due->diffInDays($deliveryDate);
+                        } else if (!$deliveryDate && $today->gt($dueStart)) {
+                            $isOverdue = true;
+                            $daysOverdue = (int) $dueStart->diffInDays($today);
+                        }
                     }
-                }
 
-                return [
-                    'delivery_id' => $delivery->delivery_id,
-                    'po_number' => $delivery->po_number,
-                    'due_date' => $due ? $due->format('Y-m-d') : null,
-                    'due_date_formatted' => $due ? $due->format('M d, Y') : null,
-                    'time_ago' => ($delivery->data_entry_timestamp ?? $delivery->created_at ?? now())->diffForHumans(),
-                    'is_overdue' => $isOverdue,
-                    'days_overdue' => $daysOverdue,
-                    'diff_days' => $diffDays,
-                    'status' => $delivery->status,
-                    'end_user' => $delivery->end_user,
-                    'has_follow_up' => $delivery->delivery_follow_ups_exists ?? false,
-                    'supplier' => $delivery->supplier ? [
-                        'supplier_name' => $delivery->supplier->supplier_name,
-                    ] : null,
-                ];
-            })
-            ->values();
+                    return [
+                        'delivery_id' => $delivery->delivery_id,
+                        'po_number' => $delivery->po_number,
+                        'due_date' => $due ? $due->format('Y-m-d') : null,
+                        'due_date_formatted' => $due ? $due->format('M d, Y') : null,
+                        'time_ago' => ($delivery->data_entry_timestamp ?? $delivery->created_at ?? now())->diffForHumans(),
+                        'is_overdue' => $isOverdue,
+                        'days_overdue' => $daysOverdue,
+                        'diff_days' => $diffDays,
+                        'status' => $delivery->status,
+                        'end_user' => $delivery->end_user,
+                        'has_follow_up' => $delivery->delivery_follow_ups_exists ?? false,
+                        'supplier' => $delivery->supplier ? [
+                            'supplier_name' => $delivery->supplier->supplier_name,
+                        ] : null,
+                    ];
+                })
+                ->values();
+        };
 
-        $pendingDeliveriesCount = \App\Models\Delivery::where('status', 'PENDING')->count();
-        $deliveriesLastWeek = \App\Models\Delivery::where('status', 'PENDING')
-            ->where('data_entry_timestamp', '>=', now()->startOfWeek())
-            ->count();
-
-        $allPendingDeliveries = \App\Models\Delivery::with(['supplier', 'servePo'])
-            ->withExists('deliveryFollowUps')
-            ->where('status', 'PENDING')
-            ->orderBy('data_entry_timestamp', 'desc')
-            ->get()
-            ->map(function ($delivery) {
-                return [
-                    'delivery_id' => $delivery->delivery_id,
-                    'po_number' => $delivery->po_number,
-                    'due_date' => $delivery->due_date, // already a Y-m-d string now, no ->format() needed
-                    'status' => $delivery->status,
-                    'end_user' => $delivery->end_user,
-                    'has_follow_up' => $delivery->delivery_follow_ups_exists ?? false,
-                    'supplier' => $delivery->supplier ? [
-                        'supplier_name' => $delivery->supplier->supplier_name,
-                    ] : null,
-                ];
-            })
-            ->values();
+        $getAllPendingDeliveries = function () {
+            return \App\Models\Delivery::with(['supplier', 'servePo'])
+                ->withExists('deliveryFollowUps')
+                ->where('status', 'PENDING')
+                ->orderBy('data_entry_timestamp', 'desc')
+                ->get()
+                ->map(function ($delivery) {
+                    return [
+                        'delivery_id' => $delivery->delivery_id,
+                        'po_number' => $delivery->po_number,
+                        'due_date' => $delivery->due_date,
+                        'status' => $delivery->status,
+                        'end_user' => $delivery->end_user,
+                        'has_follow_up' => $delivery->delivery_follow_ups_exists ?? false,
+                        'supplier' => $delivery->supplier ? [
+                            'supplier_name' => $delivery->supplier->supplier_name,
+                        ] : null,
+                    ];
+                })
+                ->values();
+        };
 
         $getPoLettersStatusByPeriod = function ($period) {
             $query = \App\Models\PoLetterMonitoring::selectRaw("
@@ -214,200 +218,220 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             })->values();
         };
 
-        $poLettersStatus = [
-            'This Week' => $getPoLettersStatusByPeriod('This Week'),
-            'This Month' => $getPoLettersStatusByPeriod('This Month'),
-            'This Year' => $getPoLettersStatusByPeriod('This Year'),
-        ];
+        $getAllPendingInspections = function () {
+            return \App\Models\ServePo::with(['supplier', 'inspectionEntries'])
+                ->whereDoesntHave('inspectionEntries', function($query) {
+                    $query->whereNotNull('inspection_date');
+                })
+                ->where(function($query) {
+                    $query->whereNull('po_step')
+                          ->orWhere('po_step', '!=', 'CANCELLED');
+                })
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($po) {
+                    return [
+                        'pir_id' => $po->po_number,
+                        'po_number' => $po->po_number,
+                        'iar_number' => $po->inspectionEntries->first()?->iar_number,
+                        'invoice_number' => $po->invoice_number,
+                        'supplier' => $po->supplier ? [
+                            'supplier_name' => $po->supplier->supplier_name,
+                        ] : null,
+                    ];
+                })
+                ->values();
+        };
 
-        $pendingInspectionsCount = \App\Models\ServePo::whereDoesntHave('inspectionEntries', function($query) {
-                $query->whereNotNull('inspection_date');
-            })
-            ->where(function($query) {
-                $query->whereNull('po_step')
-                      ->orWhere('po_step', '!=', 'CANCELLED');
-            })
-            ->count();
+        $getAllPendingClearances = function () {
+            return \App\Models\ServePo::with(['supplier', 'inspectionEntries'])
+                ->where(function($query) {
+                    $query->whereNull('receipt_claimed_by')
+                          ->whereNull('items_claimed_by');
+                })
+                ->where(function($query) {
+                    $query->whereNull('po_step')
+                          ->orWhere('po_step', '!=', 'CANCELLED');
+                })
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($po) {
+                    return [
+                        'pir_id' => $po->po_number,
+                        'po_number' => $po->po_number,
+                        'iar_number' => $po->inspectionEntries->first()?->iar_number,
+                        'invoice_number' => $po->invoice_number,
+                        'supplier' => $po->supplier ? [
+                            'supplier_name' => $po->supplier->supplier_name,
+                        ] : null,
+                    ];
+                })
+                ->values();
+        };
 
-        $inspectionsLastWeek = \App\Models\ServePo::whereDoesntHave('inspectionEntries', function($query) {
-                $query->whereNotNull('inspection_date');
-            })
-            ->where(function($query) {
-                $query->whereNull('po_step')
-                      ->orWhere('po_step', '!=', 'CANCELLED');
-            })
-            ->where('created_at', '>=', now()->startOfWeek())
-            ->count();
+        $reportsYear = (int) $request->input('reports_year', now()->year);
+        $reportsQuarter = (int) $request->input('reports_quarter', now()->quarter);
 
-        $allPendingInspections = \App\Models\ServePo::with(['supplier', 'inspectionEntries'])
-            ->whereDoesntHave('inspectionEntries', function($query) {
-                $query->whereNotNull('inspection_date');
-            })
-            ->where(function($query) {
-                $query->whereNull('po_step')
-                      ->orWhere('po_step', '!=', 'CANCELLED');
-            })
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($po) {
-                return [
-                    'pir_id' => $po->po_number,
-                    'po_number' => $po->po_number,
-                    'iar_number' => $po->inspectionEntries->first()?->iar_number,
-                    'invoice_number' => $po->invoice_number,
-                    'supplier' => $po->supplier ? [
-                        'supplier_name' => $po->supplier->supplier_name,
-                    ] : null,
-                ];
-            })
-            ->values();
+        $getReportsStats = function () use ($reportsYear, $reportsQuarter) {
+            $startMonth = ($reportsQuarter - 1) * 3 + 1;
+            $endMonth = $startMonth + 2;
 
-        $pendingClearancesCount = \App\Models\ServePo::where(function($query) {
-                $query->whereNull('receipt_claimed_by')
-                      ->whereNull('items_claimed_by');
-            })
-            ->where(function($query) {
-                $query->whereNull('po_step')
-                      ->orWhere('po_step', '!=', 'CANCELLED');
-            })
-            ->count();
+            $reportsQuery = \App\Models\ServePo::whereYear('created_at', $reportsYear)
+                ->whereMonth('created_at', '>=', $startMonth)
+                ->whereMonth('created_at', '<=', $endMonth);
 
-        $clearancesLastWeek = \App\Models\ServePo::where(function($query) {
-                $query->whereNull('receipt_claimed_by')
-                      ->whereNull('items_claimed_by');
-            })
-            ->where(function($query) {
-                $query->whereNull('po_step')
-                      ->orWhere('po_step', '!=', 'CANCELLED');
-            })
-            ->where('created_at', '>=', now()->startOfWeek())
-            ->count();
+            return [
+                'COMPLETED' => (clone $reportsQuery)->where('po_step', 'COMPLETED')->count(),
+                'CANCELLED' => (clone $reportsQuery)->where('po_step', 'CANCELLED')->count(),
+                'ONGOING' => (clone $reportsQuery)->where(function($q) {
+                    $q->where('po_step', 'ONGOING')
+                      ->orWhereNull('po_step')
+                      ->orWhereNotIn('po_step', ['COMPLETED', 'CANCELLED']);
+                })->count(),
+            ];
+        };
 
-        $allPendingClearances = \App\Models\ServePo::with(['supplier', 'inspectionEntries'])
-            ->where(function($query) {
-                $query->whereNull('receipt_claimed_by')
-                      ->whereNull('items_claimed_by');
-            })
-            ->where(function($query) {
-                $query->whereNull('po_step')
-                      ->orWhere('po_step', '!=', 'CANCELLED');
-            })
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($po) {
-                return [
-                    'pir_id' => $po->po_number,
-                    'po_number' => $po->po_number,
-                    'iar_number' => $po->inspectionEntries->first()?->iar_number,
-                    'invoice_number' => $po->invoice_number,
-                    'supplier' => $po->supplier ? [
-                        'supplier_name' => $po->supplier->supplier_name,
-                    ] : null,
-                ];
-            })
-            ->values();
+        $getPoStats = function () {
+            $deliveriesByPo = DB::table('delivery')
+                ->whereNull('deleted_at')
+                ->select('po_number', DB::raw("UPPER(COALESCE(status, '')) as status_upper"))
+                ->get()
+                ->groupBy('po_number');
 
-        $reportsYear = $request->input('reports_year', now()->year);
-        $reportsQuarter = $request->input('reports_quarter', now()->quarter);
-        $startMonth = ($reportsQuarter - 1) * 3 + 1;
-        $endMonth = $startMonth + 2;
+            $allPoNumbers = DB::table('serve_po')
+                ->whereNull('deleted_at')
+                ->pluck('po_number');
 
-        $reportsQuery = \App\Models\ServePo::whereYear('created_at', $reportsYear)
-            ->whereMonth('created_at', '>=', $startMonth)
-            ->whereMonth('created_at', '<=', $endMonth);
+            $poStats = ['COMPLETE' => 0, 'PARTIAL' => 0, 'PENDING' => 0, 'CANCELLED' => 0];
 
-        $reportsStats = [
-            'COMPLETED' => (clone $reportsQuery)->where('po_step', 'COMPLETED')->count(),
-            'CANCELLED' => (clone $reportsQuery)->where('po_step', 'CANCELLED')->count(),
-            'ONGOING' => (clone $reportsQuery)->where(function($q) {
-                $q->where('po_step', 'ONGOING')
-                  ->orWhereNull('po_step')
-                  ->orWhereNotIn('po_step', ['COMPLETED', 'CANCELLED']);
-            })->count(),
-        ];
+            foreach ($allPoNumbers as $poNum) {
+                $deliveries = $deliveriesByPo->get($poNum);
+                if (!$deliveries || $deliveries->isEmpty()) {
+                    $poStats['PENDING']++;
+                    continue;
+                }
 
-        $allPos = \App\Models\ServePo::with('deliveries:delivery_id,po_number,status')->get();
-        $poStats = ['COMPLETE' => 0, 'PARTIAL' => 0, 'PENDING' => 0, 'CANCELLED' => 0];
-        
-        foreach ($allPos as $po) {
-            $deliveries = $po->deliveries;
-            if ($deliveries->isEmpty()) {
-                $poStats['PENDING']++;
-                continue;
-            }
-            
-            $totalCount = $deliveries->count();
-            $completedCount = 0;
-            $cancelledCount = 0;
-            $pendingCount = 0;
-            
-            foreach ($deliveries as $d) {
-                $status = strtoupper($d->status ?? '');
-                if ($status === 'COMPLETE' || $status === 'COMPLETED') {
-                    $completedCount++;
-                } elseif ($status === 'CANCELLED') {
-                    $cancelledCount++;
+                $totalCount = $deliveries->count();
+                $completedCount = 0;
+                $cancelledCount = 0;
+                $pendingCount = 0;
+
+                foreach ($deliveries as $d) {
+                    $status = $d->status_upper;
+                    if ($status === 'COMPLETE' || $status === 'COMPLETED') {
+                        $completedCount++;
+                    } elseif ($status === 'CANCELLED') {
+                        $cancelledCount++;
+                    } else {
+                        $pendingCount++;
+                    }
+                }
+
+                if ($completedCount === $totalCount) {
+                    $poStats['COMPLETE']++;
+                } elseif ($cancelledCount === $totalCount) {
+                    $poStats['CANCELLED']++;
+                } elseif ($pendingCount === $totalCount) {
+                    $poStats['PENDING']++;
                 } else {
-                    $pendingCount++;
+                    $poStats['PARTIAL']++;
                 }
             }
-            
-            if ($completedCount === $totalCount) {
-                $poStats['COMPLETE']++;
-            } elseif ($cancelledCount === $totalCount) {
-                $poStats['CANCELLED']++;
-            } elseif ($pendingCount === $totalCount) {
-                $poStats['PENDING']++;
-            } else {
-                $poStats['PARTIAL']++;
-            }
-        }
+
+            return $poStats;
+        };
 
         return Inertia::render('dashboard', [
-            'recentActivity' => $recentActivity,
-            'recentDeliveries' => $recentDeliveries,
-            'deliveries' => $dueDeliveries,
-            'pendingDeliveries' => $pendingDeliveriesCount,
-            'deliveriesLastWeek' => $deliveriesLastWeek,
-            'allPendingDeliveries' => $allPendingDeliveries,
-            'poLettersStatus' => $poLettersStatus,
-            'pendingInspections' => $pendingInspectionsCount,
-            'inspectionsLastWeek' => $inspectionsLastWeek,
-            'allPendingInspections' => $allPendingInspections,
-            'pendingClearances' => $pendingClearancesCount,
-            'clearancesLastWeek' => $clearancesLastWeek,
-            'allPendingClearances' => $allPendingClearances,
-            'reportsStats' => $reportsStats,
-            'reportsYear' => (int) $reportsYear,
-            'reportsQuarter' => (int) $reportsQuarter,
-            'poStats' => $poStats,
-            'userNotifications' => $request->user()->notifications()->latest()->take(20)->get(),    
+            'recentActivity' => fn () => $getRecentActivity(),
+            'recentDeliveries' => fn () => $getRecentDeliveries(),
+            'deliveries' => fn () => $getDueDeliveries(),
+            'pendingDeliveries' => fn () => \App\Models\Delivery::where('status', 'PENDING')->count(),
+            'deliveriesLastWeek' => fn () => \App\Models\Delivery::where('status', 'PENDING')
+                ->where('data_entry_timestamp', '>=', now()->startOfWeek())
+                ->count(),
+            'allPendingDeliveries' => fn () => $getAllPendingDeliveries(),
+            'poLettersStatus' => fn () => [
+                'This Week' => $getPoLettersStatusByPeriod('This Week'),
+                'This Month' => $getPoLettersStatusByPeriod('This Month'),
+                'This Year' => $getPoLettersStatusByPeriod('This Year'),
+            ],
+            'pendingInspections' => fn () => \App\Models\ServePo::whereDoesntHave('inspectionEntries', function($query) {
+                    $query->whereNotNull('inspection_date');
+                })
+                ->where(function($query) {
+                    $query->whereNull('po_step')
+                          ->orWhere('po_step', '!=', 'CANCELLED');
+                })
+                ->count(),
+            'inspectionsLastWeek' => fn () => \App\Models\ServePo::whereDoesntHave('inspectionEntries', function($query) {
+                    $query->whereNotNull('inspection_date');
+                })
+                ->where(function($query) {
+                    $query->whereNull('po_step')
+                          ->orWhere('po_step', '!=', 'CANCELLED');
+                })
+                ->where('created_at', '>=', now()->startOfWeek())
+                ->count(),
+            'allPendingInspections' => fn () => $getAllPendingInspections(),
+            'pendingClearances' => fn () => \App\Models\ServePo::where(function($query) {
+                    $query->whereNull('receipt_claimed_by')
+                          ->whereNull('items_claimed_by');
+                })
+                ->where(function($query) {
+                    $query->whereNull('po_step')
+                          ->orWhere('po_step', '!=', 'CANCELLED');
+                })
+                ->count(),
+            'clearancesLastWeek' => fn () => \App\Models\ServePo::where(function($query) {
+                    $query->whereNull('receipt_claimed_by')
+                          ->whereNull('items_claimed_by');
+                })
+                ->where(function($query) {
+                    $query->whereNull('po_step')
+                          ->orWhere('po_step', '!=', 'CANCELLED');
+                })
+                ->where('created_at', '>=', now()->startOfWeek())
+                ->count(),
+            'allPendingClearances' => fn () => $getAllPendingClearances(),
+            'reportsStats' => fn () => $getReportsStats(),
+            'reportsYear' => $reportsYear,
+            'reportsQuarter' => $reportsQuarter,
+            'poStats' => fn () => $getPoStats(),
+            'userNotifications' => fn () => $request->user()->notifications()->latest()->take(20)->get(),    
         ]);
     })->name('dashboard');
 
     Route::get('/my-activity', [\App\Http\Controllers\MyActivityController::class, 'index'])->name('my-activity.index');
 
     Route::get('/api/online-users', function () {
-            return \App\Models\User::query()
-                ->select('id', 'name', 'email', 'role', 'avatar_path', 'current_session_id')
-                ->get()
-                ->map(function ($u) {
-                    $lastActivity = $u->current_session_id
-                        ? DB::table('sessions')->where('id', $u->current_session_id)->value('last_activity')
-                        : null;
+        $twoMinutesAgo = now()->subMinutes(2)->timestamp;
 
-                    $online = $lastActivity !== null && $lastActivity >= now()->subMinutes(2)->timestamp;
+        return \App\Models\User::query()
+            ->leftJoin('sessions', 'users.current_session_id', '=', 'sessions.id')
+            ->select([
+                'users.id',
+                'users.name',
+                'users.email',
+                'users.role',
+                'users.avatar_path',
+                'users.updated_at',
+                'sessions.last_activity',
+            ])
+            ->get()
+            ->map(function ($u) use ($twoMinutesAgo) {
+                $lastActivity = $u->last_activity;
+                $online = $lastActivity !== null && $lastActivity >= $twoMinutesAgo;
 
-                    return [
-                        'id' => $u->id,
-                        'name' => $u->name,
-                        'email' => $u->email,
-                        'role' => $u->role,
-                        'avatar' => $u->avatar_url,
-                        'online' => $online,
-                        'last_seen' => $lastActivity ? \Carbon\Carbon::createFromTimestamp($lastActivity)->diffForHumans() : null,
-                    ];
-                });
+                return [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'role' => $u->role,
+                    'avatar' => $u->avatar_url,
+                    'online' => $online,
+                    'last_seen' => $lastActivity ? \Carbon\Carbon::createFromTimestamp($lastActivity)->diffForHumans() : null,
+                ];
+            });
     })->name('online-users');
 
     // Called on an interval by useSessionHeartbeat() while an authenticated

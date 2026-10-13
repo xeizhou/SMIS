@@ -29,6 +29,8 @@ import {
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { toDateInputValue, daysBetween, addDays } from '@/lib/date';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
+import { PATTERNS, MESSAGES } from '@/lib/validation';
 interface Attachment {
     id: number;
     original_name: string;
@@ -101,6 +103,8 @@ interface FieldProps {
 
     onRefresh?: () => void;
     isRefreshing?: boolean;
+    pattern?: string;
+    title?: string;
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
@@ -150,11 +154,13 @@ function Field({
     disabled = false,
     onRefresh,
     isRefreshing = false,
+    pattern,
+    title,
 }: FieldProps) {
     return (
         <div>
             <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm text-foreground">
+                <label htmlFor={name} className="block text-sm text-foreground">
                     {label}
                     {required && <span className="text-red-500"> *</span>}
                 </label>
@@ -171,6 +177,7 @@ function Field({
                 )}
             </div>
             <Input
+                id={name}
                 type={type}
                 name={name}
                 value={value}
@@ -178,6 +185,10 @@ function Field({
                 placeholder={placeholder}
                 readOnly={readOnly}
                 disabled={disabled}
+                required={required}
+                pattern={pattern}
+                title={title}
+                className={cn(error && 'border-red-500')}
             />
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
@@ -431,6 +442,9 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
     };
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const setError = (field: string, message: string) => setErrors((prev) => ({ ...prev, [field]: message }));
+    const clearErrors = (field: string) => setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
     const [processing, setProcessing] = useState(false);
     const [newFiles, setNewFiles] = useState<StagedFile[]>([]);
     const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
@@ -677,7 +691,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                             <DialogTitle>Edit Delivery Record — {delivery?.delivery_id}, {delivery?.po_number}</DialogTitle>
                         </DialogHeader>
 
-                        <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                        <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} noValidate className="mt-6 space-y-8">
                             {/* Section: Order Details */}
                             <div>
                                 <h3 className={sectionTitleClass}>Order Details</h3>
@@ -707,7 +721,6 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         readOnly
                                         disabled
                                     />
-                                            {errors.supplier_name && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.supplier_name}</p>}
 
                                     <Field
                                         label="PO Date Received"
@@ -794,7 +807,6 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         readOnly
                                         disabled
                                     />
-                                            {errors.no_of_days_ld && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.no_of_days_ld}</p>}
 
                                     <Field
                                         label="Received By (1)"
@@ -803,6 +815,8 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         onChange={handleChange}
                                         error={errors.received_by_1}
                                         placeholder="e.g. Alvin B."
+                                        pattern={PATTERNS.nameOrOffice.source}
+                                        title={MESSAGES.names}
                                     />
 
                                     <Field
@@ -812,6 +826,8 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         onChange={handleChange}
                                         error={errors.received_by_2}
                                         placeholder="e.g. J. Santos"
+                                        pattern={PATTERNS.nameOrOffice.source}
+                                        title={MESSAGES.names}
                                     />
 
                                     <Field
@@ -830,6 +846,8 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         onChange={handleChange}
                                         error={errors.place_of_delivery}
                                         placeholder="e.g. BGH, Davao City"
+                                        pattern={PATTERNS.address.source}
+                                        title={MESSAGES.address}
                                     />
                                 </div>
                             </div>
@@ -905,8 +923,9 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         onChange={handleChange}
                                         error={errors.folder_link}
                                         placeholder="https://drive.google.com/drive/folders/..."
+                                        pattern={PATTERNS.documentLink.source}
+                                        title={MESSAGES.documentLink}
                                     />
-                                            {errors.folder_link && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.folder_link}</p>}
 
                                     <div className="md:col-span-2">
                                         <label className={labelClass}>Remarks</label>

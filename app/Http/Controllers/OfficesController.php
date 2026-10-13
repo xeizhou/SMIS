@@ -41,8 +41,10 @@ public function index(Request $request)
             });
         }
 
-        // 3. Apply the dynamic sorting to your query
-        $offices = $query->orderBy($sortField, $sortDirection)
+        // 3. Apply the dynamic sorting (case-insensitive)
+        $offices = $query
+            ->orderByRaw("LOWER({$sortField}) {$sortDirection}")
+            ->orderBy('office_code')
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 

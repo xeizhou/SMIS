@@ -84,20 +84,27 @@ class TransactionLogsController extends Controller
             $query->where('transaction_date', '<=', $dateTo . ' 23:59:59');
         }
 
-        // 3. Apply the dynamic sorting
+        // 3. Apply the dynamic sorting (case-insensitive for text columns)
+        $textSorts = ['transaction_type', 'item_name', 'reference', 'fund_cluster', 'office_code'];
+
         if ($sortField === 'unit_name') {
             // Use a subquery to sort by the related unit name without doing a full JOIN
             $query->orderBy(
-                Unit::select('unit_short_name')
+                Unit::selectRaw('LOWER(unit_short_name)')
                     ->whereColumn('units.unitID', 'transactions.unitID')
                     ->limit(1),
                 $sortDirection
             );
+        } elseif (in_array($sortField, $textSorts, true)) {
+            $query->orderByRaw("LOWER({$sortField}) {$sortDirection}");
         } else {
             $query->orderBy($sortField, $sortDirection);
         }
 
-        $transactions = $query->paginateWithHighlight($perPage)->withQueryString();
+        $transactions = $query
+            ->orderBy('transactionID', 'desc')
+            ->paginateWithHighlight($perPage)
+            ->withQueryString();
 
         // Avoid key collision: relation "fundCluster" snake-cases to "fund_cluster",
         // which clobbers the raw FK column of the same name in JSON output.

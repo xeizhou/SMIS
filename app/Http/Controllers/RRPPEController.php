@@ -73,23 +73,17 @@ class RRPPEController extends Controller
                 ];
             });
 
-        $statuses = \App\Models\RrppeItem::whereNotNull('status')
-            ->distinct()
-            ->pluck('status')
-            ->sort()
-            ->values();
-
-        $areas = \App\Models\Area::orderBy('name')->pluck('name');
-
-        $stockItems = \App\Models\StockItem::orderBy('item_name')
-            ->get(['stock_no', 'item_name', 'description']);
-
         return Inertia::render('rrppe-monitoring/index', [
             'data' => $data,
             'filters' => array_merge($request->only(['search', 'status']), ['sort_field' => $sortField ?: null, 'sort_direction' => $sortDirection]),
-            'statuses' => $statuses,
-            'areas' => $areas,
-            'stockItems' => $stockItems,
+            'statuses' => fn () => \App\Models\RrppeItem::whereNotNull('status')
+                ->distinct()
+                ->pluck('status')
+                ->sort()
+                ->values(),
+            'areas' => fn () => \App\Models\Area::orderBy('name')->pluck('name'),
+            'stockItems' => fn () => \App\Models\StockItem::orderBy('item_name')
+                ->get(['stock_no', 'item_name', 'description']),
         ]);
     }
 

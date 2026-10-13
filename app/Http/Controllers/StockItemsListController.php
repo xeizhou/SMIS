@@ -107,12 +107,23 @@ class StockItemsListController extends Controller
         ];
 
         if (array_key_exists($sortField, $allowedSorts)) {
-            $query->orderBy($allowedSorts[$sortField], $sortDirection);
+            $column = $allowedSorts[$sortField];
+
+            if ($sortField === 'balance_per_stock_card') {
+                // numeric column: normal sort
+                $query->orderBy($column, $sortDirection);
+            } else {
+                // text columns: case-insensitive
+                $query->orderByRaw("LOWER({$column}) {$sortDirection}");
+            }
         } else {
             // Default behavior if no sort or an invalid sort is passed
             $query->orderByRaw('last_transaction_id IS NULL')
-                  ->orderByDesc('last_transaction_id');
+                ->orderByDesc('last_transaction_id');
         }
+
+        // Tie-breaker so the order stays stable across pages
+        $query->orderBy('i.stock_no');
 
         $issueCountExpr = "SUM(CASE WHEN t.transaction_type = 'ISSUE' THEN 1 ELSE 0 END)";
 

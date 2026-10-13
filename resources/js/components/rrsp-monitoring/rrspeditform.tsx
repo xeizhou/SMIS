@@ -1,5 +1,5 @@
 import { useForm, router } from '@inertiajs/react';
-import { PATTERNS, MESSAGES } from '@/lib/validation';
+import { PATTERNS, MESSAGES, formatReferenceNumberInput } from '@/lib/validation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect, useRef } from 'react';
 import { useNativeValidation } from '@/hooks/useNativeValidation';
@@ -513,8 +513,9 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
                                         required
                                         pattern={PATTERNS.rrspNo.source}
                                         title={MESSAGES.numbersAndHyphens}
+                                        placeholder="e.g. 2025-03-0001"
                                         value={data.rrspNo}
-                                        onChange={(e) => setData('rrspNo', e.target.value)}
+                                        onChange={(e) => setData('rrspNo', formatReferenceNumberInput(e.target.value))}
                                     />
                                     {errors.rrspNo && (
                                         <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.rrspNo}</p>

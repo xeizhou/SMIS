@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\ValidationHelper;
 use App\Models\FundCluster;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -56,8 +57,11 @@ public function index(Request $request)
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'fund_cluster_id' => 'required|string|max:255|unique:fund_clusters,fund_cluster_id',
-            'fund_description' => 'required|string|max:255',
+            'fund_cluster_id' => ['required', 'string', 'max:255', 'unique:fund_clusters,fund_cluster_id', 'regex:' . ValidationHelper::pattern('numbersOnly')],
+            'fund_description' => ['required', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('fundDescription')],
+        ], [
+            'fund_cluster_id.regex' => ValidationHelper::message('numbersOnly'),
+            'fund_description.regex' => ValidationHelper::message('fundDescription'),
         ]);
 
         FundCluster::create($validated);
@@ -71,7 +75,9 @@ public function index(Request $request)
     public function update(Request $request, FundCluster $fundCluster)
     {
         $validated = $request->validate([
-            'fund_description' => 'required|string|max:255',
+            'fund_description' => ['required', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('fundDescription')],
+        ], [
+            'fund_description.regex' => ValidationHelper::message('fundDescription'),
         ]);
 
         $fundCluster->update($validated);

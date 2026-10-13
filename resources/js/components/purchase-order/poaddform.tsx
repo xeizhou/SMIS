@@ -31,6 +31,8 @@ import { Alert } from '@/components/ui/alert';
 import SupplierQuickAddModal from '@/components/suppliers/supplier-quick-add-modal';
 import ItemMultiSelect, { type StockItemOption } from '@/components/purchase-order/item-multi-select';
 import StockItemQuickAddModal from '@/components/purchase-order/stock-item-quick-add-modal';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
+import { PATTERNS, MESSAGES, formatPoNumberInput } from '@/lib/validation';
 
 interface Supplier {
     supplier_id: number;
@@ -65,6 +67,10 @@ interface FieldProps {
     required?: boolean;
     placeholder?: string;
     type?: string;
+    pattern?: string;
+    title?: string;
+    readOnly?: boolean;
+    disabled?: boolean;
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
@@ -81,10 +87,14 @@ function Field({
     required = false,
     placeholder = '',
     type = 'text',
+    pattern,
+    title,
+    readOnly,
+    disabled,
 }: FieldProps) {
     return (
         <div>
-            <label className={labelClass}>
+            <label className={labelClass} htmlFor={name}>
                 {label}
                 {required && <span className="text-red-500"> *</span>}
             </label>
@@ -92,9 +102,15 @@ function Field({
             <Input
                 type={type}
                 name={name}
+                id={name}
+                pattern={pattern}
+                title={title}
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                required={required}
+                readOnly={readOnly}
+                disabled={disabled}
             />
 
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
@@ -359,29 +375,6 @@ function calculateResponsibilityCenter(fundClusterId: string, endUser: string) {
     return [fundClusterId, endUser].filter(Boolean).join(' ');
 }
 
-function formatPoNumberInput(raw: string): string {
-    const digits = raw.replace(/\D/g, '');
-
-    let year = digits.slice(0, 4);
-    let month = digits.slice(4, 6);
-    let seq = digits.slice(6, 10);
-
-    // Clamp month to 01–12 as it's typed
-    if (month.length === 1 && !['0', '1'].includes(month)) {
-        month = ''; // reject a first digit that can't start a valid month
-    }
-    if (month.length === 2) {
-        const m = parseInt(month, 10);
-        if (m < 1 || m > 12) {
-            month = month[0]; // drop the invalid second digit
-        }
-    }
-
-    let out = year;
-    if (month) out += '-' + month;
-    if (seq) out += '-' + seq;
-    return out;
-}
 
 function formatBytes(bytes: number) {
     const kb = bytes / 1024;
@@ -444,6 +437,9 @@ export default function PurchaseOrderAddForm({
     const [data, setData] = useState(emptyForm);
     const [itemStockNos, setItemStockNos] = useState<string[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const setError = (field: string, message: string) => setErrors((prev) => ({ ...prev, [field]: message }));
+    const clearErrors = (field: string) => setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
     const [processing, setProcessing] = useState(false);
     const [files, setFiles] = useState<StagedFile[]>([]);
     const [refreshingField, setRefreshingField] = useState<string | null>(null);
@@ -663,7 +659,7 @@ export default function PurchaseOrderAddForm({
                                 </div>
                             </Alert>
 
-                            <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+                            <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} noValidate className="mt-6 space-y-8">
                                 {/* Section: Purchase Order Details */}
                                 <div>
                                     <h3 className={sectionTitleClass}>Purchase Order Details</h3>
@@ -675,9 +671,10 @@ export default function PurchaseOrderAddForm({
                                             onChange={handlePoNumberChange}
                                             error={errors.po_number}
                                             placeholder="2026-01-0001"
+                                            pattern={PATTERNS.poNo.source}
+                                            title={MESSAGES.numbersAndHyphens}
                                             required
                                         />
-                                            {errors.po_number && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.po_number}</p>}
                                         <SelectField
                                             label="Mode of Procurement"
                                             value={data.mode_of_procurement}
@@ -718,6 +715,8 @@ export default function PurchaseOrderAddForm({
                                             onChange={handleChange}
                                             error={errors.inclusive_date}
                                             placeholder="e.g. Jan 1 - Jan 15, 2026"
+                                            pattern={PATTERNS.inclusiveDate.source}
+                                            title={MESSAGES.inclusiveDate}
                                         />
                                         <Field
                                             label="PR No."
@@ -726,6 +725,8 @@ export default function PurchaseOrderAddForm({
                                             onChange={handleChange}
                                             error={errors.pr_number}
                                             placeholder="20XX-0X-XXXX"
+                                            pattern={PATTERNS.prNo.source}
+                                            title={MESSAGES.numbersAndHyphens}
                                         />
                                         <Field
                                             label="PR Date"
@@ -742,6 +743,8 @@ export default function PurchaseOrderAddForm({
                                             onChange={handleChange}
                                             error={errors.philgeps_reference_no}
                                             placeholder="00000000"
+                                            pattern={PATTERNS.philgepsRefNo.source}
+                                            title={MESSAGES.numbersOnly}
                                         />
 
                                         <SelectField
@@ -767,6 +770,8 @@ export default function PurchaseOrderAddForm({
                                                 onChange={handleChange}
                                                 error={errors.inclusive_date}
                                                 placeholder="e.g. Jan 1 - Jan 15, 2026"
+                                                pattern={PATTERNS.inclusiveDate.source}
+                                                title={MESSAGES.inclusiveDate}
                                             />
                                         )}
 
@@ -834,8 +839,9 @@ export default function PurchaseOrderAddForm({
                                             onChange={handleChange}
                                             error={errors.ors_burs_no}
                                             placeholder="00-000000-2025-00-0000"
+                                            pattern={PATTERNS.orsBursNo.source}
+                                            title={MESSAGES.numbersAndHyphens}
                                         />
-                                            {errors.ors_burs_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.ors_burs_no}</p>}
                                         <Field
                                             label="ORS/BURS Date"
                                             name="ors_burs_date"
@@ -863,8 +869,9 @@ export default function PurchaseOrderAddForm({
                                             onChange={handleChange}
                                             error={errors.uacs_object_code}
                                             placeholder="00000000"
+                                            pattern={PATTERNS.uacsObjectCode.source}
+                                            title={MESSAGES.numbersOnly}
                                         />
-                                            {errors.uacs_object_code && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.uacs_object_code}</p>}
                                     </div>
                                 </div>
 

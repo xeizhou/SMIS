@@ -9,6 +9,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { useNativeValidation } from '@/hooks/useNativeValidation';
+import { PATTERNS, MESSAGES } from '@/lib/validation';
 
 interface Props {
     open: boolean;
@@ -23,6 +26,8 @@ interface FieldProps {
     error?: string;
     required?: boolean;
     placeholder?: string;
+    pattern?: string;
+    title?: string;
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
@@ -35,18 +40,25 @@ function Field({
     error,
     required = false,
     placeholder = '',
+    pattern,
+    title,
 }: FieldProps) {
     return (
         <div>
-            <label className={labelClass}>
+            <label htmlFor={name} className={labelClass}>
                 {label}
                 {required && <span className="text-red-500"> *</span>}
             </label>
             <Input
+                id={name}
                 name={name}
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                required={required}
+                pattern={pattern}
+                title={title}
+                className={cn(error && 'border-red-500')}
             />
             {error && (
                 <p className="mt-1 text-[11px] text-red-500 font-medium">
@@ -68,6 +80,9 @@ export default function FundClusterAddForm({
 }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const setError = (field: string, message: string) => setErrors((prev) => ({ ...prev, [field]: message }));
+    const clearErrors = (field: string) => setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
+    const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement>
@@ -103,6 +118,9 @@ export default function FundClusterAddForm({
                 </DialogHeader>
                 <form
                     onSubmit={handleSubmit}
+                    onBlur={handleBlur}
+                    onChange={handleValidationChange}
+                    noValidate
                     className="mt-4 space-y-4"
                 >
                     <Field
@@ -113,8 +131,9 @@ export default function FundClusterAddForm({
                         error={errors.fund_cluster_id}
                         required
                         placeholder="e.g. 101"
+                        pattern={PATTERNS.numbersOnly.source}
+                        title={MESSAGES.numbersOnly}
                     />
-                                            {errors.fund_cluster_id && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.fund_cluster_id}</p>}
                     <Field
                         label="Fund Description"
                         name="fund_description"
@@ -123,6 +142,8 @@ export default function FundClusterAddForm({
                         error={errors.fund_description}
                         required
                         placeholder="e.g. General Fund"
+                        pattern={PATTERNS.fundDescription.source}
+                        title={MESSAGES.fundDescription}
                     />
 
                     <div className="flex justify-end gap-3 pt-2">

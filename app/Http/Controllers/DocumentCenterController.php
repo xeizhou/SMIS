@@ -15,64 +15,68 @@ class DocumentCenterController extends Controller
 {
     public function index(): Response
     {
-        $deliveryCounts = Attachment::where('attachable_type', Delivery::class)
-            ->selectRaw('attachable_id, count(*) as count')
-            ->groupBy('attachable_id')
-            ->pluck('count', 'attachable_id');
+        $getPurchaseOrders = function () {
+            $deliveryCounts = Attachment::where('attachable_type', Delivery::class)
+                ->selectRaw('attachable_id, count(*) as count')
+                ->groupBy('attachable_id')
+                ->pluck('count', 'attachable_id');
 
-        $poCounts = Attachment::where('attachable_type', ServePo::class)
-            ->selectRaw('attachable_id, count(*) as count')
-            ->groupBy('attachable_id')
-            ->pluck('count', 'attachable_id');
+            $poCounts = Attachment::where('attachable_type', ServePo::class)
+                ->selectRaw('attachable_id, count(*) as count')
+                ->groupBy('attachable_id')
+                ->pluck('count', 'attachable_id');
 
-        $letterCounts = Attachment::where('attachable_type', PoLetterMonitoring::class)
-            ->selectRaw('attachable_id, count(*) as count')
-            ->groupBy('attachable_id')
-            ->pluck('count', 'attachable_id');
+            $letterCounts = Attachment::where('attachable_type', PoLetterMonitoring::class)
+                ->selectRaw('attachable_id, count(*) as count')
+                ->groupBy('attachable_id')
+                ->pluck('count', 'attachable_id');
 
-        $clearanceCounts = Attachment::where('attachable_type', Clearance::class)
-            ->selectRaw('attachable_id, count(*) as count')
-            ->groupBy('attachable_id')
-            ->pluck('count', 'attachable_id');
+            $deliveryPoMap = Delivery::pluck('po_number', 'delivery_id');
+            $letterPoMap = PoLetterMonitoring::pluck('po_number', 'id');
 
-        $deliveryPoMap = Delivery::pluck('po_number', 'delivery_id');
-        $letterPoMap = PoLetterMonitoring::pluck('po_number', 'id');
-
-        $totalsByPo = [];
-        foreach ($poCounts as $poNumber => $count) {
-            $totalsByPo[$poNumber] = ($totalsByPo[$poNumber] ?? 0) + $count;
-        }
-        foreach ($deliveryCounts as $deliveryId => $count) {
-            $poNumber = $deliveryPoMap[$deliveryId] ?? null;
-            if ($poNumber) {
+            $totalsByPo = [];
+            foreach ($poCounts as $poNumber => $count) {
                 $totalsByPo[$poNumber] = ($totalsByPo[$poNumber] ?? 0) + $count;
             }
-        }
-        foreach ($letterCounts as $letterId => $count) {
-            $poNumber = $letterPoMap[$letterId] ?? null;
-            if ($poNumber) {
-                $totalsByPo[$poNumber] = ($totalsByPo[$poNumber] ?? 0) + $count;
+            foreach ($deliveryCounts as $deliveryId => $count) {
+                $poNumber = $deliveryPoMap[$deliveryId] ?? null;
+                if ($poNumber) {
+                    $totalsByPo[$poNumber] = ($totalsByPo[$poNumber] ?? 0) + $count;
+                }
             }
-        }
+            foreach ($letterCounts as $letterId => $count) {
+                $poNumber = $letterPoMap[$letterId] ?? null;
+                if ($poNumber) {
+                    $totalsByPo[$poNumber] = ($totalsByPo[$poNumber] ?? 0) + $count;
+                }
+            }
 
-        $purchaseOrders = ServePo::orderBy('po_date', 'desc')
-            ->get(['po_number', 'end_user', 'po_date'])
-            ->map(fn ($po) => [
-                'id' => $po->po_number,
-                'label' => $po->po_number,
-                'subtitle' => $po->end_user,
-                'attachment_count' => $totalsByPo[$po->po_number] ?? 0,
-            ]);
+            return ServePo::orderBy('po_date', 'desc')
+                ->get(['po_number', 'end_user', 'po_date'])
+                ->map(fn ($po) => [
+                    'id' => $po->po_number,
+                    'label' => $po->po_number,
+                    'subtitle' => $po->end_user,
+                    'attachment_count' => $totalsByPo[$po->po_number] ?? 0,
+                ]);
+        };
 
-        $clearances = Clearance::with('offices:id,clearance_office_name')
-            ->orderBy('claim_date', 'desc')
-            ->get()
-            ->map(fn ($clearance) => [
-                'id' => $clearance->clearance_id,
-                'label' => $clearance->name,
-                'subtitle' => $clearance->offices->pluck('clearance_office_name')->implode(', '),
-                'attachment_count' => $clearanceCounts[$clearance->clearance_id] ?? 0,
-            ]);
+        $getClearances = function () {
+            $clearanceCounts = Attachment::where('attachable_type', Clearance::class)
+                ->selectRaw('attachable_id, count(*) as count')
+                ->groupBy('attachable_id')
+                ->pluck('count', 'attachable_id');
+
+            return Clearance::with('offices:id,clearance_office_name')
+                ->orderBy('claim_date', 'desc')
+                ->get()
+                ->map(fn ($clearance) => [
+                    'id' => $clearance->clearance_id,
+                    'label' => $clearance->name,
+                    'subtitle' => $clearance->offices->pluck('clearance_office_name')->implode(', '),
+                    'attachment_count' => $clearanceCounts[$clearance->clearance_id] ?? 0,
+                ]);
+        };
 
         $search = request('search');
         $module = request('module');
@@ -112,8 +116,8 @@ class DocumentCenterController extends Controller
             ->withQueryString();
 
         return Inertia::render('document-center/index', [
-            'purchaseOrders' => $purchaseOrders,
-            'clearances' => $clearances,
+            'purchaseOrders' => fn () => $getPurchaseOrders(),
+            'clearances' => fn () => $getClearances(),
             'archives' => $archives,
         ]);
     }

@@ -23,7 +23,7 @@ class ValidationHelper
             if (preg_match('/export const PATTERNS = \{(.*?)\};/s', $content, $matches)) {
                 $lines = explode("\n", trim($matches[1]));
                 foreach ($lines as $line) {
-                    if (preg_match('/([a-zA-Z0-9_]+):\s*\/(.*?)\//', $line, $lineMatches)) {
+                    if (preg_match('/([a-zA-Z0-9_]+):\s*\/(.*)\/[a-z]*[,;]?\s*$/', $line, $lineMatches)) {
                         $patterns[$lineMatches[1]] = '/' . $lineMatches[2] . '/';
                     }
                 }
@@ -51,7 +51,7 @@ class ValidationHelper
             if (preg_match('/export const MESSAGES = \{(.*?)\};/s', $content, $matches)) {
                 $lines = explode("\n", trim($matches[1]));
                 foreach ($lines as $line) {
-                    if (preg_match('/([a-zA-Z0-9_]+):\s*"(.*?)"/', $line, $lineMatches)) {
+                    if (preg_match('/([a-zA-Z0-9_]+):\s*"(.*)"[,;]?\s*$/', $line, $lineMatches)) {
                         $messages[$lineMatches[1]] = $lineMatches[2];
                     }
                 }

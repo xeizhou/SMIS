@@ -11,6 +11,7 @@ use App\Models\ServePo;
 use App\Models\Supplier;
 use App\Models\Attachment;
 use App\Services\PurchaseOrderImportService;
+use App\Helpers\ValidationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -84,16 +85,16 @@ class PurchaseOrdersController extends Controller
                 'sort_field' => $sortField ?: null,
                 'sort_direction' => $sortDirection,
             ],
-            'suppliers' => Supplier::select('supplier_id', 'supplier_name')
+            'suppliers' => fn () => Supplier::select('supplier_id', 'supplier_name')
                 ->orderByDesc('supplier_id')
                 ->get(),
-            'fundClusters' => FundCluster::select('fund_cluster_id', 'fund_description')
+            'fundClusters' => fn () => FundCluster::select('fund_cluster_id', 'fund_description')
                 ->orderByDesc('created_at')
                 ->get(),
-            'offices' => Office::select('office_code', 'office_name')
+            'offices' => fn () => Office::select('office_code', 'office_name')
                 ->orderByDesc('office_code')
                 ->get(),
-            'stockItems' => \App\Models\StockItem::select('stock_no', 'item_name', 'description')
+            'stockItems' => fn () => \App\Models\StockItem::select('stock_no', 'item_name', 'description')
                 ->orderBy('item_name')
                 ->get(),
         ]);
@@ -105,25 +106,25 @@ class PurchaseOrdersController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'po_number' => ['required', 'string', 'max:50', 'unique:serve_po,po_number'],
+            'po_number' => ['required', 'string', 'max:50', 'unique:serve_po,po_number', 'regex:' . ValidationHelper::pattern('poNo')],
             'item_stock_nos' => ['nullable', 'array'],
             'item_stock_nos.*' => ['string', 'exists:stock_items,stock_no'],
             'po_date' => ['nullable', 'date'],
             'po_received_date' => ['nullable', 'date'],
-            'inclusive_date' => ['nullable', 'string', 'max:100'],
+            'inclusive_date' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('inclusiveDate')],
             'delivery_term' => ['nullable', 'integer', 'min:0'],
-            'pr_number' => ['nullable', 'string', 'max:50'],
+            'pr_number' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('prNo')],
             'pr_date' => ['nullable', 'date'],
-            'philgeps_reference_no' => ['nullable', 'string', 'max:50'],
+            'philgeps_reference_no' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('philgepsRefNo')],
             'procurement_type' => ['nullable', 'in:Services,Items'],
             'mode_of_procurement' => ['nullable', 'string', 'max:100'],
             'total_amount_abc' => ['nullable', 'numeric', 'min:0'],
             'total_amount_po' => ['nullable', 'numeric', 'min:0'],
             'fund_cluster_id' => ['nullable', 'exists:fund_clusters,fund_cluster_id'],
-            'ors_burs_no' => ['nullable', 'string', 'max:50'],
+            'ors_burs_no' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('orsBursNo')],
             'ors_burs_date' => ['nullable', 'date'],
             'responsibility_center' => ['nullable', 'string', 'max:100'],
-            'uacs_object_code' => ['nullable', 'string', 'max:50'],
+            'uacs_object_code' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('uacsObjectCode')],
             'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
             'end_user' => ['nullable', 'string', 'exists:offices,office_code'],
             'date_forwarded_to_smu' => ['nullable', 'date'],
@@ -132,47 +133,73 @@ class PurchaseOrdersController extends Controller
             
             // Workflow tracking fields
             'po_step' => ['nullable', 'string'],
+            'po_vpad_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'date_forwarded_to_end_user' => ['nullable', 'date'],
-            'end_user_forwarded_by' => ['nullable', 'string', 'max:255'],
+            'end_user_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'date_forwarded_supplier' => ['nullable', 'date'],
-            'forwarded_by_supplier' => ['nullable', 'string', 'max:255'],
-            'claimed_by_supplier' => ['nullable', 'string', 'max:255'],
+            'forwarded_by_supplier' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'claimed_by_supplier' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'supplier_signature_date' => ['nullable', 'date'],
             'date_forwarded_coa' => ['nullable', 'date'],
-            'forwarded_by_coa' => ['nullable', 'string', 'max:255'],
+            'forwarded_by_coa' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'date_returned_from_coa' => ['nullable', 'date'],
             'coa_date' => ['nullable', 'date'],
             'claim_date' => ['nullable', 'date'],
-            'claimed_by_coa' => ['nullable', 'string', 'max:255'],
+            'claimed_by_coa' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'date_received_by_supplier' => ['nullable', 'date'],
             'receipt_receiving_date' => ['nullable', 'date'],
-            'receipt_claimed_by' => ['nullable', 'string', 'max:255'],
+            'receipt_claimed_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'items_receiving_date' => ['nullable', 'date'],
-            'items_claimed_by' => ['nullable', 'string', 'max:255'],
+            'items_claimed_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'payment_status' => ['nullable', 'string', 'max:100'],
             'workflow_remarks' => ['nullable', 'string'],
-            'invoice_number' => ['nullable', 'string', 'max:100'],
+            'invoice_number' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('invoiceDocumentRef')],
             'invoice_date' => ['nullable', 'date'],
-            'delivery_receipt' => ['nullable', 'string', 'max:100'],
-            'par_ics_number' => ['nullable', 'string', 'max:100'],
-            'ris_number' => ['nullable', 'string', 'max:100'],
+            'delivery_receipt' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('deliveryReceiptRef')],
+            'par_ics_number' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('parIcsMultiRef')],
+            'ris_number' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('risMultiRef')],
             'date_completed' => ['nullable', 'date'],
             
             // Inspection Entries array
             'inspection_entries' => ['nullable', 'array'],
-            'inspection_entries.*.iar_number' => ['nullable', 'string', 'max:100'],
-            'inspection_entries.*.inspected_by' => ['nullable', 'string', 'max:255'],
+            'inspection_entries.*.iar_number' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('iarNumber')],
+            'inspection_entries.*.inspected_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'inspection_entries.*.inspection_date' => ['nullable', 'date'],
             'date_forwarded_to_finance' => ['nullable', 'date'],
-            'finance_forwarded_by' => ['nullable', 'string', 'max:255'],
+            'finance_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             
             // Notified fields
             'po_vpad_notified_date' => ['nullable', 'date'],
-            'po_vpad_notified_via' => ['nullable', 'string', 'max:100'],
+            'po_vpad_notified_via' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')],
             'coa_stamp_notified_date' => ['nullable', 'date'],
-            'coa_stamp_notified_via' => ['nullable', 'string', 'max:100'],
+            'coa_stamp_notified_via' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')],
             'receipt_claimed_notified_date' => ['nullable', 'date'],
-            'receipt_claimed_notified_via' => ['nullable', 'string', 'max:100'],
+            'receipt_claimed_notified_via' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')],
+        ], [
+            'po_number.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'inclusive_date.regex' => ValidationHelper::message('inclusiveDate'),
+            'pr_number.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'philgeps_reference_no.regex' => ValidationHelper::message('numbersOnly'),
+            'ors_burs_no.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'uacs_object_code.regex' => ValidationHelper::message('numbersOnly'),
+            'po_vpad_forwarded_by.regex' => ValidationHelper::message('names'),
+            'end_user_forwarded_by.regex' => ValidationHelper::message('names'),
+            'forwarded_by_supplier.regex' => ValidationHelper::message('names'),
+            'claimed_by_supplier.regex' => ValidationHelper::message('names'),
+            'forwarded_by_coa.regex' => ValidationHelper::message('names'),
+            'claimed_by_coa.regex' => ValidationHelper::message('names'),
+            'receipt_claimed_by.regex' => ValidationHelper::message('names'),
+            'items_claimed_by.regex' => ValidationHelper::message('names'),
+            'finance_forwarded_by.regex' => ValidationHelper::message('names'),
+            'invoice_number.regex' => ValidationHelper::message('invoiceDocumentRef'),
+            'delivery_receipt.regex' => ValidationHelper::message('deliveryReceiptRef'),
+            'par_ics_number.regex' => ValidationHelper::message('parIcsMultiRef'),
+            'ris_number.regex' => ValidationHelper::message('risMultiRef'),
+            'inspection_entries.*.iar_number.regex' => ValidationHelper::message('numbersOnly'),
+            'inspection_entries.*.inspected_by.regex' => ValidationHelper::message('names'),
+            'po_vpad_notified_via.regex' => ValidationHelper::message('contactInfo'),
+            'coa_stamp_notified_via.regex' => ValidationHelper::message('contactInfo'),
+            'receipt_claimed_notified_via.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
         $itemStockNos = $validated['item_stock_nos'] ?? [];
@@ -221,6 +248,7 @@ class PurchaseOrdersController extends Controller
                 'string',
                 'max:50',
                 Rule::unique('serve_po', 'po_number')->ignore($servePo->po_number, 'po_number'),
+                'regex:' . ValidationHelper::pattern('poNo'),
             ],
             'item_stock_nos' => ['nullable', 'array'],
             'item_stock_nos.*' => ['string', 'exists:stock_items,stock_no'],
@@ -228,19 +256,19 @@ class PurchaseOrdersController extends Controller
             'item_description' => ['nullable', 'string'],
             'po_received_date' => ['nullable', 'date'],
             'procurement_type' => ['nullable', 'in:Services,Items'],
-            'inclusive_date' => ['nullable', 'string', 'max:100'],
+            'inclusive_date' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('inclusiveDate')],
             'delivery_term' => ['nullable', 'integer', 'min:0'],
-            'pr_number' => ['nullable', 'string', 'max:50'],
+            'pr_number' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('prNo')],
             'pr_date' => ['nullable', 'date'],
-            'philgeps_reference_no' => ['nullable', 'string', 'max:50'],
+            'philgeps_reference_no' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('philgepsRefNo')],
             'mode_of_procurement' => ['nullable', 'string', 'max:100'],
             'total_amount_abc' => ['nullable', 'numeric', 'min:0'],
             'total_amount_po' => ['nullable', 'numeric', 'min:0'],
             'fund_cluster_id' => ['nullable', 'exists:fund_clusters,fund_cluster_id'],
-            'ors_burs_no' => ['nullable', 'string', 'max:50'],
+            'ors_burs_no' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('orsBursNo')],
             'ors_burs_date' => ['nullable', 'date'],
             'responsibility_center' => ['nullable', 'string', 'max:100'],
-            'uacs_object_code' => ['nullable', 'string', 'max:50'],
+            'uacs_object_code' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('uacsObjectCode')],
             'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
             'end_user' => ['nullable', 'string', 'exists:offices,office_code'],
             'date_forwarded_to_smu' => ['nullable', 'date'],
@@ -249,51 +277,75 @@ class PurchaseOrdersController extends Controller
             
             // Workflow tracking fields
             'po_step' => ['nullable', 'string'],
-            'po_received_date' => ['nullable', 'date'],
-            'po_vpad_forwarded_by' => ['nullable', 'string', 'max:255'],
+            'po_vpad_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'date_forwarded_to_end_user' => ['nullable', 'date'],
-            'end_user_forwarded_by' => ['nullable', 'string', 'max:255'],
+            'end_user_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'date_forwarded_supplier' => ['nullable', 'date'],
-            'forwarded_by_supplier' => ['nullable', 'string', 'max:255'],
-            'claimed_by_supplier' => ['nullable', 'string', 'max:255'],
+            'forwarded_by_supplier' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'claimed_by_supplier' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'supplier_signature_date' => ['nullable', 'date'],
             'date_forwarded_coa' => ['nullable', 'date'],
-            'forwarded_by_coa' => ['nullable', 'string', 'max:255'],
+            'forwarded_by_coa' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'date_returned_from_coa' => ['nullable', 'date'],
             'coa_date' => ['nullable', 'date'],
             'claim_date' => ['nullable', 'date'],
-            'claimed_by_coa' => ['nullable', 'string', 'max:255'],
+            'claimed_by_coa' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'date_received_by_supplier' => ['nullable', 'date'],
             'receipt_receiving_date' => ['nullable', 'date'],
-            'receipt_claimed_by' => ['nullable', 'string', 'max:255'],
+            'receipt_claimed_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'items_receiving_date' => ['nullable', 'date'],
-            'items_claimed_by' => ['nullable', 'string', 'max:255'],
+            'items_claimed_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'payment_status' => ['nullable', 'string', 'max:100'],
             'workflow_remarks' => ['nullable', 'string'],
-            'invoice_number' => ['nullable', 'string', 'max:100'],
+            'invoice_number' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('invoiceDocumentRef')],
             'invoice_date' => ['nullable', 'date'],
-            'delivery_receipt' => ['nullable', 'string', 'max:100'],
-            'par_ics_number' => ['nullable', 'string', 'max:100'],
-            'ris_number' => ['nullable', 'string', 'max:100'],
+            'delivery_receipt' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('deliveryReceiptRef')],
+            'par_ics_number' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('parIcsMultiRef')],
+            'ris_number' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('risMultiRef')],
             'date_completed' => ['nullable', 'date'],
             
             // Inspection Entries array
             'inspection_entries' => ['nullable', 'array'],
-            'inspection_entries.*.iar_number' => ['nullable', 'string', 'max:100'],
-            'inspection_entries.*.inspected_by' => ['nullable', 'string', 'max:255'],
+            'inspection_entries.*.iar_number' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('iarNumber')],
+            'inspection_entries.*.inspected_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'inspection_entries.*.inspection_date' => ['nullable', 'date'],
             'date_forwarded_to_finance' => ['nullable', 'date'],
-            'finance_forwarded_by' => ['nullable', 'string', 'max:255'],
+            'finance_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             
             // Notified fields
             'po_vpad_notified_date' => ['nullable', 'date'],
-            'po_vpad_notified_via' => ['nullable', 'string', 'max:100'],
+            'po_vpad_notified_via' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')],
             'coa_stamp_notified_date' => ['nullable', 'date'],
-            'coa_stamp_notified_via' => ['nullable', 'string', 'max:100'],
+            'coa_stamp_notified_via' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')],
             'receipt_claimed_notified_date' => ['nullable', 'date'],
-            'receipt_claimed_notified_via' => ['nullable', 'string', 'max:100'],
+            'receipt_claimed_notified_via' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')],
 
             'deleted_attachment_ids.*' => ['integer'],
+        ], [
+            'po_number.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'inclusive_date.regex' => ValidationHelper::message('inclusiveDate'),
+            'pr_number.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'philgeps_reference_no.regex' => ValidationHelper::message('numbersOnly'),
+            'ors_burs_no.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'uacs_object_code.regex' => ValidationHelper::message('numbersOnly'),
+            'po_vpad_forwarded_by.regex' => ValidationHelper::message('names'),
+            'end_user_forwarded_by.regex' => ValidationHelper::message('names'),
+            'forwarded_by_supplier.regex' => ValidationHelper::message('names'),
+            'claimed_by_supplier.regex' => ValidationHelper::message('names'),
+            'forwarded_by_coa.regex' => ValidationHelper::message('names'),
+            'claimed_by_coa.regex' => ValidationHelper::message('names'),
+            'receipt_claimed_by.regex' => ValidationHelper::message('names'),
+            'items_claimed_by.regex' => ValidationHelper::message('names'),
+            'finance_forwarded_by.regex' => ValidationHelper::message('names'),
+            'invoice_number.regex' => ValidationHelper::message('invoiceDocumentRef'),
+            'delivery_receipt.regex' => ValidationHelper::message('deliveryReceiptRef'),
+            'par_ics_number.regex' => ValidationHelper::message('parIcsMultiRef'),
+            'ris_number.regex' => ValidationHelper::message('risMultiRef'),
+            'inspection_entries.*.iar_number.regex' => ValidationHelper::message('numbersOnly'),
+            'inspection_entries.*.inspected_by.regex' => ValidationHelper::message('names'),
+            'po_vpad_notified_via.regex' => ValidationHelper::message('contactInfo'),
+            'coa_stamp_notified_via.regex' => ValidationHelper::message('contactInfo'),
+            'receipt_claimed_notified_via.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
         \Log::info('Validation passed for PO: ' . $servePo->po_number);
@@ -494,7 +546,9 @@ class PurchaseOrdersController extends Controller
     public function notifyOffice(Request $request, ServePo $purchaseOrder): RedirectResponse
     {
         $request->validate([
-            'email' => 'nullable|string'
+            'email' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')]
+        ], [
+            'email.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
         $email = $request->input('email');
@@ -524,7 +578,9 @@ class PurchaseOrdersController extends Controller
     public function notifyCoa(Request $request, ServePo $purchaseOrder): RedirectResponse
     {
         $request->validate([
-            'email' => 'nullable|string'
+            'email' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')]
+        ], [
+            'email.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
         $email = $request->input('email');
@@ -553,7 +609,9 @@ class PurchaseOrdersController extends Controller
     public function notifyRelease(Request $request, ServePo $purchaseOrder): RedirectResponse
     {
         $request->validate([
-            'email' => 'nullable|string'
+            'email' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')]
+        ], [
+            'email.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
         $email = $request->input('email');

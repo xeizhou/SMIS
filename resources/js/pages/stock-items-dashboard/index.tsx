@@ -18,10 +18,11 @@ import {
     AreaChart as AreaChartIcon,
     GitCompareArrows,
     ClipboardList,
+    Building2,
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Area, AreaChart, Line, LineChart, ReferenceLine, Cell } from 'recharts';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
@@ -275,7 +276,11 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
     const filteredOffices = useMemo(() => {
         const q = officeSearch.trim().toLowerCase();
         if (!q) return itemsByOffice;
-        return itemsByOffice.filter((o) => o.office_name.toLowerCase().includes(q));
+        return itemsByOffice.filter(
+            (o) =>
+                o.office_name.toLowerCase().includes(q) ||
+                o.office_code.toLowerCase().includes(q)
+        );
     }, [officeSearch, itemsByOffice]);
 
     // Chart data now comes from the server-aggregated `movement` prop, which
@@ -589,31 +594,35 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-8">
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 {/* Stock Item List — no print action here by design */}
-                <div ref={listRef} className="rounded-xl border bg-card xl:col-span-3">
-                    <div className="space-y-3 border-b p-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="font-semibold">Stock Item List</h2>
-                            <div className="relative w-56">
-                                <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    placeholder="Search item name or stock no..."
-                                    className="h-8 pl-8 text-sm"
-                                />
+                <div ref={listRef} className="flex flex-col overflow-hidden rounded-xl border bg-card">
+                    <div className="h-[153px] shrink-0 space-y-3 border-b p-4">
+                        <div className="flex h-8 items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <Boxes className="size-4 text-muted-foreground" />
+                                <h2 className="font-semibold">Stock Item List</h2>
                             </div>
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                {filteredItems.length} items
+                            </span>
                         </div>
-                        <div className="flex gap-1.5">
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search item name or stock no..."
+                                className="h-8 pl-8 text-sm"
+                            />
+                        </div>
+                        <div className="flex h-8 items-center gap-1.5">
                             {STATUS_FILTERS.map((f) => (
                                 <button
                                     key={f.key}
                                     onClick={() => setStatusFilter(f.key)}
                                     className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                                        statusFilter === f.key
-                                            ? 'text-white'
-                                            : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                                        statusFilter === f.key ? 'text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70'
                                     }`}
                                     style={statusFilter === f.key ? { backgroundColor: BRAND } : undefined}
                                 >
@@ -622,15 +631,15 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
                             ))}
                         </div>
                     </div>
-                    <ScrollArea className="h-[520px]">
-                        <table className="w-full text-sm">
-                            <thead className="sticky top-0 text-left text-xs text-white" style={{ backgroundColor: BRAND_DARK }}>
+                    <ScrollArea className="h-[480px]">
+                        <table className="w-full min-w-[520px] text-sm">
+                            <thead className="sticky top-0 z-10 bg-muted/60 text-left text-xs text-muted-foreground backdrop-blur-sm">
                                 <tr>
-                                    <th className="p-3 font-semibold">Stock No</th>
-                                    <th className="p-3 font-semibold">Item Name</th>
-                                    <th className="p-3 font-semibold">Unit</th>
-                                    <th className="p-3 text-right font-semibold">Balance</th>
-                                    <th className="p-3 font-semibold">Status</th>
+                                    <th className="p-3 font-medium whitespace-nowrap">Stock No</th>
+                                    <th className="p-3 font-medium">Item</th>
+                                    <th className="p-3 font-medium whitespace-nowrap">Unit</th>
+                                    <th className="p-3 text-right font-medium whitespace-nowrap">Balance</th>
+                                    <th className="p-3 font-medium whitespace-nowrap">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -642,12 +651,17 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
                                             key={item.stock_no}
                                             className={`border-t transition-colors ${isFlashed ? 'bg-amber-100/70' : ''}`}
                                         >
-                                            <td className="p-3 font-mono text-xs">{item.stock_no}</td>
-                                            <td className="p-3">{item.item_name}</td>
-                                            <td className="p-3 text-muted-foreground">{defaultUnit?.unit_short_name ?? '—'}</td>
-                                            <td className="p-3 text-right font-medium">{item.balance}</td>
+                                            <td className="p-3 font-mono text-xs whitespace-nowrap">{item.stock_no}</td>
                                             <td className="p-3">
-                                                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[item.status]}`}>
+                                                <div className="font-medium">{item.item_name}</div>
+                                                {item.description && (
+                                                    <div className="text-xs text-muted-foreground">{item.description}</div>
+                                                )}
+                                            </td>
+                                            <td className="p-3 whitespace-nowrap text-muted-foreground">{defaultUnit?.unit_short_name ?? '—'}</td>
+                                            <td className="p-3 whitespace-nowrap text-right font-medium">{item.balance}</td>
+                                            <td className="p-3 whitespace-nowrap">
+                                                <span className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[item.status]}`}>
                                                     {STATUS_LABEL[item.status]}
                                                 </span>
                                             </td>
@@ -656,28 +670,36 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
                                 })}
                                 {filteredItems.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="p-6 text-center text-muted-foreground">
-                                            No items match your filters.
+                                        <td colSpan={5} className="p-0">
+                                            <div className="flex h-[400px] flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+                                                <Boxes className="size-6 text-muted-foreground/40" />
+                                                No items match your filters.
+                                            </div>
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
-                    </ScrollArea>
+                            <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
+                    <div className="mt-auto border-t bg-muted/20 p-3 text-xs text-muted-foreground">
+                        Showing <span className="font-medium text-foreground">{filteredItems.length}</span> of {stockItems.length} items
+                    </div>
                 </div>
 
                 {/* Transaction Log */}
-                <div className="rounded-xl border bg-card xl:col-span-3">
+                <div className="flex flex-col overflow-hidden rounded-xl border bg-card">
                     <div className="space-y-3 border-b p-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex h-8 items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
                                 <ReceiptText className="size-4 text-muted-foreground" />
-                                <h2 className="font-semibold">Transactions ({transactions.quarter})</h2>
+                                <h2 className="font-semibold">Transactions</h2>
                             </div>
                             <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                                 {transactions.total} total
                             </span>
                         </div>
+                        <p className="-mt-2 text-xs text-muted-foreground">{transactions.quarter}</p>
                         <div className="flex gap-2">
                             <Select
                                 value={quarterFilter || 'all'}
@@ -714,7 +736,7 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
                                     <SelectItem value="all">All Offices</SelectItem>
                                     {filters.offices.map((o) => (
                                         <SelectItem key={o.office_code} value={o.office_code}>
-                                            {o.office_name}
+                                            {o.office_code}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -742,8 +764,8 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
                         </div>
                     </div>
 
-                    <ScrollArea className="h-[420px]">
-                        <table className="w-full text-sm">
+                    <ScrollArea className="h-[480px]">
+                        <table className="w-full min-w-[560px] text-sm">
                             <thead className="sticky top-0 z-10 bg-muted/60 text-left text-xs text-muted-foreground backdrop-blur-sm">
                                 <tr>
                                     <th className="p-3 font-medium">Date</th>
@@ -791,7 +813,8 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
                                 )}
                             </tbody>
                         </table>
-                    </ScrollArea>
+                            <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
 
                     <div className="flex items-center justify-between border-t bg-muted/20 p-3 text-xs text-muted-foreground">
                         <span>
@@ -817,15 +840,19 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
                 </div>
 
                 {/* Items by Office */}
-                <div className="rounded-xl border bg-card xl:col-span-2">
+                <div className="flex flex-col overflow-hidden rounded-xl border bg-card">
                     <div className="space-y-3 border-b p-4">
-                        <div>
-                            <h2 className="font-semibold">Items Transacted by Office</h2>
-                            <p className="text-xs text-muted-foreground">
-                                {transactions.quarter}
-                            </p>
+                        <div className="flex h-8 items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <Building2 className="size-4 text-muted-foreground" />
+                                <h2 className="font-semibold">Items by Office</h2>
+                            </div>
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                {filteredOffices.length} offices
+                            </span>
                         </div>
-                        <div className="relative w-56">
+                        <p className="-mt-2 text-xs text-muted-foreground">{transactions.quarter}</p>
+                        <div className="relative">
                             <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 value={officeSearch}
@@ -837,12 +864,12 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
                     </div>
 
                     {filteredOffices.length === 0 ? (
-                        <div className="flex h-[160px] flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <div className="flex h-[480px] flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
                             <ReceiptText className="size-6 text-muted-foreground/40" />
                             {itemsByOffice.length === 0 ? 'No office transactions for this period.' : 'No offices match your search.'}
                         </div>
                     ) : (
-                        <ScrollArea className="h-[400px] pr-3">
+                        <ScrollArea className="h-[480px]">  
                             <Accordion type="single" collapsible className="w-full">
                                 {filteredOffices.map((office) => (
                                     <AccordionItem key={office.office_code} value={office.office_code}>
@@ -858,17 +885,17 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
                                             <table className="w-full text-sm">
                                                 <thead className="text-left text-xs text-muted-foreground">
                                                     <tr>
-                                                        <th className="p-2 font-medium">Item</th>
-                                                        <th className="p-2 text-right font-medium">Recv</th>
-                                                        <th className="p-2 text-right font-medium">Issued</th>
+                                                        <th className="p-3 font-medium">Item</th>
+                                                        <th className="p-3 text-right font-medium">Recv</th>
+                                                        <th className="p-3 text-right font-medium">Issued</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {office.items.map((item) => (
                                                         <tr key={item.item_name} className="border-t">
-                                                            <td className="p-2 truncate">{item.item_name}</td>
-                                                            <td className="p-2 text-right text-emerald-600">{item.received_qty}</td>
-                                                            <td className="p-2 text-right" style={{ color: BRAND }}>{item.issued_qty}</td>
+                                                            <td className="p-3">{item.item_name}</td>
+                                                            <td className="p-3 text-right text-emerald-600">{item.received_qty}</td>
+                                                            <td className="p-3 text-right" style={{ color: BRAND }}>{item.issued_qty}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -879,6 +906,9 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
                             </Accordion>
                         </ScrollArea>
                     )}
+                    <div className="mt-auto border-t bg-muted/20 p-3 text-xs text-muted-foreground">
+                        {itemsByOffice.length} office{itemsByOffice.length !== 1 ? 's' : ''} with transactions
+                    </div>
                 </div>
                 </div>
             </div>
