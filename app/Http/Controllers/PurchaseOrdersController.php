@@ -10,6 +10,7 @@ use App\Models\PoLetterMonitoring;
 use App\Models\ServePo;
 use App\Models\Supplier;
 use App\Models\Attachment;
+use App\Services\PurchaseOrderImportService;
 use App\Helpers\ValidationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PurchaseOrdersController extends Controller
 {
@@ -633,5 +635,55 @@ class PurchaseOrdersController extends Controller
         ]);
 
         return back()->with('success', 'Recipient/Office notified successfully.');
+    }
+
+    /**
+     * Import Purchase Orders from uploaded CSV or Excel file.
+     */
+    public function import(Request $request, PurchaseOrderImportService $importService): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:20480'],
+            'merge_existing' => ['nullable'],
+        ]);
+
+        $file = $request->file('file');
+        $mergeExisting = $request->boolean('merge_existing', true);
+
+        try {
+            $result = $importService->importFile($file, $mergeExisting);
+        } catch (\Throwable $e) {
+            return back()->withErrors(['file' => 'Import failed: ' . $e->getMessage()]);
+        }
+
+        $message = "Imported {$result['created']} purchase order(s).";
+        if ($result['updated'] > 0) {
+            $message .= " Updated {$result['updated']} existing purchase order(s).";
+        }
+        if (count($result['skipped']) > 0) {
+            $message .= " Skipped " . count($result['skipped']) . " row(s).";
+        }
+
+        return back()->with([
+            'success' => $message,
+            'import_summary' => [
+                'created' => $result['created'],
+                'updated' => $result['updated'],
+                'skipped_count' => count($result['skipped']),
+                'skipped' => array_slice($result['skipped'], 0, 50),
+            ],
+        ]);
+    }
+
+    /**
+     * Download or preview Purchase Orders import template (CSV).
+     */
+    public function importTemplate(Request $request, PurchaseOrderImportService $importService)
+    {
+        if ($request->boolean('preview')) {
+            return response()->json($importService->getTemplatePreview());
+        }
+
+        return $importService->downloadTemplate();
     }
 }

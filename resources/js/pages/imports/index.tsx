@@ -30,6 +30,7 @@ type ImportId =
     | 'regspi'
     | 'wmr'
     | 'bona-vida'
+    | 'purchase-orders'
     | 'suppliers'
     | 'offices'
     | 'employee-files'
@@ -97,6 +98,11 @@ const importGroups: { title: string; options: ImportOption[] }[] = [
     {
         title: 'Procurement & Personnel',
         options: [
+            {
+                id: 'purchase-orders',
+                title: 'Purchase Orders',
+                description: 'Import purchase order monitoring records.',
+            },
             {
                 id: 'suppliers',
                 title: 'Suppliers',
@@ -184,6 +190,11 @@ const IMPORT_CONFIG: Record<
         endpoint: '/import/bona-vida',
         templateUrl: '/import/template/bona-vida',
         cancelPath: '/import/bona-vida',
+    },
+    'purchase-orders': {
+        endpoint: '/purchase-orders/import',
+        templateUrl: '/purchase-orders/import/template',
+        cancelPath: '/purchase-orders',
     },
     suppliers: {
         endpoint: '/supplier/import',

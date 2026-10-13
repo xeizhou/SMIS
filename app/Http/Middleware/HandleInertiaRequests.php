@@ -57,6 +57,7 @@ class HandleInertiaRequests extends Middleware
                 'message' => fn () => $request->session()->get('message'),
                 'error_modal' => fn () => $request->session()->get('error_modal'),
                 'newRecordId' => fn () => $request->session()->get('newRecordId'),
+                'import_summary' => fn () => $request->session()->get('import_summary'),
                 'uuid' => \Illuminate\Support\Str::uuid()->toString(),
             ],
         ];
