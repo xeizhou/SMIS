@@ -65,26 +65,6 @@ public function index(Request $request): Response
             ->paginateWithHighlight($perPage)
             ->withQueryString();
 
-        $statuses = Clearance::query()
-            ->select('status')
-            ->whereNotNull('status')
-            ->where('status', '!=', '')
-            ->distinct()
-            ->orderBy('status')
-            ->pluck('status')
-            ->values()
-            ->all();
-
-        $forms = Clearance::query()
-            ->select('form_attribute')
-            ->whereNotNull('form_attribute')
-            ->where('form_attribute', '!=', '')
-            ->distinct()
-            ->orderBy('form_attribute')
-            ->pluck('form_attribute')
-            ->values()
-            ->all();
-
         return Inertia::render('clearance/index', [
             'records' => $records,
             'filters' => [
@@ -95,9 +75,25 @@ public function index(Request $request): Response
                 'sort_field' => $sortField,
                 'sort_direction' => $sortDirection,
             ],
-            'statuses' => $statuses,
-            'forms' => $forms,
-            'offices' => ClearanceOffice::select('id', 'clearance_office_name')
+            'statuses' => fn () => Clearance::query()
+                ->select('status')
+                ->whereNotNull('status')
+                ->where('status', '!=', '')
+                ->distinct()
+                ->orderBy('status')
+                ->pluck('status')
+                ->values()
+                ->all(),
+            'forms' => fn () => Clearance::query()
+                ->select('form_attribute')
+                ->whereNotNull('form_attribute')
+                ->where('form_attribute', '!=', '')
+                ->distinct()
+                ->orderBy('form_attribute')
+                ->pluck('form_attribute')
+                ->values()
+                ->all(),
+            'offices' => fn () => ClearanceOffice::select('id', 'clearance_office_name')
                 ->orderByRaw('LOWER(clearance_office_name)')
                 ->get(),
         ]);

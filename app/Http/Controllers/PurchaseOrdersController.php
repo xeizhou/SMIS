@@ -83,16 +83,16 @@ class PurchaseOrdersController extends Controller
                 'sort_field' => $sortField ?: null,
                 'sort_direction' => $sortDirection,
             ],
-            'suppliers' => Supplier::select('supplier_id', 'supplier_name')
+            'suppliers' => fn () => Supplier::select('supplier_id', 'supplier_name')
                 ->orderByDesc('supplier_id')
                 ->get(),
-            'fundClusters' => FundCluster::select('fund_cluster_id', 'fund_description')
+            'fundClusters' => fn () => FundCluster::select('fund_cluster_id', 'fund_description')
                 ->orderByDesc('created_at')
                 ->get(),
-            'offices' => Office::select('office_code', 'office_name')
+            'offices' => fn () => Office::select('office_code', 'office_name')
                 ->orderByDesc('office_code')
                 ->get(),
-            'stockItems' => \App\Models\StockItem::select('stock_no', 'item_name', 'description')
+            'stockItems' => fn () => \App\Models\StockItem::select('stock_no', 'item_name', 'description')
                 ->orderBy('item_name')
                 ->get(),
         ]);

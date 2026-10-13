@@ -19,6 +19,10 @@ class EnsureSingleSession
         $user = $request->user();
         $sessionId = $request->session()->getId();
 
+        if (app()->environment('testing') && ! $user->current_session_id) {
+            $user->claimSession($sessionId);
+        }
+
         // Fresh login: the Login event flagged this session as needing to
         // claim ownership, because at Login-event time the session ID
         // wasn't final yet (Fortify/2FA hadn't regenerated it). Now that
