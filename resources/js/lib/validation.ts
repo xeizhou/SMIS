@@ -33,6 +33,11 @@ export const PATTERNS = {
     parIcsMultiRef: /^[0-9\s\/;\-]+$/,
     risMultiRef: /^[0-9\s\/;\-]+$/,
     documentLink: /^https?:\/\/[a-zA-Z0-9]+([.\-][a-zA-Z0-9]+)*(?::[0-9]+)?(?:[\/?#][^\s<>"{}|\\^`]*)?$/,
+    address: /^[a-zA-Z0-9\s.,'#\/\-()&]+$/,
+    contactNumber: /^\+?[0-9\s\-()]{7,20}$/,
+    email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+    numbersOnly: /^[0-9]+$/,
+    fundDescription: /^[a-zA-Z0-9\s.\-]+$/,
 };
 
 export const MESSAGES = {
@@ -60,6 +65,10 @@ export const MESSAGES = {
     parIcsMultiRef: "Only numbers, slashes, semicolons, hyphens, and spaces are allowed.",
     risMultiRef: "Only numbers, slashes, semicolons, hyphens, and spaces are allowed.",
     documentLink: "Please enter a valid URL (e.g. https://example.com).",
+    address: "Only letters, numbers, spaces, commas, periods, hyphens, slashes, and # are allowed.",
+    contactNumber: "Please enter a valid phone number.",
+    email: "Please enter a valid email address.",
+    fundDescription: "Only letters, numbers, spaces, hyphens, and periods are allowed.",
 };
 
 export function validateInput(
