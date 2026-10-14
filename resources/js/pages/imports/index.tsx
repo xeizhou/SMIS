@@ -2,23 +2,35 @@ import { useEffect, useRef, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import {
     AlertCircle,
+    ArrowLeftRight,
+    Archive,
+    BadgeCheck,
+    Boxes,
+    Building2,
     Check,
     ChevronRight,
+    ClipboardList,
     FileSpreadsheet,
-    FileUp,
+    FolderOpen,
+    HeartPulse,
+    Laptop,
     Loader2,
+    Play,
+    Ruler,
+    ShoppingCart,
     Terminal,
+    Truck,
     Upload,
+    Warehouse,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
-    SelectGroup,
     SelectItem,
-    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -30,6 +42,7 @@ type ImportId =
     | 'regspi'
     | 'wmr'
     | 'bona-vida'
+    | 'purchase-orders'
     | 'suppliers'
     | 'offices'
     | 'employee-files'
@@ -44,6 +57,7 @@ interface ImportOption {
     id: ImportId;
     title: string;
     description: string;
+    icon: LucideIcon;
 }
 
 interface Props {
@@ -69,28 +83,33 @@ const importGroups: { title: string; options: ImportOption[] }[] = [
                 id: 'rrsp',
                 title: 'RRSP Monitoring',
                 description: 'Import semi-expendable property records.',
+                icon: Archive,
             },
             {
                 id: 'rrppe',
                 title: 'RRPPE Monitoring',
                 description: 'Import property, plant, and equipment records.',
+                icon: Laptop,
             },
             {
                 id: 'regspi',
                 title: 'RegSPI Monitoring',
                 description:
                     'Import registered semi-expendable property records.',
+                icon: ClipboardList,
             },
             {
                 id: 'wmr',
                 title: 'WMR Monitoring',
                 description:
                     'Import warehouse monitoring records from a CSV file.',
+                icon: Warehouse,
             },
             {
                 id: 'bona-vida',
                 title: 'Bona Vida Monitoring',
                 description: 'Import Bona Vida monitoring records.',
+                icon: HeartPulse,
             },
         ],
     },
@@ -98,24 +117,34 @@ const importGroups: { title: string; options: ImportOption[] }[] = [
         title: 'Procurement & Personnel',
         options: [
             {
+                id: 'purchase-orders',
+                title: 'Purchase Orders',
+                description: 'Import purchase order monitoring records.',
+                icon: ShoppingCart,
+            },
+            {
                 id: 'suppliers',
                 title: 'Suppliers',
                 description: 'Import supplier details from a CSV file.',
+                icon: Truck,
             },
             {
                 id: 'offices',
                 title: 'Offices',
                 description: 'Import office directory records.',
+                icon: Building2,
             },
             {
                 id: 'employee-files',
                 title: 'Employee Files',
                 description: 'Import employee file locator records.',
+                icon: FolderOpen,
             },
             {
                 id: 'clearance',
                 title: 'Clearance',
                 description: 'Import employee clearance records.',
+                icon: BadgeCheck,
             },
         ],
     },
@@ -126,16 +155,19 @@ const importGroups: { title: string; options: ImportOption[] }[] = [
                 id: 'stock-items',
                 title: 'Stock Items',
                 description: 'Import stock item records.',
+                icon: Boxes,
             },
             {
                 id: 'units',
                 title: 'Units',
                 description: 'Import units of measure.',
+                icon: Ruler,
             },
             {
                 id: 'transactions',
                 title: 'Transactions',
                 description: 'Import stock transaction records.',
+                icon: ArrowLeftRight,
             },
         ],
     },
@@ -146,6 +178,8 @@ const steps = [
     { title: 'Check the file requirements' },
     { title: 'Upload and confirm' },
 ];
+
+const PANEL_HEIGHT = 750;
 
 const IMPORT_CONFIG: Record<
     ImportId,
@@ -184,6 +218,11 @@ const IMPORT_CONFIG: Record<
         endpoint: '/import/bona-vida',
         templateUrl: '/import/template/bona-vida',
         cancelPath: '/import/bona-vida',
+    },
+    'purchase-orders': {
+        endpoint: '/purchase-orders/import',
+        templateUrl: '/purchase-orders/import/template',
+        cancelPath: '/purchase-orders',
     },
     suppliers: {
         endpoint: '/supplier/import',
@@ -249,6 +288,8 @@ const templateDownloadUrl = (id: ImportId, format: ImportFileFormat) => {
 };
 
 const MAX_PREVIEW_ROWS = 100;
+const MAX_CSV_PREVIEW_BYTES = 1_000_000;
+const MAX_JSON_PREVIEW_BYTES = 5_000_000;
 
 const FILE_FORMAT_DETAILS: Record<
     ImportFileFormat,
@@ -292,10 +333,32 @@ function describeFileFormats(formats: ImportFileFormat[]): string {
         .join(', ');
 }
 
+function formatFileSize(bytes: number): string {
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+    if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 type TemplateState =
     | { status: 'loading' }
     | { status: 'error' }
     | { status: 'ready'; rows: string[][]; jsonPreview?: string };
+
+type FilePreviewState =
+    | { status: 'loading' }
+    | { status: 'error'; message: string }
+    | { status: 'unavailable'; message: string }
+    | {
+          status: 'ready';
+          rows: string[][];
+          truncated: boolean;
+          jsonPreview?: string;
+      };
 
 interface TemplatePreviewResponse {
     headers: string[];
@@ -350,12 +413,163 @@ function parseCsv(text: string): string[][] {
     return rows.filter((r) => r.some((cell) => cell.trim() !== ''));
 }
 
+function cellToString(value: unknown): string {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    if (typeof value === 'object') {
+        return JSON.stringify(value);
+    }
+
+    return String(value);
+}
+
+async function buildFilePreview(
+    file: File,
+    format: ImportFileFormat,
+): Promise<FilePreviewState> {
+    if (format === 'xlsx') {
+        return {
+            status: 'unavailable',
+            message:
+                "A row preview isn't available for Excel files in the browser. You can still start the import.",
+        };
+    }
+
+    if (format === 'csv') {
+        const truncated = file.size > MAX_CSV_PREVIEW_BYTES;
+        let text = await (truncated
+            ? file.slice(0, MAX_CSV_PREVIEW_BYTES).text()
+            : file.text());
+
+        if (truncated) {
+            const lastBreak = text.lastIndexOf('\n');
+            if (lastBreak > 0) {
+                text = text.slice(0, lastBreak);
+            }
+        }
+
+        const rows = parseCsv(text);
+        if (rows.length === 0) {
+            return { status: 'error', message: 'This file is empty.' };
+        }
+
+        return { status: 'ready', rows, truncated };
+    }
+
+    if (file.size > MAX_JSON_PREVIEW_BYTES) {
+        return {
+            status: 'unavailable',
+            message:
+                'This JSON file is too large to preview in the browser. You can still start the import.',
+        };
+    }
+
+    const parsed: unknown = JSON.parse(await file.text());
+    const records: unknown[] | undefined = Array.isArray(parsed)
+        ? parsed
+        : parsed && typeof parsed === 'object'
+          ? Object.values(parsed as Record<string, unknown>).find(
+                (value): value is unknown[] => Array.isArray(value),
+            )
+          : undefined;
+
+    if (!records || records.length === 0) {
+        return {
+            status: 'error',
+            message: 'The JSON file must contain a list of records.',
+        };
+    }
+
+    const objects = records.filter(
+        (record): record is Record<string, unknown> =>
+            typeof record === 'object' &&
+            record !== null &&
+            !Array.isArray(record),
+    );
+    const headers = Array.from(
+        new Set(objects.flatMap((record) => Object.keys(record))),
+    );
+
+    return {
+        status: 'ready',
+        rows: [
+            headers,
+            ...objects.map((record) =>
+                headers.map((header) => cellToString(record[header])),
+            ),
+        ],
+        truncated: false,
+        jsonPreview: JSON.stringify(
+            records.slice(0, MAX_PREVIEW_ROWS),
+            null,
+            2,
+        ),
+    };
+}
+
+function PreviewTable({
+    rows,
+    format,
+    jsonPreview,
+}: {
+    rows: string[][];
+    format: ImportFileFormat;
+    jsonPreview?: string;
+}) {
+    if (format === 'json') {
+        return (
+            <pre className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-muted/30 p-4 text-sm leading-relaxed text-foreground">
+                <code>{jsonPreview ?? JSON.stringify(rows, null, 2)}</code>
+            </pre>
+        );
+    }
+
+    return (
+        <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border">
+            <table className="w-full min-w-max text-left text-sm">
+                <thead className="sticky top-0 bg-muted">
+                    <tr>
+                        {rows[0].map((cell, i) => (
+                            <th
+                                key={i}
+                                scope="col"
+                                className="px-4 py-3 font-semibold whitespace-nowrap text-foreground"
+                            >
+                                {cell}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows.slice(1, MAX_PREVIEW_ROWS + 1).map((row, r) => (
+                        <tr key={r} className="border-t border-border">
+                            {row.map((cell, c) => (
+                                <td
+                                    key={c}
+                                    className="border-t border-border px-4 py-3 whitespace-nowrap text-muted-foreground"
+                                >
+                                    {cell}
+                                </td>
+                            ))}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
 const allOptions = importGroups.flatMap((group) => group.options);
 
 export default function Index({ fundClusters }: Props) {
     const [selectedImport, setSelectedImport] = useState<ImportId | ''>('');
     const [templates, setTemplates] = useState<Record<string, TemplateState>>(
         {},
+    );
+    const [pendingFile, setPendingFile] = useState<File | null>(null);
+    const [filePreview, setFilePreview] = useState<FilePreviewState | null>(
+        null,
     );
     const [isUploading, setIsUploading] = useState(false);
     const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
@@ -368,6 +582,7 @@ export default function Index({ fundClusters }: Props) {
     const [fundClusterId, setFundClusterId] = useState('');
     const [mergeExisting, setMergeExisting] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const previewRequestRef = useRef(0);
 
     const selectedOption = allOptions.find((o) => o.id === selectedImport);
     const hasSelection = Boolean(selectedOption);
@@ -399,15 +614,30 @@ export default function Index({ fundClusters }: Props) {
     const showImportResult = Boolean(
         isUploading || importStatus || importError,
     );
+    const canStartImport = Boolean(
+        pendingFile &&
+        filePreview &&
+        filePreview.status !== 'loading' &&
+        filePreview.status !== 'error' &&
+        !isImportActive &&
+        (!config?.needsFundCluster || fundClusterId),
+    );
+
+    const clearPendingFile = () => {
+        previewRequestRef.current += 1;
+        setPendingFile(null);
+        setFilePreview(null);
+        setSelectedFileName('');
+    };
 
     const resetImport = () => {
         setImportStatus(null);
         setImportMessage('');
         setImportError('');
-        setSelectedFileName('');
         setUploadProgress(0);
         setIsUploading(false);
         setIsCancelling(false);
+        clearPendingFile();
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -436,18 +666,22 @@ export default function Index({ fundClusters }: Props) {
                 }
                 return response.text();
             })
-            .then((content) => {
-                setTemplates((prev) => ({
-                    ...prev,
-                    [key]:
-                        typeof content === 'string'
-                            ? { status: 'ready', rows: parseCsv(content) }
-                            : {
-                                  status: 'ready',
-                                  rows: [content.headers, ...content.rows],
-                                  jsonPreview: content.json,
-                              },
-                }));
+            .then((content: TemplatePreviewResponse | string) => {
+                setTemplates((prev) => {
+                    const nextTemplates: Record<string, TemplateState> = {
+                        ...prev,
+                        [key]:
+                            typeof content === 'string'
+                                ? { status: 'ready', rows: parseCsv(content) }
+                                : {
+                                      status: 'ready',
+                                      rows: [content.headers, ...content.rows],
+                                      jsonPreview: content.json,
+                                  },
+                    };
+
+                    return nextTemplates;
+                });
             })
             .catch((error: unknown) => {
                 if (
@@ -456,10 +690,14 @@ export default function Index({ fundClusters }: Props) {
                 ) {
                     return;
                 }
-                setTemplates((prev) => ({
-                    ...prev,
-                    [key]: { status: 'error' },
-                }));
+                setTemplates((prev) => {
+                    const nextTemplates: Record<string, TemplateState> = {
+                        ...prev,
+                        [key]: { status: 'error' },
+                    };
+
+                    return nextTemplates;
+                });
             });
 
         return () => controller.abort();
@@ -562,6 +800,10 @@ export default function Index({ fundClusters }: Props) {
     };
 
     const handleModuleChange = (value: string) => {
+        if (value === selectedImport) {
+            return;
+        }
+
         resetImport();
         setSelectedImport(value as ImportId);
         setFileFormat('csv');
@@ -569,36 +811,78 @@ export default function Index({ fundClusters }: Props) {
         setMergeExisting(true);
     };
 
+    // Picking a file only loads a preview. Nothing is uploaded yet.
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
+        event.target.value = '';
         if (!file || !selectedImport || !config) {
             return;
         }
-        setSelectedFileName(file.name);
+
         if (!matchesFileFormat(file, selectedFileFormat)) {
+            clearPendingFile();
+            setSelectedFileName(file.name);
             setImportError(
                 `Choose a ${FILE_FORMAT_DETAILS[selectedFileFormat].label} file to match the selected format.`,
             );
-            event.target.value = '';
             return;
         }
         if (config.needsFundCluster && !fundClusterId) {
+            clearPendingFile();
+            setSelectedFileName(file.name);
             setImportError(
                 'Select a fund cluster before choosing the CSV file.',
             );
-            event.target.value = '';
+            return;
+        }
+
+        setImportError('');
+        setImportMessage('');
+        setImportStatus(null);
+        setUploadProgress(0);
+        setSelectedFileName(file.name);
+        setPendingFile(file);
+        setFilePreview({ status: 'loading' });
+
+        const requestId = ++previewRequestRef.current;
+        buildFilePreview(file, selectedFileFormat)
+            .then((preview) => {
+                if (previewRequestRef.current === requestId) {
+                    setFilePreview(preview);
+                }
+            })
+            .catch((error: unknown) => {
+                if (previewRequestRef.current !== requestId) {
+                    return;
+                }
+                setFilePreview({
+                    status: 'error',
+                    message:
+                        error instanceof SyntaxError
+                            ? 'This file is not valid JSON.'
+                            : 'Could not read this file.',
+                });
+            });
+    };
+
+    // The upload and terminal UI only begin here.
+    const startImport = () => {
+        if (!pendingFile || !selectedImport || !config || isImportActive) {
+            return;
+        }
+        if (config.needsFundCluster && !fundClusterId) {
             return;
         }
 
         setIsUploading(true);
         setImportError('');
         setImportMessage('');
-        setSelectedFileName(file.name);
+        setSelectedFileName(pendingFile.name);
         setUploadProgress(0);
         setImportStatus(null);
 
         const data = new FormData();
-        data.append('file', file);
+        data.append('file', pendingFile);
         if (config.sendFileFormat) {
             data.append('file_format', selectedFileFormat);
         }
@@ -676,68 +960,82 @@ export default function Index({ fundClusters }: Props) {
         <>
             <Head title="Data Imports" />
             <main className="mx-auto w-full max-w-screen-2xl space-y-8 p-4 sm:p-6 lg:p-8">
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Choose a module, review its file template, then
-                            select a file to start importing.
-                        </p>
+                <p className="text-sm text-muted-foreground">
+                    Choose a module, review its file template, then select a
+                    file, preview it, and start the import.
+                </p>
 
                 <div className="grid items-start gap-6 lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,2fr)] xl:gap-10">
                     {/* Left: module picker and import steps */}
                     <div className="flex flex-col gap-7">
-                        <section className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
-                            <div className="mb-5">
+                        <section
+                            aria-label="Choose a module"
+                            className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6"
+                        >
+                            <div className="mb-4">
                                 <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                                     Start here
                                 </p>
                                 <h2 className="mt-1 text-lg font-semibold text-foreground">
                                     Choose a module
                                 </h2>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    Select the records you want to import.
-                                </p>
                             </div>
 
-                            <label
-                                htmlFor="import-module"
-                                className="mb-2 block text-sm font-medium text-foreground"
-                            >
-                                Import module
-                            </label>
-                            <Select
-                                value={selectedImport}
-                                disabled={isImportActive}
-                                onValueChange={(value) =>
-                                    handleModuleChange(value)
-                                }
-                            >
-                                <SelectTrigger
-                                    id="import-module"
-                                    className="h-14 w-full rounded-lg border-border bg-background px-4 text-left shadow-sm transition-colors hover:bg-muted/50 focus-visible:ring-2"
-                                >
-                                    <SelectValue placeholder="Select a module..." />
-                                </SelectTrigger>
-                                <SelectContent className="max-h-[min(65vh,32rem)]">
-                                    {importGroups.map((group) => (
-                                        <SelectGroup key={group.title}>
-                                            <SelectLabel className="px-3 pt-3 pb-2 text-[11px] tracking-wider uppercase">
-                                                {group.title}
-                                            </SelectLabel>
-                                            {group.options.map((option) => (
-                                                <SelectItem
+                            <div className="max-h-[min(45vh,22rem)] space-y-4 overflow-y-auto pr-1">
+                                {importGroups.map((group) => (
+                                    <div key={group.title} className="space-y-1">
+                                        <h3 className="px-2 pb-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                                            {group.title}
+                                        </h3>
+                                        {group.options.map((option) => {
+                                            const isSelected =
+                                                option.id === selectedImport;
+                                            const Icon = option.icon;
+
+                                            return (
+                                                <button
                                                     key={option.id}
-                                                    value={option.id}
-                                                    className="min-h-10 cursor-pointer px-3 py-2.5"
+                                                    type="button"
+                                                    aria-pressed={isSelected}
+                                                    disabled={isImportActive}
+                                                    onClick={() =>
+                                                        handleModuleChange(
+                                                            option.id,
+                                                        )
+                                                    }
+                                                    className={`group flex w-full items-center gap-3 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${
+                                                        isSelected
+                                                            ? 'border-foreground bg-muted/60 font-medium text-foreground'
+                                                            : 'border-transparent text-foreground hover:bg-muted/60'
+                                                    }`}
                                                 >
-                                                    {option.title}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectGroup>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <p className="mt-2 text-xs text-muted-foreground">
-                                You can change the module at any time.
-                            </p>
+                                                    <span
+                                                        className={`flex size-7 shrink-0 items-center justify-center rounded-md transition-colors ${
+                                                            isSelected
+                                                                ? 'bg-foreground text-background'
+                                                                : 'bg-muted text-muted-foreground group-hover:bg-foreground group-hover:text-background'
+                                                        }`}
+                                                    >
+                                                        <Icon
+                                                            aria-hidden="true"
+                                                            className="size-4"
+                                                        />
+                                                    </span>
+                                                    <span className="min-w-0 flex-1 truncate">
+                                                        {option.title}
+                                                    </span>
+                                                    {isSelected && (
+                                                        <Check
+                                                            aria-hidden="true"
+                                                            className="size-4 shrink-0"
+                                                        />
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                ))}
+                            </div>
                         </section>
 
                         <section
@@ -795,9 +1093,11 @@ export default function Index({ fundClusters }: Props) {
                                                         ? 'Import cancelled. Choose another file to retry.'
                                                         : importError
                                                           ? 'Import failed. Review the message and try again.'
-                                                          : requirementsReady
-                                                            ? `Choose a file (${fileFormatDescription}) to start the import.`
-                                                            : 'Complete the previous steps first.';
+                                                          : pendingFile
+                                                            ? `Ready to import ${pendingFile.name}. Press Start import to begin.`
+                                                            : requirementsReady
+                                                              ? `Choose a file (${fileFormatDescription}) to preview it.`
+                                                              : 'Complete the previous steps first.';
 
                                     return (
                                         <li
@@ -837,17 +1137,23 @@ export default function Index({ fundClusters }: Props) {
                         </section>
                     </div>
 
-                    {/* Right: file template preview, then the import action */}
+                    {/* Right: template / file preview, then the import action */}
                     {selectedOption ? (
                         <section
                             key={selectedOption.id}
                             aria-live="polite"
-                            className="min-w-0 animate-in overflow-hidden rounded-xl border border-border bg-card shadow-sm duration-300 fade-in slide-in-from-right-4 motion-reduce:animate-none"
+                            style={{
+                                height: PANEL_HEIGHT,
+                                maxHeight: PANEL_HEIGHT,
+                            }}
+                            className="flex min-w-0 animate-in flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm duration-300 fade-in slide-in-from-right-4 motion-reduce:animate-none"
                         >
-                            <div className="flex flex-col gap-3 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                            <div className="flex shrink-0 flex-col gap-3 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
                                 <div className="space-y-1">
                                     <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                                        Template preview
+                                        {pendingFile && !showImportResult
+                                            ? 'File preview'
+                                            : 'Template preview'}
                                     </p>
                                     <h2 className="text-xl font-semibold text-foreground">
                                         {selectedOption.title}
@@ -867,166 +1173,222 @@ export default function Index({ fundClusters }: Props) {
 
                             {!showImportResult && (
                                 <>
-                                    <div className="space-y-4 p-5 sm:p-6">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <h3 className="flex items-center gap-2 text-sm font-medium text-foreground">
-                                                <FileSpreadsheet
-                                                    aria-hidden="true"
-                                                    className="size-4"
-                                                />
-                                                {
-                                                    FILE_FORMAT_DETAILS[
-                                                        selectedFileFormat
-                                                    ].label
-                                                }{' '}
-                                                template
-                                            </h3>
-                                            {template?.status === 'ready' &&
-                                                template.rows.length > 0 && (
-                                                    <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
-                                                        {
-                                                            template.rows[0]
-                                                                .length
-                                                        }{' '}
-                                                        columns ·{' '}
-                                                        {template.rows.length -
-                                                            1}{' '}
-                                                        rows
-                                                    </span>
-                                                )}
-                                        </div>
-
-                                        {template?.status === 'loading' && (
-                                            <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-                                                <Loader2
-                                                    aria-hidden="true"
-                                                    className="size-4 animate-spin motion-reduce:animate-none"
-                                                />
-                                                Loading template...
-                                            </div>
-                                        )}
-
-                                        {template?.status === 'error' && (
-                                            <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-                                                <AlertCircle
-                                                    aria-hidden="true"
-                                                    className="mt-0.5 size-4 shrink-0"
-                                                />
-                                                <p>
-                                                    Couldn&apos;t load the
-                                                    template from{' '}
-                                                    <code className="font-mono text-xs">
-                                                        {templatePreviewUrl(
-                                                            selectedOption.id,
-                                                            selectedFileFormat,
-                                                        )}
-                                                    </code>
-                                                    .
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        {template?.status === 'ready' &&
-                                            template.rows.length > 0 && (
-                                                <>
-                                                    {selectedFileFormat ===
-                                                    'json' ? (
-                                                        <pre className="max-h-[min(65vh,34rem)] overflow-auto rounded-lg border border-border bg-muted/30 p-4 text-sm leading-relaxed text-foreground">
-                                                            <code>
-                                                                {template.jsonPreview ??
-                                                                    JSON.stringify(
-                                                                        template.rows,
-                                                                        null,
-                                                                        2,
-                                                                    )}
-                                                            </code>
-                                                        </pre>
-                                                    ) : (
-                                                        <div className="max-h-[min(65vh,34rem)] overflow-auto rounded-lg border border-border">
-                                                            <table className="w-full min-w-max text-left text-sm">
-                                                                <thead className="sticky top-0 bg-muted">
-                                                                    <tr>
-                                                                        {template.rows[0].map(
-                                                                            (
-                                                                                cell,
-                                                                                i,
-                                                                            ) => (
-                                                                                <th
-                                                                                    key={
-                                                                                        i
-                                                                                    }
-                                                                                    scope="col"
-                                                                                    className="px-4 py-3 font-semibold whitespace-nowrap text-foreground"
-                                                                                >
-                                                                                    {
-                                                                                        cell
-                                                                                    }
-                                                                                </th>
-                                                                            ),
-                                                                        )}
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    {template.rows
-                                                                        .slice(
-                                                                            1,
-                                                                            MAX_PREVIEW_ROWS +
-                                                                                1,
-                                                                        )
-                                                                        .map(
-                                                                            (
-                                                                                row,
-                                                                                r,
-                                                                            ) => (
-                                                                                <tr
-                                                                                    key={
-                                                                                        r
-                                                                                    }
-                                                                                    className="border-t border-border"
-                                                                                >
-                                                                                    {row.map(
-                                                                                        (
-                                                                                            cell,
-                                                                                            c,
-                                                                                        ) => (
-                                                                                            <td
-                                                                                                key={
-                                                                                                    c
-                                                                                                }
-                                                                                                className="border-t border-border px-4 py-3 whitespace-nowrap text-muted-foreground"
-                                                                                            >
-                                                                                                {
-                                                                                                    cell
-                                                                                                }
-                                                                                            </td>
-                                                                                        ),
-                                                                                    )}
-                                                                                </tr>
-                                                                            ),
-                                                                        )}
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
+                                    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-5 sm:p-6">
+                                        {pendingFile ? (
+                                            <>
+                                                <div className="flex shrink-0 items-center justify-between gap-3">
+                                                    <h3 className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                                                        <FileSpreadsheet
+                                                            aria-hidden="true"
+                                                            className="size-4 shrink-0"
+                                                        />
+                                                        <span className="truncate">
+                                                            {pendingFile.name}
+                                                        </span>
+                                                        <span className="shrink-0 text-xs font-normal text-muted-foreground">
+                                                            {formatFileSize(
+                                                                pendingFile.size,
+                                                            )}
+                                                        </span>
+                                                    </h3>
+                                                    {filePreview?.status ===
+                                                        'ready' && (
+                                                        <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
+                                                            {
+                                                                filePreview
+                                                                    .rows[0]
+                                                                    .length
+                                                            }{' '}
+                                                            columns ·{' '}
+                                                            {filePreview.rows
+                                                                .length - 1}
+                                                            {filePreview.truncated
+                                                                ? '+'
+                                                                : ''}{' '}
+                                                            rows
+                                                        </span>
                                                     )}
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Your file should use
-                                                        these column headers and
-                                                        follow the sample rows
-                                                        above.
-                                                    </p>
-                                                </>
-                                            )}
+                                                </div>
 
-                                        {template?.status === 'ready' &&
-                                            template.rows.length === 0 && (
-                                                <p className="py-4 text-center text-sm text-muted-foreground">
-                                                    This template file is empty.
-                                                </p>
-                                            )}
+                                                {filePreview?.status ===
+                                                    'loading' && (
+                                                    <div className="flex shrink-0 items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                                                        <Loader2
+                                                            aria-hidden="true"
+                                                            className="size-4 animate-spin motion-reduce:animate-none"
+                                                        />
+                                                        Reading file...
+                                                    </div>
+                                                )}
+
+                                                {filePreview?.status ===
+                                                    'error' && (
+                                                    <div className="flex shrink-0 items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                                                        <AlertCircle
+                                                            aria-hidden="true"
+                                                            className="mt-0.5 size-4 shrink-0"
+                                                        />
+                                                        <p>
+                                                            {
+                                                                filePreview.message
+                                                            }{' '}
+                                                            Choose a different
+                                                            file to continue.
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                {filePreview?.status ===
+                                                    'unavailable' && (
+                                                    <div className="flex shrink-0 flex-col items-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 px-4 py-10 text-center">
+                                                        <FileSpreadsheet
+                                                            aria-hidden="true"
+                                                            className="size-8 text-muted-foreground"
+                                                        />
+                                                        <p className="max-w-sm text-sm text-muted-foreground">
+                                                            {
+                                                                filePreview.message
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                {filePreview?.status ===
+                                                    'ready' && (
+                                                    <>
+                                                        <PreviewTable
+                                                            rows={
+                                                                filePreview.rows
+                                                            }
+                                                            format={
+                                                                selectedFileFormat
+                                                            }
+                                                            jsonPreview={
+                                                                filePreview.jsonPreview
+                                                            }
+                                                        />
+                                                        <p className="shrink-0 text-sm text-muted-foreground">
+                                                            {filePreview.rows
+                                                                .length -
+                                                                1 >
+                                                                MAX_PREVIEW_ROWS ||
+                                                            filePreview.truncated
+                                                                ? `Showing the first ${MAX_PREVIEW_ROWS} rows. `
+                                                                : ''}
+                                                            Review your file,
+                                                            then press Start
+                                                            import.
+                                                        </p>
+                                                    </>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="flex shrink-0 items-center justify-between gap-3">
+                                                    <h3 className="flex items-center gap-2 text-sm font-medium text-foreground">
+                                                        <FileSpreadsheet
+                                                            aria-hidden="true"
+                                                            className="size-4"
+                                                        />
+                                                        {
+                                                            FILE_FORMAT_DETAILS[
+                                                                selectedFileFormat
+                                                            ].label
+                                                        }{' '}
+                                                        template
+                                                    </h3>
+                                                    {template?.status ===
+                                                        'ready' &&
+                                                        template.rows.length >
+                                                            0 && (
+                                                            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
+                                                                {
+                                                                    template
+                                                                        .rows[0]
+                                                                        .length
+                                                                }{' '}
+                                                                columns ·{' '}
+                                                                {template.rows
+                                                                    .length -
+                                                                    1}{' '}
+                                                                rows
+                                                            </span>
+                                                        )}
+                                                </div>
+
+                                                {template?.status ===
+                                                    'loading' && (
+                                                    <div className="flex shrink-0 items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                                                        <Loader2
+                                                            aria-hidden="true"
+                                                            className="size-4 animate-spin motion-reduce:animate-none"
+                                                        />
+                                                        Loading template...
+                                                    </div>
+                                                )}
+
+                                                {template?.status ===
+                                                    'error' && (
+                                                    <div className="flex shrink-0 items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                                                        <AlertCircle
+                                                            aria-hidden="true"
+                                                            className="mt-0.5 size-4 shrink-0"
+                                                        />
+                                                        <p>
+                                                            Couldn&apos;t load
+                                                            the template from{' '}
+                                                            <code className="font-mono text-xs">
+                                                                {templatePreviewUrl(
+                                                                    selectedOption.id,
+                                                                    selectedFileFormat,
+                                                                )}
+                                                            </code>
+                                                            .
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                {template?.status ===
+                                                    'ready' &&
+                                                    template.rows.length >
+                                                        0 && (
+                                                        <>
+                                                            <PreviewTable
+                                                                rows={
+                                                                    template.rows
+                                                                }
+                                                                format={
+                                                                    selectedFileFormat
+                                                                }
+                                                                jsonPreview={
+                                                                    template.jsonPreview
+                                                                }
+                                                            />
+                                                            <p className="shrink-0 text-sm text-muted-foreground">
+                                                                Your file should
+                                                                use these column
+                                                                headers and
+                                                                follow the sample
+                                                                rows above.
+                                                            </p>
+                                                        </>
+                                                    )}
+
+                                                {template?.status ===
+                                                    'ready' &&
+                                                    template.rows.length ===
+                                                        0 && (
+                                                        <p className="shrink-0 py-4 text-center text-sm text-muted-foreground">
+                                                            This template file
+                                                            is empty.
+                                                        </p>
+                                                    )}
+                                            </>
+                                        )}
                                     </div>
 
                                     {config?.needsFundCluster && (
-                                        <div className="space-y-2 border-t border-border p-5 sm:px-6">
+                                        <div className="shrink-0 space-y-2 border-t border-border p-5 sm:px-6">
                                             <Label htmlFor="import-fund-cluster">
                                                 Fund cluster
                                             </Label>
@@ -1041,7 +1403,7 @@ export default function Index({ fundClusters }: Props) {
                                                 >
                                                     <SelectValue placeholder="Select a fund cluster" />
                                                 </SelectTrigger>
-                                                <SelectContent>
+                                                <SelectContent position="popper" side="top" align="start">
                                                     {fundClusters.map(
                                                         (cluster) => (
                                                             <SelectItem
@@ -1068,7 +1430,7 @@ export default function Index({ fundClusters }: Props) {
                                     )}
 
                                     {config?.sendMergeOption && (
-                                        <div className="flex items-start gap-3 border-t border-border px-5 py-4 sm:px-6">
+                                        <div className="flex shrink-0 items-start gap-3 border-t border-border px-5 py-4 sm:px-6">
                                             <Checkbox
                                                 id="import-merge-existing"
                                                 checked={mergeExisting}
@@ -1095,7 +1457,7 @@ export default function Index({ fundClusters }: Props) {
 
                             {showImportResult ? (
                                 <div
-                                    className="space-y-4 border-t border-border p-5 sm:p-6"
+                                    className="min-h-0 flex-1 space-y-4 overflow-y-auto border-t border-border p-5 sm:p-6"
                                     role="status"
                                     aria-live="polite"
                                 >
@@ -1327,7 +1689,7 @@ export default function Index({ fundClusters }: Props) {
                                         )}
                                 </div>
                             ) : (
-                                <div className="flex flex-col gap-3 border-t border-border p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                                <div className="flex shrink-0 flex-col gap-3 border-t border-border p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                                     <a
                                         href={templateDownloadUrl(
                                             selectedOption.id,
@@ -1357,6 +1719,7 @@ export default function Index({ fundClusters }: Props) {
                                                         value as ImportFileFormat,
                                                     );
                                                     setImportError('');
+                                                    clearPendingFile();
                                                 }}
                                             >
                                                 <SelectTrigger
@@ -1365,7 +1728,7 @@ export default function Index({ fundClusters }: Props) {
                                                 >
                                                     <SelectValue />
                                                 </SelectTrigger>
-                                                <SelectContent>
+                                                <SelectContent side="top" align="end">
                                                     {allowedFileFormats.map(
                                                         (format) => (
                                                             <SelectItem
@@ -1403,37 +1766,69 @@ export default function Index({ fundClusters }: Props) {
                                             )
                                         }
                                     />
-                                    <Button
-                                        type="button"
-                                        className="min-h-11 w-full sm:w-auto"
-                                        disabled={
-                                            template?.status !== 'ready' ||
-                                            isImportActive ||
-                                            Boolean(
-                                                config?.needsFundCluster &&
-                                                !fundClusterId,
-                                            )
-                                        }
-                                        onClick={() =>
-                                            fileInputRef.current?.click()
-                                        }
-                                    >
-                                        <Upload
-                                            aria-hidden="true"
-                                            className="mr-2 size-4"
-                                        />
-                                        Choose{' '}
-                                        {
-                                            FILE_FORMAT_DETAILS[
-                                                selectedFileFormat
-                                            ].label
-                                        }{' '}
-                                        File & Import
-                                        <ChevronRight
-                                            aria-hidden="true"
-                                            className="ml-2 size-4"
-                                        />
-                                    </Button>
+                                    {pendingFile ? (
+                                        <div className="flex flex-col gap-3 sm:flex-row">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="min-h-11 w-full sm:w-auto"
+                                                disabled={isImportActive}
+                                                onClick={() =>
+                                                    fileInputRef.current?.click()
+                                                }
+                                            >
+                                                <Upload
+                                                    aria-hidden="true"
+                                                    className="mr-2 size-4"
+                                                />
+                                                Choose different file
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                className="min-h-11 w-full sm:w-auto"
+                                                disabled={!canStartImport}
+                                                onClick={startImport}
+                                            >
+                                                <Play
+                                                    aria-hidden="true"
+                                                    className="mr-2 size-4"
+                                                />
+                                                Start import
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <Button
+                                            type="button"
+                                            className="min-h-11 w-full sm:w-auto"
+                                            disabled={
+                                                template?.status !== 'ready' ||
+                                                isImportActive ||
+                                                Boolean(
+                                                    config?.needsFundCluster &&
+                                                    !fundClusterId,
+                                                )
+                                            }
+                                            onClick={() =>
+                                                fileInputRef.current?.click()
+                                            }
+                                        >
+                                            <Upload
+                                                aria-hidden="true"
+                                                className="mr-2 size-4"
+                                            />
+                                            Choose{' '}
+                                            {
+                                                FILE_FORMAT_DETAILS[
+                                                    selectedFileFormat
+                                                ].label
+                                            }{' '}
+                                            File
+                                            <ChevronRight
+                                                aria-hidden="true"
+                                                className="ml-2 size-4"
+                                            />
+                                        </Button>
+                                    )}
                                     {importError && (
                                         <p
                                             className="text-sm text-destructive sm:basis-full"
@@ -1446,7 +1841,13 @@ export default function Index({ fundClusters }: Props) {
                             )}
                         </section>
                     ) : (
-                        <section className="flex min-h-[28rem] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/60 p-8 text-center lg:min-h-[36rem]">
+                        <section
+                            style={{
+                                height: PANEL_HEIGHT,
+                                maxHeight: PANEL_HEIGHT,
+                            }}
+                            className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/60 p-8 text-center"
+                        >
                             <span className="flex size-16 items-center justify-center rounded-2xl bg-muted">
                                 <FileSpreadsheet
                                     aria-hidden="true"
@@ -1457,7 +1858,7 @@ export default function Index({ fundClusters }: Props) {
                                 Your template preview will appear here
                             </h2>
                             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-                                Choose a module from the menu to see the
+                                Choose a module from the list to see the
                                 required columns and sample data before
                                 importing.
                             </p>

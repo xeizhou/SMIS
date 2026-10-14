@@ -894,6 +894,7 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             value={data.receipt_claimed_by}
                                             onChange={handleChange}
                                             error={errors.receipt_claimed_by}
+                                            placeholder="Enter name"
                                             pattern={PATTERNS.nameOrOffice.source}
                                             title={MESSAGES.names}
                                         />
@@ -911,6 +912,7 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             value={data.items_claimed_by}
                                             onChange={handleChange}
                                             error={errors.items_claimed_by}
+                                            placeholder="Enter name"
                                             pattern={PATTERNS.nameOrOffice.source}
                                             title={MESSAGES.names}
                                         />
@@ -1120,17 +1122,13 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                 {/* 5. Payment Processing */}
                                 {activeTab === 'Payment Processing' && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <SelectField
-                                            label="Payment Status"
-                                            value={data.payment_status}
-                                            onChange={handleSelectChange('payment_status')}
-                                            error={errors.payment_status}
-                                            placeholder="-- Select Status --"
-                                            options={[
-                                                { value: 'Pending', label: 'Pending' },
-                                                { value: 'Processing', label: 'Processing' },
-                                                { value: 'Paid', label: 'Paid' },
-                                            ]}
+                                        <Field
+                                            label="RIS Number"
+                                            name="ris_number"
+                                            value={data.ris_number}
+                                            onChange={handleChange}
+                                            error={errors.ris_number}
+                                            placeholder="Enter RIS number"
                                         />
                                         <Field
                                             label="Invoice Number"
@@ -1138,6 +1136,7 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             value={data.invoice_number}
                                             onChange={handleChange}
                                             error={errors.invoice_number}
+                                            placeholder="Enter invoice number"
                                             placeholder="3453; 3452/SOA No.: 2026-0001"
                                             pattern={PATTERNS.invoiceDocumentRef.source}
                                             title={MESSAGES.invoiceDocumentRef}
@@ -1156,6 +1155,7 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             value={data.delivery_receipt}
                                             onChange={handleChange}
                                             error={errors.delivery_receipt}
+                                            placeholder="Enter delivery receipt"
                                             placeholder="ROXI26-00294/OD-26-3774065"
                                             pattern={PATTERNS.deliveryReceiptRef.source}
                                             title={MESSAGES.deliveryReceiptRef}
@@ -1166,6 +1166,19 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             value={data.par_ics_number}
                                             onChange={handleChange}
                                             error={errors.par_ics_number}
+                                            placeholder="Enter PAR/ICS number"
+                                        />
+                                        <SelectField
+                                            label="Payment Status"
+                                            value={data.payment_status}
+                                            onChange={handleSelectChange('payment_status')}
+                                            error={errors.payment_status}
+                                            placeholder="-- Select Status --"
+                                            options={[
+                                                { value: 'Pending', label: 'Pending' },
+                                                { value: 'Processing', label: 'Processing' },
+                                                { value: 'Paid', label: 'Paid' },
+                                            ]}
                                             placeholder="2026060021/2026070036; 2026070037"
                                             pattern={PATTERNS.parIcsMultiRef.source}
                                             title={MESSAGES.parIcsMultiRef}

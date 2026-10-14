@@ -76,18 +76,6 @@ class RRSPController extends Controller
                 ];
             });
 
-        $statuses = \App\Models\RrspItem::whereNotNull('status')
-            ->distinct()
-            ->pluck('status')
-            ->sort()
-            ->values();
-
-        $areas = \App\Models\Area::orderBy('name')->pluck('name');
-
-        $stockItems = \App\Models\StockItem::select('stock_no', 'item_name', 'description')
-            ->orderBy('item_name')
-            ->get();
-
         return Inertia::render('rrsp-monitoring/index', [
             'rrspMonitorings' => $rrspMonitorings,
             'filters' => [
@@ -96,9 +84,15 @@ class RRSPController extends Controller
                 'sort_field' => $sortField ?: null,
                 'sort_direction' => $sortDirection,
             ],
-            'statuses' => $statuses,
-            'areas' => $areas,
-            'stockItems' => $stockItems,
+            'statuses' => fn () => \App\Models\RrspItem::whereNotNull('status')
+                ->distinct()
+                ->pluck('status')
+                ->sort()
+                ->values(),
+            'areas' => fn () => \App\Models\Area::orderBy('name')->pluck('name'),
+            'stockItems' => fn () => \App\Models\StockItem::select('stock_no', 'item_name', 'description')
+                ->orderBy('item_name')
+                ->get(),
         ]);
     }
 

@@ -67,13 +67,13 @@ class DeliveriesController extends Controller
                 'sort_field' => $sortField ?: null,
                 'sort_direction' => $sortDirection,
             ],
-            'purchaseOrders' => ServePo::query()
+            'purchaseOrders' => fn () => ServePo::query()
                 ->select(['po_number', 'supplier_id', 'total_amount_po', 'end_user', 'delivery_term', 'po_received_date'])
                 ->with(['supplier:supplier_id,supplier_name'])
                 ->orderByDesc('created_at')
                 ->get(),
             'statuses' => ['PENDING', 'PARTIAL', 'COMPLETE', 'CANCELLED'],
-            'suppliers' => Supplier::select('supplier_id', 'supplier_name')
+            'suppliers' => fn () => Supplier::select('supplier_id', 'supplier_name')
                 ->orderByDesc('supplier_id')
                 ->get(),
         ]);

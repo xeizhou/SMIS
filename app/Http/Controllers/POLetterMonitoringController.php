@@ -75,10 +75,10 @@ class POLetterMonitoringController extends Controller
                 'sort_field' => $sortField ?: null,
                 'sort_direction' => $sortDirection,
             ],
-            'suppliers' => Supplier::select('supplier_id', 'supplier_name')
+            'suppliers' => fn () => Supplier::select('supplier_id', 'supplier_name')
                 ->orderByDesc('supplier_id')
                 ->get(),
-            'poNumbers' => ServePo::select('po_number', 'supplier_id', 'po_received_date', 'due_date', 'end_user')
+            'poNumbers' => fn () => ServePo::select('po_number', 'supplier_id', 'po_received_date', 'due_date', 'end_user')
                 ->orderByDesc('created_at')
                 ->get(),
         ]);

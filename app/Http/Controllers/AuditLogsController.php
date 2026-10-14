@@ -30,6 +30,12 @@ class AuditLogsController extends Controller
             return null;
         }
 
+        static $refCache = [];
+        $cacheKey = $module . ':' . $id . ':' . (str_contains(strtolower($action), 'follow-up') ? '1' : '0');
+        if (array_key_exists($cacheKey, $refCache)) {
+            return $refCache[$cacheKey];
+        }
+
         try {
             $resolved = match ($module) {
                 'RRPPE Monitoring' => \Illuminate\Support\Facades\DB::table('RRPPE_Monitoring')->where('id', $id)->value('rrppe_no'),
@@ -61,8 +67,11 @@ class AuditLogsController extends Controller
                 'Transactions' => \Illuminate\Support\Facades\DB::table('transactions')->where('transactionID', $id)->value('reference'),
                 default => null,
             };
-            return $resolved ?: $id;
+            $result = $resolved ?: $id;
+            $refCache[$cacheKey] = $result;
+            return $result;
         } catch (\Exception $e) {
+            $refCache[$cacheKey] = $id;
             return $id;
         }
     }
