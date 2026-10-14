@@ -109,7 +109,7 @@ function Field({
                 disabled={disabled}
                 pattern={pattern}
                 title={title}
-                className={readOnly ? "bg-muted text-muted-foreground cursor-not-allowed" : ""}
+                className={cn(readOnly ? "bg-muted text-muted-foreground cursor-not-allowed" : "", error && "border-red-500")}
             />
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
@@ -394,10 +394,18 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
     }, [open, regspi, rrsps]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const fieldName = e.target.name;
         setData(prev => ({
             ...prev,
-            [e.target.name]: e.target.value,
+            [fieldName]: e.target.value,
         }));
+        if (errors[fieldName]) {
+            setErrors(prev => {
+                const next = { ...prev };
+                delete next[fieldName];
+                return next;
+            });
+        }
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
@@ -405,6 +413,13 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
             ...prev,
             [name]: value,
         }));
+        if (errors[name]) {
+            setErrors(prev => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     const handleRrspChange = (value: string) => {
@@ -711,7 +726,6 @@ export default function RegSPIEditForm({ open, onOpenChange, regspi, rrsps = [],
                                                 onChange={handleChange}
                                                 error={errors.estimated_useful_life}
                                             />
-                                            {errors.estimated_useful_life && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.estimated_useful_life}</p>}
                                             <Field
                                                 label="Amount"
                                                 name="amount"

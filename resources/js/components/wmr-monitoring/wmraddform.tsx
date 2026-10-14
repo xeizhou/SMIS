@@ -246,12 +246,28 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div>
                                         <label className={labelClass} htmlFor="wmr_no">WMR No. <span className="text-red-500">*</span></label>
-                                        <Input id="wmr_no" name="wmr_no" pattern={PATTERNS.wmrNo.source} title={MESSAGES.numbersAndHyphens} value={data.wmr_no} onChange={handleChange} placeholder="e.g. 2026010001" />
+                                        <Input
+                                            id="wmr_no"
+                                            name="wmr_no"
+                                            pattern={PATTERNS.wmrNo.source}
+                                            title={MESSAGES.numbersAndHyphens}
+                                            value={data.wmr_no}
+                                            onChange={handleChange}
+                                            placeholder="e.g. 2026010001"
+                                            className={cn(errors.wmr_no && 'border-red-500')}
+                                        />
                                         {errors.wmr_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.wmr_no}</p>}
                                     </div>
                                     <div>
                                         <label className={labelClass} htmlFor="wmr_date">WMR Date <span className="text-red-500">*</span></label>
-                                        <Input id="wmr_date" name="wmr_date" type="date" value={data.wmr_date} onChange={handleChange} />
+                                        <Input
+                                            id="wmr_date"
+                                            name="wmr_date"
+                                            type="date"
+                                            value={data.wmr_date}
+                                            onChange={handleChange}
+                                            className={cn(errors.wmr_date && 'border-red-500')}
+                                        />
                                         {errors.wmr_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.wmr_date}</p>}
                                     </div>
                                     <SearchableSelect
@@ -279,7 +295,16 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                     </div>
                                     <div>
                                         <label className={labelClass} htmlFor="item_vehicle">Item / Vehicle <span className="text-red-500">*</span></label>
-                                        <Input id="item_vehicle" name="item_vehicle" pattern={PATTERNS.vehicleType.source} title={MESSAGES.basicText} value={data.item_vehicle} onChange={handleChange} placeholder="e.g. ISUZU EXTREME SHA 157" />
+                                        <Input
+                                            id="item_vehicle"
+                                            name="item_vehicle"
+                                            pattern={PATTERNS.vehicleType.source}
+                                            title={MESSAGES.basicText}
+                                            value={data.item_vehicle}
+                                            onChange={handleChange}
+                                            placeholder="e.g. ISUZU EXTREME SHA 157"
+                                            className={cn(errors.item_vehicle && 'border-red-500')}
+                                        />
                                         {errors.item_vehicle && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.item_vehicle}</p>}
                                     </div>
                                 </div>

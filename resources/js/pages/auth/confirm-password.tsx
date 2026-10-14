@@ -9,6 +9,7 @@ import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
 import { store } from '@/routes/password/confirm';
 
 export default function ConfirmPassword() {
@@ -30,13 +31,16 @@ export default function ConfirmPassword() {
                 {({ processing, errors }) => (
                     <div className="space-y-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password">
+                                Password <span className="text-red-500">*</span>
+                            </Label>
                             <PasswordInput
                                 id="password"
                                 name="password"
                                 placeholder="Password"
                                 autoComplete="current-password"
                                 autoFocus
+                                className={cn(errors.password && "border-red-500")}
                             />
 
                             <InputError message={errors.password} />

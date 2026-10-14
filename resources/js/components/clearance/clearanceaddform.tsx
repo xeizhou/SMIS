@@ -138,10 +138,18 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
     }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setData({
-            ...data,
-            [e.target.name]: e.target.value,
-        });
+        const { name, value } = e.target;
+        setData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     const handleTypeSelect = (value: string) => {
@@ -235,7 +243,14 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
                                     <div className="grid gap-4 md:grid-cols-2">
                                         <div>
                                             <label className={labelClass} htmlFor="name">Name <span className="text-red-500">*</span></label>
-                                            <Input id="name" name="name" value={data.name} onChange={handleChange} placeholder="Enter full name" />
+                                            <Input
+                                                id="name"
+                                                name="name"
+                                                value={data.name}
+                                                onChange={handleChange}
+                                                placeholder="Enter full name"
+                                                className={errors.name ? 'border-red-500' : ''}
+                                            />
                                             {errors.name && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.name}</p>}
                                         </div>
 
@@ -253,7 +268,14 @@ export default function ClearanceAddForm({ open, onOpenChange, offices }: Props)
 
                                         <div>
                                             <label className={labelClass} htmlFor="received_by">Received By <span className="text-red-500">*</span></label>
-                                            <Input id="received_by" name="received_by" value={data.received_by} onChange={handleChange} placeholder="Enter receiver name" />
+                                            <Input
+                                                id="received_by"
+                                                name="received_by"
+                                                value={data.received_by}
+                                                onChange={handleChange}
+                                                placeholder="Enter receiver name"
+                                                className={errors.received_by ? 'border-red-500' : ''}
+                                            />
                                             {errors.received_by && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.received_by}</p>}
                                         </div>
 

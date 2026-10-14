@@ -121,6 +121,7 @@ function Field({
                 onChange={onChange}
                 placeholder={placeholder}
                 disabled={disabled}
+                className={cn(error && 'border-red-500')}
             />
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
@@ -196,7 +197,7 @@ function SelectField({
                 )}
             </div>
             <Select value={value} onValueChange={onChange} disabled={disabled}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className={cn("w-full", error && "border-red-500")}>
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
@@ -652,11 +653,26 @@ export default function PirEditForm({
     }, [pir]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setData({ ...data, [e.target.name]: e.target.value });
+        const fieldName = e.target.name;
+        setData({ ...data, [fieldName]: e.target.value });
+        if (errors[fieldName]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[fieldName];
+                return next;
+            });
+        }
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
         setData({ ...data, [name]: value });
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     const updateInspectionGroup = (groupIndex: number, value: string) => {
@@ -945,7 +961,6 @@ export default function PirEditForm({
                                 error={errors.po_number}
                                 disabled
                             />
-                                            {errors.po_number && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.po_number}</p>}
                             <LockedField
                                 label="Supplier"
                                 value={supplierName}
@@ -1374,7 +1389,6 @@ export default function PirEditForm({
                                 error={errors.receipt_receiving_date}
                                 disabled={!forReleaseComplete}
                             />
-                                            {errors.receipt_receiving_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.receipt_receiving_date}</p>}
                             <Field
                                 label="Claimed By"
                                 name="receipt_claimed_by"
@@ -1484,7 +1498,6 @@ export default function PirEditForm({
                                 onChange={handleChange}
                                 error={errors.date_forwarded_to_finance}
                             />
-                                            {errors.date_forwarded_to_finance && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.date_forwarded_to_finance}</p>}
                             <div className="col-span-2">
                                 <Field
                                     label="Remarks"

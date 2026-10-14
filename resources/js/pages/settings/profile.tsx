@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { cn } from '@/lib/utils';
 import {
     Dialog,
     DialogContent,
@@ -315,18 +316,26 @@ export default function Profile() {
                 <div className="rounded-xl border border-border bg-card p-6">
                     <form onSubmit={handleSaveClick} className="space-y-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="name">Username</Label>
+                            <Label htmlFor="name">
+                                Username <span className="text-red-500">*</span>
+                            </Label>
                             <Input
                                 id="name"
                                 name="name"
                                 value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                onChange={(e) => {
+                                    setName(e.target.value);
+                                    if (errors.name) {
+                                        setErrors((prev) => ({ ...prev, name: undefined }));
+                                    }
+                                }}
                                 required
                                 maxLength={255}
                                 pattern="[a-zA-Z0-9_. ]+"
                                 title="Letters, numbers, underscores, periods, and spaces only"
                                 autoComplete="username"
                                 placeholder="Username"
+                                className={cn(errors.name && 'border-red-500')}
                             />
                             <InputError message={errors.name} />
                             <p className="text-xs text-muted-foreground">
@@ -335,17 +344,25 @@ export default function Profile() {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">
+                                Email <span className="text-red-500">*</span>
+                            </Label>
                             <Input
                                 id="email"
                                 name="email"
                                 type="email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    if (errors.email) {
+                                        setErrors((prev) => ({ ...prev, email: undefined }));
+                                    }
+                                }}
                                 required
                                 maxLength={255}
                                 autoComplete="email"
                                 placeholder="Email address"
+                                className={cn(errors.email && 'border-red-500')}
                             />
                             <InputError message={errors.email} />
                         </div>

@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 interface EmployeeFileRecord {
     efr_id: number;
@@ -57,10 +58,18 @@ export default function EmployeeFileEditForm({ open, onOpenChange, record }: Pro
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
+        const fieldName = e.target.name;
         setData({
             ...data,
-            [e.target.name]: e.target.value,
+            [fieldName]: e.target.value,
         });
+        if (errors[fieldName]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[fieldName];
+                return next;
+            });
+        }
     };
 
     const handleSelectChange = (value: string, name: string) => {
@@ -68,6 +77,13 @@ export default function EmployeeFileEditForm({ open, onOpenChange, record }: Pro
             ...data,
             [name]: value,
         });
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -109,6 +125,7 @@ export default function EmployeeFileEditForm({ open, onOpenChange, record }: Pro
                                     name="first_name"
                                     value={data.first_name}
                                     onChange={handleChange}
+                                    className={cn(errors.first_name && 'border-red-500')}
                                 />
                                 {errors.first_name && (
                                     <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.first_name}</p>
@@ -124,6 +141,7 @@ export default function EmployeeFileEditForm({ open, onOpenChange, record }: Pro
                                     name="middle_name"
                                     value={data.middle_name}
                                     onChange={handleChange}
+                                    className={cn(errors.middle_name && 'border-red-500')}
                                 />
                                 {errors.middle_name && (
                                     <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.middle_name}</p>
@@ -139,6 +157,7 @@ export default function EmployeeFileEditForm({ open, onOpenChange, record }: Pro
                                     name="last_name"
                                     value={data.last_name}
                                     onChange={handleChange}
+                                    className={cn(errors.last_name && 'border-red-500')}
                                 />
                                 {errors.last_name && (
                                     <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.last_name}</p>
@@ -160,6 +179,7 @@ export default function EmployeeFileEditForm({ open, onOpenChange, record }: Pro
                                     name="area"
                                     value={data.area}
                                     onChange={handleChange}
+                                    className={cn(errors.area && 'border-red-500')}
                                 />
                                 {errors.area && (
                                     <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.area}</p>
@@ -171,7 +191,7 @@ export default function EmployeeFileEditForm({ open, onOpenChange, record }: Pro
                                     Status <span className="text-red-500">*</span>
                                 </label>
                                 <Select value={data.status} onValueChange={(value) => handleSelectChange(value, 'status')}>
-                                    <SelectTrigger className="w-full">
+                                    <SelectTrigger className={cn("w-full", errors.status && "border-red-500")}>
                                         <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
                                     <SelectContent>

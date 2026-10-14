@@ -354,6 +354,9 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
             itemDescription: match?.description ?? '',
         };
         setData('items', newItems);
+        if ((errors as any)[`items.${index}.stockNo`]) (clearErrors as any)(`items.${index}.stockNo`);
+        if ((errors as any)[`items.${index}.itemName`]) (clearErrors as any)(`items.${index}.itemName`);
+        if ((errors as any)[`items.${index}.itemDescription`]) (clearErrors as any)(`items.${index}.itemDescription`);
     };
 
     const addItem = () => {
@@ -384,6 +387,9 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
         const newItems = [...data.items];
         newItems[index] = { ...newItems[index], [field]: value };
         setData('items', newItems);
+        if ((errors as any)[`items.${index}.${field}`]) {
+            (clearErrors as any)(`items.${index}.${field}`);
+        }
     };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -640,7 +646,7 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
                                                         onChange={(val) => selectStockItem(index, val)}
                                                         placeholder="Search item name or description..."
                                                         options={stockOptions}
-                                                        error={(errors as any)[`items.${index}.stockNo`]}
+                                                        error={(errors as any)[`items.${index}.stockNo`] || (errors as any)[`items.${index}.itemName`] || (errors as any)[`items.${index}.itemDescription`] ? 'Stock item is required.' : undefined}
                                                     />
                                                 </div>
                                                 <div className="space-y-1.5">
@@ -663,10 +669,14 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
                                                     min="1"
                                                     value={item.quantity}
                                                     onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                                                    className={cn(
+                                                        (errors[`items.${index}.quantity`] || (errors as any)[`items.${index}.quantity`]) && "border-red-500"
+                                                    )}
                                                 />
-                                            {errors[`items.${index}.quantity`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.quantity`]}</p>}
-                                                {(errors as any)[`items.${index}.quantity`] && (
-                                                    <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.quantity`]}</p>
+                                                {(errors[`items.${index}.quantity`] || (errors as any)[`items.${index}.quantity`]) && (
+                                                    <p className="mt-1 text-[11px] text-red-500 font-medium">
+                                                        {errors[`items.${index}.quantity`] || (errors as any)[`items.${index}.quantity`]}
+                                                    </p>
                                                 )}
                                             </div>
                                             <div className="space-y-1.5">
@@ -677,8 +687,15 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
                                                     title={MESSAGES.numbersAndHyphens}
                                                     value={item.propertyNo}
                                                     onChange={(e) => updateItem(index, 'propertyNo', e.target.value)}
+                                                    className={cn(
+                                                        (errors[`items.${index}.propertyNo`] || (errors as any)[`items.${index}.propertyNo`]) && "border-red-500"
+                                                    )}
                                                 />
-                                            {errors[`items.${index}.propertyNo`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.propertyNo`]}</p>}
+                                                {(errors[`items.${index}.propertyNo`] || (errors as any)[`items.${index}.propertyNo`]) && (
+                                                    <p className="mt-1 text-[11px] text-red-500 font-medium">
+                                                        {errors[`items.${index}.propertyNo`] || (errors as any)[`items.${index}.propertyNo`]}
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="space-y-1.5">
                                                 <Label htmlFor={`edit-item-${index}-kind`}>Kind of Semi-Expendable</Label>
@@ -705,10 +722,14 @@ export default function RrspEditForm({ open, onOpenChange, rrsp, areas, stockIte
                                                     placeholder="e.g. 1500.00"
                                                     value={item.cost}
                                                     onChange={(e) => updateItem(index, 'cost', e.target.value)}
+                                                    className={cn(
+                                                        (errors[`items.${index}.cost`] || (errors as any)[`items.${index}.cost`]) && "border-red-500"
+                                                    )}
                                                 />
-                                            {errors[`items.${index}.cost`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.cost`]}</p>}
-                                                {(errors as any)[`items.${index}.cost`] && (
-                                                    <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.cost`]}</p>
+                                                {(errors[`items.${index}.cost`] || (errors as any)[`items.${index}.cost`]) && (
+                                                    <p className="mt-1 text-[11px] text-red-500 font-medium">
+                                                        {errors[`items.${index}.cost`] || (errors as any)[`items.${index}.cost`]}
+                                                    </p>
                                                 )}
                                             </div>
                                             <div className="space-y-1.5">

@@ -17,7 +17,12 @@ interface Props {
     poNumber: string | null;
 }
 
-export default function DeliveryDeleteModal({ open, onOpenChange, deliveryId, poNumber }: Props) {
+export default function DeliveryDeleteModal({
+    open,
+    onOpenChange,
+    deliveryId,
+    poNumber,
+}: Props) {
     const [processing, setProcessing] = useState(false);
     const [warningOpen, setWarningOpen] = useState(false);
     const [warningMessage, setWarningMessage] = useState<string | null>(null);
@@ -56,14 +61,18 @@ export default function DeliveryDeleteModal({ open, onOpenChange, deliveryId, po
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-black">Confirm Archive</DialogTitle>
+                        <DialogTitle className="text-black">
+                            Confirm Archive
+                        </DialogTitle>
                     </DialogHeader>
 
                     <div className="py-4">
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Are you sure you want to archive Delivery record {' '}
+                            Are you sure you want to archive Delivery record{' '}
                             {deliveryId ? (
-                                <span className="font-medium text-foreground">{deliveryId}</span>
+                                <span className="font-medium text-foreground">
+                                    {deliveryId}
+                                </span>
                             ) : (
                                 'this record'
                             )}
@@ -72,10 +81,19 @@ export default function DeliveryDeleteModal({ open, onOpenChange, deliveryId, po
                     </div>
 
                     <DialogFooter className="gap-2 sm:gap-2">
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => onOpenChange(false)}
+                        >
                             Cancel
                         </Button>
-                        <Button className='bg-[#612A35]' type="button" onClick={confirmDelete} disabled={processing}>
+                        <Button
+                            className="bg-[#612A35]"
+                            type="button"
+                            onClick={confirmDelete}
+                            disabled={processing}
+                        >
                             {processing ? 'Archiving...' : 'Archive'}
                         </Button>
                     </DialogFooter>
@@ -93,7 +111,7 @@ export default function DeliveryDeleteModal({ open, onOpenChange, deliveryId, po
 
                     <div className="pb-3">
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Cannot archive Delivery {' '}
+                            Cannot archive Delivery{' '}
                             {deliveryId ? (
                                 <span className="font-medium text-foreground">
                                     {deliveryId}
@@ -109,20 +127,34 @@ export default function DeliveryDeleteModal({ open, onOpenChange, deliveryId, po
                         {warningMessage?.includes('\n') ? (
                             <>
                                 <p>{warningMessage.split('\n')[0]}</p>
-                                <ul className="list-disc pl-5 mt-3 space-y-0.5">
+                                <ul className="mt-3 list-disc space-y-0.5 pl-5">
                                     {warningMessage
                                         .split('\n')
                                         .slice(1)
                                         .filter((line) => line.trim() !== '')
-                                        .map((line, i) =>
-                                            line.startsWith('- ') ? (
-                                                <li key={i} className="list-[circle] ml-5">
-                                                    {line.substring(2)}
+                                        .map((line, i) => {
+                                            const trimmed = line.trim();
+                                            const isSubItem =
+                                                line.startsWith('    ') ||
+                                                line.startsWith('\t') ||
+                                                trimmed.startsWith('- ');
+                                            const cleanLine = trimmed.replace(
+                                                /^[*•\-]\s*/,
+                                                '',
+                                            );
+                                            return (
+                                                <li
+                                                    key={i}
+                                                    className={
+                                                        isSubItem
+                                                            ? 'ml-5 list-[circle]'
+                                                            : undefined
+                                                    }
+                                                >
+                                                    {cleanLine}
                                                 </li>
-                                            ) : (
-                                                <li key={i}>{line}</li>
-                                            ),
-                                        )}
+                                            );
+                                        })}
                                 </ul>
                             </>
                         ) : (
@@ -131,7 +163,10 @@ export default function DeliveryDeleteModal({ open, onOpenChange, deliveryId, po
                     </div>
 
                     <DialogFooter className="pt-2">
-                        <Button type="button" onClick={() => setWarningOpen(false)}>
+                        <Button
+                            type="button"
+                            onClick={() => setWarningOpen(false)}
+                        >
                             OK
                         </Button>
                     </DialogFooter>

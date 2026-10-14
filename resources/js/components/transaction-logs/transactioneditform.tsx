@@ -141,6 +141,7 @@ function Field({
                 onChange={onChange}
                 placeholder={placeholder}
                 min={min}
+                className={cn(error && 'border-red-500')}
             />
 
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
@@ -194,7 +195,7 @@ function SelectField({
             </div>
 
             <Select value={value} onValueChange={onChange} disabled={disabled}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className={cn("w-full", error && "border-red-500")}>
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
 
@@ -415,6 +416,13 @@ export default function TransactionEditForm({
             ...data,
             [name]: value,
         });
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
@@ -422,6 +430,13 @@ export default function TransactionEditForm({
             ...data,
             [name]: value,
         });
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     // True only when the user has changed RECEIVE<->ISSUE from what this
@@ -525,7 +540,6 @@ export default function TransactionEditForm({
                                 error={errors.transaction_date}
                                 required
                             />
-                                            {errors.transaction_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.transaction_date}</p>}
                             <Field
                                 label="Reference"
                                 name="reference"
@@ -573,6 +587,14 @@ export default function TransactionEditForm({
                                         unitID: defaultUnitID,
                                         fund_cluster: selectedItem?.fund_cluster_id ?? '',
                                     }));
+                                    if (errors.item_name || errors.stock_no) {
+                                        setErrors((prev) => {
+                                            const next = { ...prev };
+                                            delete next.item_name;
+                                            delete next.stock_no;
+                                            return next;
+                                        });
+                                    }
                                 }}
                                 error={errors.item_name}
                                 required

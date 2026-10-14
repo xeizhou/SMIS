@@ -167,7 +167,7 @@ function SelectField({
                 {required && <span className="text-red-500"> *</span>}
             </label>
             <Select value={value} onValueChange={onChange}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className={cn("w-full", error && "border-red-500")}>
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
@@ -435,9 +435,23 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setData((prev) => ({ ...prev, [name]: value }));
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
         if (name === 'po_number') {
             const chosenPo = purchaseOrders.find((item) => item.po_number === value) ?? null;
             const poDateReceived = toDateInputValue(chosenPo?.po_received_date ?? null);

@@ -200,7 +200,7 @@ function SelectField({
                 )}
             </div>
             <Select value={value} onValueChange={onChange}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className={cn("w-full", error && "border-red-500")}>
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
@@ -469,7 +469,9 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
+        if (errors[name]) clearErrors(name);
         if (name === 'po_number') {
+            if (errors.office_end_user) clearErrors('office_end_user');
             const chosenPo =
                 poNumbers.find((item) => item.po_number === value) ?? null;
 
@@ -608,14 +610,6 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                             <DialogTitle>Add PO Letter Record</DialogTitle>
                         </DialogHeader>
 
-                        <Alert className="border-red-200 bg-red-50 text-red-800 mt-4 flex items-center gap-2 py-3 px-4 [&>svg]:text-red-800">
-                            <Info className="size-4 shrink-0" />
-                            <div className="text-sm flex flex-wrap items-center gap-1">
-                                <span className="font-semibold">REMINDER:</span>
-                                <span>needs an existing PO Number to autofill some fields.</span>
-                            </div>
-                        </Alert>
-
                         <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} noValidate className="mt-6 space-y-8">
                             {/* Section: Basic Information */}
                             <div>
@@ -623,6 +617,7 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
                                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                                     <SearchableSelect
                                         label="PO Number"
+                                        required
                                         value={data.po_number}
                                         onChange={handleSelectChange('po_number')}
                                         error={errors.po_number}
@@ -688,6 +683,7 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
 
                             <SelectField
                                 label="Type of Letter"
+                                required
                                 value={data.type_of_letter}
                                 onChange={handleSelectChange('type_of_letter')}
                                 error={errors.type_of_letter}
@@ -732,6 +728,7 @@ export default function PoLetterAddForm({ open, onOpenChange, suppliers, poNumbe
 
                             <SelectField
                                 label="Status of the Letter"
+                                required
                                 value={data.status_of_the_letter}
                                 onChange={handleSelectChange(
                                     'status_of_the_letter',

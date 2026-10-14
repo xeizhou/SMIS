@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
 import { update } from '@/routes/password';
 
 type Props = {
@@ -43,12 +44,14 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password">
+                                Password <span className="text-red-500">*</span>
+                            </Label>
                             <PasswordInput
                                 id="password"
                                 name="password"
                                 autoComplete="new-password"
-                                className="mt-1 block w-full"
+                                className={cn("mt-1 block w-full", errors.password && "border-red-500")}
                                 autoFocus
                                 placeholder="Password"
                                 passwordrules={passwordRules}
@@ -58,13 +61,13 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
 
                         <div className="grid gap-2">
                             <Label htmlFor="password_confirmation">
-                                Confirm password
+                                Confirm password <span className="text-red-500">*</span>
                             </Label>
                             <PasswordInput
                                 id="password_confirmation"
                                 name="password_confirmation"
                                 autoComplete="new-password"
-                                className="mt-1 block w-full"
+                                className={cn("mt-1 block w-full", errors.password_confirmation && "border-red-500")}
                                 placeholder="Confirm password"
                                 passwordrules={passwordRules}
                             />

@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 // --- Types & Interfaces ---
 
@@ -240,7 +241,7 @@ export default function Index({ users }: IndexProps) {
         setAvatarVersions((prev) => ({ ...prev, [userId]: (prev[userId] ?? 0) + 1 }));
     }, []);
 
-    const { data, setData, post, put, reset, processing, errors } = useForm({
+    const { data, setData, post, put, reset, processing, errors, clearErrors } = useForm({
         name: '',
         email: '',
         password: '',
@@ -614,49 +615,70 @@ export default function Index({ users }: IndexProps) {
                         )}
 
                         <div>
-                            <Label htmlFor="name">Name</Label>
+                            <Label htmlFor="name">
+                                Name <span className="text-red-500">*</span>
+                            </Label>
                             <Input
                                 id="name"
                                 placeholder="Juan Dela Cruz"
                                 value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
+                                onChange={(e) => {
+                                    setData('name', e.target.value);
+                                    if (errors.name) clearErrors('name');
+                                }}
+                                className={cn(errors.name && "border-red-500")}
                             />
-                            {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+                            {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name}</p>}
                         </div>
 
                         <div>
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">
+                                Email <span className="text-red-500">*</span>
+                            </Label>
                             <Input
                                 id="email"
                                 type="email"
                                 placeholder="juan.delacruz@example.com"
                                 value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
+                                onChange={(e) => {
+                                    setData('email', e.target.value);
+                                    if (errors.email) clearErrors('email');
+                                }}
+                                className={cn(errors.email && "border-red-500")}
                             />
-                            {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+                            {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
                         </div>
 
                         <div>
                             <Label htmlFor="password">
-                                Password {editing && '(leave blank to keep current)'}
+                                Password {!editing && <span className="text-red-500">*</span>} {editing && '(leave blank to keep current)'}
                             </Label>
                             <Input
                                 id="password"
                                 type="password"
                                 placeholder={editing ? '••••••••' : 'Enter password'}
                                 value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
+                                onChange={(e) => {
+                                    setData('password', e.target.value);
+                                    if (errors.password) clearErrors('password');
+                                }}
+                                className={cn(errors.password && "border-red-500")}
                             />
-                            {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
+                            {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
                         </div>
 
                         <div>
-                            <Label htmlFor="role">Role</Label>
+                            <Label htmlFor="role">
+                                Role <span className="text-red-500">*</span>
+                            </Label>
                             <Select
                                 value={data.role}
-                                onValueChange={(value) => setData('role', value as 'admin' | 'staff')}
+                                onValueChange={(value) => {
+                                    setData('role', value as 'admin' | 'staff');
+                                    if (errors.role) clearErrors('role');
+                                }}
                             >
-                                <SelectTrigger id="role">
+                                <SelectTrigger id="role" className={cn("w-full", errors.role && "border-red-500")}>
                                     <SelectValue placeholder="Select a role" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -664,6 +686,7 @@ export default function Index({ users }: IndexProps) {
                                     <SelectItem value="staff">Staff</SelectItem>
                                 </SelectContent>
                             </Select>
+                            {errors.role && <p className="text-sm text-red-500 mt-1">{errors.role}</p>}
                         </div>
                     </div>
 

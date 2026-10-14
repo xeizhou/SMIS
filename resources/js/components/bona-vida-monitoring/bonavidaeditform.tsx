@@ -232,10 +232,19 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
     }, [defaults.price, JSON.stringify(rows.map(r => ({ q: r.qty, p: r.price })))]);
 
     const handleDefaultChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setDefaults({
-            ...defaults,
-            [e.target.name]: e.target.value,
-        });
+        const { name, value } = e.target;
+        setDefaults((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+        if (errors[`edit_default_${name}`] || errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[`edit_default_${name}`];
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     const handleRowChange = (index: number, field: keyof RowState, value: string) => {
@@ -337,51 +346,67 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
                                             <label className={labelClass} htmlFor="edit_default_date_received">
                                                 Date Received <span className="text-red-500">*</span>
                                             </label>
-                                            <Input name="edit_default_date_received" id="edit_default_date_received"
+                                            <Input
+                                                id="edit_default_date_received"
                                                 name="date_received"
                                                 type="date"
                                                 value={defaults.date_received}
                                                 onChange={handleDefaultChange}
+                                                className={cn((errors.edit_default_date_received || errors.date_received) && "border-red-500")}
                                             />
-                                            {errors.edit_default_date_received && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.edit_default_date_received}</p>}
-                                            {errors.date_received && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.date_received}</p>}
+                                            {(errors.edit_default_date_received || errors.date_received) && (
+                                                <p className="mt-1 text-[11px] text-red-500 font-medium">
+                                                    {errors.edit_default_date_received || errors.date_received}
+                                                </p>
+                                            )}
                                         </div>
                                         
                                         <div>
                                             <label className={labelClass} htmlFor="edit_default_invoice_no">
                                                 Invoice No <span className="text-red-500">*</span>
                                             </label>
-                                            <Input name="edit_default_invoice_no" id="edit_default_invoice_no"
+                                            <Input
+                                                id="edit_default_invoice_no"
                                                 name="invoice_no"
                                                 pattern={PATTERNS.invoiceNo.source}
                                                 title={MESSAGES.invoiceNo}
                                                 value={defaults.invoice_no}
                                                 onChange={handleDefaultChange}
                                                 placeholder="Invoice number"
+                                                className={cn((errors.edit_default_invoice_no || errors.invoice_no) && "border-red-500")}
                                             />
-                                            {errors.edit_default_invoice_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.edit_default_invoice_no}</p>}
-                                            {errors.invoice_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.invoice_no}</p>}
+                                            {(errors.edit_default_invoice_no || errors.invoice_no) && (
+                                                <p className="mt-1 text-[11px] text-red-500 font-medium">
+                                                    {errors.edit_default_invoice_no || errors.invoice_no}
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div>
                                             <label className={labelClass} htmlFor="edit_default_invoice_date">
                                                 Invoice Date <span className="text-red-500">*</span>
                                             </label>
-                                            <Input name="edit_default_invoice_date" id="edit_default_invoice_date"
+                                            <Input
+                                                id="edit_default_invoice_date"
                                                 name="invoice_date"
                                                 type="date"
                                                 value={defaults.invoice_date}
                                                 onChange={handleDefaultChange}
+                                                className={cn((errors.edit_default_invoice_date || errors.invoice_date) && "border-red-500")}
                                             />
-                                            {errors.edit_default_invoice_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.edit_default_invoice_date}</p>}
-                                            {errors.invoice_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.invoice_date}</p>}
+                                            {(errors.edit_default_invoice_date || errors.invoice_date) && (
+                                                <p className="mt-1 text-[11px] text-red-500 font-medium">
+                                                    {errors.edit_default_invoice_date || errors.invoice_date}
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div>
                                             <label className={labelClass} htmlFor="edit_default_price">
                                                 Default Price <span className="text-red-500">*</span>
                                             </label>
-                                            <Input name="edit_default_price" id="edit_default_price"
+                                            <Input
+                                                id="edit_default_price"
                                                 name="price"
                                                 type="number"
                                                 step="0.01"
@@ -389,9 +414,13 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
                                                 value={defaults.price}
                                                 onChange={handleDefaultChange}
                                                 placeholder="Default Price"
+                                                className={cn((errors.edit_default_price || errors.price) && "border-red-500")}
                                             />
-                                            {errors.edit_default_price && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.edit_default_price}</p>}
-                                            {errors.price && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.price}</p>}
+                                            {(errors.edit_default_price || errors.price) && (
+                                                <p className="mt-1 text-[11px] text-red-500 font-medium">
+                                                    {errors.edit_default_price || errors.price}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

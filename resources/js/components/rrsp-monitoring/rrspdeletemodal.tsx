@@ -16,11 +16,7 @@ interface Props {
     rrspNo: string | null;
 }
 
-export default function RrspDeleteModal({
-    open,
-    onOpenChange,
-    rrspNo,
-}: Props) {
+export default function RrspDeleteModal({ open, onOpenChange, rrspNo }: Props) {
     const [processing, setProcessing] = useState(false);
     const [warningOpen, setWarningOpen] = useState(false);
     const [warningMessage, setWarningMessage] = useState<string | null>(null);
@@ -71,7 +67,9 @@ export default function RrspDeleteModal({
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                             Are you sure you want to archive RRSP record{' '}
                             {rrspNo ? (
-                                <span className="font-medium text-foreground">{rrspNo}</span>
+                                <span className="font-medium text-foreground">
+                                    {rrspNo}
+                                </span>
                             ) : (
                                 'this record'
                             )}
@@ -126,20 +124,34 @@ export default function RrspDeleteModal({
                         {warningMessage?.includes('\n') ? (
                             <>
                                 <p>{warningMessage.split('\n')[0]}</p>
-                                <ul className="list-disc pl-5 mt-3 space-y-0.5">
+                                <ul className="mt-3 list-disc space-y-0.5 pl-5">
                                     {warningMessage
                                         .split('\n')
                                         .slice(1)
                                         .filter((line) => line.trim() !== '')
-                                        .map((line, i) =>
-                                            line.startsWith('- ') ? (
-                                                <li key={i} className="list-[circle] ml-5">
-                                                    {line.substring(2)}
+                                        .map((line, i) => {
+                                            const trimmed = line.trim();
+                                            const isSubItem =
+                                                line.startsWith('    ') ||
+                                                line.startsWith('\t') ||
+                                                trimmed.startsWith('- ');
+                                            const cleanLine = trimmed.replace(
+                                                /^[*•\-]\s*/,
+                                                '',
+                                            );
+                                            return (
+                                                <li
+                                                    key={i}
+                                                    className={
+                                                        isSubItem
+                                                            ? 'ml-5 list-[circle]'
+                                                            : undefined
+                                                    }
+                                                >
+                                                    {cleanLine}
                                                 </li>
-                                            ) : (
-                                                <li key={i}>{line}</li>
-                                            ),
-                                        )}
+                                            );
+                                        })}
                                 </ul>
                             </>
                         ) : (
@@ -148,7 +160,10 @@ export default function RrspDeleteModal({
                     </div>
 
                     <DialogFooter className="pt-2">
-                        <Button type="button" onClick={() => setWarningOpen(false)}>
+                        <Button
+                            type="button"
+                            onClick={() => setWarningOpen(false)}
+                        >
                             Cancel
                         </Button>
                     </DialogFooter>

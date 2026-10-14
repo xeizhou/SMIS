@@ -246,6 +246,7 @@ function Field({
                 required={required}
                 readOnly={readOnly}
                 disabled={disabled}
+                className={cn(error && 'border-red-500')}
             />
 
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
@@ -297,7 +298,7 @@ function SelectField({
             </div>
 
             <Select value={value} onValueChange={onChange}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className={cn("w-full", error && "border-red-500")}>
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
 
@@ -778,10 +779,18 @@ export default function PurchaseOrderEditForm({
     const poNumberChanged = data.po_number.trim() !== originalPoNumber.trim();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const fieldName = e.target.name;
         setData({
             ...data,
-            [e.target.name]: e.target.value,
+            [fieldName]: e.target.value,
         });
+        if (errors[fieldName]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[fieldName];
+                return next;
+            });
+        }
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
@@ -789,6 +798,13 @@ export default function PurchaseOrderEditForm({
             ...data,
             [name]: value,
         });
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
 
@@ -915,6 +931,13 @@ export default function PurchaseOrderEditForm({
             ...prev,
             po_number: formatPoNumberInput(e.target.value),
         }));
+        if (errors.po_number) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next.po_number;
+                return next;
+            });
+        }
     };
 
     return (
