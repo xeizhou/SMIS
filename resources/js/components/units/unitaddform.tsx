@@ -9,6 +9,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 interface Props {
     open: boolean;
@@ -48,6 +49,7 @@ function Field({
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                className={cn(error && 'border-red-500')}
             />
             {error && (
                 <p className="mt-1 text-[11px] text-red-500 font-medium">
@@ -73,10 +75,18 @@ export default function UnitAddForm({
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
+        const fieldName = e.target.name;
         setData({
             ...data,
-            [e.target.name]: e.target.value,
+            [fieldName]: e.target.value,
         });
+        if (errors[fieldName]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[fieldName];
+                return next;
+            });
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -119,7 +129,6 @@ export default function UnitAddForm({
                                 required
                                 placeholder="e.g. Piece"
                             />
-                                            {errors.unit_name && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.unit_name}</p>}
                             <Field
                                 label="Short Name"
                                 name="unit_short_name"

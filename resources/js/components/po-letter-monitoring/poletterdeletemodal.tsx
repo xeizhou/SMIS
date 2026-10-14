@@ -17,7 +17,12 @@ interface Props {
     referenceNo: string | null;
 }
 
-export default function PoLetterDeleteModal({ open, onOpenChange, poLetterId, referenceNo }: Props) {
+export default function PoLetterDeleteModal({
+    open,
+    onOpenChange,
+    poLetterId,
+    referenceNo,
+}: Props) {
     const [processing, setProcessing] = useState(false);
     const [warningOpen, setWarningOpen] = useState(false);
     const [warningMessage, setWarningMessage] = useState<string | null>(null);
@@ -34,23 +39,26 @@ export default function PoLetterDeleteModal({ open, onOpenChange, poLetterId, re
 
         setProcessing(true);
 
-        router.delete(`/po-letter-monitoring/${encodeURIComponent(String(poLetterId))}`, {
-            preserveScroll: true,
-            onSuccess: (page) => {
-                const flash = (page.props as any)?.flash;
+        router.delete(
+            `/po-letter-monitoring/${encodeURIComponent(String(poLetterId))}`,
+            {
+                preserveScroll: true,
+                onSuccess: (page) => {
+                    const flash = (page.props as any)?.flash;
 
-                if (flash?.error) {
-                    setWarningMessage(flash.error);
-                    onOpenChange(false);
-                    setTimeout(() => setWarningOpen(true), 150);
-                } else {
-                    onOpenChange(false);
-                }
+                    if (flash?.error) {
+                        setWarningMessage(flash.error);
+                        onOpenChange(false);
+                        setTimeout(() => setWarningOpen(true), 150);
+                    } else {
+                        onOpenChange(false);
+                    }
+                },
+                onFinish: () => {
+                    setProcessing(false);
+                },
             },
-            onFinish: () => {
-                setProcessing(false);
-            },
-        });
+        );
     };
 
     return (
@@ -58,14 +66,18 @@ export default function PoLetterDeleteModal({ open, onOpenChange, poLetterId, re
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-black">Confirm Archive</DialogTitle>
+                        <DialogTitle className="text-black">
+                            Confirm Archive
+                        </DialogTitle>
                     </DialogHeader>
 
                     <div className="py-4">
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Are you sure you want to archive P.O. Letter record {' '}
+                            Are you sure you want to archive P.O. Letter record{' '}
                             {referenceNo ? (
-                                <span className="font-medium text-foreground">{referenceNo}</span>
+                                <span className="font-medium text-foreground">
+                                    {referenceNo}
+                                </span>
                             ) : (
                                 'this record'
                             )}
@@ -74,11 +86,15 @@ export default function PoLetterDeleteModal({ open, onOpenChange, poLetterId, re
                     </div>
 
                     <DialogFooter className="gap-2 sm:gap-2">
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => onOpenChange(false)}
+                        >
                             Cancel
                         </Button>
                         <Button
-                            className='bg-[#612A35]'
+                            className="bg-[#612A35]"
                             type="button"
                             onClick={confirmDelete}
                             disabled={processing}
@@ -100,7 +116,7 @@ export default function PoLetterDeleteModal({ open, onOpenChange, poLetterId, re
 
                     <div className="pb-3">
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Cannot archive P.O. Letter {' '}
+                            Cannot archive P.O. Letter{' '}
                             {referenceNo ? (
                                 <span className="font-medium text-foreground">
                                     {referenceNo}
@@ -116,20 +132,34 @@ export default function PoLetterDeleteModal({ open, onOpenChange, poLetterId, re
                         {warningMessage?.includes('\n') ? (
                             <>
                                 <p>{warningMessage.split('\n')[0]}</p>
-                                <ul className="list-disc pl-5 mt-3 space-y-0.5">
+                                <ul className="mt-3 list-disc space-y-0.5 pl-5">
                                     {warningMessage
                                         .split('\n')
                                         .slice(1)
                                         .filter((line) => line.trim() !== '')
-                                        .map((line, i) =>
-                                            line.startsWith('- ') ? (
-                                                <li key={i} className="list-[circle] ml-5">
-                                                    {line.substring(2)}
+                                        .map((line, i) => {
+                                            const trimmed = line.trim();
+                                            const isSubItem =
+                                                line.startsWith('    ') ||
+                                                line.startsWith('\t') ||
+                                                trimmed.startsWith('- ');
+                                            const cleanLine = trimmed.replace(
+                                                /^[*•\-]\s*/,
+                                                '',
+                                            );
+                                            return (
+                                                <li
+                                                    key={i}
+                                                    className={
+                                                        isSubItem
+                                                            ? 'ml-5 list-[circle]'
+                                                            : undefined
+                                                    }
+                                                >
+                                                    {cleanLine}
                                                 </li>
-                                            ) : (
-                                                <li key={i}>{line}</li>
-                                            ),
-                                        )}
+                                            );
+                                        })}
                                 </ul>
                             </>
                         ) : (
@@ -138,7 +168,10 @@ export default function PoLetterDeleteModal({ open, onOpenChange, poLetterId, re
                     </div>
 
                     <DialogFooter className="pt-2">
-                        <Button type="button" onClick={() => setWarningOpen(false)}>
+                        <Button
+                            type="button"
+                            onClick={() => setWarningOpen(false)}
+                        >
                             OK
                         </Button>
                     </DialogFooter>

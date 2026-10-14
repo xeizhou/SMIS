@@ -81,10 +81,18 @@ export default function SupplierDeleteModal({
                             {errorMessage.includes('\n') ? (
                                 <>
                                     <p>{errorMessage.split('\n')[0]}</p>
-                                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
-                                        {errorMessage.split('\n').slice(1).map((line, i) => (
-                                            <li key={i}>{line}</li>
-                                        ))}
+                                    <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                                        {errorMessage
+                                            .split('\n')
+                                            .slice(1)
+                                            .map((line, i) => (
+                                                <li key={i}>
+                                                    {line.replace(
+                                                        /^[*•\-]\s*/,
+                                                        '',
+                                                    )}
+                                                </li>
+                                            ))}
                                     </ul>
                                 </>
                             ) : (
@@ -103,7 +111,7 @@ export default function SupplierDeleteModal({
                     </Button>
 
                     <Button
-                        className='bg-[#612A35]'
+                        className="bg-[#612A35]"
                         type="button"
                         onClick={confirmDelete}
                         disabled={processing}

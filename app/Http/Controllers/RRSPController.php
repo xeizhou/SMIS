@@ -106,7 +106,7 @@ class RRSPController extends Controller
             'returnBy' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'items' => 'required|array|min:1',
             'items.*.itemName' => 'required|string|max:255',
-            'items.*.itemDescription' => 'required|string',
+            'items.*.itemDescription' => 'nullable|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.propertyNo' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('propertyNo')],
             'items.*.kindOfSemiExpendable' => 'nullable|string|max:255',
@@ -119,6 +119,10 @@ class RRSPController extends Controller
             'endUserName.regex' => ValidationHelper::message('names'),
             'returnBy.regex' => ValidationHelper::message('names'),
             'items.*.propertyNo.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'items.*.itemName.required' => 'Stock item is required.',
+            'items.*.quantity.required' => 'Quantity is required.',
+        ], [
+            'items.*.itemName' => 'stock item',
         ]);
 
         $po = \App\Models\ServePo::with('items')->where('po_number', $validated['poNumber'])->firstOrFail();
@@ -167,7 +171,7 @@ class RRSPController extends Controller
             'returnBy' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'items' => 'required|array|min:1',
             'items.*.itemName' => 'required|string|max:255',
-            'items.*.itemDescription' => 'required|string',
+            'items.*.itemDescription' => 'nullable|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.propertyNo' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('propertyNo')],
             'items.*.kindOfSemiExpendable' => 'nullable|string|max:255',
@@ -180,6 +184,10 @@ class RRSPController extends Controller
             'endUserName.regex' => ValidationHelper::message('names'),
             'returnBy.regex' => ValidationHelper::message('names'),
             'items.*.propertyNo.regex' => ValidationHelper::message('numbersAndHyphens'),
+            'items.*.itemName.required' => 'Stock item is required.',
+            'items.*.quantity.required' => 'Quantity is required.',
+        ], [
+            'items.*.itemName' => 'stock item',
         ]);
 
         $po = \App\Models\ServePo::with('items')->where('po_number', $validated['poNumber'])->firstOrFail();
