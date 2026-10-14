@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\StockItem;
 use App\Models\Unit;
 use App\Models\FundCluster;
+use App\Models\Transaction;   
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -103,38 +105,43 @@ class StockItemsController extends Controller
     public function update(Request $request, StockItem $stockItem)
         {
             $validated = $request->validate([
-                // This is the ONLY place that should have $stockItem->stock_no
-                'stock_no' => 'required|string|max:255|unique:stock_items,stock_no,' . $stockItem->stock_no . ',stock_no',
-                
-                'item_name' => 'required|string|max:255',
-                'description' => 'nullable|string|max:255',
-                'fund_cluster_id' => 'nullable|exists:fund_clusters,fund_cluster_id',
+            'stock_no' => 'required|string|max:255|unique:stock_items,stock_no,' . $stockItem->stock_no . ',stock_no',
+            'item_name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
+            'fund_cluster_id' => 'nullable|exists:fund_clusters,fund_cluster_id',
+            'units' => 'required|array|min:1',
+            'units.*.unitID' => 'required|exists:units,unitID',
+            'units.*.is_default' => 'required|boolean',
+        ]);
 
-                // Validation for the units array
-                'units' => 'required|array|min:1',
-                'units.*.unitID' => 'required|exists:units,unitID',
-                'units.*.is_default' => 'required|boolean',
-            ]);
+        $isStillTemp = str_starts_with($validated['stock_no'], 'TEMP-');
 
-            // units is already validated as required|array|min:1 above, so by this
-            // point we know units are set. The only remaining thing that decides
-            // whether this item is still "pending setup" is whether the stock
-            // number has been changed away from the auto-generated TEMP- prefix.
-            $isStillTemp = str_starts_with($validated['stock_no'], 'TEMP-');
+        // NEW: remember the stock_no before it gets changed
+        $oldStockNo = $stockItem->stock_no;
 
+        // NEW: everything below is wrapped in one DB transaction
+        DB::transaction(function () use ($request, $stockItem, $isStillTemp, $oldStockNo) {
             $stockItem->update($request->except('units') + [
                 'is_pending_setup' => $isStillTemp,
             ]);
 
-            // Sync updates the pivot table
+            // NEW: sync transaction history
+            Transaction::whereIn('stock_no', [$oldStockNo, $stockItem->stock_no])
+                ->update([
+                    'stock_no'    => $stockItem->stock_no,
+                    'item_name'   => $stockItem->item_name,
+                    'description' => $stockItem->description,
+                ]);
+
             $syncData = [];
             foreach ($request->input('units') as $unit) {
                 $syncData[$unit['unitID']] = ['is_default' => $unit['is_default']];
             }
             $stockItem->units()->sync($syncData);
+        });
 
-            return redirect()->back()->with('success', 'Stock item updated successfully.');
-        }
+        return redirect()->back()->with('success', 'Stock item updated successfully.');
+    }
     
     public function destroy(Request $request, StockItem $stockItem)
     {
