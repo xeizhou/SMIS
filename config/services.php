@@ -6,13 +6,48 @@ return [
     |--------------------------------------------------------------------------
     | Third Party Services
     |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Resend, Postmark, AWS, and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
     */
+
+    'llm' => [
+        // Tried top to bottom. Providers with no key or model set are skipped.
+        'providers' => array_values(array_filter([
+            [
+                'name'     => 'gemini-a',
+                'base_url' => 'https://generativelanguage.googleapis.com/v1beta/openai',
+                'key'      => env('GEMINI_API_KEY'),
+                'model'    => env('GEMINI_MODEL', 'gemini-3.8-flash'),
+            ],
+            [
+                'name'     => 'gemini-b',
+                'base_url' => 'https://generativelanguage.googleapis.com/v1beta/openai',
+                'key'      => env('GEMINI_API_KEY'),
+                'model'    => 'gemini-3.5-flash',
+            ],
+            [
+                'name'     => 'gemini-c',
+                'base_url' => 'https://generativelanguage.googleapis.com/v1beta/openai',
+                'key'      => env('GEMINI_API_KEY'),
+                'model'    => 'gemini-3.1-flash-lite',
+            ],
+            [
+                'name'     => 'groq',
+                'base_url' => 'https://api.groq.com/openai/v1',
+                'key'      => env('GROQ_API_KEY'),
+                'model'    => env('GROQ_MODEL'),
+            ],
+            [
+                'name'     => 'openrouter',
+                'base_url' => 'https://openrouter.ai/api/v1',
+                'key'      => env('OPENROUTER_API_KEY'),
+                'model'    => env('OPENROUTER_MODEL'),
+            ],
+
+        ], fn ($p) => ! empty($p['key']) && ! empty($p['model']))),
+    ],
+
+    'tavily' => [
+        'key' => env('TAVILY_API_KEY'),
+    ],
 
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),

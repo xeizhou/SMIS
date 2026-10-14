@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X, RefreshCw, Check, ChevronsUpDown, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive, Plus } from 'lucide-react';
+import { Paperclip, X, RefreshCw, Check, ChevronsUpDown, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive, Plus, Archive } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';

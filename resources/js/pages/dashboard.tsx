@@ -1,4 +1,4 @@
-// resources/js/pages/Dashboard.tsx
+    // resources/js/pages/Dashboard.tsx
 import { Head, usePage, router, useForm } from '@inertiajs/react';
 import { RefreshCw, ClipboardCheck, FileText, Truck, Bell, Tv, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckCircle2, MessageSquarePlus, Phone, Mail, Plus, X, Loader2 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
@@ -29,6 +29,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DialogFooter } from '@/components/ui/dialog';
+import { Chatbot } from '@/components/chatbot';
 
 // Remove MOCK_NOTIFICATIONS
 

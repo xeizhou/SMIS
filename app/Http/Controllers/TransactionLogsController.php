@@ -55,6 +55,7 @@ class TransactionLogsController extends Controller
                     $sub->where('item_name', 'like', "%{$search}%")
                         ->orWhere('description', 'like', "%{$search}%")
                         ->orWhere('reference', 'like', "%{$search}%")
+                        ->orWhere('stock_no', 'like', "%{$search}%")
                         ->orWhere('office_code', 'like', "%{$search}%")
                         ->orWhereHas('office', function ($officeQuery) use ($search) {
                             $officeQuery->where('office_name', 'like', "%{$search}%")

@@ -1,6 +1,7 @@
 import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
+import { Chatbot } from '@/components/chatbot'; 
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import type { AppLayoutProps } from '@/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -111,6 +112,7 @@ export default function AppSidebarLayout({
                     </DialogContent>
                 </Dialog>
             </AppContent>
+            <Chatbot />
         </AppShell>
     );
 }

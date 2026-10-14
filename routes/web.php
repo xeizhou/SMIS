@@ -32,6 +32,7 @@ use App\Http\Controllers\DocumentCenterController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\ChatbotController;
 use Illuminate\Support\Facades\DB;
 
 Route::get('/', function () {
@@ -1084,6 +1085,11 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             ->sortByDesc(fn ($u) => $u['unread'] > 0 ? 1 : 0)
             ->values();
     })->name('messages.index');
+
+    // AI Chatbot
+    Route::post('/chatbot', [ChatbotController::class, 'send'])
+        ->middleware('throttle:15,1')
+        ->name('chatbot.send');
 
     // Calendar
     Route::get('/calendar', function () {
