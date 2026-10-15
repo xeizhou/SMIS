@@ -4,14 +4,17 @@ namespace App\Services;
 
 use App\Models\Delivery;
 use App\Models\FundCluster;
+use App\Models\Import;
 use App\Models\Office;
 use App\Models\ServePo;
 use App\Models\StockItem;
 use App\Models\Supplier;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PurchaseOrderImportService
@@ -113,13 +116,98 @@ class PurchaseOrderImportService
      */
     public function importFile(UploadedFile $file, bool $mergeExisting = true): array
     {
-        $rows = $this->readCsv($file->getRealPath());
+        $extension = strtolower($file->getClientOriginalExtension());
+        if (in_array($extension, ['xlsx', 'xls'], true)) {
+            $rows = $this->readExcel($file->getRealPath());
+        } else {
+            $rows = $this->readCsv($file->getRealPath());
+        }
 
         if (empty($rows)) {
             throw new \RuntimeException('No data rows found in the uploaded file.');
         }
 
         return $this->importRows($rows, $mergeExisting);
+    }
+
+    /**
+     * Process an Import model job in the background with progress reporting and cancellation checks.
+     */
+    public function runQueued(Import $import, bool $mergeExisting = true): void
+    {
+        $import->update(['status' => 'processing']);
+
+        try {
+            $path = Storage::path($import->file_path);
+            $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+            if (in_array($extension, ['xlsx', 'xls'], true)) {
+                $rows = $this->readExcel($path);
+            } else {
+                $rows = $this->readCsv($path);
+            }
+
+            $total = count($rows);
+            $import->update(['total_rows' => $total]);
+
+            $result = $this->importRows($rows, $mergeExisting, function ($processed, $created, $updated, $skippedCount, $total) use ($import) {
+                if ($processed > 0 && ($processed % 25 === 0 || $processed === $total)) {
+                    if ($import->fresh()->status === 'cancelled') {
+                        $this->logAudit($import, sprintf(
+                            'Cancelled Purchase Orders import: %d created, %d updated, %d skipped.',
+                            $created, $updated, $skippedCount
+                        ));
+                        return false;
+                    }
+
+                    $import->update([
+                        'processed_rows' => $processed,
+                        'created_rows' => $created,
+                        'updated_rows' => $updated,
+                        'skipped_rows' => $skippedCount,
+                    ]);
+                }
+
+                return true;
+            });
+
+            if ($import->fresh()->status === 'cancelled') {
+                return;
+            }
+
+            $import->update([
+                'status' => 'completed',
+                'processed_rows' => $total,
+                'created_rows' => $result['created'],
+                'updated_rows' => $result['updated'],
+                'skipped_rows' => count($result['skipped']),
+            ]);
+
+            $this->logAudit($import, sprintf(
+                'Imported Purchase Orders: %d created, %d updated, %d skipped.',
+                $result['created'], $result['updated'], count($result['skipped'])
+            ));
+        } catch (\Throwable $e) {
+            $import->update([
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+            ]);
+
+            $this->logAudit($import, 'Purchase Orders import failed: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Read Excel file into an array of associative rows.
+     */
+    private function readExcel(string $filePath): array
+    {
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+        $worksheet = $spreadsheet->getActiveSheet();
+        $raw = $worksheet->toArray(null, true, true, false);
+
+        return $this->rowsFromTable($raw);
     }
 
     /**
@@ -250,9 +338,10 @@ class PurchaseOrderImportService
     /**
      * Process array of associative rows and persist into database.
      *
+     * @param  (callable(int, int, int, int, int): bool)|null  $progressCallback
      * @return array{created: int, updated: int, skipped: string[]}
      */
-    public function importRows(array $rows, bool $mergeExisting = true): array
+    public function importRows(array $rows, bool $mergeExisting = true, ?callable $progressCallback = null): array
     {
         $suppliersByName = Supplier::select('supplier_id', 'supplier_name')
             ->get()
@@ -284,6 +373,7 @@ class PurchaseOrderImportService
         ServePo::withoutActivityLogging(function () use (
             $rows,
             $mergeExisting,
+            $progressCallback,
             &$suppliersByName,
             &$suppliersById,
             &$officesByCode,
@@ -583,6 +673,13 @@ class PurchaseOrderImportService
                     }
 
                     $created++;
+                }
+
+                if ($progressCallback !== null) {
+                    $shouldContinue = $progressCallback($index + 1, $created, $updated, count($skipped), count($rows));
+                    if ($shouldContinue === false) {
+                        break;
+                    }
                 }
             }
         });
@@ -891,6 +988,18 @@ class PurchaseOrderImportService
             fclose($handle);
         }, 'purchase_orders_import_template.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    private function logAudit(Import $import, string $action): void
+    {
+        $user = User::find($import->user_id);
+
+        DB::table('audit_logs')->insert([
+            'log_timestamp' => now(),
+            'userID' => $import->user_id,
+            'role' => $user->role ?? 'user',
+            'action' => $action,
         ]);
     }
 }

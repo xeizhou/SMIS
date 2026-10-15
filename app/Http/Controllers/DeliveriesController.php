@@ -7,6 +7,7 @@ use App\Models\Delivery;
 use App\Models\ServePo;
 use App\Models\Supplier;
 use App\Models\Attachment;
+use App\Services\DeliveryImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -233,4 +234,55 @@ class DeliveriesController extends Controller
 
         return back()->with('success', 'Attachment deleted successfully.');
     }
+
+    /**
+     * Import deliveries from uploaded CSV or Excel file.
+     */
+    public function import(Request $request, DeliveryImportService $importService): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:20480'],
+            'merge_existing' => ['nullable'],
+        ]);
+
+        $file = $request->file('file');
+        $mergeExisting = $request->boolean('merge_existing', true);
+
+        try {
+            $result = $importService->importFile($file, $mergeExisting);
+        } catch (\Throwable $e) {
+            return back()->withErrors(['file' => 'Import failed: ' . $e->getMessage()]);
+        }
+
+        $message = "Imported {$result['created']} delivery record(s).";
+        if ($result['updated'] > 0) {
+            $message .= " Updated {$result['updated']} existing delivery record(s).";
+        }
+        if (count($result['skipped']) > 0) {
+            $message .= ' Skipped ' . count($result['skipped']) . ' row(s).';
+        }
+
+        return back()->with([
+            'success' => $message,
+            'import_summary' => [
+                'created' => $result['created'],
+                'updated' => $result['updated'],
+                'skipped_count' => count($result['skipped']),
+                'skipped' => array_slice($result['skipped'], 0, 50),
+            ],
+        ]);
+    }
+
+    /**
+     * Download or preview Deliveries import template (CSV).
+     */
+    public function importTemplate(Request $request, DeliveryImportService $importService)
+    {
+        if ($request->boolean('preview')) {
+            return response()->json($importService->getTemplatePreview());
+        }
+
+        return $importService->downloadTemplate();
+    }
 }
+

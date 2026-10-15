@@ -7,6 +7,7 @@ use App\Models\Attachment;
 use App\Models\PoLetterMonitoring;
 use App\Models\ServePo;
 use App\Models\Supplier;
+use App\Services\PoLetterImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -210,5 +211,55 @@ class POLetterMonitoringController extends Controller
         Storage::disk('public')->delete($attachment->file_path);
 
         return back()->with('success', 'Attachment deleted successfully.');
+    }
+
+    /**
+     * Import PO Letters from uploaded CSV or Excel file.
+     */
+    public function import(Request $request, PoLetterImportService $importService): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:20480'],
+            'merge_existing' => ['nullable'],
+        ]);
+
+        $file = $request->file('file');
+        $mergeExisting = $request->boolean('merge_existing', true);
+
+        try {
+            $result = $importService->importFile($file, $mergeExisting);
+        } catch (\Throwable $e) {
+            return back()->withErrors(['file' => 'Import failed: ' . $e->getMessage()]);
+        }
+
+        $message = "Imported {$result['created']} PO letter(s).";
+        if ($result['updated'] > 0) {
+            $message .= " Updated {$result['updated']} existing PO letter(s).";
+        }
+        if (count($result['skipped']) > 0) {
+            $message .= " Skipped " . count($result['skipped']) . " row(s).";
+        }
+
+        return back()->with([
+            'success' => $message,
+            'import_summary' => [
+                'created' => $result['created'],
+                'updated' => $result['updated'],
+                'skipped_count' => count($result['skipped']),
+                'skipped' => array_slice($result['skipped'], 0, 50),
+            ],
+        ]);
+    }
+
+    /**
+     * Download or preview PO Letters import template (CSV).
+     */
+    public function importTemplate(Request $request, PoLetterImportService $importService)
+    {
+        if ($request->boolean('preview')) {
+            return response()->json($importService->getTemplatePreview());
+        }
+
+        return $importService->downloadTemplate();
     }
 }

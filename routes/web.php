@@ -549,6 +549,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
 
     Route::get('/po-letter-monitoring', [POLetterMonitoringController::class, 'index'])->name('po-letter-monitoring.index');
     Route::post('/po-letter-monitoring', [POLetterMonitoringController::class, 'store'])->name('po-letter-monitoring.store');
+    Route::post('/po-letter-monitoring/import', [POLetterMonitoringController::class, 'import'])->name('po-letter-monitoring.import');
+    Route::get('/po-letter-monitoring/import/template', [POLetterMonitoringController::class, 'importTemplate'])->name('po-letter-monitoring.import.template');
     Route::put('/po-letter-monitoring/{poLetterMonitoring}', [POLetterMonitoringController::class, 'update'])->name('po-letter-monitoring.update');
     Route::delete('/po-letter-monitoring/{poLetterMonitoring}', [POLetterMonitoringController::class, 'destroy'])->name('po-letter-monitoring.destroy');
     Route::post('/po-letter-monitoring/{poLetterMonitoring}/attachments', [POLetterMonitoringController::class, 'uploadAttachments'])
@@ -557,6 +559,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::get('/deliveries', [DeliveriesController::class, 'index'])->name('deliveries.index');
     Route::get('/notice-of-delivery', [\App\Http\Controllers\NoticeOfDeliveryReportController::class, 'index'])->name('notice-of-delivery.index');
     Route::post('/deliveries', [DeliveriesController::class, 'store'])->name('deliveries.store');
+    Route::post('/deliveries/import', [DeliveriesController::class, 'import'])->name('deliveries.import');
+    Route::get('/deliveries/import/template', [DeliveriesController::class, 'importTemplate'])->name('deliveries.import.template');
     Route::put('/deliveries/{delivery}', [DeliveriesController::class, 'update'])->name('deliveries.update');
     Route::delete('/deliveries/{delivery}', [DeliveriesController::class, 'destroy'])->name('deliveries.destroy');
     Route::post('/deliveries/{delivery}/attachments', [DeliveriesController::class, 'uploadAttachments'])
@@ -685,13 +689,26 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
 
     // In the "must be registered BEFORE /import/template/{type}" block:
     Route::get('/import/template/employee-files', [ImportController::class, 'employeeFileTemplate'])->name('import.employee-files.template');
-    Route::get('/import/template/purchase-orders', [PurchaseOrdersController::class, 'importTemplate'])->name('import.purchase-orders.template');
+    Route::get('/import/template/purchase-orders', [ImportController::class, 'purchaseOrdersTemplate'])->name('import.purchase-orders.template');
+    Route::get('/import/template/po-letters', [ImportController::class, 'poLettersTemplate'])->name('import.po-letters.template');
+    Route::get('/import/template/deliveries', [ImportController::class, 'deliveriesTemplate'])->name('import.deliveries.template');
 
     // Near the other import POST/status/cancel routes:
     Route::post('/import/employee-files', [ImportController::class, 'employeeFiles'])->name('import.employee-files');
     Route::get('/import/employee-files/{import}/status', [ImportController::class, 'status'])->name('import.employee-files.status');
     Route::post('/import/employee-files/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.employee-files.cancel');
-    Route::post('/import/purchase-orders', [PurchaseOrdersController::class, 'import'])->name('import.purchase-orders');
+
+    Route::post('/import/purchase-orders', [ImportController::class, 'purchaseOrders'])->name('import.purchase-orders');
+    Route::get('/import/purchase-orders/{import}/status', [ImportController::class, 'status'])->name('import.purchase-orders.status');
+    Route::post('/import/purchase-orders/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.purchase-orders.cancel');
+
+    Route::post('/import/po-letters', [ImportController::class, 'poLetters'])->name('import.po-letters');
+    Route::get('/import/po-letters/{import}/status', [ImportController::class, 'status'])->name('import.po-letters.status');
+    Route::post('/import/po-letters/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.po-letters.cancel');
+
+    Route::post('/import/deliveries', [ImportController::class, 'deliveries'])->name('import.deliveries');
+    Route::get('/import/deliveries/{import}/status', [ImportController::class, 'status'])->name('import.deliveries.status');
+    Route::post('/import/deliveries/{import}/cancel', [ImportController::class, 'regspiCancel'])->name('import.deliveries.cancel');
 
     Route::get('/import/template/{type}', [ImportController::class, 'template'])->name('import.template');
     Route::post('/import/items', [ImportController::class, 'items'])->name('import.items');
