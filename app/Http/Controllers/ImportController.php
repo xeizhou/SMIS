@@ -16,9 +16,14 @@ use App\Jobs\ProcessBonaVidaImport;
 use App\Jobs\ProcessOfficesImport;
 use App\Jobs\ProcessEmployeeFileImport;
 use App\Models\ClearanceOffice;
-use App\Jobs\ProcessDataImport;
 use App\Jobs\ProcessClearanceImport;
+use App\Jobs\ProcessDeliveryImport;
+use App\Jobs\ProcessPoLetterImport;
+use App\Jobs\ProcessPurchaseOrderImport;
+use App\Services\DeliveryImportService;
 use App\Services\ImportProcessor;
+use App\Services\PoLetterImportService;
+use App\Services\PurchaseOrderImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -610,6 +615,105 @@ class ImportController extends Controller
         }, 'employee_file_locator_import_template.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+    /**
+     * POST /import/deliveries
+     */
+    public function deliveries(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:51200',
+        ]);
+
+        $path = $validated['file']->store('imports/deliveries');
+        $import = Import::create([
+            'user_id' => $request->user()?->getKey(),
+            'file_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        ProcessDeliveryImport::dispatch($import->getKey(), true);
+
+        return back()->with('success', "Delivery monitoring import started.|||import_id:{$import->getKey()}");
+    }
+
+    /**
+     * GET /import/template/deliveries
+     */
+    public function deliveriesTemplate(Request $request, DeliveryImportService $service)
+    {
+        if ($request->boolean('preview')) {
+            return response()->json($service->getTemplatePreview());
+        }
+
+        return $service->downloadTemplate();
+    }
+
+    /**
+     * POST /import/po-letters
+     */
+    public function poLetters(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:51200',
+        ]);
+
+        $path = $validated['file']->store('imports/po-letters');
+        $import = Import::create([
+            'user_id' => $request->user()?->getKey(),
+            'file_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        ProcessPoLetterImport::dispatch($import->getKey(), true);
+
+        return back()->with('success', "PO Letter import started.|||import_id:{$import->getKey()}");
+    }
+
+    /**
+     * GET /import/template/po-letters
+     */
+    public function poLettersTemplate(Request $request, PoLetterImportService $service)
+    {
+        if ($request->boolean('preview')) {
+            return response()->json($service->getTemplatePreview());
+        }
+
+        return $service->downloadTemplate();
+    }
+
+    /**
+     * POST /import/purchase-orders
+     */
+    public function purchaseOrders(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:51200',
+        ]);
+
+        $path = $validated['file']->store('imports/purchase-orders');
+        $import = Import::create([
+            'user_id' => $request->user()?->getKey(),
+            'file_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        ProcessPurchaseOrderImport::dispatch($import->getKey(), true);
+
+        return back()->with('success', "Purchase Orders import started.|||import_id:{$import->getKey()}");
+    }
+
+    /**
+     * GET /import/template/purchase-orders
+     */
+    public function purchaseOrdersTemplate(Request $request, PurchaseOrderImportService $service)
+    {
+        if ($request->boolean('preview')) {
+            return response()->json($service->getTemplatePreview());
+        }
+
+        return $service->downloadTemplate();
     }
 
     /**

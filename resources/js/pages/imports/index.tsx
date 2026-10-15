@@ -31,6 +31,8 @@ type ImportId =
     | 'wmr'
     | 'bona-vida'
     | 'purchase-orders'
+    | 'po-letters'
+    | 'deliveries'
     | 'suppliers'
     | 'offices'
     | 'employee-files'
@@ -102,6 +104,16 @@ const importGroups: { title: string; options: ImportOption[] }[] = [
                 id: 'purchase-orders',
                 title: 'Purchase Orders',
                 description: 'Import purchase order monitoring records.',
+            },
+            {
+                id: 'po-letters',
+                title: 'PO Letters',
+                description: 'Import PO letter monitoring records.',
+            },
+            {
+                id: 'deliveries',
+                title: 'Deliveries',
+                description: 'Import delivery monitoring records.',
             },
             {
                 id: 'suppliers',
@@ -192,9 +204,19 @@ const IMPORT_CONFIG: Record<
         cancelPath: '/import/bona-vida',
     },
     'purchase-orders': {
-        endpoint: '/purchase-orders/import',
-        templateUrl: '/purchase-orders/import/template',
-        cancelPath: '/purchase-orders',
+        endpoint: '/import/purchase-orders',
+        templateUrl: '/import/template/purchase-orders',
+        cancelPath: '/import/purchase-orders',
+    },
+    'po-letters': {
+        endpoint: '/import/po-letters',
+        templateUrl: '/import/template/po-letters',
+        cancelPath: '/import/po-letters',
+    },
+    deliveries: {
+        endpoint: '/import/deliveries',
+        templateUrl: '/import/template/deliveries',
+        cancelPath: '/import/deliveries',
     },
     suppliers: {
         endpoint: '/supplier/import',
