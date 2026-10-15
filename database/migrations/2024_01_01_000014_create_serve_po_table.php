@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -11,6 +12,7 @@ return new class extends Migration
         Schema::create('serve_po', function (Blueprint $table) {
             $table->string('po_number', 50)->primary();
             $table->text('item_description')->nullable();
+            $table->string('operational_impact', 50)->nullable();
             $table->date('po_date')->nullable();
             $table->date('po_received_date')->nullable();
             $table->string('po_vpad_forwarded_by', 255)->nullable();
@@ -101,10 +103,35 @@ return new class extends Migration
                 ->references('fund_cluster_id')->on('fund_clusters')
                 ->nullOnDelete();
         });
+
+        Schema::create('po_item_descriptions', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->unique();
+            $table->timestamps();
+        });
+
+        $defaults = [
+            'ICT/EQUIPMENT',
+            'OFFICE SUPPLIES',
+            'OFFICE EQUIPMENT',
+            'LABORATORY',
+            'CONSTRUCTION SUPPLIES',
+            'SERVICES',
+            'TOKEN & SOUVENIRS',
+        ];
+
+        $now = now();
+        foreach ($defaults as $name) {
+            DB::table('po_item_descriptions')->updateOrInsert(
+                ['name' => $name],
+                ['created_at' => $now, 'updated_at' => $now]
+            );
+        }
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('po_item_descriptions');
         Schema::dropIfExists('serve_po');
     }
 };
