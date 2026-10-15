@@ -27,6 +27,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import DatePicker from '@/components/date-picker';
 
 interface Unit {
     unitID: number;
@@ -473,12 +474,10 @@ export default function TransactionAddForm({
                                         placeholder="-- Select Type --"
                                         options={TRANSACTION_TYPE_OPTIONS}
                                     />
-                                    <Field
+                                    <DatePicker
                                         label="Transaction Date"
-                                        name="transaction_date"
-                                        type="date"
                                         value={data.transaction_date}
-                                        onChange={handleChange}
+                                        onChange={handleSelectChange('transaction_date')}
                                         error={errors.transaction_date}
                                         required
                                     />

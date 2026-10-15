@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { useNativeValidation } from '@/hooks/useNativeValidation';
+import DatePicker from '@/components/date-picker';
 
 interface SupplierOption {
     supplier_id: number;
@@ -258,18 +259,13 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                         />
                                         {errors.wmr_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.wmr_no}</p>}
                                     </div>
-                                    <div>
-                                        <label className={labelClass} htmlFor="wmr_date">WMR Date <span className="text-red-500">*</span></label>
-                                        <Input
-                                            id="wmr_date"
-                                            name="wmr_date"
-                                            type="date"
-                                            value={data.wmr_date}
-                                            onChange={handleChange}
-                                            className={cn(errors.wmr_date && 'border-red-500')}
-                                        />
-                                        {errors.wmr_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.wmr_date}</p>}
-                                    </div>
+                                    <DatePicker
+                                        label="WMR Date"
+                                        required
+                                        value={data.wmr_date}
+                                        onChange={(v) => handleSelectChange(v, 'wmr_date')}
+                                        error={errors.wmr_date}
+                                    />
                                     <SearchableSelect
                                         label="Supplier"
                                         value={data.supplier_id}
@@ -288,11 +284,12 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                         <Input id="iar_no" name="iar_no" pattern={PATTERNS.iarNo.source} title={MESSAGES.iarNo} value={data.iar_no} onChange={handleChange} placeholder="e.g. FOR REFERENCE ONLY" />
                                         {errors.iar_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.iar_no}</p>}
                                     </div>
-                                    <div>
-                                        <label className={labelClass} htmlFor="iar_date">IAR Date</label>
-                                        <Input id="iar_date" name="iar_date" type="date" value={data.iar_date} onChange={handleChange} />
-                                        {errors.iar_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.iar_date}</p>}
-                                    </div>
+                                    <DatePicker
+                                        label="IAR Date"
+                                        value={data.iar_date}
+                                        onChange={(v) => handleSelectChange(v, 'iar_date')}
+                                        error={errors.iar_date}
+                                    />
                                     <div>
                                         <label className={labelClass} htmlFor="item_vehicle">Item / Vehicle <span className="text-red-500">*</span></label>
                                         <Input
@@ -318,11 +315,12 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                         <Input id="job_order_no" name="job_order_no" pattern={PATTERNS.jobOrderNo.source} title={MESSAGES.jobOrderNo} value={data.job_order_no} onChange={handleChange} placeholder="e.g. M0-47-12-25" />
                                         {errors.job_order_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.job_order_no}</p>}
                                     </div>
-                                    <div>
-                                        <label className={labelClass} htmlFor="job_order_date">Job Order Date</label>
-                                        <Input id="job_order_date" name="job_order_date" type="date" value={data.job_order_date} onChange={handleChange} />
-                                        {errors.job_order_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.job_order_date}</p>}
-                                    </div>
+                                    <DatePicker
+                                        label="Job Order Date"
+                                        value={data.job_order_date}
+                                        onChange={(v) => handleSelectChange(v, 'job_order_date')}
+                                        error={errors.job_order_date}
+                                    />
                                     <SearchableSelect
                                         label="Fund"
                                         value={data.fund_cluster_id}
@@ -390,11 +388,12 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                         <Input id="inspector_name" name="inspector_name" pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} value={data.inspector_name} onChange={handleChange} placeholder="e.g. Orvil M. Basug" />
                                         {errors.inspector_name && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.inspector_name}</p>}
                                     </div>
-                                    <div>
-                                        <label className={labelClass} htmlFor="inspection_date">Inspection Date</label>
-                                        <Input id="inspection_date" name="inspection_date" type="date" value={data.inspection_date} onChange={handleChange} />
-                                        {errors.inspection_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.inspection_date}</p>}
-                                    </div>
+                                    <DatePicker
+                                        label="Inspection Date"
+                                        value={data.inspection_date}
+                                        onChange={(v) => handleSelectChange(v, 'inspection_date')}
+                                        error={errors.inspection_date}
+                                    />
                                     <div>
                                         <label className={labelClass} htmlFor="invoice_no">Invoice No.</label>
                                         <Input id="invoice_no" name="invoice_no" pattern={PATTERNS.invoiceNo.source} title={MESSAGES.invoiceNo} value={data.invoice_no} onChange={handleChange} placeholder="Separate multiple with commas" />
@@ -455,11 +454,12 @@ export default function WmrAddForm({ open, onOpenChange, suppliers, offices, fun
                                         <Input id="received_by" name="received_by" pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} value={data.received_by} onChange={handleChange} />
                                         {errors.received_by && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.received_by}</p>}
                                     </div>
-                                    <div>
-                                        <label className={labelClass} htmlFor="received_date">Date Received</label>
-                                        <Input id="received_date" name="received_date" type="date" value={data.received_date} onChange={handleChange} />
-                                        {errors.received_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.received_date}</p>}
-                                    </div>
+                                    <DatePicker
+                                        label="Date Received"
+                                        value={data.received_date}
+                                        onChange={(v) => handleSelectChange(v, 'received_date')}
+                                        error={errors.received_date}
+                                    />
                                 </div>
                             </div>
 
