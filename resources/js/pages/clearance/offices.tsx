@@ -44,7 +44,7 @@ interface Props {
         // 1. Added sort filters
         sort_field?: string;
         sort_direction?: 'asc' | 'desc';
-        per_page?: number;  
+        per_page?: number;
     };
 }
 
@@ -69,11 +69,11 @@ export default function ClearanceOffices({ offices, filters }: Props) {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get(
-            '/clearance/offices',
-            buildFilterUrl({ search, page: 1 }),
-            { preserveState: true, preserveScroll: true, replace: true }
-        );
+        router.get('/clearance/offices', buildFilterUrl({ search, page: 1 }), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
     };
 
     const handleClear = () => {
@@ -81,7 +81,7 @@ export default function ClearanceOffices({ offices, filters }: Props) {
         router.get(
             '/clearance/offices',
             buildFilterUrl({ search: '', page: 1 }),
-            { preserveState: true, preserveScroll: true, replace: true }
+            { preserveState: true, preserveScroll: true, replace: true },
         );
     };
 
@@ -133,7 +133,9 @@ export default function ClearanceOffices({ offices, filters }: Props) {
                 setIsDeleteOpen(false);
             },
             onError: () => {
-                setDeleteError('Something went wrong while archiving this office.');
+                setDeleteError(
+                    'Something went wrong while archiving this office.',
+                );
             },
             onFinish: () => setDeleteProcessing(false),
         });
@@ -153,10 +155,20 @@ export default function ClearanceOffices({ offices, filters }: Props) {
             width: 'w-[15%]',
             render: (office) => (
                 <div className="flex items-center justify-start gap-4">
-                    <button type="button" onClick={() => openEditModal(office)} className="text-blue-600 hover:text-blue-800" title="Edit">
+                    <button
+                        type="button"
+                        onClick={() => openEditModal(office)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="Edit"
+                    >
                         <Pencil className="size-4" />
                     </button>
-                    <button type="button" onClick={() => openDeleteModal(office)} className="text-red-600 hover:text-red-800" title="Delete">
+                    <button
+                        type="button"
+                        onClick={() => openDeleteModal(office)}
+                        className="text-red-600 hover:text-red-800"
+                        title="Delete"
+                    >
                         <Archive className="size-4" />
                     </button>
                 </div>
@@ -168,35 +180,41 @@ export default function ClearanceOffices({ offices, filters }: Props) {
         <>
             <Head title="Clearance Office Settings" />
 
-            <div className="p-4 space-y-6 sm:p-6">
+            <div className="space-y-6 p-4 sm:p-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-foreground">Office Settings</h1>
+                        <h1 className="text-2xl font-bold text-foreground">
+                            Office Settings
+                        </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Manage the list of offices available for Clearance records.
+                            Manage the list of offices available for Clearance
+                            records.
                         </p>
                     </div>
-                    <div className="bg-muted/50 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
+                    <div className="inline-flex h-10 w-fit items-center justify-center rounded-lg bg-muted/50 p-1 text-muted-foreground">
                         <Link
                             href="/clearance"
-                            className="text-muted-foreground hover:text-foreground inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                            className="inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium text-muted-foreground transition-all hover:text-foreground"
                         >
                             Clearance Records
                         </Link>
                         <Link
                             href="/clearance/offices"
                             preserveState
-                            className="bg-background text-foreground shadow-sm inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                            className="inline-flex h-full items-center justify-center rounded-md bg-background px-8 py-1.5 text-sm font-medium text-foreground shadow-sm transition-all"
                         >
                             Office Settings
                         </Link>
                     </div>
                 </div>
 
-                <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex flex-wrap gap-2 flex-1">
+                <form
+                    onSubmit={handleSearch}
+                    className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+                >
+                    <div className="flex flex-1 flex-wrap gap-2">
                         <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search Office"
                                 value={search}
@@ -205,14 +223,22 @@ export default function ClearanceOffices({ offices, filters }: Props) {
                             />
                         </div>
 
-                        <Button type="submit" variant="secondary">Search</Button>
-                        <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
+                        <Button type="submit" variant="secondary">
+                            Search
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={handleClear}
+                        >
+                            Clear
+                        </Button>
                     </div>
 
                     <Button
                         type="button"
                         onClick={openAddModal}
-                        className="w-full lg:w-auto text-white"
+                        className="w-full text-white lg:w-auto"
                         style={{ backgroundColor: '#612A35' }}
                     >
                         Add Office
@@ -246,21 +272,39 @@ export default function ClearanceOffices({ offices, filters }: Props) {
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="space-y-1.5">
-                                <Label htmlFor="add-name">Office Name <span className="text-destructive">*</span></Label>
+                                <Label htmlFor="add-name">
+                                    Office Name{' '}
+                                    <span className="text-destructive">*</span>
+                                </Label>
                                 <Input
                                     id="add-name"
                                     value={addForm.data.clearance_office_name}
-                                    onChange={(e) => addForm.setData('clearance_office_name', e.target.value)}
+                                    onChange={(e) =>
+                                        addForm.setData(
+                                            'clearance_office_name',
+                                            e.target.value,
+                                        )
+                                    }
                                     required
                                 />
                                 {addForm.errors.clearance_office_name && (
-                                    <p className="text-sm text-destructive">{addForm.errors.clearance_office_name}</p>
+                                    <p className="text-sm text-destructive">
+                                        {addForm.errors.clearance_office_name}
+                                    </p>
                                 )}
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-                            <Button type="submit" disabled={addForm.processing}>Save</Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsAddOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={addForm.processing}>
+                                Save
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -275,66 +319,110 @@ export default function ClearanceOffices({ offices, filters }: Props) {
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="space-y-1.5">
-                                <Label htmlFor="edit-name">Office Name <span className="text-destructive">*</span></Label>
+                                <Label htmlFor="edit-name">
+                                    Office Name{' '}
+                                    <span className="text-destructive">*</span>
+                                </Label>
                                 <Input
                                     id="edit-name"
                                     value={editForm.data.clearance_office_name}
-                                    onChange={(e) => editForm.setData('clearance_office_name', e.target.value)}
+                                    onChange={(e) =>
+                                        editForm.setData(
+                                            'clearance_office_name',
+                                            e.target.value,
+                                        )
+                                    }
                                     required
                                 />
                                 {editForm.errors.clearance_office_name && (
-                                    <p className="text-sm text-destructive">{editForm.errors.clearance_office_name}</p>
+                                    <p className="text-sm text-destructive">
+                                        {editForm.errors.clearance_office_name}
+                                    </p>
                                 )}
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-                            <Button type="submit" disabled={editForm.processing}>Save Changes</Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsEditOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={editForm.processing}
+                            >
+                                Save Changes
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
 
             {/* Delete Modal */}
-                <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Confirm Archive</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4 space-y-2">
-                            <p>Are you sure you want to archive the office <strong>{selectedOffice?.clearance_office_name}</strong>?</p>
-                            <p className="text-sm text-muted-foreground">You can restore it later from the Document Center.</p>
-                            {deleteError && (
-                                <div className="text-sm text-red-600 bg-red-50 dark:bg-red-950 rounded-md px-3 py-2">
-                                    {deleteError.includes('\n') ? (
-                                        <>
-                                            <p>{deleteError.split('\n')[0]}</p>
-                                            <ul className="list-disc pl-5 mt-1 space-y-0.5">
-                                                {deleteError.split('\n').slice(1).map((line, i) => (
-                                                    <li key={i}>{line}</li>
+            <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Confirm Archive</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2 py-4">
+                        <p>
+                            Are you sure you want to archive the office{' '}
+                            <strong>
+                                {selectedOffice?.clearance_office_name}
+                            </strong>
+                            ?
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            You can restore it later from the Document Center.
+                        </p>
+                        {deleteError && (
+                            <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950">
+                                {deleteError.includes('\n') ? (
+                                    <>
+                                        <p>{deleteError.split('\n')[0]}</p>
+                                        <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                                            {deleteError
+                                                .split('\n')
+                                                .slice(1)
+                                                .map((line, i) => (
+                                                    <li key={i}>
+                                                        {line.replace(
+                                                            /^[*•\-]\s*/,
+                                                            '',
+                                                        )}
+                                                    </li>
                                                 ))}
-                                            </ul>
-                                        </>
-                                    ) : (
-                                        <p>{deleteError}</p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={deleteProcessing}>Cancel</Button>
-                            <Button
-                                type="button"
-                                onClick={handleDelete}
-                                disabled={deleteProcessing}
-                                style={{ backgroundColor: '#612A35' }}
-                                className="text-white hover:opacity-90"
-                            >
-                                {deleteProcessing ? 'Archiving...' : 'Archive'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                                        </ul>
+                                    </>
+                                ) : (
+                                    <p>{deleteError}</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsDeleteOpen(false)}
+                            disabled={deleteProcessing}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleDelete}
+                            disabled={deleteProcessing}
+                            style={{ backgroundColor: '#612A35' }}
+                            className="text-white hover:opacity-90"
+                        >
+                            {deleteProcessing ? 'Archiving...' : 'Archive'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

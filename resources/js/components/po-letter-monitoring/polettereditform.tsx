@@ -227,7 +227,7 @@ function SelectField({
                 )}
             </div>
             <Select value={value} onValueChange={onChange}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className={cn("w-full", error && "border-red-500")}>
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
@@ -494,7 +494,9 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
+        if (errors[name]) clearErrors(name);
         if (name === 'po_number') {
+            if (errors.office_end_user) clearErrors('office_end_user');
             const chosenPo = poNumbers.find((item) => item.po_number === value) ?? null;
 
             const dateReceivedBySupplier = toDateInputValue(chosenPo?.po_received_date ?? null);
@@ -650,6 +652,7 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
 
                         <SearchableSelect
                             label="PO Number"
+                            required
                             value={data.po_number}
                             onChange={handleSelectChange('po_number')}
                             error={errors.po_number}
@@ -708,6 +711,7 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
 
                             <SelectField
                                 label="Type of Letter"
+                                required
                                 value={data.type_of_letter}
                                 onChange={handleSelectChange('type_of_letter')}
                                 error={errors.type_of_letter}
@@ -751,6 +755,7 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
 
                             <SelectField
                                 label="Status of the Letter"
+                                required
                                 value={data.status_of_the_letter}
                                 onChange={handleSelectChange('status_of_the_letter')}
                                 error={errors.status_of_the_letter}

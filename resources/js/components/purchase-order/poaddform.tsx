@@ -111,6 +111,7 @@ function Field({
                 required={required}
                 readOnly={readOnly}
                 disabled={disabled}
+                className={cn(error && 'border-red-500')}
             />
 
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
@@ -162,7 +163,7 @@ function SelectField({
             </div>
 
             <Select value={value} onValueChange={onChange}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className={cn("w-full", error && "border-red-500")}>
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
 
@@ -489,10 +490,18 @@ export default function PurchaseOrderAddForm({
     const responsibilityCenter = calculateResponsibilityCenter(data.fund_cluster_id, data.end_user);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const fieldName = e.target.name;
         setData({
             ...data,
-            [e.target.name]: e.target.value,
+            [fieldName]: e.target.value,
         });
+        if (errors[fieldName]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[fieldName];
+                return next;
+            });
+        }
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
@@ -500,6 +509,13 @@ export default function PurchaseOrderAddForm({
             ...data,
             [name]: value,
         });
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
 
@@ -636,6 +652,13 @@ export default function PurchaseOrderAddForm({
             ...prev,
             po_number: formatPoNumberInput(e.target.value),
         }));
+        if (errors.po_number) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next.po_number;
+                return next;
+            });
+        }
     };
 
     return (
@@ -650,14 +673,6 @@ export default function PurchaseOrderAddForm({
                             <DialogHeader>
                                 <DialogTitle>Add Purchase Order Record</DialogTitle>
                             </DialogHeader>
-
-                            <Alert className="border-red-200 bg-red-50 text-red-800 mt-4 flex items-center gap-2 py-3 px-4 [&>svg]:text-red-800">
-                                <Info className="size-4 shrink-0" />
-                                <div className="text-sm flex flex-wrap items-center gap-1">
-                                    <span className="font-semibold">REMINDER:</span>
-                                    <span>needs an existing fund cluster, end user, and supplier data.</span>
-                                </div>
-                            </Alert>
 
                             <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} noValidate className="mt-6 space-y-8">
                                 {/* Section: Purchase Order Details */}

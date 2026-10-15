@@ -236,6 +236,9 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas, stockIt
         const newItems = [...data.items];
         newItems[index] = { ...newItems[index], [field]: value };
         setData('items', newItems);
+        if ((errors as any)[`items.${index}.${field}`]) {
+            (clearErrors as any)(`items.${index}.${field}`);
+        }
     };
 
     const selectStockItem = (index: number, stockNo: string) => {
@@ -248,6 +251,9 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas, stockIt
             itemDescription: match?.description ?? '',
         };
         setData('items', newItems);
+        if ((errors as any)[`items.${index}.stockNo`]) {
+            (clearErrors as any)(`items.${index}.stockNo`);
+        }
     };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -477,8 +483,8 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas, stockIt
                                                             min="1"
                                                             value={i.quantity}
                                                             onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                                                            className={cn((errors as any)[`items.${index}.quantity`] && "border-red-500")}
                                                         />
-                                            {errors[`items.${index}.quantity`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.quantity`]}</p>}
                                                         {(errors as any)[`items.${index}.quantity`] && (
                                                             <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.quantity`]}</p>
                                                         )}
@@ -492,8 +498,8 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas, stockIt
                                                             title={MESSAGES.numbersAndHyphens}
                                                             value={i.propertyNo}
                                                             onChange={(e) => updateItem(index, 'propertyNo', e.target.value)}
+                                                            className={cn((errors as any)[`items.${index}.propertyNo`] && "border-red-500")}
                                                         />
-                                            {errors[`items.${index}.propertyNo`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.propertyNo`]}</p>}
                                                         {(errors as any)[`items.${index}.propertyNo`] && (
                                                             <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.propertyNo`]}</p>
                                                         )}
@@ -506,8 +512,8 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas, stockIt
                                                             step="0.01"
                                                             value={i.cost}
                                                             onChange={(e) => updateItem(index, 'cost', e.target.value)}
+                                                            className={cn((errors as any)[`items.${index}.cost`] && "border-red-500")}
                                                         />
-                                            {errors[`items.${index}.cost`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.cost`]}</p>}
                                                         {(errors as any)[`items.${index}.cost`] && (
                                                             <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.cost`]}</p>
                                                         )}

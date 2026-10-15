@@ -184,19 +184,20 @@ export default function SupplierForm({
                     />
                     <div>
                         <label className={labelClass}>
-                            Status
+                            Status <span className="text-red-500">*</span>
                         </label>
 
                         <Select
                             value={data.status}
-                            onValueChange={(value) =>
+                            onValueChange={(value) => {
                                 setData({
                                     ...data,
                                     status: value,
-                                })
-                            }
+                                });
+                                if (errors.status) clearErrors('status');
+                            }}
                         >
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger className={cn('w-full', errors.status && 'border-red-500')}>
                                 <SelectValue placeholder="-- Select Status --" />
                             </SelectTrigger>
 

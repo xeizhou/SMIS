@@ -86,6 +86,7 @@ function Field({
                 onChange={onChange}
                 placeholder={placeholder}
                 min={min}
+                className={cn(error && 'border-red-500')}
             />
             {error && (
                 <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>
@@ -230,6 +231,13 @@ export default function StockItemAddForm({
         }
 
         setData((prev) => ({ ...prev, [name]: value }));
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     // Functions for handling the dynamic units array
@@ -237,6 +245,14 @@ export default function StockItemAddForm({
         const newUnits = [...data.units];
         newUnits[index].unitID = newUnitID;
         setData({ ...data, units: newUnits });
+        if (errors.units || errors[`units.${index}.unitID`]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next.units;
+                delete next[`units.${index}.unitID`];
+                return next;
+            });
+        }
     };
 
     const handleSetDefaultUnit = (index: number) => {
@@ -306,7 +322,7 @@ export default function StockItemAddForm({
                                         required
                                         placeholder="Enter stock number"
                                     />
-                
+                                  
                                     <Field
                                         label="Item Name"
                                         name="item_name"

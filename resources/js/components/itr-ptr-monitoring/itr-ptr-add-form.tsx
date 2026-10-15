@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 interface Props {
     open: boolean;
@@ -65,6 +66,7 @@ function Field({
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                className={cn(error && "border-red-500")}
             />
 
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
@@ -94,6 +96,7 @@ function TextareaField({
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                className={cn(error && "border-red-500")}
             />
 
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
@@ -126,10 +129,18 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
             HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
         >,
     ) => {
-        setData({
-            ...data,
-            [e.target.name]: e.target.value,
-        });
+        const { name, value } = e.target;
+        setData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -177,7 +188,6 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                         error={errors.transaction_no}
                                         required
                                     />
-                                            {errors.transaction_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.transaction_no}</p>}
                                     <Field
                                         label="Property No."
                                         name="property_no"
@@ -212,7 +222,6 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                             error={errors.description}
                                             required
                                         />
-                                            {errors.description && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.description}</p>}
                                     </div>
                                 </div>
                             </div>
@@ -251,14 +260,21 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                         
                                         <Select
                                             value={data.condition_of_ppe}
-                                            onValueChange={(val) =>
-                                                setData({
-                                                    ...data,
+                                            onValueChange={(val) => {
+                                                setData((prev) => ({
+                                                    ...prev,
                                                     condition_of_ppe: val,
-                                                })
-                                            }
+                                                }));
+                                                if (errors.condition_of_ppe) {
+                                                    setErrors((prev) => {
+                                                        const next = { ...prev };
+                                                        delete next.condition_of_ppe;
+                                                        return next;
+                                                    });
+                                                }
+                                            }}
                                         >
-                                            <SelectTrigger className="w-full">
+                                            <SelectTrigger className={cn("w-full", errors.condition_of_ppe && "border-red-500")}>
                                                 <SelectValue placeholder="Select Condition" />
                                                 
                                             </SelectTrigger>
@@ -287,7 +303,6 @@ export default function ItrPtrAddForm({ open, onOpenChange }: Props) {
                                                 onChange={handleChange}
                                                 error={errors.remarks}
                                             />
-                                            {errors.remarks && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.remarks}</p>}
                                         </div>
                                     )}
                                 </div>

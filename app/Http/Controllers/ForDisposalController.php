@@ -141,7 +141,7 @@ class ForDisposalController extends Controller
 
                 if ($isActive) {
                     $identifier = $sourceModel->property_no ?? $sourceModel->rrppe_no ?? $forDisposal->property_no;
-                    return redirect()->back()->with('error', "Cannot archive For Disposal record {$forDisposal->transaction_no}.\n\nThis For Disposal record has linked records. Please remove them first:\n\n* 1 Linked {$sourceName}\n* Property No.: {$identifier}{$parentContext}");
+                    return redirect()->back()->with('error', "Cannot archive For Disposal record {$forDisposal->transaction_no} because it has linked records. Please remove them first:\n1 Linked {$sourceName}\n- Property No.: {$identifier}{$parentContext}");
                 }
             }
         }

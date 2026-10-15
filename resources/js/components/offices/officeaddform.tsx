@@ -27,7 +27,8 @@ interface FieldProps {
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
-const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
+const sectionTitleClass =
+    'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
 function Field({
     label,
@@ -55,7 +56,7 @@ function Field({
             />
 
             {error && (
-                <p className="mt-1 text-[11px] text-red-500 font-medium">
+                <p className="mt-1 text-[11px] font-medium text-red-500">
                     {error}
                 </p>
             )}
@@ -71,16 +72,11 @@ const emptyForm = {
     email: '',
 };
 
-export default function OfficeAddForm({
-    open,
-    onOpenChange,
-}: Props) {
+export default function OfficeAddForm({ open, onOpenChange }: Props) {
     const [data, setData] = useState(emptyForm);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement>
-    ) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setData({
             ...data,
             [e.target.name]: e.target.value,
@@ -101,15 +97,10 @@ export default function OfficeAddForm({
     };
 
     return (
-        <Dialog
-            open={open}
-            onOpenChange={onOpenChange}
-        >
+        <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>
-                        Add Office Record
-                    </DialogTitle>
+                    <DialogTitle>Add Office Record</DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-8">
@@ -126,7 +117,6 @@ export default function OfficeAddForm({
                                 required
                                 placeholder="e.g. ICT"
                             />
-                                            {errors.office_code && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.office_code}</p>}
 
                             <Field
                                 label="Office Name"
@@ -183,10 +173,12 @@ export default function OfficeAddForm({
                             Cancel
                         </Button>
 
-                        <Button type="submit"                         
-                        style={{
-                            backgroundColor: '#612A35',
-                        }}>
+                        <Button
+                            type="submit"
+                            style={{
+                                backgroundColor: '#612A35',
+                            }}
+                        >
                             Save Office
                         </Button>
                     </div>

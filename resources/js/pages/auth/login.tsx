@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
@@ -91,7 +92,9 @@ export default function Login({ status, canResetPassword }: Props) {
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Username or Email</Label>
+                                <Label htmlFor="email">
+                                    Username or Email <span className="text-red-500">*</span>
+                                </Label>
                                 <Input
                                     id="email"
                                     type="text"
@@ -101,12 +104,15 @@ export default function Login({ status, canResetPassword }: Props) {
                                     tabIndex={1}
                                     autoComplete="username"
                                     placeholder="Username or email@example.com"
+                                    className={cn(errors.email && "border-red-500")}
                                 />
                                 <InputError message={errors.email} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password">
+                                    Password <span className="text-red-500">*</span>
+                                </Label>
                                 <PasswordInput
                                     id="password"
                                     name="password"
@@ -114,6 +120,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder="Password"
+                                    className={cn(errors.password && "border-red-500")}
                                 />
                                 <InputError message={errors.password} />
                             </div>

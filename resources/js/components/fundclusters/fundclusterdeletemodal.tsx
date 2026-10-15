@@ -15,14 +15,18 @@ interface Props {
     fundClusterId: string | null;
 }
 
-export default function FundClusterDeleteModal({ open, onOpenChange, fundClusterId }: Props) {
+export default function FundClusterDeleteModal({
+    open,
+    onOpenChange,
+    fundClusterId,
+}: Props) {
     const [processing, setProcessing] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const confirmDelete = () => {
         if (!fundClusterId) {
-return;
-}
+            return;
+        }
 
         setProcessing(true);
         setErrorMessage(null);
@@ -47,13 +51,15 @@ return;
                 onOpenChange(next);
 
                 if (!next) {
-setErrorMessage(null);
-}
+                    setErrorMessage(null);
+                }
             }}
         >
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-black">Confirm Archive</DialogTitle>
+                    <DialogTitle className="text-black">
+                        Confirm Archive
+                    </DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4">
@@ -73,10 +79,18 @@ setErrorMessage(null);
                             {errorMessage.includes('\n') ? (
                                 <>
                                     <p>{errorMessage.split('\n')[0]}</p>
-                                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
-                                        {errorMessage.split('\n').slice(1).map((line, i) => (
-                                            <li key={i}>{line}</li>
-                                        ))}
+                                    <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                                        {errorMessage
+                                            .split('\n')
+                                            .slice(1)
+                                            .map((line, i) => (
+                                                <li key={i}>
+                                                    {line.replace(
+                                                        /^[*•\-]\s*/,
+                                                        '',
+                                                    )}
+                                                </li>
+                                            ))}
                                     </ul>
                                 </>
                             ) : (
@@ -87,11 +101,15 @@ setErrorMessage(null);
                 </div>
 
                 <DialogFooter className="gap-2 sm:gap-2">
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                    >
                         Cancel
                     </Button>
                     <Button
-                        className='bg-[#612A35]'
+                        className="bg-[#612A35]"
                         type="button"
                         onClick={confirmDelete}
                         disabled={processing}

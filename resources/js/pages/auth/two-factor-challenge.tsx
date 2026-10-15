@@ -10,6 +10,7 @@ import {
     InputOTPSlot,
 } from '@/components/ui/input-otp';
 import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
+import { cn } from '@/lib/utils';
 import { store } from '@/routes/two-factor/login';
 
 export default function TwoFactorChallenge() {
@@ -70,6 +71,7 @@ export default function TwoFactorChallenge() {
                                         placeholder="Enter recovery code"
                                         autoFocus={showRecoveryInput}
                                         required
+                                        className={cn(errors.recovery_code && "border-red-500")}
                                     />
                                     <InputError
                                         message={errors.recovery_code}

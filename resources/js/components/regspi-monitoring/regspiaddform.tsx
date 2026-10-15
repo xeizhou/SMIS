@@ -116,7 +116,7 @@ function Field({
                 disabled={disabled}
                 pattern={pattern}
                 title={title}
-                className={readOnly ? "bg-muted text-muted-foreground cursor-not-allowed" : ""}
+                className={cn(readOnly ? "bg-muted text-muted-foreground cursor-not-allowed" : "", error && "border-red-500")}
             />
 
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
@@ -145,6 +145,7 @@ function TextareaField({
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                className={cn(error && "border-red-500")}
             />
 
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
@@ -385,10 +386,18 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
             HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
         >,
     ) => {
+        const fieldName = e.target.name;
         setData(prev => ({
             ...prev,
-            [e.target.name]: e.target.value,
+            [fieldName]: e.target.value,
         }));
+        if (errors[fieldName]) {
+            setErrors(prev => {
+                const next = { ...prev };
+                delete next[fieldName];
+                return next;
+            });
+        }
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
@@ -396,6 +405,13 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
             ...prev,
             [name]: value,
         }));
+        if (errors[name]) {
+            setErrors(prev => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     const handleRrspChange = (value: string) => {
@@ -440,6 +456,14 @@ export default function RegSPIAddForm({ open, onOpenChange, rrsps = [], fundClus
             newItems[index] = { ...newItems[index], [field]: value };
             return { ...prev, items: newItems };
         });
+        const key = `items.${index}.${field}`;
+        if (errors[key]) {
+            setErrors(prev => {
+                const next = { ...prev };
+                delete next[key];
+                return next;
+            });
+        }
     };
 
     const addItem = () => {

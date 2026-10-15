@@ -145,6 +145,7 @@ function Field({
                 onChange={onChange}
                 placeholder={placeholder}
                 disabled={disabled}
+                className={cn(error && 'border-red-500')}
             />
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
@@ -220,7 +221,7 @@ function SelectField({
                 )}
             </div>
             <Select value={value} onValueChange={onChange} disabled={disabled}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className={cn("w-full", error && "border-red-500")}>
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
@@ -538,11 +539,26 @@ export default function PirAddForm({
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setData({ ...data, [e.target.name]: e.target.value });
+        const fieldName = e.target.name;
+        setData({ ...data, [fieldName]: e.target.value });
+        if (errors[fieldName]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[fieldName];
+                return next;
+            });
+        }
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
         setData({ ...data, [name]: value });
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     const updateInspectionGroup = (groupIndex: number, value: string) => {
@@ -657,6 +673,13 @@ export default function PirAddForm({
     // DeliveryAddForm). These auto-filled fields are now LOCKED (read-only)
     // to prevent accidental edits — same pattern as PoLetterAddForm.
     const handlePoChange = (value: string) => {
+        if (errors.po_number) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next.po_number;
+                return next;
+            });
+        }
         const po = purchaseOrders.find((p) => p.po_number === value);
 
         if (!po) {
@@ -954,7 +977,6 @@ export default function PirAddForm({
                                 error={errors.date_forwarded_supplier}
                                 disabled={!poSelected}
                             />
-                                            {errors.date_forwarded_supplier && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.date_forwarded_supplier}</p>}
                             <SearchableSelect
                                 label="Forwarded By"
                                 value={data.forwarded_by_supplier}
@@ -1373,7 +1395,6 @@ export default function PirAddForm({
                                 error={errors.receipt_receiving_date}
                                 disabled={afterForReleaseDisabled}
                             />
-                                            {errors.receipt_receiving_date && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.receipt_receiving_date}</p>}
                             <Field
                                 label="Claimed By"
                                 name="receipt_claimed_by"
@@ -1484,7 +1505,6 @@ export default function PirAddForm({
                                 onChange={handleChange}
                                 error={errors.date_forwarded_to_finance}
                             />
-                                            {errors.date_forwarded_to_finance && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.date_forwarded_to_finance}</p>}
                             <div className="col-span-2">
                                 <Field
                                     label="Remarks"

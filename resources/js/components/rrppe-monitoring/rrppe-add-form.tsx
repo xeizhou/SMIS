@@ -200,6 +200,9 @@ export default function RrppeAddForm({ open, onOpenChange, areas, stockItems }: 
         const newItems = [...data.items];
         newItems[index] = { ...newItems[index], [field]: value };
         setData('items', newItems);
+        if ((errors as any)[`items.${index}.${field}`]) {
+            (clearErrors as any)(`items.${index}.${field}`);
+        }
     };
 
     // Selecting a stock item locks in name + description from the catalog
@@ -213,6 +216,9 @@ export default function RrppeAddForm({ open, onOpenChange, areas, stockItems }: 
             itemDescription: match?.description ?? '',
         };
         setData('items', newItems);
+        if ((errors as any)[`items.${index}.stockNo`]) {
+            (clearErrors as any)(`items.${index}.stockNo`);
+        }
     };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -421,8 +427,8 @@ export default function RrppeAddForm({ open, onOpenChange, areas, stockItems }: 
                                                             placeholder="1"
                                                             value={item.quantity}
                                                             onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                                                            className={cn((errors as any)[`items.${index}.quantity`] && "border-red-500")}
                                                         />
-                                            {errors[`items.${index}.quantity`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.quantity`]}</p>}
                                                         {(errors as any)[`items.${index}.quantity`] && (
                                                             <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.quantity`]}</p>
                                                         )}
@@ -436,8 +442,8 @@ export default function RrppeAddForm({ open, onOpenChange, areas, stockItems }: 
                                                             placeholder="e.g. 223-01-08-00-0000"
                                                             value={item.propertyNo}
                                                             onChange={(e) => updateItem(index, 'propertyNo', e.target.value)}
+                                                            className={cn((errors as any)[`items.${index}.propertyNo`] && "border-red-500")}
                                                         />
-                                            {errors[`items.${index}.propertyNo`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.propertyNo`]}</p>}
                                                         {(errors as any)[`items.${index}.propertyNo`] && (
                                                             <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.propertyNo`]}</p>
                                                         )}
@@ -450,8 +456,8 @@ export default function RrppeAddForm({ open, onOpenChange, areas, stockItems }: 
                                                             placeholder="0.00"
                                                             value={item.cost}
                                                             onChange={(e) => updateItem(index, 'cost', e.target.value)}
+                                                            className={cn((errors as any)[`items.${index}.cost`] && "border-red-500")}
                                                         />
-                                            {errors[`items.${index}.cost`] && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors[`items.${index}.cost`]}</p>}
                                                         {(errors as any)[`items.${index}.cost`] && (
                                                             <p className="mt-1 text-[11px] text-red-500 font-medium">{(errors as any)[`items.${index}.cost`]}</p>
                                                         )}

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import type { ITRPTRMonitoring } from '@/pages/itr-ptr-monitoring/index';
 
 interface Props {
@@ -58,6 +59,7 @@ function Field({
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                className={cn(error && "border-red-500")}
             />
 
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
@@ -86,6 +88,7 @@ function TextareaField({
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                className={cn(error && "border-red-500")}
             />
 
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
@@ -136,10 +139,18 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     ) => {
-        setData({
-            ...data,
-            [e.target.name]: e.target.value,
-        });
+        const { name, value } = e.target;
+        setData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
     };
 
     const handleSubmit = (e?: React.FormEvent) => {
@@ -182,7 +193,6 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                                 error={errors.transaction_no}
                                 required
                             />
-                                            {errors.transaction_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.transaction_no}</p>}
                             <Field
                                 label="Property No."
                                 name="property_no"
@@ -217,7 +227,6 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                                     error={errors.description}
                                     required
                                 />
-                                            {errors.description && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.description}</p>}
                             </div>
                         </div>
                     </div>
@@ -248,14 +257,26 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                                     Condition of PPE
                                     <span className="text-red-500"> *</span>
                                 </label>
-                                <Select value={data.condition_of_ppe} onValueChange={(val) => setData({ ...data, condition_of_ppe: val })}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select Condition" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="SERVICEABLE">SERVICEABLE</SelectItem>
-                                    <SelectItem value="UNSERVICEABLE">UNSERVICEABLE</SelectItem>
-                                </SelectContent>
+                                <Select
+                                    value={data.condition_of_ppe}
+                                    onValueChange={(val) => {
+                                        setData((prev) => ({ ...prev, condition_of_ppe: val }));
+                                        if (errors.condition_of_ppe) {
+                                            setErrors((prev) => {
+                                                const next = { ...prev };
+                                                delete next.condition_of_ppe;
+                                                return next;
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className={cn("w-full", errors.condition_of_ppe && "border-red-500")}>
+                                        <SelectValue placeholder="Select Condition" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="SERVICEABLE">SERVICEABLE</SelectItem>
+                                        <SelectItem value="UNSERVICEABLE">UNSERVICEABLE</SelectItem>
+                                    </SelectContent>
                                 </Select>
                                 {errors.condition_of_ppe && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.condition_of_ppe}</p>}
                             </div>
@@ -269,7 +290,6 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                                         onChange={handleChange}
                                         error={errors.remarks}
                                     />
-                                            {errors.remarks && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.remarks}</p>}
                                 </div>
                             )}
                         </div>
