@@ -19,7 +19,7 @@ class EnsureSingleSession
         $user = $request->user();
         $sessionId = $request->session()->getId();
 
-        if (app()->environment('testing') && ! $user->current_session_id) {
+        if (app()->environment('testing')) {
             $user->claimSession($sessionId);
         }
 

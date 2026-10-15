@@ -372,8 +372,8 @@ function calculateDiff(abc: string, po: string) {
     return safeAbc - safePo;
 }
 
-function calculateResponsibilityCenter(fundClusterId: string, endUser: string) {
-    return [fundClusterId, endUser].filter(Boolean).join(' ');
+function calculateResponsibilityCenter(fundClusterId: string) {
+    return fundClusterId || '';
 }
 
 
@@ -487,7 +487,7 @@ export default function PurchaseOrderAddForm({
     };
 
     const diff = calculateDiff(data.total_amount_abc, data.total_amount_po);
-    const responsibilityCenter = calculateResponsibilityCenter(data.fund_cluster_id, data.end_user);
+    const responsibilityCenter = calculateResponsibilityCenter(data.fund_cluster_id);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const fieldName = e.target.name;
@@ -871,7 +871,7 @@ export default function PurchaseOrderAddForm({
                                                 value={responsibilityCenter}
                                                 readOnly
                                                 className="bg-muted text-muted-foreground"
-                                                placeholder="Fund Cluster + End User"
+                                                placeholder="Fund Cluster"
                                             />
                                             {errors.responsibility_center && (
                                                 <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.responsibility_center}</p>

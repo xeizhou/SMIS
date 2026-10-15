@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
+use App\Traits\SerializesDatesWithoutTimezoneShift;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\LogsActivity;
-use App\Traits\SerializesDatesWithoutTimezoneShift;
 
 class ServePo extends Model
 {
@@ -51,7 +52,7 @@ class ServePo extends Model
         'date_forwarded_to_smu',
         'coa_processed_date',
         'date_forwarded_frontdesk',
-        
+
         // Workflow fields
         'po_step',
         'date_forwarded_to_end_user',
@@ -74,6 +75,9 @@ class ServePo extends Model
         'items_receiving_date',
         'items_claimed_by',
         'payment_status',
+        'ld_amount',
+        'retention_amount',
+        'dv_template',
         'workflow_remarks',
         'invoice_number',
         'invoice_date',
@@ -119,6 +123,7 @@ class ServePo extends Model
         'total_amount_abc' => 'decimal:2',
         'total_amount_po' => 'decimal:2',
         'total_amount_diff' => 'decimal:2',
+        'ld_amount' => 'decimal:2',
     ];
 
     public function fundCluster(): BelongsTo
@@ -151,7 +156,7 @@ class ServePo extends Model
         return $this->belongsTo(Office::class, 'end_user', 'office_code');
     }
 
-    public function items(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function items(): BelongsToMany
     {
         return $this->belongsToMany(
             StockItem::class,
@@ -162,15 +167,15 @@ class ServePo extends Model
             'stock_no'
         )->withTimestamps();
     }
-    
+
     public function attachments(): MorphMany
     {
-    return $this->morphMany(Attachment::class, 'attachable');
+        return $this->morphMany(Attachment::class, 'attachable');
     }
 
     public function getActivityUrl()
     {
-        return route('purchase-orders.index') . '?highlight_id=' . $this->po_number;
+        return route('purchase-orders.index').'?highlight_id='.$this->po_number;
     }
 
     public function archiveMetadata(): MorphOne

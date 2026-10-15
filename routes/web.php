@@ -1,56 +1,77 @@
 <?php
 
+use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuditLogsController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BonaVidaController;
-use App\Http\Controllers\ClearanceOfficeController;
 use App\Http\Controllers\ClearanceController;
+use App\Http\Controllers\ClearanceOfficeController;
 use App\Http\Controllers\DeliveriesController;
+use App\Http\Controllers\DeliveryFollowUpController;
+use App\Http\Controllers\DocumentCenterController;
 use App\Http\Controllers\EmployeeFileLocatorController;
 use App\Http\Controllers\ForDisposalController;
 use App\Http\Controllers\FundClustersController;
+use App\Http\Controllers\ImportController;
 use App\Http\Controllers\ITRPTRController;
+use App\Http\Controllers\MessageController;
+use App\Http\Controllers\MyActivityController;
+use App\Http\Controllers\NoticeOfDeliveryReportController;
 use App\Http\Controllers\OfficesController;
 use App\Http\Controllers\POLetterMonitoringController;
 use App\Http\Controllers\PreRepairController;
 use App\Http\Controllers\PurchaseOrdersController;
 use App\Http\Controllers\RegSPIController;
+use App\Http\Controllers\RrppeAreaController;
 use App\Http\Controllers\RRPPEController;
 use App\Http\Controllers\RRSPController;
+use App\Http\Controllers\StockItemDashboardController;
 use App\Http\Controllers\StockItemsController;
 use App\Http\Controllers\StockItemsListController;
-use App\Http\Controllers\WmrController;
+use App\Http\Controllers\StockReportsController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransactionLogsController;
 use App\Http\Controllers\UnitsController;
 use App\Http\Controllers\UsersController;
-use App\Http\Controllers\StockItemDashboardController;
-use App\Http\Controllers\StockReportsController;
-use App\Http\Controllers\ImportController;
-use App\Http\Controllers\BackupController;
-use App\Http\Controllers\DocumentCenterController;
+use App\Http\Controllers\WmrController;
+use App\Http\Middleware\PreventBackHistory;
+use App\Models\AuditLog;
+use App\Models\Delivery;
+use App\Models\FundCluster;
+use App\Models\Message;
+use App\Models\PoLetterMonitoring;
+use App\Models\ServePo;
+use App\Models\User;
+use App\Notifications\ScheduledTaskCompleted;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
-Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
+Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::class])->group(function () {
     Route::get('/imports', function () {
         return Inertia::render('imports/index', [
-            'fundClusters' => \App\Models\FundCluster::query()
+            'fundClusters' => FundCluster::query()
                 ->select('fund_cluster_id', 'fund_description')
                 ->orderBy('fund_description')
                 ->get(),
         ]);
     })->name('imports.index');
 
-    Route::get('dashboard', function (\Illuminate\Http\Request $request) {
+    Route::get('dashboard', function (Request $request) {
         $getRecentActivity = function () {
-            return \App\Models\AuditLog::with('user')
+            return AuditLog::with('user')
                 ->orderBy('log_timestamp', 'desc')
                 ->take(50)
                 ->get()
@@ -67,13 +88,13 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         };
 
         $getRecentDeliveries = function () {
-            return \App\Models\Delivery::with('servePo')
+            return Delivery::with('servePo')
                 ->where('status', 'PENDING')
                 ->orderBy('data_entry_timestamp', 'desc')
                 ->take(10)
                 ->get()
                 ->map(function ($delivery) {
-                    $due = $delivery->due_date ? \Carbon\Carbon::parse($delivery->due_date) : null;
+                    $due = $delivery->due_date ? Carbon::parse($delivery->due_date) : null;
                     $deliveryDate = $delivery->delivery_date;
                     $today = now()->startOfDay();
 
@@ -87,7 +108,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                         if ($deliveryDate && $deliveryDate->gt($due)) {
                             $isOverdue = true;
                             $daysOverdue = (int) $due->diffInDays($deliveryDate);
-                        } else if (!$deliveryDate && $today->gt($dueStart)) {
+                        } elseif (! $deliveryDate && $today->gt($dueStart)) {
                             $isOverdue = true;
                             $daysOverdue = (int) $dueStart->diffInDays($today);
                         }
@@ -108,11 +129,11 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         };
 
         $getDueDeliveries = function () {
-            return \App\Models\Delivery::with(['supplier', 'servePo'])
+            return Delivery::with(['supplier', 'servePo'])
                 ->withExists('deliveryFollowUps')
-                ->where(function($query) {
+                ->where(function ($query) {
                     $query->whereNull('status')
-                          ->orWhere('status', '!=', 'CANCELLED');
+                        ->orWhere('status', '!=', 'CANCELLED');
                 })
                 ->get()
                 ->filter(function ($delivery) {
@@ -122,7 +143,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                     return $delivery->due_date;
                 })
                 ->map(function ($delivery) {
-                    $due = $delivery->due_date ? \Carbon\Carbon::parse($delivery->due_date) : null;
+                    $due = $delivery->due_date ? Carbon::parse($delivery->due_date) : null;
                     $deliveryDate = $delivery->delivery_date;
                     $today = now()->startOfDay();
 
@@ -136,7 +157,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                         if ($deliveryDate && $deliveryDate->gt($due)) {
                             $isOverdue = true;
                             $daysOverdue = (int) $due->diffInDays($deliveryDate);
-                        } else if (!$deliveryDate && $today->gt($dueStart)) {
+                        } elseif (! $deliveryDate && $today->gt($dueStart)) {
                             $isOverdue = true;
                             $daysOverdue = (int) $dueStart->diffInDays($today);
                         }
@@ -163,7 +184,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         };
 
         $getAllPendingDeliveries = function () {
-            return \App\Models\Delivery::with(['supplier', 'servePo'])
+            return Delivery::with(['supplier', 'servePo'])
                 ->withExists('deliveryFollowUps')
                 ->where('status', 'PENDING')
                 ->orderBy('data_entry_timestamp', 'desc')
@@ -185,13 +206,13 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         };
 
         $getPoLettersStatusByPeriod = function ($period) {
-            $query = \App\Models\PoLetterMonitoring::selectRaw("
+            $query = PoLetterMonitoring::selectRaw("
                 type_of_letter,
                 SUM(CASE WHEN status_of_the_letter = 'APPROVED' THEN 1 ELSE 0 END) as approved_count,
                 SUM(CASE WHEN status_of_the_letter = 'DISAPPROVED' THEN 1 ELSE 0 END) as disapproved_count
             ")
-            ->whereIn('type_of_letter', ['EXTENSION', 'WAIVER', 'CANCELLATION', 'REPLACEMENT/ALTERNATIVE OFFER'])
-            ->groupBy('type_of_letter');
+                ->whereIn('type_of_letter', ['EXTENSION', 'WAIVER', 'CANCELLATION', 'REPLACEMENT/ALTERNATIVE OFFER'])
+                ->groupBy('type_of_letter');
 
             if ($period === 'This Week') {
                 $query->where('created_at', '>=', now()->startOfWeek());
@@ -210,6 +231,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                 'REPLACEMENT/ALTERNATIVE OFFER' => 'Replacement',
             ])->map(function ($label, $key) use ($raw) {
                 $item = $raw->get($key);
+
                 return [
                     'type' => $label,
                     'approved' => $item ? (int) $item->approved_count : 0,
@@ -219,13 +241,13 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         };
 
         $getAllPendingInspections = function () {
-            return \App\Models\ServePo::with(['supplier', 'inspectionEntries'])
-                ->whereDoesntHave('inspectionEntries', function($query) {
+            return ServePo::with(['supplier', 'inspectionEntries'])
+                ->whereDoesntHave('inspectionEntries', function ($query) {
                     $query->whereNotNull('inspection_date');
                 })
-                ->where(function($query) {
+                ->where(function ($query) {
                     $query->whereNull('po_step')
-                          ->orWhere('po_step', '!=', 'CANCELLED');
+                        ->orWhere('po_step', '!=', 'CANCELLED');
                 })
                 ->orderBy('created_at', 'desc')
                 ->get()
@@ -244,14 +266,14 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         };
 
         $getAllPendingClearances = function () {
-            return \App\Models\ServePo::with(['supplier', 'inspectionEntries'])
-                ->where(function($query) {
+            return ServePo::with(['supplier', 'inspectionEntries'])
+                ->where(function ($query) {
                     $query->whereNull('receipt_claimed_by')
-                          ->whereNull('items_claimed_by');
+                        ->whereNull('items_claimed_by');
                 })
-                ->where(function($query) {
+                ->where(function ($query) {
                     $query->whereNull('po_step')
-                          ->orWhere('po_step', '!=', 'CANCELLED');
+                        ->orWhere('po_step', '!=', 'CANCELLED');
                 })
                 ->orderBy('created_at', 'desc')
                 ->get()
@@ -276,17 +298,17 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             $startMonth = ($reportsQuarter - 1) * 3 + 1;
             $endMonth = $startMonth + 2;
 
-            $reportsQuery = \App\Models\ServePo::whereYear('created_at', $reportsYear)
+            $reportsQuery = ServePo::whereYear('created_at', $reportsYear)
                 ->whereMonth('created_at', '>=', $startMonth)
                 ->whereMonth('created_at', '<=', $endMonth);
 
             return [
                 'COMPLETED' => (clone $reportsQuery)->where('po_step', 'COMPLETED')->count(),
                 'CANCELLED' => (clone $reportsQuery)->where('po_step', 'CANCELLED')->count(),
-                'ONGOING' => (clone $reportsQuery)->where(function($q) {
+                'ONGOING' => (clone $reportsQuery)->where(function ($q) {
                     $q->where('po_step', 'ONGOING')
-                      ->orWhereNull('po_step')
-                      ->orWhereNotIn('po_step', ['COMPLETED', 'CANCELLED']);
+                        ->orWhereNull('po_step')
+                        ->orWhereNotIn('po_step', ['COMPLETED', 'CANCELLED']);
                 })->count(),
             ];
         };
@@ -306,8 +328,9 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
 
             foreach ($allPoNumbers as $poNum) {
                 $deliveries = $deliveriesByPo->get($poNum);
-                if (!$deliveries || $deliveries->isEmpty()) {
+                if (! $deliveries || $deliveries->isEmpty()) {
                     $poStats['PENDING']++;
+
                     continue;
                 }
 
@@ -345,8 +368,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             'recentActivity' => fn () => $getRecentActivity(),
             'recentDeliveries' => fn () => $getRecentDeliveries(),
             'deliveries' => fn () => $getDueDeliveries(),
-            'pendingDeliveries' => fn () => \App\Models\Delivery::where('status', 'PENDING')->count(),
-            'deliveriesLastWeek' => fn () => \App\Models\Delivery::where('status', 'PENDING')
+            'pendingDeliveries' => fn () => Delivery::where('status', 'PENDING')->count(),
+            'deliveriesLastWeek' => fn () => Delivery::where('status', 'PENDING')
                 ->where('data_entry_timestamp', '>=', now()->startOfWeek())
                 ->count(),
             'allPendingDeliveries' => fn () => $getAllPendingDeliveries(),
@@ -355,40 +378,40 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                 'This Month' => $getPoLettersStatusByPeriod('This Month'),
                 'This Year' => $getPoLettersStatusByPeriod('This Year'),
             ],
-            'pendingInspections' => fn () => \App\Models\ServePo::whereDoesntHave('inspectionEntries', function($query) {
-                    $query->whereNotNull('inspection_date');
-                })
-                ->where(function($query) {
+            'pendingInspections' => fn () => ServePo::whereDoesntHave('inspectionEntries', function ($query) {
+                $query->whereNotNull('inspection_date');
+            })
+                ->where(function ($query) {
                     $query->whereNull('po_step')
-                          ->orWhere('po_step', '!=', 'CANCELLED');
+                        ->orWhere('po_step', '!=', 'CANCELLED');
                 })
                 ->count(),
-            'inspectionsLastWeek' => fn () => \App\Models\ServePo::whereDoesntHave('inspectionEntries', function($query) {
-                    $query->whereNotNull('inspection_date');
-                })
-                ->where(function($query) {
+            'inspectionsLastWeek' => fn () => ServePo::whereDoesntHave('inspectionEntries', function ($query) {
+                $query->whereNotNull('inspection_date');
+            })
+                ->where(function ($query) {
                     $query->whereNull('po_step')
-                          ->orWhere('po_step', '!=', 'CANCELLED');
+                        ->orWhere('po_step', '!=', 'CANCELLED');
                 })
                 ->where('created_at', '>=', now()->startOfWeek())
                 ->count(),
             'allPendingInspections' => fn () => $getAllPendingInspections(),
-            'pendingClearances' => fn () => \App\Models\ServePo::where(function($query) {
-                    $query->whereNull('receipt_claimed_by')
-                          ->whereNull('items_claimed_by');
-                })
-                ->where(function($query) {
+            'pendingClearances' => fn () => ServePo::where(function ($query) {
+                $query->whereNull('receipt_claimed_by')
+                    ->whereNull('items_claimed_by');
+            })
+                ->where(function ($query) {
                     $query->whereNull('po_step')
-                          ->orWhere('po_step', '!=', 'CANCELLED');
+                        ->orWhere('po_step', '!=', 'CANCELLED');
                 })
                 ->count(),
-            'clearancesLastWeek' => fn () => \App\Models\ServePo::where(function($query) {
-                    $query->whereNull('receipt_claimed_by')
-                          ->whereNull('items_claimed_by');
-                })
-                ->where(function($query) {
+            'clearancesLastWeek' => fn () => ServePo::where(function ($query) {
+                $query->whereNull('receipt_claimed_by')
+                    ->whereNull('items_claimed_by');
+            })
+                ->where(function ($query) {
                     $query->whereNull('po_step')
-                          ->orWhere('po_step', '!=', 'CANCELLED');
+                        ->orWhere('po_step', '!=', 'CANCELLED');
                 })
                 ->where('created_at', '>=', now()->startOfWeek())
                 ->count(),
@@ -397,16 +420,16 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             'reportsYear' => $reportsYear,
             'reportsQuarter' => $reportsQuarter,
             'poStats' => fn () => $getPoStats(),
-            'userNotifications' => fn () => $request->user()->notifications()->latest()->take(20)->get(),    
+            'userNotifications' => fn () => $request->user()->notifications()->latest()->take(20)->get(),
         ]);
     })->name('dashboard');
 
-    Route::get('/my-activity', [\App\Http\Controllers\MyActivityController::class, 'index'])->name('my-activity.index');
+    Route::get('/my-activity', [MyActivityController::class, 'index'])->name('my-activity.index');
 
     Route::get('/api/online-users', function () {
         $twoMinutesAgo = now()->subMinutes(2)->timestamp;
 
-        return \App\Models\User::query()
+        return User::query()
             ->leftJoin('sessions', 'users.current_session_id', '=', 'sessions.id')
             ->select([
                 'users.id',
@@ -429,7 +452,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                     'role' => $u->role,
                     'avatar' => $u->avatar_url,
                     'online' => $online,
-                    'last_seen' => $lastActivity ? \Carbon\Carbon::createFromTimestamp($lastActivity)->diffForHumans() : null,
+                    'last_seen' => $lastActivity ? Carbon::createFromTimestamp($lastActivity)->diffForHumans() : null,
                 ];
             });
     })->name('online-users');
@@ -444,23 +467,25 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         return response()->noContent();
     })->name('heartbeat');
 
-    Route::get('/avatar/{user}', function (\App\Models\User $user) {
+    Route::get('/avatar/{user}', function (User $user) {
         abort_unless($user->avatar_path, 404);
-        abort_unless(\Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar_path), 404);
+        abort_unless(Storage::disk('public')->exists($user->avatar_path), 404);
 
-        return \Illuminate\Support\Facades\Storage::disk('public')->response($user->avatar_path);
+        return Storage::disk('public')->response($user->avatar_path);
     })->name('avatar.show');
 
-    Route::post('/notifications/clear', function (\Illuminate\Http\Request $request) {
+    Route::post('/notifications/clear', function (Request $request) {
         $request->user()->notifications()->delete();
+
         return back();
     })->name('notifications.clear');
 
-    Route::post('/notifications/{id}/read', function (\Illuminate\Http\Request $request, $id) {
+    Route::post('/notifications/{id}/read', function (Request $request, $id) {
         $notification = $request->user()->notifications()->find($id);
         if ($notification) {
             $notification->markAsRead();
         }
+
         return response()->json(['success' => true]);
     })->name('notifications.read');
 
@@ -477,23 +502,23 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::put('/rrppe-monitoring/{id}', [RRPPEController::class, 'update'])->name('rrppe-monitoring.update');
     Route::delete('/rrppe-monitoring/{id}', [RRPPEController::class, 'destroy'])->name('rrppe-monitoring.destroy');
     Route::post('/rrppe-monitoring/{rrppeNo}/attachments', [RRPPEController::class, 'storeAttachment'])
-    ->name('rrppe-monitoring.attachments.store');
+        ->name('rrppe-monitoring.attachments.store');
 
-    Route::get('/rrppe-monitoring/areas', [App\Http\Controllers\RrppeAreaController::class, 'index'])->name('rrppe-monitoring.areas.index');
-    Route::post('/rrppe-monitoring/areas', [App\Http\Controllers\RrppeAreaController::class, 'store'])->name('rrppe-monitoring.areas.store');
-    Route::put('/rrppe-monitoring/areas/{area}', [App\Http\Controllers\RrppeAreaController::class, 'update'])->name('rrppe-monitoring.areas.update');
-    Route::delete('/rrppe-monitoring/areas/{area}', [App\Http\Controllers\RrppeAreaController::class, 'destroy'])->name('rrppe-monitoring.areas.destroy');
+    Route::get('/rrppe-monitoring/areas', [RrppeAreaController::class, 'index'])->name('rrppe-monitoring.areas.index');
+    Route::post('/rrppe-monitoring/areas', [RrppeAreaController::class, 'store'])->name('rrppe-monitoring.areas.store');
+    Route::put('/rrppe-monitoring/areas/{area}', [RrppeAreaController::class, 'update'])->name('rrppe-monitoring.areas.update');
+    Route::delete('/rrppe-monitoring/areas/{area}', [RrppeAreaController::class, 'destroy'])->name('rrppe-monitoring.areas.destroy');
 
     Route::get('/rrsp-monitoring', [RRSPController::class, 'index'])->name('rrsp-monitoring.index');
     Route::get('/api/rrsp-monitoring/purchase-orders', [RRSPController::class, 'getPurchaseOrders'])->name('api.rrsp-monitoring.purchase-orders');
-    Route::get('/rrsp-monitoring/areas', [App\Http\Controllers\AreaController::class, 'index'])->name('rrsp-monitoring.areas.index');
-    Route::post('/rrsp-monitoring/areas', [App\Http\Controllers\AreaController::class, 'store'])->name('rrsp-monitoring.areas.store');
-    Route::put('/rrsp-monitoring/areas/{area}', [App\Http\Controllers\AreaController::class, 'update'])->name('rrsp-monitoring.areas.update');
-    Route::delete('/rrsp-monitoring/areas/{area}', [App\Http\Controllers\AreaController::class, 'destroy'])->name('rrsp-monitoring.areas.destroy');
+    Route::get('/rrsp-monitoring/areas', [AreaController::class, 'index'])->name('rrsp-monitoring.areas.index');
+    Route::post('/rrsp-monitoring/areas', [AreaController::class, 'store'])->name('rrsp-monitoring.areas.store');
+    Route::put('/rrsp-monitoring/areas/{area}', [AreaController::class, 'update'])->name('rrsp-monitoring.areas.update');
+    Route::delete('/rrsp-monitoring/areas/{area}', [AreaController::class, 'destroy'])->name('rrsp-monitoring.areas.destroy');
     Route::post('/rrsp-monitoring', [RRSPController::class, 'store'])->name('rrsp-monitoring.store');
     Route::put('/rrsp-monitoring/{rrsp}', [RRSPController::class, 'update'])->name('rrsp-monitoring.update');
     Route::delete('/rrsp-monitoring/{rrsp}', [RRSPController::class, 'destroy'])->name('rrsp-monitoring.destroy');
-    Route::post('/rrsp-monitoring/{rrsp}/attachments', [RRSPController::class, 'storeAttachment']); 
+    Route::post('/rrsp-monitoring/{rrsp}/attachments', [RRSPController::class, 'storeAttachment']);
 
     Route::get('/regspi-monitoring', [RegSPIController::class, 'index'])->name('regspi-monitoring.index');
     Route::post('/regspi-monitoring', [RegSPIController::class, 'store'])->name('regspi-monitoring.store');
@@ -546,6 +571,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         ->name('purchase-orders.notify-release');
     Route::post('/purchase-orders/{purchaseOrder}/attachments', [PurchaseOrdersController::class, 'uploadAttachments'])
         ->name('purchase-orders.attachments.upload');
+    Route::get('/purchase-orders/{purchaseOrder}/export-dv', [PurchaseOrdersController::class, 'exportDisbursementVoucher'])
+        ->name('purchase-orders.export-dv');
 
     Route::get('/po-letter-monitoring', [POLetterMonitoringController::class, 'index'])->name('po-letter-monitoring.index');
     Route::post('/po-letter-monitoring', [POLetterMonitoringController::class, 'store'])->name('po-letter-monitoring.store');
@@ -557,7 +584,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         ->name('po-letter-monitoring.attachments.upload');
 
     Route::get('/deliveries', [DeliveriesController::class, 'index'])->name('deliveries.index');
-    Route::get('/notice-of-delivery', [\App\Http\Controllers\NoticeOfDeliveryReportController::class, 'index'])->name('notice-of-delivery.index');
+    Route::get('/notice-of-delivery', [NoticeOfDeliveryReportController::class, 'index'])->name('notice-of-delivery.index');
     Route::post('/deliveries', [DeliveriesController::class, 'store'])->name('deliveries.store');
     Route::post('/deliveries/import', [DeliveriesController::class, 'import'])->name('deliveries.import');
     Route::get('/deliveries/import/template', [DeliveriesController::class, 'importTemplate'])->name('deliveries.import.template');
@@ -566,11 +593,11 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::post('/deliveries/{delivery}/attachments', [DeliveriesController::class, 'uploadAttachments'])
         ->name('deliveries.attachments.upload');
 
-    Route::get('/delivery-follow-ups', [\App\Http\Controllers\DeliveryFollowUpController::class, 'index'])->name('delivery-follow-ups.index');
-    Route::post('/delivery-follow-ups', [\App\Http\Controllers\DeliveryFollowUpController::class, 'store'])->name('delivery-follow-ups.store');
-    Route::delete('/delivery-follow-ups/{id}', [\App\Http\Controllers\DeliveryFollowUpController::class, 'destroy'])->name('delivery-follow-ups.destroy');
-    Route::get('/deliveries/{id}/recent-follow-ups', [\App\Http\Controllers\DeliveryFollowUpController::class, 'recentFollowUps'])->name('deliveries.recent-follow-ups');
-    Route::post('/deliveries/{id}/send-follow-up', [\App\Http\Controllers\DeliveryFollowUpController::class, 'sendFollowUpEmail'])->name('deliveries.send-follow-up');
+    Route::get('/delivery-follow-ups', [DeliveryFollowUpController::class, 'index'])->name('delivery-follow-ups.index');
+    Route::post('/delivery-follow-ups', [DeliveryFollowUpController::class, 'store'])->name('delivery-follow-ups.store');
+    Route::delete('/delivery-follow-ups/{id}', [DeliveryFollowUpController::class, 'destroy'])->name('delivery-follow-ups.destroy');
+    Route::get('/deliveries/{id}/recent-follow-ups', [DeliveryFollowUpController::class, 'recentFollowUps'])->name('deliveries.recent-follow-ups');
+    Route::post('/deliveries/{id}/send-follow-up', [DeliveryFollowUpController::class, 'sendFollowUpEmail'])->name('deliveries.send-follow-up');
 
     Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
     Route::post('/supplier', [SupplierController::class, 'store'])->name('supplier.store');
@@ -595,7 +622,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
 
     // Email Functionality
     Route::post('/offices/{office}/send-test-email', [OfficesController::class, 'sendTestEmail'])
-    ->name('offices.send-test-email');
+        ->name('offices.send-test-email');
 
     // ==========================================================
     // Personnel Files (sidebar: "Personnel Files")
@@ -614,10 +641,10 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         ->name('clearance.offices.quick-add');
 
     Route::prefix('clearance/offices')->name('clearance.offices.')->group(function () {
-    Route::get('/', [ClearanceOfficeController::class, 'index'])->name('index');
-    Route::post('/', [ClearanceOfficeController::class, 'store'])->name('store');
-    Route::put('/{clearanceOffice}', [ClearanceOfficeController::class, 'update'])->name('update');
-    Route::delete('/{clearanceOffice}', [ClearanceOfficeController::class, 'destroy'])->name('destroy');
+        Route::get('/', [ClearanceOfficeController::class, 'index'])->name('index');
+        Route::post('/', [ClearanceOfficeController::class, 'store'])->name('store');
+        Route::put('/{clearanceOffice}', [ClearanceOfficeController::class, 'update'])->name('update');
+        Route::delete('/{clearanceOffice}', [ClearanceOfficeController::class, 'destroy'])->name('destroy');
     });
 
     Route::get('/clearance', [ClearanceController::class, 'index'])->name('clearance.index');
@@ -744,25 +771,27 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
 
     Route::get('/document-center', [DocumentCenterController::class, 'index'])->name('document-center');
     Route::get('/document-center/po/{po_number}/attachments', [DocumentCenterController::class, 'poAttachments'])
-    ->name('document-center.po-attachments');
+        ->name('document-center.po-attachments');
     Route::get('/document-center/clearance/{id}/attachments', [DocumentCenterController::class, 'clearanceAttachments'])
-    ->name('document-center.clearance-attachments'); 
+        ->name('document-center.clearance-attachments');
     Route::get('/document-center/archive/{id}/attachments', [DocumentCenterController::class, 'archiveAttachments'])
-    ->name('document-center.archive-attachments'); 
+        ->name('document-center.archive-attachments');
     Route::get('/document-center/archive/{id}/details', [DocumentCenterController::class, 'archiveOriginalDetails'])
-    ->name('document-center.archive-details');
+        ->name('document-center.archive-details');
     Route::post('/document-center/archive/restore', [DocumentCenterController::class, 'restoreArchive'])
-    ->name('document-center.archive-restore');
-    
+        ->name('document-center.archive-restore');
+
     // Scheduled Tasks API
     Route::get('/api/scheduled-tasks', function () {
-        \Illuminate\Support\Facades\Artisan::call('schedule:list');
-        $output = preg_replace('/\x1b\[[0-9;]*m/', '', \Illuminate\Support\Facades\Artisan::output());
-         
+        Artisan::call('schedule:list');
+        $output = preg_replace('/\x1b\[[0-9;]*m/', '', Artisan::output());
+
         $lines = explode("\n", trim($output));
         $tasks = [];
         foreach ($lines as $line) {
-            if (empty(trim($line))) continue;
+            if (empty(trim($line))) {
+                continue;
+            }
             if (preg_match('/^\s*([0-9\*\/\-\,]+(?:\s+[0-9\*\/\-\,]+){4})\s+(.+?)\s+\.{2,}\s+Next Due:\s+(.+)$/i', $line, $matches)) {
                 $tasks[] = [
                     'cron' => trim($matches[1]),
@@ -791,7 +820,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         ], $settings, ['raw_tasks' => $tasks]));
     })->name('api.scheduled-tasks.index');
 
-    Route::post('/api/scheduled-tasks', function (\Illuminate\Http\Request $request) {
+    Route::post('/api/scheduled-tasks', function (Request $request) {
         $request->validate([
             'delivery_email_enabled' => 'required|boolean',
             'delivery_email_schedule_time' => 'required|string',
@@ -819,7 +848,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         return response()->json(['message' => 'Settings saved successfully.']);
     })->name('api.scheduled-tasks.store');
 
-    Route::post('/api/scheduled-tasks/force-email', function (\Illuminate\Http\Request $request) {
+    Route::post('/api/scheduled-tasks/force-email', function (Request $request) {
         $request->validate([
             'type' => 'required|in:overdue,reminder',
             'days' => 'nullable|integer',
@@ -827,46 +856,46 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         ]);
 
         $type = $request->input('type');
-        
+
         try {
             if ($type === 'overdue') {
-                \Illuminate\Support\Facades\Artisan::call('deliveries:send-overdue-emails', ['--manual' => true]);
+                Artisan::call('deliveries:send-overdue-emails', ['--manual' => true]);
             } else {
                 if ($request->filled('date')) {
-                    \Illuminate\Support\Facades\Artisan::call('deliveries:send-reminders', ['--date' => $request->input('date'), '--manual' => true]);
+                    Artisan::call('deliveries:send-reminders', ['--date' => $request->input('date'), '--manual' => true]);
                 } elseif ($request->filled('days')) {
-                    \Illuminate\Support\Facades\Artisan::call('deliveries:send-reminders', ['--days' => $request->input('days'), '--manual' => true]);
+                    Artisan::call('deliveries:send-reminders', ['--days' => $request->input('days'), '--manual' => true]);
                 } else {
                     return response()->json(['message' => 'Please provide either days or date for reminders.'], 422);
                 }
             }
-            
-            $output = \Illuminate\Support\Facades\Artisan::output();
-            
+
+            $output = Artisan::output();
+
             // Extract the number from output "Successfully sent X overdue delivery emails."
             preg_match('/Successfully sent (\d+)/i', $output, $matches);
             $count = $matches[1] ?? 0;
-            
+
             return response()->json(['message' => "Successfully processed and sent {$count} emails."]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'An error occurred: '.$e->getMessage()], 500);
         }
     })->name('api.scheduled-tasks.force-email');
 
     Route::post('/api/scheduled-tasks/force-cleanup', function (Request $request) {
         try {
-            \Illuminate\Support\Facades\Artisan::call('model:prune', ['--model' => [\App\Models\AuditLog::class]]);
-            $output = \Illuminate\Support\Facades\Artisan::output();
-            
+            Artisan::call('model:prune', ['--model' => [AuditLog::class]]);
+            $output = Artisan::output();
+
             // Laravel 10 format: "X [App\Models\AuditLog] records have been pruned."
             // Laravel 11 format: "App\Models\AuditLog .. X records"
-            if (preg_match('/(\d+) \[.*AuditLog.*\] records have been pruned/i', $output, $matches) || 
+            if (preg_match('/(\d+) \[.*AuditLog.*\] records have been pruned/i', $output, $matches) ||
                 preg_match('/AuditLog\s*\.{2,}\s*(\d+)\s*records/i', $output, $matches)) {
                 $count = (int) ($matches[1] ?? 0);
             } else {
                 $count = 0;
             }
-            
+
             $settingsPath = storage_path('app/scheduled_tasks_settings.json');
             $days = 30;
             if (file_exists($settingsPath)) {
@@ -876,9 +905,9 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                 }
             }
 
-            $user = \Illuminate\Support\Facades\Auth::user();
+            $user = Auth::user();
             if ($user) {
-                \App\Models\AuditLog::create([
+                AuditLog::create([
                     'log_timestamp' => now(),
                     'userID' => $user->id,
                     'role' => $user->role ?? 'Staff',
@@ -886,29 +915,29 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                     'target_url' => null,
                 ]);
             }
-            
-            $admins = \App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)->get();
+
+            $admins = User::where('role', User::ROLE_ADMIN)->get();
             if ($count > 0) {
                 $message = "Force Cleanup completed. {$count} audit logs older than {$days} days were removed.";
             } else {
                 $message = "Force Cleanup completed. No audit logs older than {$days} days were found.";
             }
-            \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\ScheduledTaskCompleted($message));
-            
+            Notification::send($admins, new ScheduledTaskCompleted($message));
+
             return response()->json(['message' => $message]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'An error occurred: '.$e->getMessage()], 500);
         }
     })->name('api.scheduled-tasks.force-cleanup');
 
     Route::post('/api/scheduled-tasks/clean-today', function (Request $request) {
         try {
             $today = now()->startOfDay();
-            $count = \App\Models\AuditLog::where('log_timestamp', '>=', $today)->delete();
-            
-            $user = \Illuminate\Support\Facades\Auth::user();
+            $count = AuditLog::where('log_timestamp', '>=', $today)->delete();
+
+            $user = Auth::user();
             if ($user) {
-                \App\Models\AuditLog::create([
+                AuditLog::create([
                     'log_timestamp' => now(),
                     'userID' => $user->id,
                     'role' => $user->role ?? 'Staff',
@@ -916,28 +945,28 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                     'target_url' => null,
                 ]);
             }
-            
-            $admins = \App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)->get();
+
+            $admins = User::where('role', User::ROLE_ADMIN)->get();
             if ($count > 0) {
                 $message = "Today's Audit Logs cleanup completed. {$count} audit log(s) were removed.";
             } else {
                 $message = "Today's Audit Logs cleanup completed. No audit logs from today were found.";
             }
-            \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\ScheduledTaskCompleted($message));
-            
+            Notification::send($admins, new ScheduledTaskCompleted($message));
+
             return response()->json(['message' => $message]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'An error occurred: '.$e->getMessage()], 500);
         }
     })->name('api.scheduled-tasks.clean-today');
 
-    Route::post('/api/scheduled-tasks/clear-cache', function (\Illuminate\Http\Request $request) {
+    Route::post('/api/scheduled-tasks/clear-cache', function (Request $request) {
         try {
-            \Illuminate\Support\Facades\Artisan::call('schedule:clear-cache');
-            
-            $user = \Illuminate\Support\Facades\Auth::user();
+            Artisan::call('schedule:clear-cache');
+
+            $user = Auth::user();
             if ($user) {
-                \App\Models\AuditLog::create([
+                AuditLog::create([
                     'log_timestamp' => now(),
                     'userID' => $user->id,
                     'role' => $user->role ?? 'Staff',
@@ -945,27 +974,27 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
                     'target_url' => null,
                 ]);
             }
-            
-            $message = "Scheduler state reset successfully.";
-            
-            $admins = \App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)->get();
-            \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\ScheduledTaskCompleted($message));
-            
+
+            $message = 'Scheduler state reset successfully.';
+
+            $admins = User::where('role', User::ROLE_ADMIN)->get();
+            Notification::send($admins, new ScheduledTaskCompleted($message));
+
             return response()->json(['message' => $message]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'An error occurred: '.$e->getMessage()], 500);
         }
     })->name('api.scheduled-tasks.clear-cache');
 
     // Database Backups
     Route::post('/api/scheduled-tasks/force-backup', function () {
         try {
-            \Illuminate\Support\Facades\Artisan::call('backup:database');
-            $output = trim(\Illuminate\Support\Facades\Artisan::output());
+            Artisan::call('backup:database');
+            $output = trim(Artisan::output());
 
-            $user = \Illuminate\Support\Facades\Auth::user();
+            $user = Auth::user();
             if ($user) {
-                \App\Models\AuditLog::create([
+                AuditLog::create([
                     'log_timestamp' => now(),
                     'userID' => $user->id,
                     'role' => $user->role ?? 'Staff',
@@ -975,8 +1004,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             }
 
             return response()->json(['message' => $output ?: 'Backup completed successfully.']);
-        } catch (\Exception $e) {
-            return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'An error occurred: '.$e->getMessage()], 500);
         }
     })->name('api.scheduled-tasks.force-backup');
 
@@ -989,11 +1018,11 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         return response()->json(
             collect(scandir($dir))
                 ->reject(fn ($f) => in_array($f, ['.', '..']))
-                ->filter(fn ($f) => is_file($dir . DIRECTORY_SEPARATOR . $f))
+                ->filter(fn ($f) => is_file($dir.DIRECTORY_SEPARATOR.$f))
                 ->map(fn ($f) => [
                     'name' => $f,
-                    'size' => filesize($dir . DIRECTORY_SEPARATOR . $f),
-                    'created_at' => date('Y-m-d H:i:s', filemtime($dir . DIRECTORY_SEPARATOR . $f)),
+                    'size' => filesize($dir.DIRECTORY_SEPARATOR.$f),
+                    'created_at' => date('Y-m-d H:i:s', filemtime($dir.DIRECTORY_SEPARATOR.$f)),
                 ])
                 ->sortByDesc('created_at')
                 ->values()
@@ -1001,29 +1030,30 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     })->name('api.scheduled-tasks.backups');
 
     Route::get('/api/scheduled-tasks/backups/{filename}/download', function ($filename) {
-        $path = storage_path('app/database-backups/' . basename($filename));
+        $path = storage_path('app/database-backups/'.basename($filename));
         abort_unless(file_exists($path), 404);
+
         return response()->download($path);
     })->name('api.scheduled-tasks.backups.download');
 
-    Route::post('/api/scheduled-tasks/backups/{filename}/restore', function (\Illuminate\Http\Request $request, $filename) {
+    Route::post('/api/scheduled-tasks/backups/{filename}/restore', function (Request $request, $filename) {
         $request->validate([
             'password' => 'required|string',
         ]);
 
-        $user = \Illuminate\Support\Facades\Auth::user();
+        $user = Auth::user();
 
-        if (! $user || ! \Illuminate\Support\Facades\Hash::check($request->input('password'), $user->password)) {
+        if (! $user || ! Hash::check($request->input('password'), $user->password)) {
             return response()->json(['message' => 'Incorrect password.'], 403);
         }
 
         try {
             $safeFilename = basename($filename);
 
-            \Illuminate\Support\Facades\Artisan::call('backup:restore', ['filename' => $safeFilename]);
-            $output = trim(\Illuminate\Support\Facades\Artisan::output());
+            Artisan::call('backup:restore', ['filename' => $safeFilename]);
+            $output = trim(Artisan::output());
 
-            \App\Models\AuditLog::create([
+            AuditLog::create([
                 'log_timestamp' => now(),
                 'userID' => $user->id,
                 'role' => $user->role ?? 'Staff',
@@ -1032,23 +1062,23 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             ]);
 
             return response()->json(['message' => $output ?: 'Database restored successfully.']);
-        } catch (\Exception $e) {
-            return response()->json(['message' => "An error occurred: " . $e->getMessage()], 500);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'An error occurred: '.$e->getMessage()], 500);
         }
     })->name('api.scheduled-tasks.backups.restore');
 
-    Route::delete('/api/scheduled-tasks/backups/{filename}', function (\Illuminate\Http\Request $request, $filename) {
+    Route::delete('/api/scheduled-tasks/backups/{filename}', function (Request $request, $filename) {
         $request->validate([
             'password' => 'required|string',
         ]);
 
-        $user = \Illuminate\Support\Facades\Auth::user();
+        $user = Auth::user();
 
-        if (! $user || ! \Illuminate\Support\Facades\Hash::check($request->input('password'), $user->password)) {
+        if (! $user || ! Hash::check($request->input('password'), $user->password)) {
             return response()->json(['message' => 'Incorrect password.'], 403);
         }
 
-        $path = storage_path('app/database-backups/' . basename($filename));
+        $path = storage_path('app/database-backups/'.basename($filename));
 
         if (! file_exists($path)) {
             return response()->json(['message' => 'Backup file not found.'], 404);
@@ -1056,11 +1086,11 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
 
         unlink($path);
 
-        \App\Models\AuditLog::create([
+        AuditLog::create([
             'log_timestamp' => now(),
             'userID' => $user->id,
             'role' => $user->role ?? 'Staff',
-            'action' => 'Deleted database backup: ' . basename($filename) . '.',
+            'action' => 'Deleted database backup: '.basename($filename).'.',
             'target_url' => null,
         ]);
 
@@ -1077,7 +1107,7 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         Route::put('/users/{user}', [UsersController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UsersController::class, 'destroy'])->name('users.destroy');
         Route::post('/users/{user}/avatar', [UsersController::class, 'updateAvatar'])->name('users.avatar.update');
-        Route::delete('/users/{user}/avatar', [UsersController::class, 'removeAvatar'])->name('users.avatar.remove');   
+        Route::delete('/users/{user}/avatar', [UsersController::class, 'removeAvatar'])->name('users.avatar.remove');
         Route::get('/register', function () {
             return redirect()->route('login');
         });
@@ -1085,16 +1115,16 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
         Route::get('/audit-logs', [AuditLogsController::class, 'index'])->name('audit-logs.index');
     });
 
-    Route::get('/api/messages/unread-counts', [\App\Http\Controllers\MessageController::class, 'unreadCounts']);
-    Route::get('/api/messages/{user}', [\App\Http\Controllers\MessageController::class, 'show']);
-    Route::post('/api/messages/{user}', [\App\Http\Controllers\MessageController::class, 'store']);
-    Route::get('/api/messages/{message}/attachment', [\App\Http\Controllers\MessageController::class, 'attachment'])
+    Route::get('/api/messages/unread-counts', [MessageController::class, 'unreadCounts']);
+    Route::get('/api/messages/{user}', [MessageController::class, 'show']);
+    Route::post('/api/messages/{user}', [MessageController::class, 'store']);
+    Route::get('/api/messages/{message}/attachment', [MessageController::class, 'attachment'])
         ->name('messages.attachment');
 
-    Route::get('/api/messages', function (\Illuminate\Http\Request $request) {
+    Route::get('/api/messages', function (Request $request) {
         $me = $request->user();
 
-        $partnerIds = \App\Models\Message::where('sender_id', $me->id)
+        $partnerIds = Message::where('sender_id', $me->id)
             ->orWhere('receiver_id', $me->id)
             ->get(['sender_id', 'receiver_id'])
             ->flatMap(fn ($m) => [$m->sender_id, $m->receiver_id])
@@ -1102,20 +1132,20 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
             ->reject(fn ($id) => $id == $me->id)
             ->values();
 
-        return \App\Models\User::whereIn('id', $partnerIds)
+        return User::whereIn('id', $partnerIds)
             ->select('id', 'name', 'avatar_path')
             ->get()
             ->map(function ($u) use ($me) {
-                $last = \App\Models\Message::where(function ($q) use ($me, $u) {
-                        $q->where('sender_id', $me->id)->where('receiver_id', $u->id);
-                    })
+                $last = Message::where(function ($q) use ($me, $u) {
+                    $q->where('sender_id', $me->id)->where('receiver_id', $u->id);
+                })
                     ->orWhere(function ($q) use ($me, $u) {
                         $q->where('sender_id', $u->id)->where('receiver_id', $me->id);
                     })
                     ->latest('created_at')
                     ->first();
 
-                $unread = \App\Models\Message::where('sender_id', $u->id)
+                $unread = Message::where('sender_id', $u->id)
                     ->where('receiver_id', $me->id)
                     ->whereNull('read_at')
                     ->count();

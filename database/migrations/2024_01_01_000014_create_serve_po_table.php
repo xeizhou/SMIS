@@ -43,17 +43,17 @@ return new class extends Migration
 
             // Workflow state
             $table->string('po_step')->nullable();
-            
+
             // End User tab
             $table->date('date_forwarded_to_end_user')->nullable();
             $table->string('end_user_forwarded_by')->nullable();
-            
+
             // Supplier's Signature tab
             $table->date('date_forwarded_supplier')->nullable();
             $table->string('forwarded_by_supplier')->nullable();
             $table->string('claimed_by_supplier')->nullable();
             $table->date('supplier_signature_date')->nullable();
-            
+
             // COA Stamp tab
             $table->date('date_forwarded_coa')->nullable();
             $table->string('forwarded_by_coa')->nullable();
@@ -61,16 +61,19 @@ return new class extends Migration
             $table->date('coa_date')->nullable();
             $table->date('claim_date')->nullable();
             $table->string('claimed_by_coa')->nullable();
-            
+
             // For Release tab
             $table->date('date_received_by_supplier')->nullable();
             $table->date('receipt_receiving_date')->nullable();
             $table->string('receipt_claimed_by')->nullable();
             $table->date('items_receiving_date')->nullable();
             $table->string('items_claimed_by')->nullable();
-            
+
             // Payment Processing tab
             $table->string('payment_status')->nullable();
+            $table->decimal('ld_amount', 15, 2)->nullable();
+            $table->decimal('retention_amount', 15, 2)->nullable();
+            $table->string('dv_template')->nullable()->default('ld_only');
             $table->text('workflow_remarks')->nullable();
             $table->string('invoice_number')->nullable();
             $table->date('invoice_date')->nullable();
@@ -78,11 +81,11 @@ return new class extends Migration
             $table->string('par_ics_number')->nullable();
             $table->string('ris_number')->nullable();
             $table->date('date_completed')->nullable();
-            
+
             // Forwarded to Finance tab
             $table->date('date_forwarded_to_finance')->nullable();
             $table->string('finance_forwarded_by')->nullable();
-            
+
             // Notifications tracking (legacy from PIR)
             $table->date('po_vpad_notified_date')->nullable();
             $table->string('po_vpad_notified_via')->nullable();
