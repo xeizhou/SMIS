@@ -9,6 +9,7 @@ import PurchaseOrderDeleteModal from '@/components/purchase-order/podeletemodal'
 import PurchaseOrderEditForm from '@/components/purchase-order/poeditform';
 import PurchaseOrderViewForm from '@/components/purchase-order/poviewform';
 import PoWorkflowModal from '@/components/purchase-order/PoWorkflowModal';
+import { ItemDescriptionBadge, OperationalImpactBadge } from '@/components/purchase-order/po-badges';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -64,6 +65,7 @@ interface PurchaseOrder {
     fundCluster: FundCluster | null;
     office: Office | null;
     item_description: string | null;
+    operational_impact: string | null;
 }
 
 interface PaginatedPurchaseOrders {
@@ -85,6 +87,8 @@ interface Filters {
     search: string | null;
     fund_cluster: string | null;
     office: string | null;
+    item_description?: string | null;
+    operational_impact?: string | null;
     sort_field?: string | null;
     sort_direction?: 'asc' | 'desc' | null;
 }
@@ -96,6 +100,8 @@ interface Props {
     fundClusters: FundCluster[];
     offices: Office[];
     stockItems: StockItemOption[];
+    itemDescriptions?: string[];
+    operationalImpacts?: string[];
 }
 
 function formatCurrency(value: string | number | null) {
@@ -134,6 +140,8 @@ export default function Index({
     fundClusters,
     offices,
     stockItems,
+    itemDescriptions = [],
+    operationalImpacts = ['HIGH', 'MEDIUM', 'LOW'],
 }: Props) {
     const { auth } = usePage().props as any;
     const isStaff = auth?.user?.role === 'staff';
@@ -141,6 +149,8 @@ export default function Index({
     const [search, setSearch] = useState(filters.search ?? '');
     const [fundCluster, setFundCluster] = useState(filters.fund_cluster ?? 'all');
     const [officeFilter, setOfficeFilter] = useState(filters.office ?? 'all');
+    const [itemDescFilter, setItemDescFilter] = useState(filters.item_description ?? 'all');
+    const [opImpactFilter, setOpImpactFilter] = useState(filters.operational_impact ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -152,6 +162,8 @@ export default function Index({
     const runSearch = (
         nextFundCluster?: string,
         nextOffice?: string,
+        nextItemDesc?: string,
+        nextOpImpact?: string,
         sortField = filters.sort_field,
         sortDirection = filters.sort_direction,
     ) => {
@@ -161,6 +173,8 @@ export default function Index({
                 search,
                 fund_cluster: (nextFundCluster ?? fundCluster) === 'all' ? undefined : nextFundCluster ?? fundCluster,
                 office: (nextOffice ?? officeFilter) === 'all' ? undefined : nextOffice ?? officeFilter,
+                item_description: (nextItemDesc ?? itemDescFilter) === 'all' ? undefined : nextItemDesc ?? itemDescFilter,
+                operational_impact: (nextOpImpact ?? opImpactFilter) === 'all' ? undefined : nextOpImpact ?? opImpactFilter,
                 sort_field: sortField || undefined,
                 sort_direction: sortDirection || undefined,
             },
@@ -170,9 +184,8 @@ export default function Index({
 
     const handleSort = (field: string) => {
         const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
-        runSearch(undefined, undefined, field, direction);
+        runSearch(undefined, undefined, undefined, undefined, field, direction);
     };
-
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -189,10 +202,22 @@ export default function Index({
         runSearch(value);
     };
 
+    const handleItemDescChange = (value: string) => {
+        setItemDescFilter(value);
+        runSearch(undefined, undefined, value);
+    };
+
+    const handleOpImpactChange = (value: string) => {
+        setOpImpactFilter(value);
+        runSearch(undefined, undefined, undefined, value);
+    };
+
     const handleClear = () => {
         setSearch('');
         setFundCluster('all');
         setOfficeFilter('all');
+        setItemDescFilter('all');
+        setOpImpactFilter('all');
 
         router.get(
             '/purchase-orders',
@@ -293,6 +318,34 @@ export default function Index({
                             </SelectContent>
                         </Select>
 
+                        <Select value={itemDescFilter} onValueChange={handleItemDescChange}>
+                            <SelectTrigger className={`w-[200px] ${itemDescFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Item Description" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Filter by Item Description</SelectItem>
+                                {itemDescriptions.map((desc) => (
+                                    <SelectItem key={desc} value={desc}>
+                                        {desc}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={opImpactFilter} onValueChange={handleOpImpactChange}>
+                            <SelectTrigger className={`w-[200px] ${opImpactFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                                <SelectValue placeholder="Filter by Operational Impact" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Filter by Operational Impact</SelectItem>
+                                {operationalImpacts.map((impact) => (
+                                    <SelectItem key={impact} value={impact}>
+                                        {impact}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
                         <Button type="submit" variant="secondary">
                             Search
                         </Button>
@@ -342,6 +395,16 @@ export default function Index({
                                     </button>
                                 </th>
                                 <th className="p-0 font-semibold text-white">
+                                    <button type="button" onClick={() => handleSort('item_description')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
+                                        Item Description
+                                    </button>
+                                </th>
+                                <th className="p-0 font-semibold text-white">
+                                    <button type="button" onClick={() => handleSort('operational_impact')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
+                                        Operational Impact
+                                    </button>
+                                </th>
+                                <th className="p-0 font-semibold text-white">
                                     <button type="button" onClick={() => handleSort('mode_of_procurement')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
                                         Mode of Procurement
                                     </button>
@@ -370,7 +433,7 @@ export default function Index({
                         <tbody>
                             {purchaseOrders.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="px-6 py-16 text-center">
+                                    <td colSpan={11} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No purchase orders added yet.
                                         </p>
@@ -400,6 +463,12 @@ export default function Index({
                                         </td>
                                         <td className="px-4 py-3">
                                             {po.fund_cluster?.fund_cluster_id ?? '—'}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <ItemDescriptionBadge value={po.item_description} />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <OperationalImpactBadge value={po.operational_impact} />
                                         </td>
                                         <td className="px-4 py-3">
                                             {po.mode_of_procurement ?? '—'}
@@ -495,6 +564,8 @@ export default function Index({
                 open={workflowDialogOpen}
                 onOpenChange={setWorkflowDialogOpen}
                 purchaseOrder={selectedPO as any}
+                itemDescriptions={itemDescriptions}
+                operationalImpacts={operationalImpacts}
             />
 
             <PurchaseOrderDeleteModal

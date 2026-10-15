@@ -20,6 +20,11 @@ import {
     ExternalLink,
     Download,
 } from "lucide-react";
+import {
+    ItemDescriptionBadge,
+    OperationalImpactBadge,
+} from '@/components/purchase-order/po-badges';
+import { cn } from '@/lib/utils';
 
 interface Supplier {
     supplier_id: number;
@@ -51,6 +56,7 @@ interface StockItem {
 interface PurchaseOrder {
     po_number: string;
     item_description: string | null;
+    operational_impact?: string | null;
     po_date: string | null;
     po_received_date: string | null;
     inclusive_date: string | null;
@@ -126,11 +132,11 @@ const labelClass = 'text-xs font-medium text-muted-foreground';
 const valueClass = 'text-sm text-foreground mt-0.5';
 const sectionTitleClass = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground/80 mb-3 pb-2 border-b';
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({ label, value }: { label: string; value: React.ReactNode }) {
     return (
         <div>
             <p className={labelClass}>{label}</p>
-            <p className={valueClass}>{value}</p>
+            <div className={cn(valueClass, 'flex items-center min-h-[24px]')}>{value}</div>
         </div>
     );
 }
@@ -296,6 +302,14 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                                     <Detail label="Inclusive Date" value={po.inclusive_date ?? '—'} />
                                 )}
                                 <Detail label="Mode of Procurement" value={po.mode_of_procurement ?? '—'} />
+                                <Detail
+                                    label="Item Description"
+                                    value={<ItemDescriptionBadge value={po.item_description} />}
+                                />
+                                <Detail
+                                    label="Operational Impact"
+                                    value={<OperationalImpactBadge value={po.operational_impact} />}
+                                />
                             </div>
 
                             <div className="mt-4">
@@ -320,8 +334,6 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                                             ))}
                                         </div>
                                     </ScrollArea>
-                                ) : po.item_description ? (
-                                    <p className={valueClass + ' whitespace-pre-wrap'}>{po.item_description}</p>
                                 ) : (
                                     <p className={valueClass}>—</p>
                                 )}

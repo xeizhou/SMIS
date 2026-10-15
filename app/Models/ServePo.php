@@ -30,6 +30,7 @@ class ServePo extends Model
     protected $fillable = [
         'po_number',
         'item_description',
+        'operational_impact',
         'po_date',
         'po_received_date',
         'inclusive_date',

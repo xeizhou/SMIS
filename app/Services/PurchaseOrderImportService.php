@@ -6,6 +6,7 @@ use App\Models\Delivery;
 use App\Models\FundCluster;
 use App\Models\Import;
 use App\Models\Office;
+use App\Models\PoItemDescription;
 use App\Models\ServePo;
 use App\Models\StockItem;
 use App\Models\Supplier;
@@ -39,6 +40,7 @@ class PurchaseOrderImportService
         'end_user' => ['end_user', 'enduser', 'office', 'office_code', 'office_name', 'department', 'unit'],
         'fund_cluster_id' => ['fund_cluster_id', 'fund_cluster', 'fundcluster', 'fund', 'fund_cluster_code'],
         'item_description' => ['item_description', 'itemdescription', 'description', 'items', 'particulars', 'item_desc'],
+        'operational_impact' => ['operational_impact', 'operationalimpact', 'operational impact', 'operational_impacts', 'op_impact', 'impact'],
         'stock_numbers' => ['stock_numbers', 'stock_numbers_list', 'stock_no', 'stock_nos', 'stocknumbers', 'item_stock_nos', 'stocks'],
         'total_amount_po' => ['total_amount_po', 'po_amount', 'amount_po', 'total_amount', 'po_total', 'amount', 'total_po'],
         'total_amount_abc' => ['total_amount_abc', 'abc_amount', 'amount_abc', 'abc', 'total_abc', 'approved_budget'],
@@ -545,11 +547,22 @@ class PurchaseOrderImportService
                     }
                 }
 
+                $itemDescription = !empty($row['item_description']) ? trim((string) $row['item_description']) : null;
+                if ($itemDescription) {
+                    PoItemDescription::firstOrCreate(['name' => strtoupper($itemDescription)]);
+                }
+
+                $operationalImpact = !empty($row['operational_impact']) ? strtoupper(trim((string) $row['operational_impact'])) : null;
+                if ($operationalImpact && !in_array($operationalImpact, ['HIGH', 'MEDIUM', 'LOW'], true)) {
+                    $operationalImpact = null;
+                }
+
                 // Build PO record attributes
                 $attributes = [
                     'po_number' => substr($poNumber, 0, 50),
                     'po_date' => $this->parseDate($row['po_date'] ?? null),
-                    'item_description' => $row['item_description'] ?? null,
+                    'item_description' => $itemDescription,
+                    'operational_impact' => $operationalImpact,
                     'supplier_id' => $supplierId,
                     'end_user' => $endUser,
                     'fund_cluster_id' => $fundClusterId,
@@ -756,6 +769,7 @@ class PurchaseOrderImportService
             'End User',
             'Fund Cluster',
             'Item Description',
+            'Operational Impact',
             'Stock Numbers',
             'Total Amount PO',
             'Total Amount ABC',
@@ -829,6 +843,7 @@ class PurchaseOrderImportService
                 'OFC-01',
                 '101',
                 'Office Equipment and Consumables',
+                'HIGH',
                 'STK-0001',
                 '50000.00',
                 '55000.00',
@@ -893,6 +908,7 @@ class PurchaseOrderImportService
                 'CED',
                 '101',
                 'Computer Peripherals and IT Equipment',
+                'MEDIUM',
                 'STK-0002',
                 '125000.00',
                 '130000.00',
