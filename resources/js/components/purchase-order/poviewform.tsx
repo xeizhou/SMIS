@@ -110,6 +110,9 @@ interface PurchaseOrder {
     date_completed?: string | null;
     date_forwarded_to_finance?: string | null;
     finance_forwarded_by?: string | null;
+    ld_amount?: string | number | null;
+    retention_amount?: string | number | null;
+    dv_template?: string | null;
     inspection_entries?: any[];
 }
 
@@ -186,7 +189,7 @@ function formatCurrency(value: string | number | null | undefined) {
     return numeric.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
 }
 
-function formatDate(value: string | null) {
+function formatDate(value: string | null | undefined) {
     if (!value) return '—';
     return new Date(value).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
 }
@@ -420,15 +423,62 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
 
                                 <div>
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Payment Processing</h4>
-                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 mb-4">
-                                        <Detail label="Payment Status" value={po.payment_status ?? '—'} />
-                                        <Detail label="Invoice Number" value={po.invoice_number ?? '—'} />
-                                        <Detail label="Invoice Date" value={formatDate(po.invoice_date)} />
-                                        <Detail label="Delivery Receipt" value={po.delivery_receipt ?? '—'} />
-                                        <Detail label="PAR/ICS Number" value={po.par_ics_number ?? '—'} />
-                                        <Detail label="RIS Number" value={po.ris_number ?? '—'} />
-                                        <Detail label="Date Completed" value={formatDate(po.date_completed)} />
-                                    </div>
+                                    {(() => {
+                                        const selectedTemplate = po.dv_template || 'ld_only';
+                                        const templateLabels: Record<string, string> = {
+                                            ld_only: 'LD Only',
+                                            neither: 'Neither LD nor retention',
+                                            retention_only: 'Retention Only',
+                                            ld_and_retention: 'LD and Retention',
+                                        };
+                                        const templateLabel = templateLabels[selectedTemplate] || 'LD Only';
+
+                                        return (
+                                            <>
+                                                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 mb-4">
+                                                    <Detail label="Payment Status" value={po.payment_status ?? '—'} />
+                                                    <Detail label="DV Template" value={templateLabel} />
+                                                    {(selectedTemplate === 'ld_only' || selectedTemplate === 'ld_and_retention') && (
+                                                        <Detail label="LD Amount" value={po.ld_amount != null && String(po.ld_amount).trim() !== '' ? formatCurrency(po.ld_amount) : '₱0.00'} />
+                                                    )}
+                                                    {(selectedTemplate === 'retention_only' || selectedTemplate === 'ld_and_retention') && (
+                                                        <Detail
+                                                            label="Retention Amount (1%)"
+                                                            value={po.retention_amount != null && String(po.retention_amount).trim() !== ''
+                                                                ? formatCurrency(po.retention_amount)
+                                                                : (po.total_amount_po ? formatCurrency(Number(po.total_amount_po) * 0.01) : '₱0.00')}
+                                                        />
+                                                    )}
+                                                    <Detail label="Invoice Number" value={po.invoice_number ?? '—'} />
+                                                    <Detail label="Invoice Date" value={formatDate(po.invoice_date)} />
+                                                    <Detail label="Delivery Receipt" value={po.delivery_receipt ?? '—'} />
+                                                    <Detail label="PAR/ICS Number" value={po.par_ics_number ?? '—'} />
+                                                    <Detail label="RIS Number" value={po.ris_number ?? '—'} />
+                                                    <Detail label="Date Completed" value={formatDate(po.date_completed)} />
+                                                </div>
+
+                                                {po.date_completed && (
+                                                    <div className="mb-4 flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                                        <div className="flex items-center gap-2 text-xs text-foreground font-medium">
+                                                            <FileSpreadsheet className="size-4 text-emerald-600 dark:text-emerald-400" />
+                                                            <span>Disbursement Voucher ({templateLabel} Template)</span>
+                                                        </div>
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            onClick={() => window.location.href = `/purchase-orders/${encodeURIComponent(po.po_number)}/export-dv?template=${encodeURIComponent(selectedTemplate)}`}
+                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 flex items-center gap-1.5"
+                                                            id="export-dv-excel-btn"
+                                                            title={`Export Disbursement Voucher (${templateLabel})`}
+                                                        >
+                                                            <FileSpreadsheet className="size-3.5" />
+                                                            Export DV in Excel
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
                                     
                                     {po.inspection_entries && po.inspection_entries.length > 0 && (
                                         <div className="mt-4">

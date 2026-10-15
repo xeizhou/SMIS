@@ -10,7 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
-import { Plus, Trash2, Mail, Lock, X } from 'lucide-react';
+import { Plus, Trash2, Mail, Lock, X, FileSpreadsheet, Info } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -175,9 +175,162 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
     const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
     const [processing, setProcessing] = useState(false);
     const [activeTab, setActiveTab] = useState('PO From VPAD');
+    const [dvTemplate, setDvTemplate] = useState<string>('ld_only');
+    const [ldAmount, setLdAmount] = useState<string>('');
+    const [ldError, setLdError] = useState<string | null>(null);
+    const [retentionAmount, setRetentionAmount] = useState<string>('');
+    const [retentionError, setRetentionError] = useState<string | null>(null);
+
+    const poTotal = Number(purchaseOrder?.total_amount_po ?? 0);
+
+    const isLdInputted = ldAmount !== null && ldAmount !== undefined && ldAmount.trim() !== '';
+    const isLdValid = isLdInputted && !isNaN(Number(ldAmount)) && Number(ldAmount) >= 0 && Number(ldAmount) <= poTotal && !ldError;
+
+    const isRetentionInputted = retentionAmount !== null && retentionAmount !== undefined && retentionAmount.trim() !== '';
+    const isRetentionValid = !isRetentionInputted || (!isNaN(Number(retentionAmount)) && Number(retentionAmount) >= 0 && Number(retentionAmount) <= poTotal && !retentionError);
+
+    const isDateCompletedFilled = Boolean(data.date_completed) || Boolean(purchaseOrder?.date_completed);
+    const canExport = dvTemplate === 'neither'
+        ? isDateCompletedFilled
+        : (dvTemplate === 'retention_only'
+            ? (isRetentionValid && isDateCompletedFilled)
+            : (dvTemplate === 'ld_and_retention'
+                ? (isLdValid && isRetentionValid && isDateCompletedFilled)
+                : (isLdValid && isDateCompletedFilled)));
+
+    const validateLdAmount = (val: string): boolean => {
+        if (!val || val.trim() === '') {
+            setLdError(null);
+            return false;
+        }
+        const num = Number(val);
+        if (isNaN(num)) {
+            setLdError('LD amount must be a valid number.');
+            return false;
+        }
+        if (num < 0) {
+            setLdError('LD amount cannot be negative.');
+            return false;
+        }
+        if (num > poTotal) {
+            setLdError(`LD amount cannot exceed PO amount (₱${poTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}).`);
+            return false;
+        }
+        setLdError(null);
+        return true;
+    };
+
+    const handleLdChange = (val: string) => {
+        setLdAmount(val);
+        setData((prev: any) => ({ ...prev, ld_amount: val }));
+        if (val.trim() === '') {
+            setLdError(null);
+        } else {
+            validateLdAmount(val);
+        }
+    };
+
+    const validateRetentionAmount = (val: string): boolean => {
+        if (!val || val.trim() === '') {
+            setRetentionError(null);
+            return false;
+        }
+        const num = Number(val);
+        if (isNaN(num)) {
+            setRetentionError('Retention amount must be a valid number.');
+            return false;
+        }
+        if (num < 0) {
+            setRetentionError('Retention amount cannot be negative.');
+            return false;
+        }
+        if (num > poTotal) {
+            setRetentionError(`Retention amount cannot exceed PO amount (₱${poTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}).`);
+            return false;
+        }
+        setRetentionError(null);
+        return true;
+    };
+
+    const handleRetentionChange = (val: string) => {
+        setRetentionAmount(val);
+        setData((prev: any) => ({ ...prev, retention_amount: val }));
+        if (val.trim() === '') {
+            setRetentionError(null);
+        } else {
+            validateRetentionAmount(val);
+        }
+    };
+
+    const handleExportDv = () => {
+        if (!purchaseOrder?.po_number) return;
+        if (dvTemplate === 'ld_only') {
+            if (!isLdInputted) {
+                setLdError('Please enter an LD amount.');
+                return;
+            }
+            if (!validateLdAmount(ldAmount)) {
+                return;
+            }
+        } else if (dvTemplate === 'retention_only') {
+            if (retentionAmount.trim() !== '' && !validateRetentionAmount(retentionAmount)) {
+                return;
+            }
+        } else if (dvTemplate === 'ld_and_retention') {
+            if (!isLdInputted) {
+                setLdError('Please enter an LD amount.');
+                return;
+            }
+            if (!validateLdAmount(ldAmount)) {
+                return;
+            }
+            if (retentionAmount.trim() !== '' && !validateRetentionAmount(retentionAmount)) {
+                return;
+            }
+        }
+        const params = new URLSearchParams();
+        params.append('template', dvTemplate);
+        if (dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') {
+            const effectiveLd = ldAmount.trim() !== '' ? ldAmount.trim() : (purchaseOrder?.ld_amount != null ? String(purchaseOrder.ld_amount) : '0');
+            if (effectiveLd !== '') {
+                params.append('ld_amount', effectiveLd);
+            }
+        }
+        if (dvTemplate === 'retention_only' || dvTemplate === 'ld_and_retention') {
+            const defaultOnePercent = poTotal > 0 ? (poTotal * 0.01).toFixed(2) : '0';
+            const effectiveRetention = retentionAmount.trim() !== ''
+                ? retentionAmount.trim()
+                : (purchaseOrder?.retention_amount != null && String(purchaseOrder.retention_amount).trim() !== ''
+                    ? String(purchaseOrder.retention_amount)
+                    : defaultOnePercent);
+            params.append('retention_amount', effectiveRetention);
+        }
+        window.location.href = `/purchase-orders/${encodeURIComponent(purchaseOrder.po_number)}/export-dv?${params.toString()}`;
+    };
+
+    const handleTemplateChange = (template: string) => {
+        setDvTemplate(template);
+        setData((prev: any) => ({ ...prev, dv_template: template }));
+        if ((template === 'retention_only' || template === 'ld_and_retention') && retentionAmount.trim() === '' && poTotal > 0) {
+            const onePercent = (poTotal * 0.01).toFixed(2);
+            setRetentionAmount(onePercent);
+            setData((prev: any) => ({ ...prev, retention_amount: onePercent }));
+        }
+    };
 
     useEffect(() => {
         if (open && purchaseOrder) {
+            const initialLd = purchaseOrder.ld_amount != null ? String(purchaseOrder.ld_amount) : '';
+            const initialTemplate = purchaseOrder.dv_template || 'ld_only';
+            const defaultRetention = poTotal > 0 ? (poTotal * 0.01).toFixed(2) : '';
+            const initialRetention = purchaseOrder.retention_amount != null && String(purchaseOrder.retention_amount).trim() !== ''
+                ? String(purchaseOrder.retention_amount)
+                : ((initialTemplate === 'retention_only' || initialTemplate === 'ld_and_retention') ? defaultRetention : '');
+            setLdAmount(initialLd);
+            setRetentionAmount(initialRetention);
+            setDvTemplate(initialTemplate);
+            setLdError(null);
+            setRetentionError(null);
             setData({
                 po_number: purchaseOrder.po_number || '',
                 po_step: purchaseOrder.po_step || 'PO From VPAD',
@@ -206,6 +359,9 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                 items_receiving_date: toDateInputValue(purchaseOrder.items_receiving_date),
                 items_claimed_by: purchaseOrder.items_claimed_by || '',
                 payment_status: purchaseOrder.payment_status || '',
+                ld_amount: initialLd,
+                retention_amount: initialRetention,
+                dv_template: initialTemplate,
                 workflow_remarks: purchaseOrder.workflow_remarks || '',
                 invoice_number: purchaseOrder.invoice_number || '',
                 invoice_date: toDateInputValue(purchaseOrder.invoice_date),
@@ -448,10 +604,16 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
             }
         }
 
+        if (ldAmount.trim() !== '' && !validateLdAmount(ldAmount)) {
+            setActiveTab('Payment Processing');
+            return;
+        }
+
         setProcessing(true);
 
         const payload = {
             ...data,
+            ld_amount: ldAmount.trim() !== '' ? Number(ldAmount) : null,
             inspection_entries: (data.inspection_groups || []).flatMap((group: any) => {
                 const inspectors = (group.inspectors || []).filter((v: string) => v.trim() !== '');
                 const dates = (group.inspection_dates || []).filter((v: string) => v.trim() !== '');
@@ -1123,21 +1285,12 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                 {activeTab === 'Payment Processing' && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <Field
-                                            label="RIS Number"
-                                            name="ris_number"
-                                            value={data.ris_number}
-                                            onChange={handleChange}
-                                            error={errors.ris_number}
-                                            placeholder="Enter RIS number"
-                                        />
-                                        <Field
                                             label="Invoice Number"
                                             name="invoice_number"
                                             value={data.invoice_number}
                                             onChange={handleChange}
                                             error={errors.invoice_number}
-                                            placeholder="Enter invoice number"
-                                            placeholder="3453; 3452/SOA No.: 2026-0001"
+                                            placeholder="e.g. 3452 / SOA No.: 2026-0001"
                                             pattern={PATTERNS.invoiceDocumentRef.source}
                                             title={MESSAGES.invoiceDocumentRef}
                                         />
@@ -1155,8 +1308,7 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             value={data.delivery_receipt}
                                             onChange={handleChange}
                                             error={errors.delivery_receipt}
-                                            placeholder="Enter delivery receipt"
-                                            placeholder="ROXI26-00294/OD-26-3774065"
+                                            placeholder="e.g. ROXI26-00294"
                                             pattern={PATTERNS.deliveryReceiptRef.source}
                                             title={MESSAGES.deliveryReceiptRef}
                                         />
@@ -1166,7 +1318,19 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                             value={data.par_ics_number}
                                             onChange={handleChange}
                                             error={errors.par_ics_number}
-                                            placeholder="Enter PAR/ICS number"
+                                            placeholder="e.g. 2026060021"
+                                            pattern={PATTERNS.parIcsMultiRef.source}
+                                            title={MESSAGES.parIcsMultiRef}
+                                        />
+                                        <Field
+                                            label="RIS Number"
+                                            name="ris_number"
+                                            value={data.ris_number}
+                                            onChange={handleChange}
+                                            error={errors.ris_number}
+                                            placeholder="e.g. 2026070024"
+                                            pattern={PATTERNS.risMultiRef.source}
+                                            title={MESSAGES.risMultiRef}
                                         />
                                         <SelectField
                                             label="Payment Status"
@@ -1179,22 +1343,7 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                                 { value: 'Processing', label: 'Processing' },
                                                 { value: 'Paid', label: 'Paid' },
                                             ]}
-                                            placeholder="2026060021/2026070036; 2026070037"
-                                            pattern={PATTERNS.parIcsMultiRef.source}
-                                            title={MESSAGES.parIcsMultiRef}
                                         />
-                                        <Field
-                                            label="RIS Number"
-                                            name="ris_number"
-                                            value={data.ris_number}
-                                            onChange={handleChange}
-                                            error={errors.ris_number}
-                                            placeholder="2026070024/2026070063; 2026080022"
-                                            pattern={PATTERNS.risMultiRef.source}
-                                            title={MESSAGES.risMultiRef}
-                                        />
-
-
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-1 md:col-span-2 mt-4 pt-4 border-t border-border/50">
                                             <Field
@@ -1206,6 +1355,266 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                                 error={errors.date_completed}
                                                 required={true}
                                             />
+                                        </div>
+
+                                        {/* Disbursement Voucher (DV) Section */}
+                                        <div className="col-span-1 md:col-span-2 mt-2 pt-5 border-t border-border/60 space-y-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                                        <FileSpreadsheet className="size-4 text-emerald-600 dark:text-emerald-400" />
+                                                        Disbursement Voucher (DV) Template
+                                                    </h4>
+                                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                                        Choose a template configuration below.
+                                                    </p>
+                                                </div>
+                                                {/* Edit DV in Excel Button */}
+                                                {(dvTemplate === 'ld_only' || dvTemplate === 'neither' || dvTemplate === 'retention_only' || dvTemplate === 'ld_and_retention') && (
+                                                    <Button
+                                                        type="button"
+                                                        onClick={handleExportDv}
+                                                        disabled={!canExport}
+                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm transition-all flex items-center gap-2 shrink-0 self-start sm:self-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        id="edit-dv-excel-btn"
+                                                        title={!canExport ? (
+                                                            dvTemplate === 'neither' || dvTemplate === 'retention_only'
+                                                                ? "Complete Date Completed to export Excel"
+                                                                : "Enter an LD amount and complete Date Completed to export Excel"
+                                                        ) : "Export Disbursement Voucher in Excel"}
+                                                    >
+                                                        <FileSpreadsheet className="size-4" />
+                                                        Edit DV in Excel
+                                                    </Button>
+                                                )}
+                                            </div>
+
+                                            {/* Checklist of Templates */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {/* 1. LD only (Working Option) */}
+                                                <label
+                                                    className={cn(
+                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all cursor-pointer select-none",
+                                                        dvTemplate === 'ld_only'
+                                                            ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30"
+                                                            : "border-border/60 hover:border-border hover:bg-muted/40"
+                                                    )}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="dv_template"
+                                                        value="ld_only"
+                                                        checked={dvTemplate === 'ld_only'}
+                                                        onChange={() => handleTemplateChange('ld_only')}
+                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500"
+                                                    />
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="text-sm font-medium text-foreground">LD only</span>
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                                                                Active
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                                            Generates Appendix 32 Disbursement Voucher with Liquidated Damages deduction format.
+                                                        </p>
+                                                    </div>
+                                                </label>
+
+                                                {/* 2. Retention only (Active) */}
+                                                <label
+                                                    className={cn(
+                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all cursor-pointer select-none",
+                                                        dvTemplate === 'retention_only'
+                                                            ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30"
+                                                            : "border-border/60 hover:border-border hover:bg-muted/40"
+                                                    )}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="dv_template"
+                                                        value="retention_only"
+                                                        checked={dvTemplate === 'retention_only'}
+                                                        onChange={() => handleTemplateChange('retention_only')}
+                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500"
+                                                    />
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="text-sm font-medium text-foreground">Retention only</span>
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                                                                Active
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                                            Disbursement Voucher with 1% retention deduction (Gross minus 1%).
+                                                        </p>
+                                                    </div>
+                                                </label>
+
+                                                {/* 3. LD and retention (Active) */}
+                                                <label
+                                                    className={cn(
+                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all cursor-pointer select-none",
+                                                        dvTemplate === 'ld_and_retention'
+                                                            ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30"
+                                                            : "border-border/60 hover:border-border hover:bg-muted/40"
+                                                    )}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="dv_template"
+                                                        value="ld_and_retention"
+                                                        checked={dvTemplate === 'ld_and_retention'}
+                                                        onChange={() => handleTemplateChange('ld_and_retention')}
+                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500"
+                                                    />
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="text-sm font-medium text-foreground">LD and retention</span>
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                                                                Active
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                                            Disbursement Voucher with both Liquidated Damages and 1% retention deductions.
+                                                        </p>
+                                                    </div>
+                                                </label>
+
+                                                {/* 4. Neither LD nor retention (Active) */}
+                                                <label
+                                                    className={cn(
+                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all cursor-pointer select-none",
+                                                        dvTemplate === 'neither'
+                                                            ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30"
+                                                            : "border-border/60 hover:border-border hover:bg-muted/40"
+                                                    )}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="dv_template"
+                                                        value="neither"
+                                                        checked={dvTemplate === 'neither'}
+                                                        onChange={() => handleTemplateChange('neither')}
+                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500"
+                                                    />
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="text-sm font-medium text-foreground">Neither LD nor retention</span>
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                                                                Active
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                                            Standard voucher without LD or retention deductions.
+                                                        </p>
+                                                    </div>
+                                                </label>
+                                            </div>
+
+                                            {/* LD Amount Input for LD-only and Both templates */}
+                                            {(dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') && (
+                                                <div className="p-4 rounded-lg border border-border/70 bg-card space-y-2">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                        <div>
+                                                            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5" htmlFor="ld-amount-input">
+                                                                Liquidated Damages (LD) Amount
+                                                                <span className="text-[11px] font-normal text-muted-foreground">(₱)</span>
+                                                            </label>
+                                                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                                                                Enter the penalty amount to deduct before tax calculations. Maximum: ₱{poTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                            </p>
+                                                        </div>
+                                                        <div className="w-full sm:w-48">
+                                                            <Input
+                                                                id="ld-amount-input"
+                                                                type="number"
+                                                                step="0.01"
+                                                                min="0"
+                                                                max={poTotal}
+                                                                value={ldAmount}
+                                                                onChange={(e) => handleLdChange(e.target.value)}
+                                                                placeholder="0.00"
+                                                                className={cn(
+                                                                    "text-right font-medium",
+                                                                    ldError && "border-red-500 focus-visible:ring-red-500"
+                                                                )}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    {ldError && (
+                                                        <p className="text-xs text-red-500 font-medium">{ldError}</p>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Retention Amount Input for Retention-only and Both templates */}
+                                            {(dvTemplate === 'retention_only' || dvTemplate === 'ld_and_retention') && (
+                                                <div className="p-4 rounded-lg border border-border/70 bg-card space-y-2">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                        <div>
+                                                            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5" htmlFor="retention-amount-input">
+                                                                Retention Amount (1%)
+                                                                <span className="text-[11px] font-normal text-muted-foreground">(₱)</span>
+                                                            </label>
+                                                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                                                                Automatically calculated as 1% of gross PO amount (minus 1%). You may adjust if needed.
+                                                            </p>
+                                                        </div>
+                                                        <div className="w-full sm:w-48">
+                                                            <Input
+                                                                id="retention-amount-input"
+                                                                type="number"
+                                                                step="0.01"
+                                                                min="0"
+                                                                max={poTotal}
+                                                                value={retentionAmount}
+                                                                onChange={(e) => handleRetentionChange(e.target.value)}
+                                                                placeholder={poTotal > 0 ? (poTotal * 0.01).toFixed(2) : "0.00"}
+                                                                className={cn(
+                                                                    "text-right font-medium",
+                                                                    retentionError && "border-red-500 focus-visible:ring-red-500"
+                                                                )}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    {retentionError && (
+                                                        <p className="text-xs text-red-500 font-medium">{retentionError}</p>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Hint when LD amount is not yet inputted */}
+                                            {(dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') && !isLdInputted && (
+                                                <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs">
+                                                    <Info className="size-4 shrink-0" />
+                                                    <span>Enter a value in the <strong>Liquidated Damages (LD) Amount</strong> field (e.g. 0.00 or penalty amount) to enable the <strong>Edit DV in Excel</strong> button.</span>
+                                                </div>
+                                            )}
+
+                                            {/* Hint when required information is not yet completed for LD template */}
+                                            {(dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') && isLdInputted && !isDateCompletedFilled && (
+                                                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+                                                    <Info className="size-4 shrink-0" />
+                                                    <span>Complete the required <strong>Date Completed</strong> field above to enable the <strong>Edit DV in Excel</strong> button.</span>
+                                                </div>
+                                            )}
+
+                                            {/* Hint when required information is not yet completed for Retention template */}
+                                            {dvTemplate === 'retention_only' && !isDateCompletedFilled && (
+                                                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+                                                    <Info className="size-4 shrink-0" />
+                                                    <span>Complete the required <strong>Date Completed</strong> field above to enable the <strong>Edit DV in Excel</strong> button.</span>
+                                                </div>
+                                            )}
+
+                                            {/* Hint when Date Completed is not yet completed for Neither template */}
+                                            {dvTemplate === 'neither' && !isDateCompletedFilled && (
+                                                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+                                                    <Info className="size-4 shrink-0" />
+                                                    <span>Complete the required <strong>Date Completed</strong> field above to enable the <strong>Edit DV in Excel</strong> button.</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}

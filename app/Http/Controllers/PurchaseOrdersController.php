@@ -2,23 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\ValidationHelper;
+use App\Mail\OfficeNotificationMail;
+use App\Models\Attachment;
 use App\Models\Delivery;
 use App\Models\FundCluster;
 use App\Models\Office;
-use App\Models\PirMonitoring;
 use App\Models\PoLetterMonitoring;
+use App\Models\RrspMonitoring;
 use App\Models\ServePo;
+use App\Models\StockItem;
 use App\Models\Supplier;
-use App\Models\Attachment;
+use App\Services\DisbursementVoucherService;
 use App\Services\PurchaseOrderImportService;
-use App\Helpers\ValidationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PurchaseOrdersController extends Controller
@@ -94,7 +99,7 @@ class PurchaseOrdersController extends Controller
             'offices' => fn () => Office::select('office_code', 'office_name')
                 ->orderByDesc('office_code')
                 ->get(),
-            'stockItems' => fn () => \App\Models\StockItem::select('stock_no', 'item_name', 'description')
+            'stockItems' => fn () => StockItem::select('stock_no', 'item_name', 'description')
                 ->orderBy('item_name')
                 ->get(),
         ]);
@@ -106,75 +111,78 @@ class PurchaseOrdersController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'po_number' => ['required', 'string', 'max:50', 'unique:serve_po,po_number', 'regex:' . ValidationHelper::pattern('poNo')],
+            'po_number' => ['required', 'string', 'max:50', 'unique:serve_po,po_number', 'regex:'.ValidationHelper::pattern('poNo')],
             'item_stock_nos' => ['nullable', 'array'],
             'item_stock_nos.*' => ['string', 'exists:stock_items,stock_no'],
             'po_date' => ['nullable', 'date'],
             'po_received_date' => ['nullable', 'date'],
-            'inclusive_date' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('inclusiveDate')],
+            'inclusive_date' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('inclusiveDate')],
             'delivery_term' => ['nullable', 'integer', 'min:0'],
-            'pr_number' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('prNo')],
+            'pr_number' => ['nullable', 'string', 'max:50', 'regex:'.ValidationHelper::pattern('prNo')],
             'pr_date' => ['nullable', 'date'],
-            'philgeps_reference_no' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('philgepsRefNo')],
+            'philgeps_reference_no' => ['nullable', 'string', 'max:50', 'regex:'.ValidationHelper::pattern('philgepsRefNo')],
             'procurement_type' => ['nullable', 'in:Services,Items'],
             'mode_of_procurement' => ['nullable', 'string', 'max:100'],
             'total_amount_abc' => ['nullable', 'numeric', 'min:0'],
             'total_amount_po' => ['nullable', 'numeric', 'min:0'],
             'fund_cluster_id' => ['nullable', 'exists:fund_clusters,fund_cluster_id'],
-            'ors_burs_no' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('orsBursNo')],
+            'ors_burs_no' => ['nullable', 'string', 'max:50', 'regex:'.ValidationHelper::pattern('orsBursNo')],
             'ors_burs_date' => ['nullable', 'date'],
             'responsibility_center' => ['nullable', 'string', 'max:100'],
-            'uacs_object_code' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('uacsObjectCode')],
+            'uacs_object_code' => ['nullable', 'string', 'max:50', 'regex:'.ValidationHelper::pattern('uacsObjectCode')],
             'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
             'end_user' => ['nullable', 'string', 'exists:offices,office_code'],
             'date_forwarded_to_smu' => ['nullable', 'date'],
             'coa_processed_date' => ['nullable', 'date'],
             'date_forwarded_frontdesk' => ['nullable', 'date'],
-            
+
             // Workflow tracking fields
             'po_step' => ['nullable', 'string'],
-            'po_vpad_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'po_vpad_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'date_forwarded_to_end_user' => ['nullable', 'date'],
-            'end_user_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'end_user_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'date_forwarded_supplier' => ['nullable', 'date'],
-            'forwarded_by_supplier' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
-            'claimed_by_supplier' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'forwarded_by_supplier' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
+            'claimed_by_supplier' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'supplier_signature_date' => ['nullable', 'date'],
             'date_forwarded_coa' => ['nullable', 'date'],
-            'forwarded_by_coa' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'forwarded_by_coa' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'date_returned_from_coa' => ['nullable', 'date'],
             'coa_date' => ['nullable', 'date'],
             'claim_date' => ['nullable', 'date'],
-            'claimed_by_coa' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'claimed_by_coa' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'date_received_by_supplier' => ['nullable', 'date'],
             'receipt_receiving_date' => ['nullable', 'date'],
-            'receipt_claimed_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'receipt_claimed_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'items_receiving_date' => ['nullable', 'date'],
-            'items_claimed_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'items_claimed_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'payment_status' => ['nullable', 'string', 'max:100'],
+            'ld_amount' => ['nullable', 'numeric', 'min:0'],
+            'retention_amount' => ['nullable', 'numeric', 'min:0'],
+            'dv_template' => ['nullable', 'string', 'in:ld_only,neither,retention_only,ld_and_retention'],
             'workflow_remarks' => ['nullable', 'string'],
-            'invoice_number' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('invoiceDocumentRef')],
+            'invoice_number' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('invoiceDocumentRef')],
             'invoice_date' => ['nullable', 'date'],
-            'delivery_receipt' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('deliveryReceiptRef')],
-            'par_ics_number' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('parIcsMultiRef')],
-            'ris_number' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('risMultiRef')],
+            'delivery_receipt' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('deliveryReceiptRef')],
+            'par_ics_number' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('parIcsMultiRef')],
+            'ris_number' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('risMultiRef')],
             'date_completed' => ['nullable', 'date'],
-            
+
             // Inspection Entries array
             'inspection_entries' => ['nullable', 'array'],
-            'inspection_entries.*.iar_number' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('iarNumber')],
-            'inspection_entries.*.inspected_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'inspection_entries.*.iar_number' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('iarNumber')],
+            'inspection_entries.*.inspected_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'inspection_entries.*.inspection_date' => ['nullable', 'date'],
             'date_forwarded_to_finance' => ['nullable', 'date'],
-            'finance_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
-            
+            'finance_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
+
             // Notified fields
             'po_vpad_notified_date' => ['nullable', 'date'],
-            'po_vpad_notified_via' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')],
+            'po_vpad_notified_via' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
             'coa_stamp_notified_date' => ['nullable', 'date'],
-            'coa_stamp_notified_via' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')],
+            'coa_stamp_notified_via' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
             'receipt_claimed_notified_date' => ['nullable', 'date'],
-            'receipt_claimed_notified_via' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')],
+            'receipt_claimed_notified_via' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
         ], [
             'po_number.regex' => ValidationHelper::message('numbersAndHyphens'),
             'inclusive_date.regex' => ValidationHelper::message('inclusiveDate'),
@@ -216,7 +224,7 @@ class PurchaseOrdersController extends Controller
 
         $po = ServePo::create($validated);
         $po->items()->sync($itemStockNos);
-        
+
         foreach ($inspectionEntries as $entry) {
             if ($entry['iar_number'] || $entry['inspected_by'] || $entry['inspection_date']) {
                 $po->inspectionEntries()->create($entry);
@@ -238,8 +246,8 @@ class PurchaseOrdersController extends Controller
      */
     public function update(Request $request, ServePo $servePo): RedirectResponse
     {
-        \Log::info('Entering PurchaseOrdersController@update for PO: ' . $servePo->po_number);
-        
+        \Log::info('Entering PurchaseOrdersController@update for PO: '.$servePo->po_number);
+
         abort_if($request->user() && $request->user()->isStaff(), 403, 'Staff users are not allowed to edit Purchase Orders.');
 
         $validated = $request->validate([
@@ -248,7 +256,7 @@ class PurchaseOrdersController extends Controller
                 'string',
                 'max:50',
                 Rule::unique('serve_po', 'po_number')->ignore($servePo->po_number, 'po_number'),
-                'regex:' . ValidationHelper::pattern('poNo'),
+                'regex:'.ValidationHelper::pattern('poNo'),
             ],
             'item_stock_nos' => ['nullable', 'array'],
             'item_stock_nos.*' => ['string', 'exists:stock_items,stock_no'],
@@ -256,69 +264,72 @@ class PurchaseOrdersController extends Controller
             'item_description' => ['nullable', 'string'],
             'po_received_date' => ['nullable', 'date'],
             'procurement_type' => ['nullable', 'in:Services,Items'],
-            'inclusive_date' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('inclusiveDate')],
+            'inclusive_date' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('inclusiveDate')],
             'delivery_term' => ['nullable', 'integer', 'min:0'],
-            'pr_number' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('prNo')],
+            'pr_number' => ['nullable', 'string', 'max:50', 'regex:'.ValidationHelper::pattern('prNo')],
             'pr_date' => ['nullable', 'date'],
-            'philgeps_reference_no' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('philgepsRefNo')],
+            'philgeps_reference_no' => ['nullable', 'string', 'max:50', 'regex:'.ValidationHelper::pattern('philgepsRefNo')],
             'mode_of_procurement' => ['nullable', 'string', 'max:100'],
             'total_amount_abc' => ['nullable', 'numeric', 'min:0'],
             'total_amount_po' => ['nullable', 'numeric', 'min:0'],
             'fund_cluster_id' => ['nullable', 'exists:fund_clusters,fund_cluster_id'],
-            'ors_burs_no' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('orsBursNo')],
+            'ors_burs_no' => ['nullable', 'string', 'max:50', 'regex:'.ValidationHelper::pattern('orsBursNo')],
             'ors_burs_date' => ['nullable', 'date'],
             'responsibility_center' => ['nullable', 'string', 'max:100'],
-            'uacs_object_code' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('uacsObjectCode')],
+            'uacs_object_code' => ['nullable', 'string', 'max:50', 'regex:'.ValidationHelper::pattern('uacsObjectCode')],
             'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
             'end_user' => ['nullable', 'string', 'exists:offices,office_code'],
             'date_forwarded_to_smu' => ['nullable', 'date'],
             'coa_processed_date' => ['nullable', 'date'],
             'date_forwarded_frontdesk' => ['nullable', 'date'],
-            
+
             // Workflow tracking fields
             'po_step' => ['nullable', 'string'],
-            'po_vpad_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'po_vpad_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'date_forwarded_to_end_user' => ['nullable', 'date'],
-            'end_user_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'end_user_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'date_forwarded_supplier' => ['nullable', 'date'],
-            'forwarded_by_supplier' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
-            'claimed_by_supplier' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'forwarded_by_supplier' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
+            'claimed_by_supplier' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'supplier_signature_date' => ['nullable', 'date'],
             'date_forwarded_coa' => ['nullable', 'date'],
-            'forwarded_by_coa' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'forwarded_by_coa' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'date_returned_from_coa' => ['nullable', 'date'],
             'coa_date' => ['nullable', 'date'],
             'claim_date' => ['nullable', 'date'],
-            'claimed_by_coa' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'claimed_by_coa' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'date_received_by_supplier' => ['nullable', 'date'],
             'receipt_receiving_date' => ['nullable', 'date'],
-            'receipt_claimed_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'receipt_claimed_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'items_receiving_date' => ['nullable', 'date'],
-            'items_claimed_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'items_claimed_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'payment_status' => ['nullable', 'string', 'max:100'],
+            'ld_amount' => ['nullable', 'numeric', 'min:0'],
+            'retention_amount' => ['nullable', 'numeric', 'min:0'],
+            'dv_template' => ['nullable', 'string', 'in:ld_only,neither,retention_only,ld_and_retention'],
             'workflow_remarks' => ['nullable', 'string'],
-            'invoice_number' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('invoiceDocumentRef')],
+            'invoice_number' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('invoiceDocumentRef')],
             'invoice_date' => ['nullable', 'date'],
-            'delivery_receipt' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('deliveryReceiptRef')],
-            'par_ics_number' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('parIcsMultiRef')],
-            'ris_number' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('risMultiRef')],
+            'delivery_receipt' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('deliveryReceiptRef')],
+            'par_ics_number' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('parIcsMultiRef')],
+            'ris_number' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('risMultiRef')],
             'date_completed' => ['nullable', 'date'],
-            
+
             // Inspection Entries array
             'inspection_entries' => ['nullable', 'array'],
-            'inspection_entries.*.iar_number' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('iarNumber')],
-            'inspection_entries.*.inspected_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'inspection_entries.*.iar_number' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('iarNumber')],
+            'inspection_entries.*.inspected_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'inspection_entries.*.inspection_date' => ['nullable', 'date'],
             'date_forwarded_to_finance' => ['nullable', 'date'],
-            'finance_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
-            
+            'finance_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
+
             // Notified fields
             'po_vpad_notified_date' => ['nullable', 'date'],
-            'po_vpad_notified_via' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')],
+            'po_vpad_notified_via' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
             'coa_stamp_notified_date' => ['nullable', 'date'],
-            'coa_stamp_notified_via' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')],
+            'coa_stamp_notified_via' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
             'receipt_claimed_notified_date' => ['nullable', 'date'],
-            'receipt_claimed_notified_via' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')],
+            'receipt_claimed_notified_via' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
 
             'deleted_attachment_ids.*' => ['integer'],
         ], [
@@ -348,7 +359,7 @@ class PurchaseOrdersController extends Controller
             'receipt_claimed_notified_via.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
-        \Log::info('Validation passed for PO: ' . $servePo->po_number);
+        \Log::info('Validation passed for PO: '.$servePo->po_number);
 
         $itemStockNos = $request->has('item_stock_nos') ? ($validated['item_stock_nos'] ?? []) : null;
         unset($validated['item_stock_nos']);
@@ -362,7 +373,7 @@ class PurchaseOrdersController extends Controller
             $validated['total_amount_diff'] = $validated['total_amount_abc'] - $validated['total_amount_po'];
         }
 
-    // ... rest unchanged (attachment deletion, transaction, etc.)
+        // ... rest unchanged (attachment deletion, transaction, etc.)
 
         // Handle deleted attachments before updating PO
         $deletedAttachmentIds = $validated['deleted_attachment_ids'] ?? [];
@@ -402,11 +413,11 @@ class PurchaseOrdersController extends Controller
             }
 
             $servePo->update($validated);
-            
+
             if (is_array($itemStockNos)) {
                 $servePo->items()->sync($itemStockNos);
             }
-            
+
             if (is_array($inspectionEntries)) {
                 $servePo->inspectionEntries()->delete();
                 foreach ($inspectionEntries as $entry) {
@@ -415,7 +426,7 @@ class PurchaseOrdersController extends Controller
                     }
                 }
             }
-            
+
             // If the workflow step reached "For Release" or beyond, set related deliveries to PENDING
             $releaseSteps = ['For Release', 'Payment Processing', 'Forwarded to Finance'];
             if (in_array($validated['po_step'] ?? '', $releaseSteps) && $servePo->coa_date) {
@@ -435,14 +446,14 @@ class PurchaseOrdersController extends Controller
     {
         $deliveries = $purchaseOrder->deliveries()->get();
         $letters = $purchaseOrder->letterMonitorings()->get();
-        $rrsps = \App\Models\RrspMonitoring::where('po_number', $purchaseOrder->po_number)->get();
+        $rrsps = RrspMonitoring::where('po_number', $purchaseOrder->po_number)->get();
 
         if ($deliveries->count() > 0 || $letters->count() > 0 || $rrsps->count() > 0) {
             $parts = [];
 
             if ($rrsps->count() > 0) {
                 $count = $rrsps->count();
-                $str = "{$count} Linked RRSP" . ($count > 1 ? 's' : '') . "\n";
+                $str = "{$count} Linked RRSP".($count > 1 ? 's' : '')."\n";
                 foreach ($rrsps as $rrsp) {
                     $str .= "- RRSP No.: {$rrsp->rrsp_no}\n";
                 }
@@ -451,7 +462,7 @@ class PurchaseOrdersController extends Controller
 
             if ($deliveries->count() > 0) {
                 $count = $deliveries->count();
-                $str = "{$count} Linked Delivery Record" . ($count > 1 ? 's' : '') . "\n";
+                $str = "{$count} Linked Delivery Record".($count > 1 ? 's' : '')."\n";
                 foreach ($deliveries as $del) {
                     $str .= "- Delivery No.: {$del->delivery_id}\n";
                 }
@@ -460,7 +471,7 @@ class PurchaseOrdersController extends Controller
 
             if ($letters->count() > 0) {
                 $count = $letters->count();
-                $str = "{$count} Linked P.O. Letter" . ($count > 1 ? 's' : '') . "\n";
+                $str = "{$count} Linked P.O. Letter".($count > 1 ? 's' : '')."\n";
                 foreach ($letters as $letter) {
                     $str .= "- P.O. Letter No.: {$letter->reference_no}\n";
                 }
@@ -468,20 +479,20 @@ class PurchaseOrdersController extends Controller
             }
 
             return redirect()->back()->with('error',
-                "This Purchase Order has linked records. Please remove them first:\n". implode("\n", $parts)
+                "This Purchase Order has linked records. Please remove them first:\n".implode("\n", $parts)
             );
         }
 
-            // Create an archive record before soft deleting
-            $purchaseOrder->archiveMetadata()->create([
-                'identity_document' => $purchaseOrder->po_number,
-                'archived_from' => 'Procurement > Purchase Orders',
-                'archived_by' => $request->user()?->id,
-            ]);
+        // Create an archive record before soft deleting
+        $purchaseOrder->archiveMetadata()->create([
+            'identity_document' => $purchaseOrder->po_number,
+            'archived_from' => 'Procurement > Purchase Orders',
+            'archived_by' => $request->user()?->id,
+        ]);
 
-            $purchaseOrder->delete(); // This will soft delete now
+        $purchaseOrder->delete(); // This will soft delete now
 
-            return redirect()->back()->with('success', 'Purchase order archived successfully.');
+        return redirect()->back()->with('success', 'Purchase order archived successfully.');
     }
 
     public function uploadAttachments(Request $request, ServePo $purchaseOrder)
@@ -492,7 +503,7 @@ class PurchaseOrdersController extends Controller
         ]);
 
         foreach ($request->file('files') as $file) {
-            $path = $file->store('po-attachments/' . $purchaseOrder->po_number, 'public');
+            $path = $file->store('po-attachments/'.$purchaseOrder->po_number, 'public');
 
             $purchaseOrder->attachments()->create([
                 'original_name' => $file->getClientOriginalName(),
@@ -534,7 +545,7 @@ class PurchaseOrdersController extends Controller
         ];
 
         foreach ($fieldMap as $dateField => $byField) {
-            if (!empty($validated[$dateField]) && empty($validated[$byField])) {
+            if (! empty($validated[$dateField]) && empty($validated[$byField])) {
                 $validated[$byField] = $userName;
             }
         }
@@ -546,25 +557,25 @@ class PurchaseOrdersController extends Controller
     public function notifyOffice(Request $request, ServePo $purchaseOrder): RedirectResponse
     {
         $request->validate([
-            'email' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')]
+            'email' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
         ], [
             'email.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
         $email = $request->input('email');
-        
-        if (!$email) {
+
+        if (! $email) {
             $office = $purchaseOrder->office;
             $email = $office ? $office->email : null;
         }
 
-        if (!$email) {
+        if (! $email) {
             return back()->with('error', 'No email address found for the office and none provided.');
         }
 
         // We check if the email is an actual email address (using string validation to allow phone numbers in the DB field, but only email here if it has an @)
         if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\OfficeNotificationMail($purchaseOrder));
+            Mail::to($email)->send(new OfficeNotificationMail($purchaseOrder));
         }
 
         $purchaseOrder->update([
@@ -578,24 +589,24 @@ class PurchaseOrdersController extends Controller
     public function notifyCoa(Request $request, ServePo $purchaseOrder): RedirectResponse
     {
         $request->validate([
-            'email' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')]
+            'email' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
         ], [
             'email.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
         $email = $request->input('email');
 
-        if (!$email) {
+        if (! $email) {
             $office = $purchaseOrder->office;
             $email = $office ? $office->email : null;
         }
 
-        if (!$email) {
+        if (! $email) {
             return back()->with('error', 'No email address found for the office and none provided.');
         }
 
         if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\OfficeNotificationMail($purchaseOrder));
+            Mail::to($email)->send(new OfficeNotificationMail($purchaseOrder));
         }
 
         $purchaseOrder->update([
@@ -609,24 +620,24 @@ class PurchaseOrdersController extends Controller
     public function notifyRelease(Request $request, ServePo $purchaseOrder): RedirectResponse
     {
         $request->validate([
-            'email' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('contactInfo')]
+            'email' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
         ], [
             'email.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
         $email = $request->input('email');
 
-        if (!$email) {
+        if (! $email) {
             $office = $purchaseOrder->office;
             $email = $office ? $office->email : null;
         }
 
-        if (!$email) {
+        if (! $email) {
             return back()->with('error', 'No email address found for the office and none provided.');
         }
 
         if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\OfficeNotificationMail($purchaseOrder));
+            Mail::to($email)->send(new OfficeNotificationMail($purchaseOrder));
         }
 
         $purchaseOrder->update([
@@ -653,7 +664,7 @@ class PurchaseOrdersController extends Controller
         try {
             $result = $importService->importFile($file, $mergeExisting);
         } catch (\Throwable $e) {
-            return back()->withErrors(['file' => 'Import failed: ' . $e->getMessage()]);
+            return back()->withErrors(['file' => 'Import failed: '.$e->getMessage()]);
         }
 
         $message = "Imported {$result['created']} purchase order(s).";
@@ -661,7 +672,7 @@ class PurchaseOrdersController extends Controller
             $message .= " Updated {$result['updated']} existing purchase order(s).";
         }
         if (count($result['skipped']) > 0) {
-            $message .= " Skipped " . count($result['skipped']) . " row(s).";
+            $message .= ' Skipped '.count($result['skipped']).' row(s).';
         }
 
         return back()->with([
@@ -685,5 +696,92 @@ class PurchaseOrdersController extends Controller
         }
 
         return $importService->downloadTemplate();
+    }
+
+    /**
+     * Export the Disbursement Voucher as an Excel spreadsheet (LD-Only or Neither Template).
+     */
+    public function exportDisbursementVoucher(Request $request, ServePo $purchaseOrder, DisbursementVoucherService $dvService): StreamedResponse
+    {
+        $template = $request->query('template', $purchaseOrder->dv_template ?: 'ld_only');
+
+        if (! in_array($template, ['ld_only', 'neither', 'neither_ld_nor_retention', 'retention_only', 'ld_and_retention', 'both'], true)) {
+            abort(400, 'Invalid DV template requested.');
+        }
+
+        $safePo = preg_replace('/[^A-Za-z0-9_-]/', '_', $purchaseOrder->po_number);
+
+        if ($template === 'neither' || $template === 'neither_ld_nor_retention') {
+            $spreadsheet = $dvService->generateNeitherExcel($purchaseOrder);
+            $filename = "Disbursement_Voucher_Neither_{$safePo}_".now()->format('Ymd_His').'.xlsx';
+        } elseif ($template === 'retention_only') {
+            $poAmount = (float) ($purchaseOrder->total_amount_po ?? 0);
+
+            if ($request->has('retention_amount') && $request->query('retention_amount') !== '') {
+                $rawRetention = $request->query('retention_amount');
+                if (! is_numeric($rawRetention) || (float) $rawRetention < 0 || (float) $rawRetention > $poAmount) {
+                    abort(422, 'Invalid Retention amount.');
+                }
+                $retentionAmount = (float) $rawRetention;
+            } elseif ($purchaseOrder->retention_amount !== null && (float) $purchaseOrder->retention_amount > 0) {
+                $retentionAmount = (float) $purchaseOrder->retention_amount;
+            } else {
+                $retentionAmount = round($poAmount * 0.01, 2);
+            }
+
+            $spreadsheet = $dvService->generateRetentionOnlyExcel($purchaseOrder, $retentionAmount);
+            $filename = "Disbursement_Voucher_Retention_{$safePo}_".now()->format('Ymd_His').'.xlsx';
+        } elseif ($template === 'ld_and_retention' || $template === 'both') {
+            $poAmount = (float) ($purchaseOrder->total_amount_po ?? 0);
+
+            if ($request->has('ld_amount') && $request->query('ld_amount') !== '') {
+                $rawLd = $request->query('ld_amount');
+                if (! is_numeric($rawLd) || (float) $rawLd < 0 || (float) $rawLd > $poAmount) {
+                    abort(422, 'Invalid LD amount.');
+                }
+                $ldAmount = (float) $rawLd;
+            } else {
+                $ldAmount = (float) ($purchaseOrder->ld_amount ?? 0);
+            }
+
+            if ($request->has('retention_amount') && $request->query('retention_amount') !== '') {
+                $rawRetention = $request->query('retention_amount');
+                if (! is_numeric($rawRetention) || (float) $rawRetention < 0 || (float) $rawRetention > $poAmount) {
+                    abort(422, 'Invalid Retention amount.');
+                }
+                $retentionAmount = (float) $rawRetention;
+            } elseif ($purchaseOrder->retention_amount !== null && (float) $purchaseOrder->retention_amount > 0) {
+                $retentionAmount = (float) $purchaseOrder->retention_amount;
+            } else {
+                $retentionAmount = round($poAmount * 0.01, 2);
+            }
+
+            $spreadsheet = $dvService->generateBothExcel($purchaseOrder, $ldAmount, $retentionAmount);
+            $filename = "Disbursement_Voucher_Both_{$safePo}_".now()->format('Ymd_His').'.xlsx';
+        } else {
+            $poAmount = (float) ($purchaseOrder->total_amount_po ?? 0);
+
+            if ($request->has('ld_amount') && $request->query('ld_amount') !== '') {
+                $rawLd = $request->query('ld_amount');
+                if (! is_numeric($rawLd) || (float) $rawLd < 0 || (float) $rawLd > $poAmount) {
+                    abort(422, 'Invalid LD amount.');
+                }
+                $ldAmount = (float) $rawLd;
+            } else {
+                $ldAmount = (float) ($purchaseOrder->ld_amount ?? 0);
+            }
+
+            $spreadsheet = $dvService->generateLdOnlyExcel($purchaseOrder, $ldAmount);
+            $filename = "Disbursement_Voucher_LD_{$safePo}_".now()->format('Ymd_His').'.xlsx';
+        }
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->setPreCalculateFormulas(true);
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'max-age=0',
+        ]);
     }
 }
