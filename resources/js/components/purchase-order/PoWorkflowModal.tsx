@@ -10,7 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
-import { Plus, Trash2, Mail, Lock, X, FileSpreadsheet, Info } from 'lucide-react';
+import { Plus, Trash2, Mail, Lock, X,  Check, ChevronsUpDown, FileSpreadsheet, Info } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -18,6 +18,22 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import axios from 'axios';
+import {
+    ItemDescriptionBadge,
+    OperationalImpactBadge,
+    DEFAULT_ITEM_DESCRIPTIONS,
+    OPERATIONAL_IMPACT_OPTIONS,
+} from '@/components/purchase-order/po-badges';
 import { useNativeValidation } from '@/hooks/useNativeValidation';
 import { PATTERNS, MESSAGES } from '@/lib/validation';
 
@@ -127,22 +143,159 @@ function Field({
     );
 }
 
-function SelectField({ label, value, onChange, error, options, placeholder }: any) {
+function SelectField({ label, value, onChange, error, options, placeholder, renderOption, renderTrigger }: any) {
+    const selectedOpt = options?.find((o: any) => o.value === value);
+
     return (
         <div className="space-y-1">
             <label className="text-sm font-medium text-foreground">{label}</label>
             <Select value={value || ''} onValueChange={onChange}>
-                <SelectTrigger className={error ? 'border-red-500' : ''}>
-                    <SelectValue placeholder={placeholder} />
+                <SelectTrigger className={cn("w-full h-9", error && 'border-red-500')}>
+                    {renderTrigger ? (
+                        renderTrigger(selectedOpt)
+                    ) : (
+                        <SelectValue placeholder={placeholder} />
+                    )}
                 </SelectTrigger>
                 <SelectContent>
-                    {options.map((opt: any) => (
+                    {options?.map((opt: any) => (
                         <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
+                            {renderOption ? renderOption(opt) : opt.label}
                         </SelectItem>
                     ))}
                 </SelectContent>
             </Select>
+            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
+        </div>
+    );
+}
+
+interface SearchableSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    required?: boolean;
+    placeholder?: string;
+    options: { value: string; label: string }[];
+    onAddNew?: (query: string) => void;
+    addNewLabel?: string;
+    renderOption?: (opt: { value: string; label: string }) => React.ReactNode;
+    renderTrigger?: (selectedOpt?: { value: string; label: string }) => React.ReactNode;
+}
+
+function SearchableSelect({
+    label,
+    value,
+    onChange,
+    error,
+    required = false,
+    placeholder = 'Search...',
+    options,
+    onAddNew,
+    addNewLabel = 'new item',
+    renderOption,
+    renderTrigger,
+}: SearchableSelectProps) {
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState('');
+
+    const selectedOpt = options.find((o) => o.value === value);
+
+    const trimmedQuery = query.trim();
+    const hasExactMatch = options.some(
+        (o) => o.label.trim().toLowerCase() === trimmedQuery.toLowerCase()
+    );
+    const showAddNew = !!onAddNew && !hasExactMatch && trimmedQuery.length > 0;
+
+    return (
+        <div className="space-y-1">
+            <label className="text-sm font-medium text-foreground">
+                {label} {required && <span className="text-red-500">*</span>}
+            </label>
+
+            <Popover open={open} onOpenChange={setOpen} modal={true}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                            'w-full justify-between font-normal h-9',
+                            !selectedOpt && !value && 'text-muted-foreground',
+                            error && 'border-red-500'
+                        )}
+                    >
+                        {selectedOpt || value ? (
+                            renderTrigger ? (
+                                renderTrigger(selectedOpt ?? { value, label: value })
+                            ) : (
+                                selectedOpt?.label || value
+                            )
+                        ) : (
+                            <span className="text-muted-foreground">{placeholder}</span>
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                    <Command>
+                        <CommandInput
+                            placeholder={placeholder}
+                            value={query}
+                            onValueChange={setQuery}
+                        />
+                        <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <CommandEmpty>
+                                <p className="px-2 py-3 text-center text-sm text-muted-foreground">
+                                    No item found.
+                                </p>
+                            </CommandEmpty>
+
+                            {showAddNew && (
+                                <CommandGroup>
+                                    <CommandItem
+                                        value={`__add_new__${trimmedQuery}`}
+                                        onSelect={() => {
+                                            onAddNew(trimmedQuery);
+                                            setOpen(false);
+                                            setQuery('');
+                                        }}
+                                        className="text-primary font-medium cursor-pointer"
+                                    >
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        {`Add "${trimmedQuery}" as ${addNewLabel}`}
+                                    </CommandItem>
+                                </CommandGroup>
+                            )}
+
+                            <CommandGroup>
+                                {options.map((opt) => (
+                                    <CommandItem
+                                        key={opt.value}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mr-2 h-4 w-4',
+                                                value === opt.value ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                        />
+                                        {renderOption ? renderOption(opt) : opt.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
@@ -161,9 +314,17 @@ interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     purchaseOrder: any | null;
+    itemDescriptions?: string[];
+    operationalImpacts?: string[];
 }
 
-export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: Props) {
+export default function PoWorkflowModal({
+    open,
+    onOpenChange,
+    purchaseOrder,
+    itemDescriptions = [],
+    operationalImpacts = OPERATIONAL_IMPACT_OPTIONS,
+}: Props) {
     const { auth } = usePage<any>().props;
     const isAdmin = auth?.user?.role === 'admin';
     const isStaff = auth?.user?.role === 'staff';
@@ -318,6 +479,37 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
         }
     };
 
+    const [itemDescList, setItemDescList] = useState<string[]>(() => {
+        return Array.from(new Set([...DEFAULT_ITEM_DESCRIPTIONS, ...(itemDescriptions || [])]));
+    });
+
+    useEffect(() => {
+        if (itemDescriptions && itemDescriptions.length > 0) {
+            setItemDescList((prev) => Array.from(new Set([...prev, ...itemDescriptions])));
+        }
+    }, [itemDescriptions]);
+
+    useEffect(() => {
+        if (purchaseOrder?.item_description) {
+            const val = purchaseOrder.item_description.trim();
+            if (val && !val.includes('\n') && val.length <= 40) {
+                setItemDescList((prev) => (prev.includes(val) ? prev : [...prev, val]));
+            }
+        }
+    }, [purchaseOrder]);
+
+    const handleAddItemDescription = async (newVal: string) => {
+        const trimmed = newVal.trim();
+        if (!trimmed) return;
+        setData((prev: any) => ({ ...prev, item_description: trimmed }));
+        setItemDescList((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+        try {
+            await axios.post('/purchase-orders/item-descriptions', { name: trimmed });
+        } catch (e) {
+            console.error('Failed to save new item description', e);
+        }
+    };
+
     useEffect(() => {
         if (open && purchaseOrder) {
             const initialLd = purchaseOrder.ld_amount != null ? String(purchaseOrder.ld_amount) : '';
@@ -334,6 +526,8 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
             setData({
                 po_number: purchaseOrder.po_number || '',
                 po_step: purchaseOrder.po_step || 'PO From VPAD',
+                item_description: purchaseOrder.item_description || '',
+                operational_impact: purchaseOrder.operational_impact || '',
                 po_received_date: toDateInputValue(purchaseOrder.po_received_date),
                 po_vpad_forwarded_by: purchaseOrder.po_vpad_forwarded_by || '',
                 date_forwarded_to_end_user: toDateInputValue(purchaseOrder.date_forwarded_to_end_user),
@@ -859,9 +1053,29 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                                         : 'N/A'}
                                                 </p>
                                             </div>
+                                            <div>
+                                                <p className="text-xs text-muted-foreground font-medium uppercase mb-1">Item Description</p>
+                                                <div>
+                                                    {purchaseOrder?.item_description ? (
+                                                        <ItemDescriptionBadge description={purchaseOrder.item_description} />
+                                                    ) : (
+                                                        <p className="text-sm font-semibold">N/A</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-muted-foreground font-medium uppercase mb-1">Operational Impact</p>
+                                                <div>
+                                                    {purchaseOrder?.operational_impact ? (
+                                                        <OperationalImpactBadge impact={purchaseOrder.operational_impact} />
+                                                    ) : (
+                                                        <p className="text-sm font-semibold">N/A</p>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
                                             <Field
                                                 label="Date Received"
                                                 name="po_received_date"
@@ -870,6 +1084,55 @@ export default function PoWorkflowModal({ open, onOpenChange, purchaseOrder }: P
                                                 onChange={handleChange}
                                                 error={errors.po_received_date}
                                                 required={true}
+                                            />
+                                            <SearchableSelect
+                                                label="Item Description"
+                                                value={data.item_description}
+                                                onChange={(val) => {
+                                                    setData((prev: any) => ({ ...prev, item_description: val }));
+                                                    if (errors.item_description) {
+                                                        clearErrors('item_description');
+                                                    }
+                                                }}
+                                                error={errors.item_description}
+                                                placeholder="Select or enter item description..."
+                                                addNewLabel="item description"
+                                                onAddNew={handleAddItemDescription}
+                                                options={itemDescList.map((desc) => ({
+                                                    value: desc,
+                                                    label: desc,
+                                                }))}
+                                                renderTrigger={(selectedOpt) => (
+                                                    selectedOpt ? (
+                                                        <ItemDescriptionBadge description={selectedOpt.value} />
+                                                    ) : (
+                                                        <span className="text-muted-foreground">Select or enter item description...</span>
+                                                    )
+                                                )}
+                                                renderOption={(opt) => (
+                                                    <ItemDescriptionBadge description={opt.value} />
+                                                )}
+                                            />
+                                            <SelectField
+                                                label="Operational Impact"
+                                                value={data.operational_impact}
+                                                onChange={handleSelectChange('operational_impact')}
+                                                error={errors.operational_impact}
+                                                placeholder="Select impact..."
+                                                options={(operationalImpacts && operationalImpacts.length > 0 ? operationalImpacts : OPERATIONAL_IMPACT_OPTIONS).map((val) => ({
+                                                    value: val,
+                                                    label: val,
+                                                }))}
+                                                renderTrigger={(selectedOpt: any) => (
+                                                    selectedOpt ? (
+                                                        <OperationalImpactBadge impact={selectedOpt.value} />
+                                                    ) : (
+                                                        <span className="text-muted-foreground">Select impact...</span>
+                                                    )
+                                                )}
+                                                renderOption={(opt: any) => (
+                                                    <OperationalImpactBadge impact={opt.value} />
+                                                )}
                                             />
                                             <Field
                                                 label="Forwarded By"

@@ -559,6 +559,7 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
     // ==========================================================
     Route::get('/purchase-orders', [PurchaseOrdersController::class, 'index'])->name('purchase-orders.index');
     Route::post('/purchase-orders', [PurchaseOrdersController::class, 'store'])->name('purchase-orders.store');
+    Route::post('/purchase-orders/item-descriptions', [PurchaseOrdersController::class, 'storeItemDescription'])->name('purchase-orders.item-descriptions.store');
     Route::post('/purchase-orders/import', [PurchaseOrdersController::class, 'import'])->name('purchase-orders.import');
     Route::get('/purchase-orders/import/template', [PurchaseOrdersController::class, 'importTemplate'])->name('purchase-orders.import.template');
     Route::put('/purchase-orders/{servePo}', [PurchaseOrdersController::class, 'update'])->name('purchase-orders.update');

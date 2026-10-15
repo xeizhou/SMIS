@@ -8,6 +8,8 @@ use App\Models\Attachment;
 use App\Models\Delivery;
 use App\Models\FundCluster;
 use App\Models\Office;
+use App\Models\PirMonitoring;
+use App\Models\PoItemDescription;
 use App\Models\PoLetterMonitoring;
 use App\Models\RrspMonitoring;
 use App\Models\ServePo;
@@ -36,6 +38,8 @@ class PurchaseOrdersController extends Controller
         $search = $request->string('search')->toString() ?: null;
         $fundCluster = $request->string('fund_cluster')->toString() ?: null;
         $office = $request->string('office')->toString() ?: null;
+        $itemDescription = $request->string('item_description')->toString() ?: null;
+        $operationalImpact = $request->string('operational_impact')->toString() ?: null;
         $perPage = $request->integer('per_page', 10);
         $sortField = $request->string('sort_field')->toString();
         $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
@@ -48,6 +52,8 @@ class PurchaseOrdersController extends Controller
                 ->whereColumn('offices.office_code', 'serve_po.end_user'),
             'fund_cluster' => 'fund_cluster_id',
             'mode_of_procurement' => 'mode_of_procurement',
+            'item_description' => 'item_description',
+            'operational_impact' => 'operational_impact',
             'po_date' => 'po_date',
             'due_date' => 'due_date',
             'total_amount_po' => 'total_amount_po',
@@ -69,12 +75,15 @@ class PurchaseOrdersController extends Controller
                         ->orWhere('philgeps_reference_no', 'like', "%{$search}%")
                         ->orWhere('end_user', 'like', "%{$search}%")
                         ->orWhere('item_description', 'like', "%{$search}%")
+                        ->orWhere('operational_impact', 'like', "%{$search}%")
                         ->orWhereHas('supplier', fn ($q2) => $q2->where('supplier_name', 'like', "%{$search}%"))
                         ->orWhereHas('office', fn ($q2) => $q2->where('office_name', 'like', "%{$search}%"));
                 });
             })
             ->when($fundCluster, fn ($query, $fundCluster) => $query->where('fund_cluster_id', $fundCluster))
             ->when($office, fn ($query, $office) => $query->where('end_user', $office))
+            ->when($itemDescription, fn ($query, $itemDescription) => $query->where('item_description', $itemDescription))
+            ->when($operationalImpact, fn ($query, $operationalImpact) => $query->where('operational_impact', $operationalImpact))
             ->when(isset($sorts[$sortField]), function ($query) use ($sorts, $sortField, $sortDirection) {
                 $query->orderBy($sorts[$sortField], $sortDirection);
             }, fn ($query) => $query->latest())
@@ -87,6 +96,8 @@ class PurchaseOrdersController extends Controller
                 'search' => $search,
                 'fund_cluster' => $fundCluster,
                 'office' => $office,
+                'item_description' => $itemDescription,
+                'operational_impact' => $operationalImpact,
                 'sort_field' => $sortField ?: null,
                 'sort_direction' => $sortDirection,
             ],
@@ -102,7 +113,39 @@ class PurchaseOrdersController extends Controller
             'stockItems' => fn () => StockItem::select('stock_no', 'item_name', 'description')
                 ->orderBy('item_name')
                 ->get(),
+            'itemDescriptions' => fn () => self::getItemDescriptionsList(),
+            'operationalImpacts' => ['HIGH', 'MEDIUM', 'LOW'],
         ]);
+    }
+
+    /**
+     * Get distinct list of item descriptions strictly from the dedicated po_item_descriptions table.
+     */
+    public static function getItemDescriptionsList(): array
+    {
+        return PoItemDescription::orderBy('name')->pluck('name')->toArray();
+    }
+
+    /**
+     * Store a newly created item description option.
+     */
+    public function storeItemDescription(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $name = strtoupper(trim($validated['name']));
+        $itemDescription = PoItemDescription::firstOrCreate(['name' => $name]);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'id' => $itemDescription->id,
+                'name' => $itemDescription->name,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Item description added successfully.');
     }
 
     /**
@@ -111,7 +154,9 @@ class PurchaseOrdersController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'po_number' => ['required', 'string', 'max:50', 'unique:serve_po,po_number', 'regex:'.ValidationHelper::pattern('poNo')],
+            'po_number' => ['required', 'string', 'max:50', 'unique:serve_po,po_number', 'regex:' . ValidationHelper::pattern('poNo')],
+            'item_description' => ['nullable', 'string', 'max:255'],
+            'operational_impact' => ['nullable', 'string', Rule::in(['HIGH', 'MEDIUM', 'LOW'])],
             'item_stock_nos' => ['nullable', 'array'],
             'item_stock_nos.*' => ['string', 'exists:stock_items,stock_no'],
             'po_date' => ['nullable', 'date'],
@@ -222,6 +267,14 @@ class PurchaseOrdersController extends Controller
         $inspectionEntries = $validated['inspection_entries'] ?? [];
         unset($validated['inspection_entries']);
 
+        if (!empty($validated['item_description'])) {
+            $validated['item_description'] = trim($validated['item_description']);
+            PoItemDescription::firstOrCreate(['name' => strtoupper($validated['item_description'])]);
+        }
+        if (!empty($validated['operational_impact'])) {
+            $validated['operational_impact'] = strtoupper(trim($validated['operational_impact']));
+        }
+
         $po = ServePo::create($validated);
         $po->items()->sync($itemStockNos);
 
@@ -261,7 +314,8 @@ class PurchaseOrdersController extends Controller
             'item_stock_nos' => ['nullable', 'array'],
             'item_stock_nos.*' => ['string', 'exists:stock_items,stock_no'],
             'po_date' => ['nullable', 'date'],
-            'item_description' => ['nullable', 'string'],
+            'item_description' => ['nullable', 'string', 'max:255'],
+            'operational_impact' => ['nullable', 'string', Rule::in(['HIGH', 'MEDIUM', 'LOW'])],
             'po_received_date' => ['nullable', 'date'],
             'procurement_type' => ['nullable', 'in:Services,Items'],
             'inclusive_date' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('inclusiveDate')],
@@ -410,6 +464,14 @@ class PurchaseOrdersController extends Controller
                 Attachment::where('attachable_type', ServePo::class)
                     ->where('attachable_id', $oldPoNumber)
                     ->update(['attachable_id' => $newPoNumber]);
+            }
+
+            if (array_key_exists('item_description', $validated) && !empty($validated['item_description'])) {
+                $validated['item_description'] = trim($validated['item_description']);
+                PoItemDescription::firstOrCreate(['name' => strtoupper($validated['item_description'])]);
+            }
+            if (array_key_exists('operational_impact', $validated) && !empty($validated['operational_impact'])) {
+                $validated['operational_impact'] = strtoupper(trim($validated['operational_impact']));
             }
 
             $servePo->update($validated);
