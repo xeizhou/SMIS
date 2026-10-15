@@ -315,7 +315,7 @@ interface Props {
     onOpenChange: (open: boolean) => void;
     purchaseOrder: any | null;
     itemDescriptions?: string[];
-    operationalImpacts?: string[];
+    operationalImpacts?: (string | { value: string; label: string; [key: string]: any })[] | readonly any[];
 }
 
 export default function PoWorkflowModal({
@@ -1119,10 +1119,13 @@ export default function PoWorkflowModal({
                                                 onChange={handleSelectChange('operational_impact')}
                                                 error={errors.operational_impact}
                                                 placeholder="Select impact..."
-                                                options={(operationalImpacts && operationalImpacts.length > 0 ? operationalImpacts : OPERATIONAL_IMPACT_OPTIONS).map((val) => ({
-                                                    value: val,
-                                                    label: val,
-                                                }))}
+                                                options={(operationalImpacts && operationalImpacts.length > 0 ? operationalImpacts : OPERATIONAL_IMPACT_OPTIONS).map((val: any) => {
+                                                    const rawVal = typeof val === 'object' && val !== null ? val.value : val;
+                                                    return {
+                                                        value: rawVal,
+                                                        label: typeof val === 'object' && val !== null && val.label ? val.label : rawVal,
+                                                    };
+                                                })}
                                                 renderTrigger={(selectedOpt: any) => (
                                                     selectedOpt ? (
                                                         <OperationalImpactBadge impact={selectedOpt.value} />
