@@ -5,9 +5,15 @@
     <title>{{ $pdfTitle }}</title>
     <style>
         body { font-family: Arial, sans-serif; font-size: 12px; color: #000; }
-        .stock-card { page-break-after: always; padding: 20px 0; }
-        .stock-card:last-child { page-break-after: auto; }
-        .header-title { text-align: center; font-weight: bold; font-size: 22px; margin-bottom: 10px; }
+        .stock-card { padding: 20px 0; }
+        .header-title { text-align: center; font-weight: bold; font-size: 22px; }
+
+        table.header-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        table.header-table td { border: none; padding: 0; vertical-align: middle; }
+        table.header-table td.side { width: 80px; }
+        table.header-table td.title { text-align: center; }
+        table.header-table .logo { width: 72px; height: 72px; }
+
         table.info-table { width: 100%; margin-bottom: 10px; border: none; }
         table.info-table td { padding: 3.5px 0; vertical-align: top; border: none; font-size: 13px; }
         table.info-table td.label { font-weight: bold; white-space: nowrap; }
@@ -35,11 +41,6 @@
             @page {
                 margin: 18mm 12mm 20mm 12mm;
 
-                /* Page X of Y via CSS counters. Supported in current
-                   Chrome/Edge print rendering; Firefox and Safari either
-                   ignore this or render it inconsistently, in which case
-                   the footer simply won't appear there — no error, just
-                   silently unsupported. */
                 @bottom-left {
                     content: "Page " counter(page) " of " counter(pages);
                     font-family: Arial, sans-serif;
@@ -72,8 +73,15 @@
     </div>
 
     @foreach($stockItems as $item)
-    <div class="stock-card">
-        <div class="header-title">STOCK CARD</div>
+    <div class="stock-card" @if(!$loop->last) style="break-after: page; page-break-after: always;" @endif>
+        <table class="header-table">
+            <tr>
+                <td class="side"><img class="logo" src="{{ asset('usep-logo.png') }}" alt="USeP Logo"></td>
+                <td class="title"><div class="header-title">STOCK CARD</div></td>
+                <td class="side"></td>
+            </tr>
+        </table>
+
         <table class="info-table">
             <tr>
                 <td class="label" style="width:15%;">ENTITY NAME:</td>

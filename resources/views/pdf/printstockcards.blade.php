@@ -12,19 +12,18 @@
             font-size: 12px; 
             color: #000;
         }
-        .stock-card {
-            page-break-after: always;
-        }
-        .stock-card:last-child {
-            page-break-after: auto;
-        }
 
         .header-title {
             text-align: center;
             font-weight: bold;
             font-size: 26.7px;
-            margin-bottom: 10px;
         }
+
+        table.header-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        table.header-table td { border: none; padding: 0; vertical-align: middle; }
+        table.header-table td.side { width: 80px; }
+        table.header-table td.title { text-align: center; }
+        table.header-table .logo { width: 72px; height: 72px; }
 
         table.info-table {
             width: 100%;
@@ -60,8 +59,14 @@
 <body>
     <main>
         @foreach($stockItems as $item)
-        <div class="stock-card">
-            <div class="header-title">STOCK CARD</div>
+        <div class="stock-card" @if(!$loop->last) style="page-break-after: always;" @endif>
+            <table class="header-table">
+                <tr>
+                    <td class="side"><img class="logo" src="{{ public_path('usep-logo.png') }}" alt="USeP Logo"></td>
+                    <td class="title"><div class="header-title">STOCK CARD</div></td>
+                    <td class="side"></td>
+                </tr>
+            </table>
 
             <table class="info-table">
                 <tr>

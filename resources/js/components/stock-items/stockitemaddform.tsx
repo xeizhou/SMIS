@@ -306,7 +306,7 @@ export default function StockItemAddForm({
                                         required
                                         placeholder="Enter stock number"
                                     />
-                                            {errors.stock_no && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.stock_no}</p>}
+                
                                     <Field
                                         label="Item Name"
                                         name="item_name"
