@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import DatePicker from '@/components/date-picker';
 import {
     Select,
     SelectTrigger,
@@ -186,11 +186,11 @@ export default function Index({ items, fundClusters, filters }: Props) {
                     <label className="text-sm font-medium text-foreground">
                         Cut-off Date:
                     </label>
-                    <Input
-                        type="date"
+                    <DatePicker
                         value={cutoffDate}
-                        onChange={(e) => setCutoffDate(e.target.value)}
-                        className="w-[180px]"
+                        onChange={setCutoffDate}
+                        placeholder="Pick cut-off date"
+                        className="w-[220px]"
                     />
 
                     <Select
@@ -250,7 +250,7 @@ export default function Index({ items, fundClusters, filters }: Props) {
                     </Button>
                 </div>
             </form>
-            
+
                 {/* Report Body */}
                 <div className="rounded-xl border border-border bg-card p-6">
                     <h2 className="text-center text-lg font-bold uppercase text-foreground">

@@ -22,6 +22,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import DatePicker from '@/components/date-picker';
 
 interface Office {
     office_code: string;
@@ -342,24 +343,21 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
                                 <div className="bg-muted/30 p-4 rounded-md border">
                                     <h3 className={sectionTitleClass}>Default Values (Applied to all rows)</h3>
                                     <div className="grid gap-4 md:grid-cols-4">
-                                        <div>
-                                            <label className={labelClass} htmlFor="edit_default_date_received">
-                                                Date Received <span className="text-red-500">*</span>
-                                            </label>
-                                            <Input
-                                                id="edit_default_date_received"
-                                                name="date_received"
-                                                type="date"
-                                                value={defaults.date_received}
-                                                onChange={handleDefaultChange}
-                                                className={cn((errors.edit_default_date_received || errors.date_received) && "border-red-500")}
-                                            />
-                                            {(errors.edit_default_date_received || errors.date_received) && (
-                                                <p className="mt-1 text-[11px] text-red-500 font-medium">
-                                                    {errors.edit_default_date_received || errors.date_received}
-                                                </p>
-                                            )}
-                                        </div>
+                                        <DatePicker
+                                            label="Date Received"
+                                            required
+                                            value={defaults.date_received}
+                                            onChange={(v) => {
+                                                setDefaults((prev) => ({ ...prev, date_received: v }));
+                                                clearErrors('edit_default_date_received');
+                                                clearErrors('date_received');
+                                            }}
+                                            error={
+                                                errors.edit_default_date_received ||
+                                                errors.date_received ||
+                                                errors['records.0.date_received']
+                                            }
+                                        />
                                         
                                         <div>
                                             <label className={labelClass} htmlFor="edit_default_invoice_no">
@@ -382,24 +380,21 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
                                             )}
                                         </div>
 
-                                        <div>
-                                            <label className={labelClass} htmlFor="edit_default_invoice_date">
-                                                Invoice Date <span className="text-red-500">*</span>
-                                            </label>
-                                            <Input
-                                                id="edit_default_invoice_date"
-                                                name="invoice_date"
-                                                type="date"
-                                                value={defaults.invoice_date}
-                                                onChange={handleDefaultChange}
-                                                className={cn((errors.edit_default_invoice_date || errors.invoice_date) && "border-red-500")}
-                                            />
-                                            {(errors.edit_default_invoice_date || errors.invoice_date) && (
-                                                <p className="mt-1 text-[11px] text-red-500 font-medium">
-                                                    {errors.edit_default_invoice_date || errors.invoice_date}
-                                                </p>
-                                            )}
-                                        </div>
+                                        <DatePicker
+                                            label="Invoice Date"
+                                            required
+                                            value={defaults.invoice_date}
+                                            onChange={(v) => {
+                                                setDefaults((prev) => ({ ...prev, invoice_date: v }));
+                                                clearErrors('edit_default_invoice_date');
+                                                clearErrors('invoice_date');
+                                            }}
+                                            error={
+                                                errors.edit_default_invoice_date ||
+                                                errors.invoice_date ||
+                                                errors['records.0.invoice_date']
+                                            }
+                                        />
 
                                         <div>
                                             <label className={labelClass} htmlFor="edit_default_price">

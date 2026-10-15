@@ -2,12 +2,13 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Archive, Eye, ChevronUp, ChevronDown, ChevronsUpDown, CalendarIcon } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { Search, Pencil, Archive, Eye, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { useState } from 'react';
 import TransactionAddForm from '@/components/transaction-logs/transactionaddform';
 import TransactionDeleteModal from '@/components/transaction-logs/transactiondeletemodal';
 import TransactionEditForm from '@/components/transaction-logs/transactioneditform';
 import TransactionViewForm from '@/components/transaction-logs/transactionviewform';
+import DateRangePicker, { formatDate } from '@/components/date-range-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -103,17 +104,6 @@ interface Props {
     filters: Filters;
 }
 
-function formatDate(dateString: string) {
-    if (!dateString) return '—';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    return date.toLocaleDateString('en-PH', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-    });
-}
-
 export default function Index({
     transactions,
     units,
@@ -126,23 +116,9 @@ export default function Index({
     const [transactionType, setTransactionType] = useState(filters.transaction_type ?? 'all');
     const [officeFilter, setOfficeFilter] = useState(filters.office_code ?? 'all');
     const [fundClusterFilter, setFundClusterFilter] = useState(filters.fund_cluster ?? 'all');
-    
-    // Default native date states
+
     const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
     const [dateTo, setDateTo] = useState(filters.date_to ?? '');
-
-    const [dateRangeOpen, setDateRangeOpen] = useState(false);
-    const dateRangeRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        function handleClickOutside(e: MouseEvent) {
-            if (dateRangeRef.current && !dateRangeRef.current.contains(e.target as Node)) {
-                setDateRangeOpen(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -317,64 +293,19 @@ export default function Index({
                             </SelectContent>
                         </Select>
 
-                        {/* Native Date Range Inputs using Shadcn Input Component */}
-                        <div className="relative" ref={dateRangeRef}>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setDateRangeOpen((v) => !v)}
-                                className="justify-start text-left font-normal text-black w-[220px] overflow-hidden"
-                            >
-                                <CalendarIcon className="mr-2 size-4 shrink-0 text-muted-foreground" />
-                                <span className="truncate">
-                                    {dateFrom && dateTo
-                                        ? `${formatDate(dateFrom)} – ${formatDate(dateTo)}`
-                                        : dateFrom
-                                        ? `From ${formatDate(dateFrom)}`
-                                        : dateTo
-                                        ? `Until ${formatDate(dateTo)}`
-                                        : 'Date range'}
-                                </span>
-                            </Button>
-
-                            {dateRangeOpen && (
-                                <div className="absolute z-50 mt-1 flex w-max flex-col gap-2 rounded-md border bg-card p-3 shadow-lg">
-                                    <div className="flex items-center gap-2">
-                                        <label className="w-10 text-xs text-muted-foreground">From</label>
-                                        <Input
-                                            type="date"
-                                            value={dateFrom}
-                                            onChange={(e) => setDateFrom(e.target.value)}
-                                            className="text-black"
-                                        />
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <label className="w-10 text-xs text-muted-foreground">To</label>
-                                        <Input
-                                            type="date"
-                                            value={dateTo}
-                                            onChange={(e) => setDateTo(e.target.value)}
-                                            className="text-black"
-                                        />
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="secondary"
-                                        onClick={() => {
-                                            setDateRangeOpen(false);
-                                            router.get(
-                                                '/transaction-logs',
-                                                getFilterParams({ page: 1 }),
-                                                { preserveState: true, preserveScroll: true, replace: true }
-                                            );
-                                        }}
-                                    >
-                                        Apply
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
+                        <DateRangePicker
+                            dateFrom={dateFrom}
+                            dateTo={dateTo}
+                            setDateFrom={setDateFrom}
+                            setDateTo={setDateTo}
+                            onApply={() =>
+                                router.get(
+                                    '/transaction-logs',
+                                    getFilterParams({ page: 1 }),
+                                    { preserveState: true, preserveScroll: true, replace: true }
+                                )
+                            }
+                        />
 
                         <Button type="submit" variant="secondary">
                             Search
@@ -387,7 +318,7 @@ export default function Index({
                             Clear
                         </Button>
                     </div>
-                    
+
                     <div className="flex flex-col gap-2 w-full xl:w-auto xl:flex-row">
                         <Button
                             type="button"
@@ -414,49 +345,48 @@ export default function Index({
                         </colgroup>
                         <thead className="border-b">
                             <tr>
-                                <th 
+                                <th
                                     className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('transaction_type')}
                                 >
                                     <div className="flex items-center gap-2">Type</div>
                                 </th>
-                                <th 
+                                <th
                                     className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('transaction_date')}
                                 >
                                     <div className="flex items-center gap-2">Date</div>
                                 </th>
-                                <th 
+                                <th
                                     className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('item_name')}
                                 >
                                     <div className="flex items-center gap-2">Item Name</div>
                                 </th>
-                                <th 
+                                <th
                                     className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('unit_name')}
                                 >
                                     <div className="flex items-center gap-2">Unit</div>
                                 </th>
-                                <th 
+                                <th
                                     className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('quantity')}
                                 >
                                     <div className="flex items-center justify-start gap-2">Qty</div>
                                 </th>
-                                <th 
+                                <th
                                     className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('reference')}
                                 >
                                     <div className="flex items-center gap-2">Reference</div>
                                 </th>
-                                <th 
+                                <th
                                     className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
                                     onClick={() => handleSort('office_code')}
                                 >
                                     <div className="flex items-center gap-2">Office</div>
                                 </th>
-                                {/* Make sure non-clickable headers get the background color too! */}
                                 <th className="px-4 py-3 text-left font-semibold text-white bg-[#370001]">Actions</th>
                             </tr>
                         </thead>
