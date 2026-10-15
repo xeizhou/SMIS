@@ -128,11 +128,13 @@ const importGroups: { title: string; options: ImportOption[] }[] = [
                 id: 'po-letters',
                 title: 'PO Letters',
                 description: 'Import PO letter monitoring records.',
+                icon: FileSpreadsheet,
             },
             {
                 id: 'deliveries',
                 title: 'Deliveries',
                 description: 'Import delivery monitoring records.',
+                icon: Truck,
             },
             {
                 id: 'suppliers',
@@ -1012,7 +1014,7 @@ export default function Index({ fundClusters }: Props) {
                                         {group.options.map((option) => {
                                             const isSelected =
                                                 option.id === selectedImport;
-                                            const Icon = option.icon;
+                                            const Icon = option.icon ?? FileSpreadsheet;
 
                                             return (
                                                 <button
