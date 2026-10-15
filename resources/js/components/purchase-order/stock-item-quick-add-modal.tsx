@@ -2,11 +2,21 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CreatedStockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
+    unitID: number;
+    unit_name: string;
+    unit_short_name: string;
+}
+
+interface UnitOption {
+    unitID: number;
+    unit_name: string;
+    unit_short_name: string;
 }
 
 interface Props {
@@ -17,23 +27,31 @@ interface Props {
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
+const emptyData = {
+    item_name: '',
+    description: '',
+    unitID: '',
+    new_unit_name: '',
+    new_unit_short_name: '',
+};
 
 export default function StockItemQuickAddModal({ open, onOpenChange, initialName = '', onCreated }: Props) {
-    const [data, setData] = useState({
-        item_name: initialName,
-        description: '',
-    });
+    const [data, setData] = useState({ ...emptyData, item_name: initialName });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    const [units, setUnits] = useState<UnitOption[]>([]);
+    const [newUnitMode, setNewUnitMode] = useState(false);
 
     useEffect(() => {
-        if (open) {
-            setData({
-                item_name: initialName,
-                description: '',
-            });
-            setErrors({});
-        }
+        if (!open) return;
+        setData({ ...emptyData, item_name: initialName });
+        setErrors({});
+        setNewUnitMode(false);
+
+        fetch('/units/options', { headers: { Accept: 'application/json' } })
+            .then((r) => r.json())
+            .then(setUnits)
+            .catch(() => setUnits([]));
     }, [open, initialName]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,6 +62,10 @@ export default function StockItemQuickAddModal({ open, onOpenChange, initialName
         e.preventDefault();
         setProcessing(true);
         setErrors({});
+
+        const payload = newUnitMode
+            ? { ...data, unitID: '' }
+            : { ...data, new_unit_name: '', new_unit_short_name: '' };
 
         try {
             const token = document
@@ -57,7 +79,7 @@ export default function StockItemQuickAddModal({ open, onOpenChange, initialName
                     Accept: 'application/json',
                     'X-CSRF-TOKEN': token ?? '',
                 },
-                body: JSON.stringify(data),
+                body: JSON.stringify(payload),
             });
 
             if (!res.ok) {
@@ -114,8 +136,69 @@ export default function StockItemQuickAddModal({ open, onOpenChange, initialName
                         {errors.description && <p className="mt-1 text-xs text-red-500">{errors.description}</p>}
                     </div>
 
+                    <div>
+                        <div className="flex items-center justify-between mb-1">
+                            <label className="text-sm text-foreground">
+                                Unit<span className="text-red-500"> *</span>
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => setNewUnitMode((v) => !v)}
+                                className="text-xs font-medium text-[#612A35] hover:underline"
+                            >
+                                {newUnitMode ? 'Select existing unit' : '+ New unit'}
+                            </button>
+                        </div>
+
+                        {newUnitMode ? (
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <Input
+                                        name="new_unit_name"
+                                        value={data.new_unit_name}
+                                        onChange={handleChange}
+                                        placeholder="Name, e.g. Piece"
+                                    />
+                                    {errors.new_unit_name && (
+                                        <p className="mt-1 text-xs text-red-500">{errors.new_unit_name}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <Input
+                                        name="new_unit_short_name"
+                                        value={data.new_unit_short_name}
+                                        onChange={handleChange}
+                                        placeholder="Short, e.g. pc"
+                                    />
+                                    {errors.new_unit_short_name && (
+                                        <p className="mt-1 text-xs text-red-500">{errors.new_unit_short_name}</p>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <Select
+                                    value={data.unitID}
+                                    onValueChange={(v) => setData((p) => ({ ...p, unitID: v }))}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="-- Select Unit --" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {units.map((u) => (
+                                            <SelectItem key={u.unitID} value={String(u.unitID)}>
+                                                {u.unit_name} ({u.unit_short_name})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.unitID && <p className="mt-1 text-xs text-red-500">{errors.unitID}</p>}
+                            </>
+                        )}
+                    </div>
+
                     <p className="text-xs text-muted-foreground">
-                        Stock No. and Unit will be left unassigned. Complete them later in Stock Items.
+                        Stock No. will be left unassigned. Complete it later in Stock Items.
                     </p>
 
                     <div className="flex justify-end gap-2 pt-2">

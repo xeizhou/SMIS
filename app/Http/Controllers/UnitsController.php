@@ -132,4 +132,11 @@ class UnitsController extends Controller
 
         return back()->with('success', 'Unit archived successfully.');
     }
+
+    public function options()
+    {
+        return response()->json(
+            Unit::orderBy('unit_name')->get(['unitID', 'unit_name', 'unit_short_name'])
+        );
+    }
 }
