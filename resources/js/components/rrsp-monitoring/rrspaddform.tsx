@@ -47,6 +47,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import DatePicker from '@/components/date-picker';
 
 interface SearchableSelectProps {
     label: string;
@@ -476,20 +477,16 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
                                         options={pos.map(po => ({ value: po.po_number, label: po.po_number }))}
                                     />
                                 </div>
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="dateReceived">Date Received <span className="text-destructive">*</span></Label>
-                                    <Input
-                                        name="dateReceived"
-                                        required
-                                        id="dateReceived"
-                                        type="date"
-                                        value={data.dateReceived}
-                                        onChange={(e) => setData('dateReceived', e.target.value)}
-                                    />
-                                    {errors.dateReceived && (
-                                        <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.dateReceived}</p>
-                                    )}
-                                </div>
+                                <DatePicker
+                                    label="Date Received"
+                                    required
+                                    value={data.dateReceived}
+                                    onChange={(v) => {
+                                        setData('dateReceived', v);
+                                        clearErrors('dateReceived');
+                                    }}
+                                    error={errors.dateReceived}
+                                />
                                 <div className="space-y-1.5">
                                     <Label htmlFor="endUserName">End User</Label>
                                     <Input
