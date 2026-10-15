@@ -643,6 +643,8 @@ Route::middleware(['auth', 'verified', 'single-session', \App\Http\Middleware\Pr
     Route::delete('/stock-items/{stockItem}', [StockItemsController::class, 'destroy'])->name('stock-items.destroy');
     Route::post('/stock-items/quick-add', [StockItemsController::class, 'quickAdd'])->name('stock-items.quick-add');
 
+    Route::get('/units/options', [UnitsController::class, 'options'])->name('units.options');
+
     Route::get('/units', [UnitsController::class, 'index'])->name('units.index');
     Route::post('/units', [UnitsController::class, 'store'])->name('units.store');
     Route::put('/units/{unit}', [UnitsController::class, 'update'])->name('units.update');

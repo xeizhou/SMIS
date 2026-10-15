@@ -28,6 +28,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import DatePicker from '@/components/date-picker';
+import StockItemQuickAddModal from '@/components/purchase-order/stock-item-quick-add-modal';
+import ItemSingleSelect from '@/components/regspi-monitoring/item-single-select';
 
 interface Unit {
     unitID: number;
@@ -342,7 +344,7 @@ export default function TransactionAddForm({
     const handleRefreshData = (field: string) => {
         setRefreshingField(field);
         router.reload({
-            only: ['stockItems', 'fundClusters', 'offices'],
+            only: ['stockItems', 'fundClusters', 'offices', 'units'],
             onFinish: () => setRefreshingField(null),
         });
     };
@@ -356,6 +358,10 @@ export default function TransactionAddForm({
     // different descriptions). Never sent to the backend — item_name
     // and description are what's actually submitted.
     const [selectedStockNo, setSelectedStockNo] = useState('');
+    const [createdUnit, setCreatedUnit] = useState<Unit | null>(null);
+    const [createdItem, setCreatedItem] = useState<any>(null);
+    const [itemQuickAddOpen, setItemQuickAddOpen] = useState(false);
+    const [itemQuickAddQuery, setItemQuickAddQuery] = useState('');
 
     // States for consecutive saves
     const [submitAction, setSubmitAction] = useState<'close' | 'continue'>('close');
@@ -368,6 +374,8 @@ export default function TransactionAddForm({
             setSubmitAction('close');
             setSavedCount(0); // Reset the count every time the modal opens
             setSelectedStockNo('');
+            setCreatedUnit(null);
+            setCreatedItem(null);
         }
     }, [open]);
 
@@ -400,6 +408,39 @@ export default function TransactionAddForm({
             setErrors((prev) => {
                 const next = { ...prev };
                 delete next[name];
+                return next;
+            });
+        }
+    };
+
+    const handleItemSelect = (stockNo: string | null, itemName: string | null) => {
+        const selected = stockItems.find((s) => s.stock_no === stockNo);
+        const justCreated =
+            createdItem && createdItem.stock_no === stockNo ? createdItem : null;
+
+        let defaultUnitID = '';
+        if (selected?.units && selected.units.length > 0) {
+            const defUnit =
+                selected.units.find((u) => u.pivot?.is_default) || selected.units[0];
+            defaultUnitID = String(defUnit.unitID);
+        } else if (justCreated) {
+            defaultUnitID = String(justCreated.unitID);
+        }
+
+        setSelectedStockNo(stockNo ?? '');
+        setData((prev) => ({
+            ...prev,
+            item_name: itemName ?? selected?.item_name ?? justCreated?.item_name ?? '',
+            description: selected?.description ?? justCreated?.description ?? '',
+            unitID: defaultUnitID,
+            fund_cluster: selected?.fund_cluster_id ?? prev.fund_cluster,
+        }));
+
+        if (errors.item_name || errors.stock_no) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next.item_name;
+                delete next.stock_no;
                 return next;
             });
         }
@@ -451,235 +492,237 @@ export default function TransactionAddForm({
         });
     };
 
+    console.log('unitID in form:', data.unitID, 'createdUnit:', createdUnit);
+
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-[95vw]" style={{ maxWidth: '1000px' }}>
-                <ScrollArea className="max-h-[95vh] w-full">
-                    <div className="p-6">
-                        <DialogHeader>
-                            <DialogTitle>Add Transaction Log Record</DialogTitle>
-                        </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-[95vw]" style={{ maxWidth: '1000px' }}>
+                    <ScrollArea className="max-h-[95vh] w-full">
+                        <div className="p-6">
+                            <DialogHeader>
+                                <DialogTitle>Add Transaction Log Record</DialogTitle>
+                            </DialogHeader>
 
-                        <form onSubmit={handleSubmit} className="mt-4 space-y-8">
-                            {/* Section: General Information */}
-                            <div>
-                                <h3 className={sectionTitleClass}>General Information</h3>
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                    <SelectField
-                                        label="Transaction Type"
-                                        value={data.transaction_type}
-                                        onChange={handleSelectChange('transaction_type')}
-                                        error={errors.transaction_type}
-                                        required
-                                        placeholder="-- Select Type --"
-                                        options={TRANSACTION_TYPE_OPTIONS}
-                                    />
-                                    <DatePicker
-                                        label="Transaction Date"
-                                        value={data.transaction_date}
-                                        onChange={handleSelectChange('transaction_date')}
-                                        error={errors.transaction_date}
-                                        required
-                                    />
-                                    <Field
-                                        label="Reference"
-                                        name="reference"
-                                        value={data.reference}
-                                        onChange={handleChange}
-                                        error={errors.reference}
-                                        required
-                                        placeholder="e.g. RIS No. or PO No."
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Section: Item Details */}
-                            <div>
-                                <h3 className={sectionTitleClass}>Item Details</h3>
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                    <SearchableSelect
-                                        label="Item Name"
-                                        value={selectedStockNo}
-                                        onChange={(val) => {
-                                            const selectedItem = stockItems.find((s) => s.stock_no === val);
-
-                                            let defaultUnitID = '';
-                                            if (selectedItem?.units && selectedItem.units.length > 0) {
-                                                const defUnit =
-                                                    selectedItem.units.find((u) => u.pivot?.is_default) ||
-                                                    selectedItem.units[0];
-                                                defaultUnitID = String(defUnit.unitID);
-                                            }
-
-                                            setSelectedStockNo(val);
-                                            setData((prev) => ({
-                                                ...prev,
-                                                item_name: selectedItem?.item_name ?? '',
-                                                description: selectedItem?.description ?? '',
-                                                unitID: defaultUnitID,
-                                                fund_cluster: selectedItem?.fund_cluster_id ?? '',
-                                            }));
-                                            if (errors.item_name || errors.stock_no) {
-                                                setErrors((prev) => {
-                                                    const next = { ...prev };
-                                                    delete next.item_name;
-                                                    delete next.stock_no;
-                                                    return next;
-                                                });
-                                            }
-                                        }}
-                                        error={errors.item_name}
-                                        required
-                                        placeholder="Search & Select Item..."
-                                        options={stockItems.map((item) => ({
-                                            value: item.stock_no,
-                                            label: item.description
-                                                ? `${item.item_name} - ${item.description}`
-                                                : item.item_name,
-                                        }))}
-                                    />
-                                    <SelectField
-                                        label="Unit"
-                                        value={data.unitID}
-                                        onChange={handleSelectChange('unitID')}
-                                        error={errors.unitID}
-                                        required 
-                                        disabled
-                                        placeholder="-- Select Unit --"
-                                        options={Array.from(
-                                            new Map(
-                                                units.map((unit) => [
-                                                    String(unit.unitID),
-                                                    {
-                                                        value: String(unit.unitID),
-                                                        label: `${unit.unit_name} (${unit.unit_short_name})`,
-                                                    },
-                                                ])
-                                            ).values()
-                                        )}
-                                    />
-                                    <div>
-                                        <Field
-                                            label="Quantity"
-                                            name="quantity"
-                                            type="number"
-                                            min="0"
-                                            value={data.quantity}
-                                            onChange={handleChange}
-                                            error={
-                                                isOverStock
-                                                    ? `Cannot issue more than available stock (${availableStock}).`
-                                                    : errors.quantity
-                                            }
+                            <form onSubmit={handleSubmit} className="mt-4 space-y-8">
+                                {/* Section: General Information */}
+                                <div>
+                                    <h3 className={sectionTitleClass}>General Information</h3>
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                        <SelectField
+                                            label="Transaction Type"
+                                            value={data.transaction_type}
+                                            onChange={handleSelectChange('transaction_type')}
+                                            error={errors.transaction_type}
+                                            required
+                                            placeholder="-- Select Type --"
+                                            options={TRANSACTION_TYPE_OPTIONS}
+                                        />
+                                        <DatePicker
+                                            label="Transaction Date"
+                                            value={data.transaction_date}
+                                            onChange={handleSelectChange('transaction_date')}
+                                            error={errors.transaction_date}
                                             required
                                         />
-                                        {data.transaction_type === 'ISSUE' && availableStock !== null && (
-                                            <div
-                                                className={cn(
-                                                    'mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
+                                        <Field
+                                            label="Reference"
+                                            name="reference"
+                                            value={data.reference}
+                                            onChange={handleChange}
+                                            error={errors.reference}
+                                            required
+                                            placeholder="e.g. RIS No. or PO No."
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Section: Item Details */}
+                                <div>
+                                    <h3 className={sectionTitleClass}>Item Details</h3>
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                        <ItemSingleSelect
+                                            label="Item Name"
+                                            value={selectedStockNo || null}
+                                            fallbackLabel={data.item_name || null}
+                                            onChange={handleItemSelect}
+                                            options={(stockItems as any) || []}
+                                            error={errors.item_name}
+                                            placeholder="Search stock items..."
+                                            onAddNew={(q: string) => {
+                                                setItemQuickAddQuery(q);
+                                                setItemQuickAddOpen(true);
+                                            }}
+                                        />
+                                        <SelectField
+                                            label="Unit"
+                                            value={data.unitID}
+                                            onChange={(v) => {
+                                                if (v) handleSelectChange('unitID')(v); // ignore the empty reset from Radix
+                                            }}
+                                            error={errors.unitID}
+                                            required
+                                            disabled
+                                            placeholder="-- Select Unit --"
+                                            options={Array.from(
+                                                new Map(
+                                                    [...units, ...(createdUnit ? [createdUnit] : [])].map((unit) => [
+                                                        String(unit.unitID),
+                                                        {
+                                                            value: String(unit.unitID),
+                                                            label: `${unit.unit_name} (${unit.unit_short_name})`,
+                                                        },
+                                                    ])
+                                                ).values()
+                                            )}
+                                        />
+                                        <div>
+                                            <Field
+                                                label="Quantity"
+                                                name="quantity"
+                                                type="number"
+                                                min="0"
+                                                value={data.quantity}
+                                                onChange={handleChange}
+                                                error={
                                                     isOverStock
-                                                        ? 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
-                                                        : availableStock === 0
-                                                        ? 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
-                                                        : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
-                                                )}
-                                            >
-                                                {isOverStock ? (
-                                                    <PackageX className="size-3.5" />
-                                                ) : availableStock === 0 ? (
-                                                    <AlertTriangle className="size-3.5" />
-                                                ) : (
-                                                    <PackageCheck className="size-3.5" />
-                                                )}
-                                                <span>
-                                                    {isOverStock
-                                                        ? `Exceeds available stock (${availableStock})`
-                                                        : `Available stock: ${availableStock}`}
-                                                </span>
+                                                        ? `Cannot issue more than available stock (${availableStock}).`
+                                                        : errors.quantity
+                                                }
+                                                required
+                                            />
+                                            {data.transaction_type === 'ISSUE' && availableStock !== null && (
+                                                <div
+                                                    className={cn(
+                                                        'mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
+                                                        isOverStock
+                                                            ? 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
+                                                            : availableStock === 0
+                                                            ? 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
+                                                            : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
+                                                    )}
+                                                >
+                                                    {isOverStock ? (
+                                                        <PackageX className="size-3.5" />
+                                                    ) : availableStock === 0 ? (
+                                                        <AlertTriangle className="size-3.5" />
+                                                    ) : (
+                                                        <PackageCheck className="size-3.5" />
+                                                    )}
+                                                    <span>
+                                                        {isOverStock
+                                                            ? `Exceeds available stock (${availableStock})`
+                                                            : `Available stock: ${availableStock}`}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Section: Allocation */}
+                                <div>
+                                    <h3 className={sectionTitleClass}>Allocation</h3>
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <SelectField
+                                            label="Fund Cluster"
+                                            value={data.fund_cluster}
+                                            onChange={handleSelectChange('fund_cluster')}
+                                            error={errors.fund_cluster}
+                                            required
+                                            placeholder="-- Select Fund Cluster --"
+                                            options={fundClusters.map((fc) => ({
+                                                value: fc.fund_cluster_id,
+                                                label: `${fc.fund_cluster_id}`,
+                                            }))}
+                                            onRefresh={() => handleRefreshData('fundClusters')}
+                                            isRefreshing={refreshingField === 'fundClusters'}
+                                        />
+                                        <SearchableSelect
+                                            label="Office"
+                                            value={data.office_code}
+                                            onChange={handleSelectChange('office_code')}
+                                            error={errors.office_code}
+                                            required
+                                            placeholder="Search office..."
+                                            options={offices.map((office) => ({
+                                                value: office.office_code,
+                                                label: `${office.office_code}`,
+                                            }))}
+                                            onRefresh={() => handleRefreshData('offices')}
+                                            isRefreshing={refreshingField === 'offices'}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Footer / Actions */}
+                                <div className="mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div>
+                                        {savedCount > 0 && (
+                                            <div className="flex items-center gap-1.5 text-sm font-medium text-green-600 bg-green-50 px-3 py-1.5 rounded-md">
+                                                <Check className="size-4" />
+                                                {savedCount} transaction(s) saved.
                                             </div>
                                         )}
                                     </div>
-                                </div>
-                            </div>
+                                    <div className="flex flex-wrap justify-end gap-3">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => onOpenChange(false)}
+                                        >
+                                            Cancel
+                                        </Button>
 
-                            {/* Section: Allocation */}
-                            <div>
-                                <h3 className={sectionTitleClass}>Allocation</h3>
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                    <SelectField
-                                        label="Fund Cluster"
-                                        value={data.fund_cluster}
-                                        onChange={handleSelectChange('fund_cluster')}
-                                        error={errors.fund_cluster}
-                                        required
-                                        placeholder="-- Select Fund Cluster --"
-                                        options={fundClusters.map((fc) => ({
-                                            value: fc.fund_cluster_id,
-                                            label: `${fc.fund_cluster_id}`,
-                                        }))}
-                                        onRefresh={() => handleRefreshData('fundClusters')}
-                                        isRefreshing={refreshingField === 'fundClusters'}
-                                    />
-                                    <SearchableSelect
-                                        label="Office"
-                                        value={data.office_code}
-                                        onChange={handleSelectChange('office_code')}
-                                        error={errors.office_code}
-                                        required
-                                        placeholder="Search office..."
-                                        options={offices.map((office) => ({
-                                            value: office.office_code,
-                                            label: `${office.office_code}`,
-                                        }))}
-                                        onRefresh={() => handleRefreshData('offices')}
-                                        isRefreshing={refreshingField === 'offices'}
-                                    />
-                                </div>
-                            </div>
+                                        <Button
+                                            type="submit"
+                                            variant="outline"
+                                            disabled={processing || isOverStock}
+                                            onClick={() => setSubmitAction('continue')}
+                                            className="border-[#612A35] text-[#612A35] hover:bg-[#612A35] hover:text-white"
+                                        >
+                                            {processing && submitAction === 'continue' ? 'Saving...' : '+ Save Transaction'}
+                                        </Button>
 
-                            {/* Footer / Actions */}
-                            <div className="mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                <div>
-                                    {savedCount > 0 && (
-                                        <div className="flex items-center gap-1.5 text-sm font-medium text-green-600 bg-green-50 px-3 py-1.5 rounded-md">
-                                            <Check className="size-4" />
-                                            {savedCount} transaction(s) saved.
-                                        </div>
-                                    )}
+                                        <Button
+                                            type="submit"
+                                            disabled={processing || isOverStock}
+                                            onClick={() => setSubmitAction('close')}
+                                            className="bg-[#612A35] hover:bg-[#612A35]/90 disabled:opacity-50 disabled:hover:bg-[#612A35] text-white"
+                                        >
+                                            {processing && submitAction === 'close' ? 'Saving...' : 'Save Transaction'}
+                                        </Button>
+                                    </div>
                                 </div>
-                                <div className="flex flex-wrap justify-end gap-3">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => onOpenChange(false)}
-                                    >
-                                        Cancel
-                                    </Button>
+                            </form>
+                        </div>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
 
-                                    <Button
-                                        type="submit"
-                                        variant="outline"
-                                        disabled={processing || isOverStock}
-                                        onClick={() => setSubmitAction('continue')}
-                                        className="border-[#612A35] text-[#612A35] hover:bg-[#612A35] hover:text-white"
-                                    >
-                                        {processing && submitAction === 'continue' ? 'Saving...' : '+ Save Transaction'}
-                                    </Button>
-
-                                    <Button
-                                        type="submit"
-                                        disabled={processing || isOverStock}
-                                        onClick={() => setSubmitAction('close')}
-                                        className="bg-[#612A35] hover:bg-[#612A35]/90 disabled:opacity-50 disabled:hover:bg-[#612A35] text-white"
-                                    >
-                                        {processing && submitAction === 'close' ? 'Saving...' : 'Save Transaction'}
-                                    </Button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </ScrollArea>
-            </DialogContent>
-        </Dialog>
+            <StockItemQuickAddModal
+                open={itemQuickAddOpen}
+                onOpenChange={setItemQuickAddOpen}
+                initialName={itemQuickAddQuery}
+                onCreated={(newItem: any) => {
+                    console.log('quick-add response:', newItem);
+                    handleRefreshData('stockItems');
+                    setCreatedItem(newItem);
+                    setSelectedStockNo(newItem.stock_no);
+                    setCreatedUnit({
+                        unitID: newItem.unitID,
+                        unit_name: newItem.unit_name,
+                        unit_short_name: newItem.unit_short_name,
+                    });
+                    setData((prev) => ({
+                        ...prev,
+                        item_name: newItem.item_name,
+                        description: newItem.description ?? '',
+                        unitID: String(newItem.unitID),
+                    }));
+                }}
+            />
+        </>
     );
+    
 }

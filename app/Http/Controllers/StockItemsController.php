@@ -181,19 +181,26 @@ class StockItemsController extends Controller
     }
 
     public function quickAdd(Request $request)
-        {
-            $validated = $request->validate([
-                'item_name' => 'required|string|max:255',
-                'description' => 'nullable|string|max:255',
-            ]);
+    {
+        $validated = $request->validate([
+            'item_name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
+            'unitID' => 'nullable|required_without:new_unit_name|exists:units,unitID',
+            'new_unit_name' => 'nullable|required_without:unitID|string|max:50',
+            'new_unit_short_name' => 'nullable|required_with:new_unit_name|string|max:10',
+        ]);
 
-            // stock_no is the primary key and can't be null in the DB, but this
-            // quick-add flow intentionally doesn't ask the user for one — generate
-            // a placeholder they (or someone editing later in Stock Items) can
-            // rename to a real stock number. Retry on the off chance of collision.
-            do {
-                $stockNo = 'TEMP-' . strtoupper(\Illuminate\Support\Str::random(6));
-            } while (StockItem::where('stock_no', $stockNo)->exists());
+        do {
+            $stockNo = 'TEMP-' . strtoupper(\Illuminate\Support\Str::random(6));
+        } while (StockItem::where('stock_no', $stockNo)->exists());
+
+        $result = DB::transaction(function () use ($validated, $stockNo) {
+            $unit = !empty($validated['new_unit_name'])
+                ? Unit::create([
+                    'unit_name' => $validated['new_unit_name'],
+                    'unit_short_name' => $validated['new_unit_short_name'],
+                ])
+                : Unit::findOrFail($validated['unitID']);
 
             $stockItem = StockItem::create([
                 'stock_no' => $stockNo,
@@ -202,13 +209,20 @@ class StockItemsController extends Controller
                 'is_pending_setup' => true,
             ]);
 
-            // No unit assigned yet — units() pivot stays empty until edited
-            // properly in the Stock Items page.
+            $stockItem->units()->attach($unit->unitID, ['is_default' => true]);
 
-            return response()->json([
-                'stock_no' => $stockItem->stock_no,
-                'item_name' => $stockItem->item_name,
-                'description' => $stockItem->description,
-            ]);
-        }
+            return [$stockItem, $unit];
+        });
+
+        [$stockItem, $unit] = $result;
+
+        return response()->json([
+            'stock_no' => $stockItem->stock_no,
+            'item_name' => $stockItem->item_name,
+            'description' => $stockItem->description,
+            'unitID' => $unit->unitID,
+            'unit_name' => $unit->unit_name,
+            'unit_short_name' => $unit->unit_short_name,
+        ]);
+    }
 }
