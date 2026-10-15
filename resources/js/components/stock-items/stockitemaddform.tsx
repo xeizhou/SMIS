@@ -322,6 +322,7 @@ export default function StockItemAddForm({
                                         required
                                         placeholder="Enter stock number"
                                     />
+                                  
                                     <Field
                                         label="Item Name"
                                         name="item_name"
