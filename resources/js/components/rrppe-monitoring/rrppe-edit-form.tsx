@@ -48,6 +48,7 @@ import {
     type RrppeAttachment,
     type StagedFile,
 } from './rrppe-attachments';
+import DatePicker from '@/components/date-picker';
 
 interface StockItem {
     stock_no: string;
@@ -186,7 +187,7 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas, stockIt
         if (item) {
             setData({
                 rrppeNo: item.rrppeNo ?? '',
-                dateReceived: item.dateReceived ?? '',
+                dateReceived: item.dateReceived?.slice(0, 10) ?? '',
                 endUserName: item.endUserName ?? '',
                 returnBy: item.returnBy ?? '',
                 items: item.items && item.items.length > 0 ? item.items.map((i: any) => ({
@@ -391,18 +392,16 @@ export default function RrppeEditForm({ open, onOpenChange, item, areas, stockIt
                                                 <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.rrppeNo}</p>
                                             )}
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="edit-dateReceived">Date Received <span className="text-destructive">*</span></Label>
-                                            <Input name="dateReceived" id="edit-dateReceived"
-                                                required
-                                                type="date"
-                                                value={data.dateReceived}
-                                                onChange={(e) => setData('dateReceived', e.target.value)}
-                                            />
-                                            {errors.dateReceived && (
-                                                <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.dateReceived}</p>
-                                            )}
-                                        </div>
+                                        <DatePicker
+                                            label="Date Received"
+                                            required
+                                            value={data.dateReceived}
+                                            onChange={(v) => {
+                                                setData('dateReceived', v);
+                                                clearErrors('dateReceived');
+                                            }}
+                                            error={errors.dateReceived}
+                                        />
                                         <div className="space-y-1.5">
                                             <Label htmlFor="edit-endUserName">End User</Label>
                                             <Input name="endUserName" id="edit-endUserName"

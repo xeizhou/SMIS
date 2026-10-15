@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import type { ITRPTRMonitoring } from '@/pages/itr-ptr-monitoring/index';
+import DatePicker from '@/components/date-picker';
 
 interface Props {
     open: boolean;
@@ -153,6 +154,17 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
         }
     };
 
+    const handleDateChange = (name: string, value: string) => {
+        setData((prev) => ({ ...prev, [name]: value }));
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
+    };
+
     const handleSubmit = (e?: React.FormEvent) => {
         if (e) e.preventDefault();
 
@@ -200,23 +212,19 @@ export default function ItrPtrEditForm({ open, onOpenChange, item }: Props) {
                                 onChange={handleChange}
                                 error={errors.property_no}
                             />
-                            <Field
+                            <DatePicker
                                 label="Date Release"
-                                name="date_release"
-                                type="date"
+                                required
                                 value={data.date_release}
-                                onChange={handleChange}
+                                onChange={(v) => handleDateChange('date_release', v)}
                                 error={errors.date_release}
-                                required
                             />
-                            <Field
+                            <DatePicker
                                 label="Date Received"
-                                name="date_received"
-                                type="date"
-                                value={data.date_received}
-                                onChange={handleChange}
-                                error={errors.date_received}
                                 required
+                                value={data.date_received}
+                                onChange={(v) => handleDateChange('date_received', v)}
+                                error={errors.date_received}
                             />
                             <div className="md:col-span-2">
                                 <TextareaField
