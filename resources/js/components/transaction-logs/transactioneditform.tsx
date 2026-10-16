@@ -28,6 +28,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import DatePicker from '@/components/date-picker';
+import StockItemQuickAddModal from '@/components/purchase-order/stock-item-quick-add-modal';
+import ItemSingleSelect from '@/components/regspi-monitoring/item-single-select';
 
 interface Unit {
     unitID: number;
@@ -356,7 +358,7 @@ export default function TransactionEditForm({
     const handleRefreshData = (field: string) => {
         setRefreshingField(field);
         router.reload({
-            only: ['stockItems', 'fundClusters', 'offices'],
+            only: ['stockItems', 'fundClusters', 'offices', 'units'],
             onFinish: () => setRefreshingField(null),
         });
     };
@@ -373,6 +375,9 @@ export default function TransactionEditForm({
     // item_name alone can collide (e.g. two "RTX 3060" variants with
     // different descriptions). Never sent to the backend.
     const [selectedStockNo, setSelectedStockNo] = useState('');
+    const [createdUnit, setCreatedUnit] = useState<Unit | null>(null);
+    const [itemQuickAddOpen, setItemQuickAddOpen] = useState(false);
+    const [itemQuickAddQuery, setItemQuickAddQuery] = useState('');
 
     useEffect(() => {
         if (transaction) {
@@ -403,6 +408,7 @@ export default function TransactionEditForm({
             setSelectedStockNo(transaction.stock_no ?? '');
 
             setErrors({});
+            setCreatedUnit(null);
         }
     }, [transaction,]);
 
@@ -440,6 +446,35 @@ export default function TransactionEditForm({
         }
     };
 
+    const handleItemSelect = (stockNo: string | null, itemName: string | null) => {
+        const selected = stockItems.find((s) => s.stock_no === stockNo);
+
+        let defaultUnitID = '';
+        if (selected?.units && selected.units.length > 0) {
+            const defUnit =
+                selected.units.find((u) => u.pivot?.is_default) || selected.units[0];
+            defaultUnitID = String(defUnit.unitID);
+        }
+
+        setSelectedStockNo(stockNo ?? '');
+        setData((prev) => ({
+            ...prev,
+            item_name: itemName ?? selected?.item_name ?? '',
+            description: selected?.description ?? '',
+            unitID: defaultUnitID,
+            fund_cluster: selected?.fund_cluster_id ?? prev.fund_cluster,
+        }));
+
+        if (errors.item_name || errors.stock_no) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next.item_name;
+                delete next.stock_no;
+                return next;
+            });
+        }
+    };
+
     // True only when the user has changed RECEIVE<->ISSUE from what this
     // transaction originally was. Everything else (reference, quantity,
     // date, item, fund cluster, office) is treated as an ordinary
@@ -452,6 +487,8 @@ export default function TransactionEditForm({
     // the true balance available for this edit, then re-subtract/add
     // depending on whether this transaction itself was ISSUE or RECEIVE.
     const selectedItem = stockItems.find((s) => s.stock_no === selectedStockNo);
+    const unitEditable =
+        !!selectedItem && !(selectedItem.units && selectedItem.units.length > 0);
     const rawAvailableStock = selectedItem?.available_stock ?? null;
 
     const isSameStockItem = selectedStockNo === (transaction?.stock_no ?? '');
@@ -510,6 +547,7 @@ export default function TransactionEditForm({
     }
 
     return (
+        <>
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-[95vw]" style={{ maxWidth: '1000px' }}>
                 <ScrollArea className="max-h-[95vh] w-full">
@@ -564,58 +602,32 @@ export default function TransactionEditForm({
                     <div>
                         <h3 className={sectionTitleClass}>Item Details</h3>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                            <SearchableSelect
+                            <ItemSingleSelect
                                 label="Item Name"
-                                value={selectedStockNo}
-                                onChange={(val) => {
-                                    const selectedItem = stockItems.find((s) => s.stock_no === val);
-
-                                    let defaultUnitID = '';
-                                    if (selectedItem?.units && selectedItem.units.length > 0) {
-                                        const defUnit =
-                                            selectedItem.units.find((u) => u.pivot?.is_default) ||
-                                            selectedItem.units[0];
-                                        defaultUnitID = String(defUnit.unitID);
-                                    }
-
-                                    setSelectedStockNo(val);
-                                    setData((prev) => ({
-                                        ...prev,
-                                        item_name: selectedItem?.item_name ?? '',
-                                        description: selectedItem?.description ?? '',
-                                        unitID: defaultUnitID,
-                                        fund_cluster: selectedItem?.fund_cluster_id ?? '',
-                                    }));
-                                    if (errors.item_name || errors.stock_no) {
-                                        setErrors((prev) => {
-                                            const next = { ...prev };
-                                            delete next.item_name;
-                                            delete next.stock_no;
-                                            return next;
-                                        });
-                                    }
-                                }}
+                                value={selectedStockNo || null}
+                                fallbackLabel={data.item_name || null}
+                                onChange={handleItemSelect}
+                                options={(stockItems as any) || []}
                                 error={errors.item_name}
-                                required
-                                placeholder="Search & Select Item..."
-                                options={stockItems.map((item) => ({
-                                    value: item.stock_no,
-                                    label: item.description
-                                        ? `${item.item_name} - ${item.description}`
-                                        : item.item_name,
-                                }))}
+                                placeholder="Search stock items..."
+                                onAddNew={(q: string) => {
+                                    setItemQuickAddQuery(q);
+                                    setItemQuickAddOpen(true);
+                                }}
                             />
                             <SelectField
                                 label="Unit"
                                 value={data.unitID}
-                                onChange={handleSelectChange('unitID')}
+                                onChange={(v) => {
+                                    if (v) handleSelectChange('unitID')(v);
+                                }}
                                 error={errors.unitID}
                                 required
-                                disabled
+                                disabled={!unitEditable}
                                 placeholder="-- Select Unit --"
                                 options={Array.from(
                                     new Map(
-                                        units.map((unit) => [
+                                        [...units, ...(createdUnit ? [createdUnit] : [])].map((unit) => [
                                             String(unit.unitID),
                                             {
                                                 value: String(unit.unitID),
@@ -624,6 +636,8 @@ export default function TransactionEditForm({
                                         ])
                                     ).values()
                                 )}
+                                onRefresh={unitEditable ? () => handleRefreshData('units') : undefined}
+                                isRefreshing={refreshingField === 'units'}
                             />
                             <div>
                                 <Field
@@ -730,5 +744,32 @@ export default function TransactionEditForm({
                 </ScrollArea>
             </DialogContent>
         </Dialog>
-    );
+
+        <StockItemQuickAddModal
+            requireUnit
+            open={itemQuickAddOpen}
+            onOpenChange={setItemQuickAddOpen}
+            initialName={itemQuickAddQuery}
+            onCreated={(newItem: any) => {
+                handleRefreshData('stockItems');
+                setSelectedStockNo(newItem.stock_no);
+                setCreatedUnit(
+                    newItem.unitID
+                        ? {
+                              unitID: newItem.unitID,
+                              unit_name: newItem.unit_name,
+                              unit_short_name: newItem.unit_short_name,
+                          }
+                        : null,
+                );
+                setData((prev) => ({
+                    ...prev,
+                    item_name: newItem.item_name,
+                    description: newItem.description ?? '',
+                    unitID: newItem.unitID ? String(newItem.unitID) : '',
+                }));
+            }}
+        />
+    </>
+);
 }

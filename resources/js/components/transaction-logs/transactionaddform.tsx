@@ -448,6 +448,8 @@ export default function TransactionAddForm({
 
     // Derived: currently selected stock item + its available balance
     const selectedItem = stockItems.find((s) => s.stock_no === selectedStockNo);
+    const unitEditable =
+        !!selectedItem && !(selectedItem.units && selectedItem.units.length > 0);
     const availableStock = selectedItem?.available_stock ?? null;
 
     const isOverStock =
@@ -491,8 +493,6 @@ export default function TransactionAddForm({
             onFinish: () => setProcessing(false),
         });
     };
-
-    console.log('unitID in form:', data.unitID, 'createdUnit:', createdUnit);
 
     return (
         <>
@@ -562,7 +562,9 @@ export default function TransactionAddForm({
                                             }}
                                             error={errors.unitID}
                                             required
-                                            disabled
+                                            disabled={!unitEditable}
+                                            onRefresh={unitEditable ? () => handleRefreshData('units') : undefined}
+                                            isRefreshing={refreshingField === 'units'}
                                             placeholder="-- Select Unit --"
                                             options={Array.from(
                                                 new Map(
@@ -701,24 +703,24 @@ export default function TransactionAddForm({
             </Dialog>
 
             <StockItemQuickAddModal
+                requireUnit
                 open={itemQuickAddOpen}
                 onOpenChange={setItemQuickAddOpen}
                 initialName={itemQuickAddQuery}
                 onCreated={(newItem: any) => {
-                    console.log('quick-add response:', newItem);
                     handleRefreshData('stockItems');
                     setCreatedItem(newItem);
                     setSelectedStockNo(newItem.stock_no);
-                    setCreatedUnit({
-                        unitID: newItem.unitID,
-                        unit_name: newItem.unit_name,
-                        unit_short_name: newItem.unit_short_name,
-                    });
+                      setCreatedUnit(
+                        newItem.unitID
+                            ? { unitID: newItem.unitID, unit_name: newItem.unit_name, unit_short_name: newItem.unit_short_name }
+                            : null,
+                    );
                     setData((prev) => ({
                         ...prev,
                         item_name: newItem.item_name,
                         description: newItem.description ?? '',
-                        unitID: String(newItem.unitID),
+                        unitID: newItem.unitID ? String(newItem.unitID) : '',
                     }));
                 }}
             />

@@ -65,8 +65,8 @@ class UnitsController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'unit_name' => 'required|string|max:255',
-            'unit_short_name' => 'required|string|max:255',
+            'unit_name' => 'required|string|max:50',
+            'unit_short_name' => 'required|string|max:10',
         ]);
 
         Unit::create($validated);
@@ -80,8 +80,8 @@ class UnitsController extends Controller
     public function update(Request $request, Unit $unit)
     {
         $validated = $request->validate([
-            'unit_name' => 'required|string|max:255',
-            'unit_short_name' => 'required|string|max:255',
+            'unit_name' => 'required|string|max:50',
+            'unit_short_name' => 'required|string|max:10',
         ]);
 
         $unit->update($validated);
