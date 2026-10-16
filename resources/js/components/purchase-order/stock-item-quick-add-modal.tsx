@@ -3,14 +3,16 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, List } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface CreatedStockItem {
     stock_no: string;
     item_name: string;
     description: string | null;
-    unitID: number;
-    unit_name: string;
-    unit_short_name: string;
+    unitID: number | null;
+    unit_name: string | null;
+    unit_short_name: string | null;
 }
 
 interface UnitOption {
@@ -23,6 +25,7 @@ interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     initialName?: string;
+    requireUnit?: boolean; // 👈 new
     onCreated: (item: CreatedStockItem) => void;
 }
 
@@ -35,7 +38,9 @@ const emptyData = {
     new_unit_short_name: '',
 };
 
-export default function StockItemQuickAddModal({ open, onOpenChange, initialName = '', onCreated }: Props) {
+export default function StockItemQuickAddModal({
+    open, onOpenChange, initialName = '', requireUnit = false, onCreated,
+}: Props) {
     const [data, setData] = useState({ ...emptyData, item_name: initialName });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
@@ -63,9 +68,12 @@ export default function StockItemQuickAddModal({ open, onOpenChange, initialName
         setProcessing(true);
         setErrors({});
 
-        const payload = newUnitMode
+        const payload = {
+        ...(newUnitMode
             ? { ...data, unitID: '' }
-            : { ...data, new_unit_name: '', new_unit_short_name: '' };
+            : { ...data, new_unit_name: '', new_unit_short_name: '' }),
+        require_unit: requireUnit,
+    };
 
         try {
             const token = document
@@ -139,15 +147,43 @@ export default function StockItemQuickAddModal({ open, onOpenChange, initialName
                     <div>
                         <div className="flex items-center justify-between mb-1">
                             <label className="text-sm text-foreground">
-                                Unit<span className="text-red-500"> *</span>
+                                Unit{requireUnit && <span className="text-red-500"> *</span>}
+                                {!requireUnit && <span className="text-muted-foreground"> (optional)</span>}
                             </label>
-                            <button
-                                type="button"
-                                onClick={() => setNewUnitMode((v) => !v)}
-                                className="text-xs font-medium text-[#612A35] hover:underline"
-                            >
-                                {newUnitMode ? 'Select existing unit' : '+ New unit'}
-                            </button>
+                            <div className="flex items-center gap-3">
+                                {!requireUnit && !newUnitMode && data.unitID && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setData((p) => ({ ...p, unitID: '' }))}
+                                        className="text-xs text-muted-foreground hover:underline"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => setNewUnitMode((v) => !v)}
+                                    className={cn(
+                                        'group inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all duration-200',
+                                        'active:scale-95',
+                                        newUnitMode
+                                            ? 'border-[#612A35]/30 bg-[#612A35]/10 text-[#612A35] hover:bg-[#612A35]/20'
+                                            : 'border-[#612A35] bg-[#612A35] text-white shadow-sm hover:bg-[#612A35]/90 hover:shadow',
+                                    )}
+                                >
+                                    {newUnitMode ? (
+                                        <>
+                                            <List className="size-3 transition-transform group-hover:-translate-x-0.5" />
+                                            Pick existing
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Plus className="size-3 transition-transform duration-200 group-hover:rotate-90" />
+                                            New unit
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
 
                         {newUnitMode ? (
@@ -198,7 +234,9 @@ export default function StockItemQuickAddModal({ open, onOpenChange, initialName
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                        Stock No. will be left unassigned. Complete it later in Stock Items.
+                        {requireUnit
+                            ? 'Stock No. will be left unassigned. Complete it later in Stock Items.'
+                            : 'Stock No. and Unit can be completed later in Stock Items.'}
                     </p>
 
                     <div className="flex justify-end gap-2 pt-2">

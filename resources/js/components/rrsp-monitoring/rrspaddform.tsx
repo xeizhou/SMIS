@@ -92,7 +92,7 @@ function SearchableSelect({
                             error && 'border-destructive'
                         )}
                     >
-                        {selectedLabel || placeholder}
+                        <span className="truncate text-left">{selectedLabel || placeholder}</span>
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>
@@ -111,13 +111,8 @@ function SearchableSelect({
                                             setOpen(false);
                                         }}
                                     >
-                                        <Check
-                                            className={cn(
-                                                'mr-2 h-4 w-4',
-                                                value === opt.value ? 'opacity-100' : 'opacity-0'
-                                            )}
-                                        />
-                                        {opt.label}
+                                        <Check className={cn('mr-2 h-4 w-4 shrink-0', value === opt.value ? 'opacity-100' : 'opacity-0')} />
+                                        <span className="truncate">{opt.label}</span>
                                     </CommandItem>
                                 ))}
                             </CommandGroup>
@@ -540,7 +535,7 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
                                         <h4 className="mb-3 text-sm font-medium">Item #{index + 1}</h4>
                                         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                                             <div className="md:col-span-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                                                <div className="space-y-1.5">
+                                                <div className="space-y-1.5 min-w-0">
                                                     <SearchableSelect
                                                         label="Stock Item"
                                                         required={true}
@@ -557,15 +552,27 @@ export default function RrspAddForm({ open, onOpenChange, areas, stockItems }: P
                                                         }
                                                     />
                                                 </div>
-                                                <div className="space-y-1.5">
+                                                <div className="space-y-1.5 min-w-0">
                                                     <Label>Item Name</Label>
-                                                    <Input value={item.itemName} disabled readOnly
-                                                    placeholder="Auto fill from selected stock item"/>
+                                                    <Input
+                                                        value={item.itemName}
+                                                        title={item.itemName}
+                                                        disabled
+                                                        readOnly
+                                                        placeholder="Auto fill from selected stock item"
+                                                        className="truncate"
+                                                    />
                                                 </div>
-                                                <div className="space-y-1.5">
+                                                <div className="space-y-1.5 min-w-0">
                                                     <Label>Item Description</Label>
-                                                    <Input value={item.itemDescription} disabled readOnly 
-                                                    placeholder="Auto fill from selected stock item"/>
+                                                    <Input
+                                                        value={item.itemDescription}
+                                                        title={item.itemDescription}
+                                                        disabled
+                                                        readOnly
+                                                        placeholder="Auto fill from selected stock item"
+                                                        className="truncate"
+                                                    />
                                                 </div>
                                             </div>
                                             <div className="space-y-1.5">

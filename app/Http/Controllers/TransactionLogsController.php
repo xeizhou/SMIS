@@ -160,6 +160,23 @@ class TransactionLogsController extends Controller
     }
 
     /**
+     * If the stock item has no units yet, remember the unit chosen on the
+     * transaction as its default. Items that already have units are untouched.
+     */
+    private function attachUnitIfMissing(?string $stockNo, $unitID): void
+    {
+        if (!$stockNo || !$unitID) {
+            return;
+        }
+
+        $stockItem = StockItem::find($stockNo);
+
+        if ($stockItem && $stockItem->units()->count() === 0) {
+            $stockItem->units()->attach($unitID, ['is_default' => true]);
+        }
+    }
+
+    /**
      * Store a newly created transaction.
      */
     public function store(Request $request)
@@ -186,6 +203,8 @@ class TransactionLogsController extends Controller
             ])->withInput();
         }
     }
+
+        $this->attachUnitIfMissing($validated['stock_no'] ?? null, $validated['unitID']);
 
         $transaction = Transaction::create($validated);
 
@@ -226,6 +245,8 @@ class TransactionLogsController extends Controller
                 ])->withInput();
             }
         }
+
+        $this->attachUnitIfMissing($validated['stock_no'] ?? null, $validated['unitID']);
 
         if ($isTypeChanged) {
             Transaction::create($validated);
