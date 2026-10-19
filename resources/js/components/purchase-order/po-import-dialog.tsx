@@ -186,7 +186,7 @@ export default function PurchaseOrderImportDialog({ open, onOpenChange }: Props)
                         Import Purchase Orders
                     </DialogTitle>
                     <DialogDescription>
-                        Upload a CSV file in the standard purchase order monitoring format to batch import or update records.
+                        Upload the standard template, the 2025 Served PO sheet, or the 2026 PIR Monitoring sheet as a CSV to batch import or update records.
                     </DialogDescription>
                 </DialogHeader>
 
