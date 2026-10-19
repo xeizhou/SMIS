@@ -237,6 +237,7 @@ const IMPORT_CONFIG: Record<
         endpoint: '/import/purchase-orders',
         templateUrl: '/import/template/purchase-orders',
         cancelPath: '/import/purchase-orders',
+        sendMergeOption: true,
     },
     'po-letters': {
         endpoint: '/import/po-letters',

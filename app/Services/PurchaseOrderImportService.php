@@ -15,7 +15,10 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PurchaseOrderImportService
@@ -31,67 +34,68 @@ class PurchaseOrderImportService
 
     /**
      * Normalized aliases for column mapping across core and workflow fields.
+     * Supports: the standard template, the 2025 SERVED PO sheet, and the 2026 PIR Monitoring sheet.
      */
     private const ALIASES = [
         // --- Core PO Details ---
-        'po_number' => ['po_number', 'ponumber', 'po_no', 'pono', 'purchase_order_number', 'purchase_order_no', 'po #', 'po#'],
-        'po_date' => ['po_date', 'podate', 'po_dt', 'date'],
+        'po_number' => ['po_number', 'ponumber', 'po_no', 'p_o_no', 'pono', 'purchase_order_number', 'purchase_order_no', 'po #', 'po#'],
+        'po_date' => ['po_date', 'p_o_date', 'podate', 'po_dt', 'date'],
         'supplier' => ['supplier', 'supplier_name', 'suppliername', 'supplier_id', 'vendor'],
-        'end_user' => ['end_user', 'enduser', 'office', 'office_code', 'office_name', 'department', 'unit'],
+        'end_user' => ['end_user', 'enduser', 'end_user_colleges_dept_units', 'unit_office', 'office', 'office_code', 'office_name', 'department', 'unit'],
         'fund_cluster_id' => ['fund_cluster_id', 'fund_cluster', 'fundcluster', 'fund', 'fund_cluster_code'],
         'item_description' => ['item_description', 'itemdescription', 'description', 'items', 'particulars', 'item_desc'],
-        'operational_impact' => ['operational_impact', 'operationalimpact', 'operational impact', 'operational_impacts', 'op_impact', 'impact'],
+        'operational_impact' => ['operational_impact', 'operationalimpact', 'operational impact', 'operational_impacts', 'operatinal_impact', 'op_impact', 'impact'],
         'stock_numbers' => ['stock_numbers', 'stock_numbers_list', 'stock_no', 'stock_nos', 'stocknumbers', 'item_stock_nos', 'stocks'],
-        'total_amount_po' => ['total_amount_po', 'po_amount', 'amount_po', 'total_amount', 'po_total', 'amount', 'total_po'],
-        'total_amount_abc' => ['total_amount_abc', 'abc_amount', 'amount_abc', 'abc', 'total_abc', 'approved_budget'],
+        'total_amount_po' => ['total_amount_po', 'total_amount_of_p_o', 'po_amount', 'amount_po', 'total_amount', 'po_total', 'amount', 'total_po'],
+        'total_amount_abc' => ['total_amount_abc', 'total_amount_of_abc', 'abc_amount', 'amount_abc', 'abc', 'total_abc', 'approved_budget'],
         'mode_of_procurement' => ['mode_of_procurement', 'mode', 'procurement_mode', 'mode_procurement'],
-        'procurement_type' => ['procurement_type', 'type', 'proc_type'],
-        'pr_number' => ['pr_number', 'pr_no', 'prnumber', 'prno', 'pr #', 'pr#'],
-        'pr_date' => ['pr_date', 'prdate', 'pr_dt'],
+        'procurement_type' => ['procurement_type', 'type_of_delivery', 'type', 'proc_type'],
+        'pr_number' => ['pr_number', 'pr_no', 'p_r_no', 'prnumber', 'prno', 'pr #', 'pr#'],
+        'pr_date' => ['pr_date', 'p_r_date', 'prdate', 'pr_dt'],
         'philgeps_reference_no' => ['philgeps_reference_no', 'philgeps_no', 'philgeps_ref', 'philgeps', 'philgeps_ref_no'],
         'delivery_term' => ['delivery_term', 'term', 'terms', 'delivery_terms', 'delivery_period'],
         'inclusive_date' => ['inclusive_date', 'inclusivedate', 'inclusive_dates'],
-        'ors_burs_no' => ['ors_burs_no', 'ors_no', 'burs_no', 'ors_burs', 'ors_burs_number', 'ors', 'burs'],
-        'ors_burs_date' => ['ors_burs_date', 'ors_date', 'burs_date'],
+        'ors_burs_no' => ['ors_burs_no', 'ors_bur_no', 'ors_no', 'burs_no', 'ors_burs', 'ors_burs_number', 'ors', 'burs'],
+        'ors_burs_date' => ['ors_burs_date', 'ors_date', 'burs_date', 'ors_bur_date'],
         'responsibility_center' => ['responsibility_center', 'responsibility_ctr', 'resp_center', 'rc'],
-        'uacs_object_code' => ['uacs_object_code', 'uacs', 'uacs_code', 'object_code'],
+        'uacs_object_code' => ['uacs_object_code', 'uacs_objects_code_expenditures', 'uacs', 'uacs_code', 'object_code'],
         'date_forwarded_to_smu' => ['date_forwarded_to_smu', 'date_forwarded_smu', 'forwarded_to_smu', 'forwarded_smu'],
-        'date_forwarded_frontdesk' => ['date_forwarded_frontdesk', 'forwarded_frontdesk', 'date_forwarded_fd'],
+        'date_forwarded_frontdesk' => ['date_forwarded_frontdesk', 'date_forwarded_to_smu_front_desk', 'forwarded_frontdesk', 'date_forwarded_fd'],
 
         // --- Workflow Tab 0: PO From VPAD ---
         'po_step' => ['po_step', 'step', 'workflow_step', 'current_step', 'status_step'],
         'po_received_date' => ['po_received_date', 'received_date', 'date_received', 'vpad_received_date', 'date_received_from_vpad'],
         'po_vpad_forwarded_by' => ['po_vpad_forwarded_by', 'vpad_forwarded_by', 'forwarded_by_vpad'],
-        'po_vpad_notified_date' => ['po_vpad_notified_date', 'vpad_notified_date'],
-        'po_vpad_notified_via' => ['po_vpad_notified_via', 'vpad_notified_via', 'vpad_email', 'vpad_notified_email'],
+        'po_vpad_notified_date' => ['po_vpad_notified_date', 'vpad_notified_date', 'date_noified_the_end_user'],
+        'po_vpad_notified_via' => ['po_vpad_notified_via', 'vpad_notified_via', 'vpad_email', 'vpad_notified_email', 'notify_the_end_user_via_email'],
 
         // --- Workflow Tab 1: End User ---
-        'date_forwarded_to_end_user' => ['date_forwarded_to_end_user', 'date_forwarded_end_user', 'forwarded_to_end_user', 'end_user_forwarded_date'],
-        'end_user_forwarded_by' => ['end_user_forwarded_by', 'forwarded_by_end_user'],
+        'date_forwarded_to_end_user' => ['date_forwarded_to_end_user', 'date_forwarded_end_user', 'forwarded_to_end_user', 'end_user_forwarded_date', 'date_forwarded'],
+        'end_user_forwarded_by' => ['end_user_forwarded_by', 'forwarded_by_end_user', 'forwarded_by'],
 
         // --- Workflow Tab 2: For COA Stamp (Supplier's Signature & COA Stamp) ---
         'supplier_signature_date' => ['supplier_signature_date', 'supplier_signed_date', 'signature_date'],
         'date_forwarded_supplier' => ['date_forwarded_supplier', 'forwarded_to_supplier'],
         'forwarded_by_supplier' => ['forwarded_by_supplier'],
         'claimed_by_supplier' => ['claimed_by_supplier'],
-        'date_forwarded_coa' => ['date_forwarded_coa', 'forwarded_to_coa'],
-        'forwarded_by_coa' => ['forwarded_by_coa'],
+        'date_forwarded_coa' => ['date_forwarded_coa', 'forwarded_to_coa', 'date_forwarded_2'],
+        'forwarded_by_coa' => ['forwarded_by_coa', 'forwarded_by_2'],
         'date_returned_from_coa' => ['date_returned_from_coa', 'returned_from_coa'],
         'coa_date' => ['coa_date', 'coa_stamp_date', 'date_coa'],
         'coa_processed_date' => ['coa_processed_date', 'date_coa_processed'],
         'claim_date' => ['claim_date', 'coa_claim_date'],
-        'claimed_by_coa' => ['claimed_by_coa'],
-        'coa_stamp_notified_date' => ['coa_stamp_notified_date', 'coa_notified_date'],
-        'coa_stamp_notified_via' => ['coa_stamp_notified_via', 'coa_notified_via', 'coa_email'],
+        'claimed_by_coa' => ['claimed_by_coa', 'claimed_by_2'],
+        'coa_stamp_notified_date' => ['coa_stamp_notified_date', 'coa_notified_date', 'date_notified_the_end_user_2'],
+        'coa_stamp_notified_via' => ['coa_stamp_notified_via', 'coa_notified_via', 'coa_email', 'notify_the_end_user_via_email_2'],
 
         // --- Workflow Tab 3: For Release & Inspection ---
-        'date_received_by_supplier' => ['date_received_by_supplier', 'supplier_received_date'],
+        'date_received_by_supplier' => ['date_received_by_supplier', 'date_received_by_suppplier', 'supplier_received_date'],
         'receipt_receiving_date' => ['receipt_receiving_date', 'date_receipt_receiving'],
-        'receipt_claimed_by' => ['receipt_claimed_by', 'claimed_by_receipt'],
-        'receipt_claimed_notified_date' => ['receipt_claimed_notified_date', 'release_notified_date'],
-        'receipt_claimed_notified_via' => ['receipt_claimed_notified_via', 'release_notified_via', 'release_email'],
-        'items_receiving_date' => ['items_receiving_date', 'date_items_receiving'],
-        'items_claimed_by' => ['items_claimed_by', 'claimed_by_items'],
+        'receipt_claimed_by' => ['receipt_claimed_by', 'claimed_by_receipt', 'claimed_by_3'],
+        'receipt_claimed_notified_date' => ['receipt_claimed_notified_date', 'release_notified_date', 'notify_to_claim_the_receipt'],
+        'receipt_claimed_notified_via' => ['receipt_claimed_notified_via', 'release_notified_via', 'release_email', 'notify_the_end_user_via_email_3'],
+        'items_receiving_date' => ['items_receiving_date', 'item_s_receiving_date', 'date_items_receiving'],
+        'items_claimed_by' => ['items_claimed_by', 'claimed_by_items', 'claimed_by_4'],
         'iar_number' => ['iar_number', 'iar_no', 'iar', 'iar_numbers'],
         'inspected_by' => ['inspected_by', 'inspector', 'inspectors', 'inspector_name'],
         'inspection_date' => ['inspection_date', 'date_inspected', 'inspection_dt'],
@@ -100,8 +104,8 @@ class PurchaseOrderImportService
         'ris_number' => ['ris_number', 'ris_no', 'ris'],
         'invoice_number' => ['invoice_number', 'invoice_no', 'invoice'],
         'invoice_date' => ['invoice_date', 'inv_date'],
-        'delivery_receipt' => ['delivery_receipt', 'dr_number', 'dr_no', 'dr'],
-        'par_ics_number' => ['par_ics_number', 'par_number', 'ics_number', 'par_ics'],
+        'delivery_receipt' => ['delivery_receipt', 'delivery_reciept', 'dr_number', 'dr_no', 'dr'],
+        'par_ics_number' => ['par_ics_number', 'par_number', 'ics_number', 'ics_no', 'par_ics'],
         'payment_status' => ['payment_status', 'payment'],
         'workflow_remarks' => ['workflow_remarks', 'remarks', 'workflow_notes'],
         'date_completed' => ['date_completed', 'completed_date', 'completion_date'],
@@ -112,7 +116,47 @@ class PurchaseOrderImportService
     ];
 
     /**
-     * Import an uploaded CSV file.
+     * Headers that mean something different in the 2026 PIR Monitoring sheet than in the generic
+     * aliases above. Applied first (only when the sheet is detected as the 2026 PIR layout).
+     *
+     * FROM OVPAD group:  DATE FORWARDED / FORWARDED BY = PO received from VPAD
+     *                    DATE CLAIMED / CLAIMED BY     = end user claimed the PO
+     * SUPPLIER'S SIGNATURE group: DATE RECEIVED BY SUPPLIER = supplier signature date
+     */
+    private const PIR_2026_MAP = [
+        'date_forwarded' => 'po_received_date',
+        'forwarded_by' => 'po_vpad_forwarded_by',
+        'date_claimed' => 'date_forwarded_to_end_user',
+        'claimed_by' => 'end_user_forwarded_by',
+        'date_received_by_suppplier' => 'supplier_signature_date',
+        'date_notified_the_end_user' => 'coa_stamp_notified_date',
+        'status' => 'sheet_status',
+    ];
+
+    private const RELEASE_STEPS = ['For Release', 'Payment Processing', 'Forwarded to Finance'];
+
+    /**
+     * Sheet label (lowercase, no spaces) => real fund_cluster_id in your fund_clusters table.
+     * Fill in whatever the auto-matching below misses, e.g. '05-igf' => '164'.
+     */
+    private const FUND_CLUSTER_OVERRIDES = [
+        // '01-raf' => '101',
+        // '05-igf' => '164',
+        // '07-tr'  => '...',
+        // '06-brf' => '...',
+    ];
+
+    /** Short fund codes used in the sheets => words expected in fund_description. */
+    private const FUND_NAME_HINTS = [
+        'raf' => 'regular agency',
+        'igf' => 'internally generated',
+        'brf' => 'business related',
+        'tr' => 'trust',
+        'itr' => 'trust',
+    ];
+
+    /**
+     * Import an uploaded CSV/Excel file.
      *
      * @return array{created: int, updated: int, skipped: string[]}
      */
@@ -159,6 +203,7 @@ class PurchaseOrderImportService
                             'Cancelled Purchase Orders import: %d created, %d updated, %d skipped.',
                             $created, $updated, $skippedCount
                         ));
+
                         return false;
                     }
 
@@ -195,7 +240,7 @@ class PurchaseOrderImportService
                 'error_message' => $e->getMessage(),
             ]);
 
-            $this->logAudit($import, 'Purchase Orders import failed: ' . $e->getMessage());
+            $this->logAudit($import, 'Purchase Orders import failed: '.$e->getMessage());
             throw $e;
         }
     }
@@ -205,7 +250,7 @@ class PurchaseOrderImportService
      */
     private function readExcel(string $filePath): array
     {
-        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+        $spreadsheet = IOFactory::load($filePath);
         $worksheet = $spreadsheet->getActiveSheet();
         $raw = $worksheet->toArray(null, true, true, false);
 
@@ -234,7 +279,7 @@ class PurchaseOrderImportService
 
         fclose($handle);
 
-        if (!empty($raw) && isset($raw[0][0])) {
+        if (! empty($raw) && isset($raw[0][0])) {
             $raw[0][0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $raw[0][0]);
         }
 
@@ -269,16 +314,65 @@ class PurchaseOrderImportService
             return [];
         }
 
-        $headerIndex = 0;
-        foreach ($raw as $idx => $row) {
-            $nonEmpty = array_filter($row, fn ($cell) => $cell !== null && trim((string) $cell) !== '');
-            if (count($nonEmpty) >= 2) {
-                $headerIndex = $idx;
-                break;
+        $knownHeaders = [];
+        foreach (self::ALIASES as $aliases) {
+            foreach ($aliases as $alias) {
+                $knownHeaders[$this->normalizeHeaderKey($alias)] = true;
             }
         }
 
+        $poNumberHeaders = array_fill_keys(
+            array_map(fn ($alias) => $this->normalizeHeaderKey($alias), self::ALIASES['po_number']),
+            true
+        );
+
+        $headerIndex = null;
+        $bestHeaderScore = 0;
+        foreach ($raw as $idx => $row) {
+            $score = 0;
+            $hasPoNumberHeader = false;
+            foreach ($row as $cell) {
+                $header = $this->normalizeHeaderKey($cell);
+                if (isset($knownHeaders[$header])) {
+                    $score++;
+                    $hasPoNumberHeader = $hasPoNumberHeader || isset($poNumberHeaders[$header]);
+                }
+            }
+
+            if ($hasPoNumberHeader && $score > $bestHeaderScore) {
+                $headerIndex = $idx;
+                $bestHeaderScore = $score;
+            }
+        }
+
+        if ($headerIndex === null) {
+            foreach ($raw as $idx => $row) {
+                $nonEmpty = array_filter($row, fn ($cell) => $cell !== null && trim((string) $cell) !== '');
+                if (count($nonEmpty) >= 2) {
+                    $headerIndex = $idx;
+                    break;
+                }
+            }
+        }
+
+        if ($headerIndex === null) {
+            return [];
+        }
+
         $headers = array_map(fn ($h) => trim((string) $h), $raw[$headerIndex]);
+        $headerOccurrences = [];
+        foreach ($headers as $idx => $header) {
+            $headerKey = $this->normalizeHeaderKey($header);
+            if ($headerKey === '') {
+                continue;
+            }
+
+            $headerOccurrences[$headerKey] = ($headerOccurrences[$headerKey] ?? 0) + 1;
+            if ($headerOccurrences[$headerKey] > 1) {
+                $headers[$idx] .= '_'.$headerOccurrences[$headerKey];
+            }
+        }
+
         $rows = [];
 
         foreach (array_slice($raw, $headerIndex + 1) as $line) {
@@ -304,8 +398,17 @@ class PurchaseOrderImportService
         return $rows;
     }
 
+    private function normalizeHeaderKey(mixed $header): string
+    {
+        $cleanKey = strtolower(trim((string) $header));
+        $cleanKey = preg_replace('/[^a-z0-9_#]/', '_', $cleanKey);
+        $cleanKey = preg_replace('/_+/', '_', $cleanKey);
+
+        return trim($cleanKey, '_');
+    }
+
     /**
-     * Normalize row keys using self::ALIASES.
+     * Normalize row keys using self::PIR_2026_MAP (2026 sheet only) and then self::ALIASES.
      */
     private function normalizeRow(array $row): array
     {
@@ -313,19 +416,27 @@ class PurchaseOrderImportService
         $lookup = [];
 
         foreach ($row as $k => $v) {
-            $cleanKey = strtolower(trim((string) $k));
-            $cleanKey = preg_replace('/[^a-z0-9_#]/', '_', $cleanKey);
-            $cleanKey = preg_replace('/_+/', '_', $cleanKey);
-            $cleanKey = trim($cleanKey, '_');
-            $lookup[$cleanKey] = $v;
+            $lookup[$this->normalizeHeaderKey($k)] = $v;
+        }
+
+        // The 2026 PIR sheet is the only one with this (misspelled) header.
+        if (array_key_exists('date_received_by_suppplier', $lookup)) {
+            foreach (self::PIR_2026_MAP as $header => $field) {
+                if (($lookup[$header] ?? null) !== null) {
+                    $normalized[$field] = $lookup[$header];
+                }
+                // Remove it so the generic aliases can't claim the same column again.
+                unset($lookup[$header]);
+            }
         }
 
         foreach (self::ALIASES as $targetField => $aliases) {
+            if (isset($normalized[$targetField])) {
+                continue;
+            }
+
             foreach ($aliases as $alias) {
-                $cleanAlias = strtolower(trim($alias));
-                $cleanAlias = preg_replace('/[^a-z0-9_#]/', '_', $cleanAlias);
-                $cleanAlias = preg_replace('/_+/', '_', $cleanAlias);
-                $cleanAlias = trim($cleanAlias, '_');
+                $cleanAlias = $this->normalizeHeaderKey($alias);
 
                 if (array_key_exists($cleanAlias, $lookup) && $lookup[$cleanAlias] !== null) {
                     $normalized[$targetField] = $lookup[$cleanAlias];
@@ -335,6 +446,93 @@ class PurchaseOrderImportService
         }
 
         return $normalized;
+    }
+
+    /**
+     * Match a sheet fund label ("05-IGF") to a fund_clusters row.
+     * Tries: override map, exact id, number part, code part, description hints, description contains.
+     * If nothing matches, the fund cluster is created on the spot.
+     */
+    private function resolveFundCluster(string $value, $fundClusters): ?string
+    {
+        $key = strtolower(preg_replace('/\s+/', '', $value));
+        if ($key === '') {
+            return null;
+        }
+
+        if (isset(self::FUND_CLUSTER_OVERRIDES[$key])) {
+            return self::FUND_CLUSTER_OVERRIDES[$key];
+        }
+
+        if (isset($fundClusters[$key])) {
+            return $fundClusters[$key]->fund_cluster_id;
+        }
+
+        // "05-igf" -> number "05", code "igf"
+        preg_match('/^(\d+)?[-_]?([a-z]+)?$/', $key, $m);
+        $num = $m[1] ?? null;
+        $code = $m[2] ?? null;
+        $hint = $code ? (self::FUND_NAME_HINTS[$code] ?? null) : null;
+
+        foreach ($fundClusters as $fc) {
+            $id = strtolower(trim((string) $fc->fund_cluster_id));
+            $desc = strtolower((string) ($fc->fund_description ?? ''));
+
+            $hit = ($num !== null && $id === $num)
+                || ($code && ($id === $code || str_ends_with($id, $code) || preg_match('/\b'.preg_quote($code, '/').'\b/', $desc)))
+                || ($hint && str_contains($desc, $hint))
+                || str_contains($desc, $key);
+
+            if ($hit) {
+                return $fc->fund_cluster_id;
+            }
+        }
+
+        // Nothing matched: add the fund cluster now (e.g. "05-IGF"), then reuse it for the rest of the import.
+        try {
+            $newId = substr(strtoupper(preg_replace('/\s+/', '', $value)), 0, 20);
+
+            $fundCluster = new FundCluster();
+            $fundCluster->fund_cluster_id = $newId;
+            $fundCluster->fund_description = $newId;
+            $fundCluster->save();
+
+            $fundClusters->put(strtolower($newId), $fundCluster);
+
+            return $fundCluster->fund_cluster_id;
+        } catch (\Throwable $e) {
+            Log::warning("PO import: could not add fund cluster '{$value}': ".$e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * Build inspection entries from a row. Handles multi-value cells ("a; b; c").
+     *
+     * @return array<int, array{iar_number: ?string, inspected_by: ?string, inspection_date: ?string}>
+     */
+    private function inspectionEntriesFromRow(array $row): array
+    {
+        $split = fn ($v) => array_values(array_filter(
+            array_map('trim', preg_split('/\s*;\s*/', (string) $v)),
+            fn ($x) => $x !== ''
+        ));
+
+        $iars = $split($row['iar_number'] ?? '');
+        $by = $split($row['inspected_by'] ?? '');
+        $dates = $split($row['inspection_date'] ?? '');
+
+        $entries = [];
+        for ($i = 0, $n = max(count($iars), count($by), count($dates)); $i < $n; $i++) {
+            $entries[] = [
+                'iar_number' => isset($iars[$i]) ? substr($iars[$i], 0, 100) : null,
+                'inspected_by' => isset($by[$i]) ? substr($by[$i], 0, 255) : (end($by) ?: null),
+                'inspection_date' => isset($dates[$i]) ? $this->parseDate($dates[$i]) : null,
+            ];
+        }
+
+        return $entries;
     }
 
     /**
@@ -393,13 +591,22 @@ class PurchaseOrderImportService
                 $poNumber = isset($row['po_number']) ? trim((string) $row['po_number']) : '';
 
                 if ($poNumber === '') {
-                    $skipped[] = "Row #{$rowNumber}: Skipped because PO Number is missing.";
+                    // The 2025 sheet has ~100 leftover rows that only hold TRUE/FALSE checkboxes; ignore them quietly.
+                    if (! empty($row['supplier']) || ! empty($row['po_date'])) {
+                        $skipped[] = "Row #{$rowNumber}: Skipped because PO Number is missing.";
+                    }
+
+                    continue;
+                }
+
+                // 2025 sheet: reserved PO numbers that never got any details (no supplier, date, or amount).
+                if (empty($row['supplier']) && empty($row['po_date']) && empty($row['total_amount_po']) && empty($row['po_received_date'])) {
                     continue;
                 }
 
                 // Supplier resolution
                 $supplierId = null;
-                if (!empty($row['supplier'])) {
+                if (! empty($row['supplier'])) {
                     $supplierVal = trim((string) $row['supplier']);
                     if (is_numeric($supplierVal) && isset($suppliersById[(int) $supplierVal])) {
                         $supplierId = (int) $supplierVal;
@@ -421,7 +628,7 @@ class PurchaseOrderImportService
 
                 // End User (Office) resolution
                 $endUser = null;
-                if (!empty($row['end_user'])) {
+                if (! empty($row['end_user'])) {
                     $officeVal = trim((string) $row['end_user']);
                     $officeLower = strtolower($officeVal);
                     if (isset($officesByCode[$officeLower])) {
@@ -433,31 +640,33 @@ class PurchaseOrderImportService
                     }
                 }
 
-                // Fund Cluster resolution
-                $fundClusterId = null;
-                if (!empty($row['fund_cluster_id'])) {
-                    $fcVal = trim((string) $row['fund_cluster_id']);
-                    $fcLower = strtolower($fcVal);
-                    if (isset($fundClustersById[$fcLower])) {
-                        $fundClusterId = $fundClustersById[$fcLower]->fund_cluster_id;
+                // Fund Cluster resolution ("05-IGF", "01- RAF", "07-TR" ...)
+                $fundClusterId = ! empty($row['fund_cluster_id'])
+                    ? $this->resolveFundCluster(trim((string) $row['fund_cluster_id']), $fundClustersById)
+                    : null;
+
+                // Parse amounts (null when the sheet has no such column, e.g. 2026 has no ABC)
+                $totalAmountPo = $this->parseNumeric($row['total_amount_po'] ?? null);
+                $totalAmountAbc = $this->parseNumeric($row['total_amount_abc'] ?? null);
+                $totalAmountDiff = ($totalAmountPo !== null && $totalAmountAbc !== null)
+                    ? $totalAmountAbc - $totalAmountPo
+                    : null;
+
+                // Delivery term: numeric -> days, anything else ("45-60", "Until Dec. 31, 2026") -> inclusive date text
+                $deliveryTerm = null;
+                $inclusiveDate = ! empty($row['inclusive_date']) ? trim((string) $row['inclusive_date']) : null;
+                if (! empty($row['delivery_term'])) {
+                    $termRaw = trim((string) $row['delivery_term']);
+                    if (preg_match('/^\d+$/', $termRaw)) {
+                        $deliveryTerm = (int) $termRaw;
                     } else {
-                        foreach ($fundClustersById as $fc) {
-                            if (str_contains(strtolower($fc->fund_description ?? ''), $fcLower)) {
-                                $fundClusterId = $fc->fund_cluster_id;
-                                break;
-                            }
-                        }
+                        $inclusiveDate ??= $termRaw;
                     }
                 }
 
-                // Parse amounts
-                $totalAmountPo = $this->parseNumeric($row['total_amount_po'] ?? null, 0.0);
-                $totalAmountAbc = $this->parseNumeric($row['total_amount_abc'] ?? null, 0.0);
-                $totalAmountDiff = $totalAmountAbc - $totalAmountPo;
-
                 // Parse Procurement Type
                 $procurementType = null;
-                if (!empty($row['procurement_type'])) {
+                if (! empty($row['procurement_type'])) {
                     $ptLower = strtolower(trim((string) $row['procurement_type']));
                     if (str_contains($ptLower, 'service')) {
                         $procurementType = 'Services';
@@ -468,13 +677,13 @@ class PurchaseOrderImportService
 
                 // Parse Mode of Procurement
                 $modeOfProcurement = null;
-                if (!empty($row['mode_of_procurement'])) {
+                if (! empty($row['mode_of_procurement'])) {
                     $modeOfProcurement = substr(strtoupper(trim((string) $row['mode_of_procurement'])), 0, 100);
                 }
 
                 // Parse Stock Numbers
                 $validStockNos = [];
-                if (!empty($row['stock_numbers'])) {
+                if (! empty($row['stock_numbers'])) {
                     $rawStockList = preg_split('/[,;\s\n]+/', (string) $row['stock_numbers']);
                     if (is_array($rawStockList)) {
                         foreach ($rawStockList as $rawNo) {
@@ -503,10 +712,14 @@ class PurchaseOrderImportService
                 $invoiceDate = $this->parseDate($row['invoice_date'] ?? null);
                 $dateCompleted = $this->parseDate($row['date_completed'] ?? null);
                 $dateForwardedToFinance = $this->parseDate($row['date_forwarded_to_finance'] ?? null);
+                $dateForwardedFrontdesk = $this->parseDate($row['date_forwarded_frontdesk'] ?? null);
+
+                // 2026 sheet STATUS column (COMPLETED / CANCELLED)
+                $sheetStatus = strtoupper(trim((string) ($row['sheet_status'] ?? '')));
 
                 // Determine Workflow Step
                 $poStep = null;
-                if (!empty($row['po_step'])) {
+                if (! empty($row['po_step'])) {
                     $stepCandidate = trim((string) $row['po_step']);
                     foreach (self::VALID_STEPS as $validStep) {
                         if (strcasecmp($stepCandidate, $validStep) === 0) {
@@ -519,11 +732,11 @@ class PurchaseOrderImportService
                 if ($poStep === null) {
                     if ($dateForwardedToFinance) {
                         $poStep = 'Forwarded to Finance';
-                    } elseif ($dateCompleted || !empty($row['invoice_number']) || !empty($row['ris_number']) || !empty($row['payment_status'])) {
+                    } elseif ($dateCompleted || ! empty($row['invoice_number']) || ! empty($row['ris_number']) || ! empty($row['payment_status']) || $sheetStatus === 'COMPLETED') {
                         $poStep = 'Payment Processing';
-                    } elseif ($dateReceivedBySupplier || $receiptReceivingDate || $itemsReceivingDate) {
+                    } elseif ($dateReceivedBySupplier || $receiptReceivingDate || $itemsReceivingDate || $dateForwardedFrontdesk) {
                         $poStep = 'For Release';
-                    } elseif ($coaDate || $dateForwardedCoa || $supplierSignatureDate) {
+                    } elseif ($coaDate || $dateForwardedCoa || $supplierSignatureDate || $coaProcessedDate || $dateReturnedFromCoa) {
                         $poStep = 'For COA Stamp';
                     } elseif ($dateForwardedToEndUser) {
                         $poStep = 'End User';
@@ -534,7 +747,7 @@ class PurchaseOrderImportService
 
                 // Payment Status
                 $paymentStatus = null;
-                if (!empty($row['payment_status'])) {
+                if (! empty($row['payment_status'])) {
                     $psLower = strtolower(trim((string) $row['payment_status']));
                     if (str_contains($psLower, 'paid')) {
                         $paymentStatus = 'Paid';
@@ -547,14 +760,20 @@ class PurchaseOrderImportService
                     }
                 }
 
-                $itemDescription = !empty($row['item_description']) ? trim((string) $row['item_description']) : null;
+                $itemDescription = ! empty($row['item_description']) ? trim((string) $row['item_description']) : null;
                 if ($itemDescription) {
                     PoItemDescription::firstOrCreate(['name' => strtoupper($itemDescription)]);
                 }
 
-                $operationalImpact = !empty($row['operational_impact']) ? strtoupper(trim((string) $row['operational_impact'])) : null;
-                if ($operationalImpact && !in_array($operationalImpact, ['HIGH', 'MEDIUM', 'LOW'], true)) {
+                $operationalImpact = ! empty($row['operational_impact']) ? strtoupper(trim((string) $row['operational_impact'])) : null;
+                if ($operationalImpact && ! in_array($operationalImpact, ['HIGH', 'MEDIUM', 'LOW'], true)) {
                     $operationalImpact = null;
+                }
+
+                // Remarks (flag cancelled POs from the 2026 sheet)
+                $remarks = ! empty($row['workflow_remarks']) ? trim((string) $row['workflow_remarks']) : null;
+                if ($sheetStatus === 'CANCELLED') {
+                    $remarks = trim('[CANCELLED] '.($remarks ?? ''));
                 }
 
                 // Build PO record attributes
@@ -571,91 +790,89 @@ class PurchaseOrderImportService
                     'total_amount_diff' => $totalAmountDiff,
                     'procurement_type' => $procurementType,
                     'mode_of_procurement' => $modeOfProcurement,
-                    'pr_number' => !empty($row['pr_number']) ? substr(trim((string) $row['pr_number']), 0, 50) : null,
+                    'pr_number' => ! empty($row['pr_number']) ? substr(trim((string) $row['pr_number']), 0, 50) : null,
                     'pr_date' => $this->parseDate($row['pr_date'] ?? null),
-                    'philgeps_reference_no' => !empty($row['philgeps_reference_no']) ? substr(trim((string) $row['philgeps_reference_no']), 0, 50) : null,
-                    'delivery_term' => !empty($row['delivery_term']) && is_numeric($row['delivery_term']) ? (int) $row['delivery_term'] : null,
-                    'inclusive_date' => !empty($row['inclusive_date']) ? substr(trim((string) $row['inclusive_date']), 0, 100) : null,
-                    'ors_burs_no' => !empty($row['ors_burs_no']) ? substr(trim((string) $row['ors_burs_no']), 0, 50) : null,
+                    'philgeps_reference_no' => ! empty($row['philgeps_reference_no']) ? substr(trim((string) $row['philgeps_reference_no']), 0, 50) : null,
+                    'delivery_term' => $deliveryTerm,
+                    'inclusive_date' => $inclusiveDate ? substr($inclusiveDate, 0, 100) : null,
+                    'ors_burs_no' => ! empty($row['ors_burs_no']) ? substr(trim((string) $row['ors_burs_no']), 0, 50) : null,
                     'ors_burs_date' => $this->parseDate($row['ors_burs_date'] ?? null),
-                    'responsibility_center' => !empty($row['responsibility_center']) ? substr(trim((string) $row['responsibility_center']), 0, 100) : null,
-                    'uacs_object_code' => !empty($row['uacs_object_code']) ? substr(trim((string) $row['uacs_object_code']), 0, 50) : null,
+                    'responsibility_center' => ! empty($row['responsibility_center']) ? substr(trim((string) $row['responsibility_center']), 0, 100) : null,
+                    'uacs_object_code' => ! empty($row['uacs_object_code']) ? substr(trim((string) $row['uacs_object_code']), 0, 50) : null,
                     'date_forwarded_to_smu' => $this->parseDate($row['date_forwarded_to_smu'] ?? null),
-                    'date_forwarded_frontdesk' => $this->parseDate($row['date_forwarded_frontdesk'] ?? null),
+                    'date_forwarded_frontdesk' => $dateForwardedFrontdesk,
 
                     // --- Workflow Details ---
                     'po_step' => $poStep,
                     'po_received_date' => $poReceivedDate,
-                    'po_vpad_forwarded_by' => !empty($row['po_vpad_forwarded_by']) ? substr(trim((string) $row['po_vpad_forwarded_by']), 0, 255) : null,
+                    'po_vpad_forwarded_by' => ! empty($row['po_vpad_forwarded_by']) ? substr(trim((string) $row['po_vpad_forwarded_by']), 0, 255) : null,
                     'po_vpad_notified_date' => $this->parseDate($row['po_vpad_notified_date'] ?? null),
-                    'po_vpad_notified_via' => !empty($row['po_vpad_notified_via']) ? substr(trim((string) $row['po_vpad_notified_via']), 0, 100) : null,
+                    'po_vpad_notified_via' => ! empty($row['po_vpad_notified_via']) ? substr(trim((string) $row['po_vpad_notified_via']), 0, 100) : null,
 
                     'date_forwarded_to_end_user' => $dateForwardedToEndUser,
-                    'end_user_forwarded_by' => !empty($row['end_user_forwarded_by']) ? substr(trim((string) $row['end_user_forwarded_by']), 0, 255) : null,
+                    'end_user_forwarded_by' => ! empty($row['end_user_forwarded_by']) ? substr(trim((string) $row['end_user_forwarded_by']), 0, 255) : null,
 
                     'supplier_signature_date' => $supplierSignatureDate,
                     'date_forwarded_supplier' => $dateForwardedSupplier,
-                    'forwarded_by_supplier' => !empty($row['forwarded_by_supplier']) ? substr(trim((string) $row['forwarded_by_supplier']), 0, 255) : null,
-                    'claimed_by_supplier' => !empty($row['claimed_by_supplier']) ? substr(trim((string) $row['claimed_by_supplier']), 0, 255) : null,
+                    'forwarded_by_supplier' => ! empty($row['forwarded_by_supplier']) ? substr(trim((string) $row['forwarded_by_supplier']), 0, 255) : null,
+                    'claimed_by_supplier' => ! empty($row['claimed_by_supplier']) ? substr(trim((string) $row['claimed_by_supplier']), 0, 255) : null,
                     'date_forwarded_coa' => $dateForwardedCoa,
-                    'forwarded_by_coa' => !empty($row['forwarded_by_coa']) ? substr(trim((string) $row['forwarded_by_coa']), 0, 255) : null,
+                    'forwarded_by_coa' => ! empty($row['forwarded_by_coa']) ? substr(trim((string) $row['forwarded_by_coa']), 0, 255) : null,
                     'date_returned_from_coa' => $dateReturnedFromCoa,
                     'coa_date' => $coaDate,
                     'coa_processed_date' => $coaProcessedDate,
                     'claim_date' => $claimDate,
-                    'claimed_by_coa' => !empty($row['claimed_by_coa']) ? substr(trim((string) $row['claimed_by_coa']), 0, 255) : null,
+                    'claimed_by_coa' => ! empty($row['claimed_by_coa']) ? substr(trim((string) $row['claimed_by_coa']), 0, 255) : null,
                     'coa_stamp_notified_date' => $this->parseDate($row['coa_stamp_notified_date'] ?? null),
-                    'coa_stamp_notified_via' => !empty($row['coa_stamp_notified_via']) ? substr(trim((string) $row['coa_stamp_notified_via']), 0, 100) : null,
+                    'coa_stamp_notified_via' => ! empty($row['coa_stamp_notified_via']) ? substr(trim((string) $row['coa_stamp_notified_via']), 0, 100) : null,
 
                     'date_received_by_supplier' => $dateReceivedBySupplier,
                     'receipt_receiving_date' => $receiptReceivingDate,
-                    'receipt_claimed_by' => !empty($row['receipt_claimed_by']) ? substr(trim((string) $row['receipt_claimed_by']), 0, 255) : null,
+                    'receipt_claimed_by' => ! empty($row['receipt_claimed_by']) ? substr(trim((string) $row['receipt_claimed_by']), 0, 255) : null,
                     'receipt_claimed_notified_date' => $this->parseDate($row['receipt_claimed_notified_date'] ?? null),
-                    'receipt_claimed_notified_via' => !empty($row['receipt_claimed_notified_via']) ? substr(trim((string) $row['receipt_claimed_notified_via']), 0, 100) : null,
+                    'receipt_claimed_notified_via' => ! empty($row['receipt_claimed_notified_via']) ? substr(trim((string) $row['receipt_claimed_notified_via']), 0, 100) : null,
                     'items_receiving_date' => $itemsReceivingDate,
-                    'items_claimed_by' => !empty($row['items_claimed_by']) ? substr(trim((string) $row['items_claimed_by']), 0, 255) : null,
+                    'items_claimed_by' => ! empty($row['items_claimed_by']) ? substr(trim((string) $row['items_claimed_by']), 0, 255) : null,
 
-                    'ris_number' => !empty($row['ris_number']) ? substr(trim((string) $row['ris_number']), 0, 100) : null,
-                    'invoice_number' => !empty($row['invoice_number']) ? substr(trim((string) $row['invoice_number']), 0, 100) : null,
+                    'ris_number' => ! empty($row['ris_number']) ? substr(trim((string) $row['ris_number']), 0, 100) : null,
+                    'invoice_number' => ! empty($row['invoice_number']) ? substr(trim((string) $row['invoice_number']), 0, 100) : null,
                     'invoice_date' => $invoiceDate,
-                    'delivery_receipt' => !empty($row['delivery_receipt']) ? substr(trim((string) $row['delivery_receipt']), 0, 100) : null,
-                    'par_ics_number' => !empty($row['par_ics_number']) ? substr(trim((string) $row['par_ics_number']), 0, 100) : null,
+                    'delivery_receipt' => ! empty($row['delivery_receipt']) ? substr(trim((string) $row['delivery_receipt']), 0, 100) : null,
+                    'par_ics_number' => ! empty($row['par_ics_number']) ? substr(trim((string) $row['par_ics_number']), 0, 100) : null,
                     'payment_status' => $paymentStatus,
-                    'workflow_remarks' => !empty($row['workflow_remarks']) ? trim((string) $row['workflow_remarks']) : null,
+                    'workflow_remarks' => $remarks,
                     'date_completed' => $dateCompleted,
 
                     'date_forwarded_to_finance' => $dateForwardedToFinance,
-                    'finance_forwarded_by' => !empty($row['finance_forwarded_by']) ? substr(trim((string) $row['finance_forwarded_by']), 0, 255) : null,
+                    'finance_forwarded_by' => ! empty($row['finance_forwarded_by']) ? substr(trim((string) $row['finance_forwarded_by']), 0, 255) : null,
                 ];
+
+                $inspectionEntries = $this->inspectionEntriesFromRow($row);
 
                 $existingPo = ServePo::where('po_number', $attributes['po_number'])->first();
 
                 if ($existingPo) {
-                    if (!$mergeExisting) {
+                    if (! $mergeExisting) {
                         $skipped[] = "Row #{$rowNumber}: PO '{$attributes['po_number']}' already exists (skipped).";
+
                         continue;
                     }
 
                     $updateData = array_filter($attributes, fn ($val) => $val !== null);
                     $existingPo->update($updateData);
 
-                    if (!empty($validStockNos)) {
+                    if (! empty($validStockNos)) {
                         $existingPo->items()->syncWithoutDetaching($validStockNos);
                     }
 
                     // Save Inspection Details if present
-                    if (!empty($row['iar_number']) || !empty($row['inspected_by']) || !empty($row['inspection_date'])) {
+                    if (! empty($inspectionEntries)) {
                         $existingPo->inspectionEntries()->delete();
-                        $existingPo->inspectionEntries()->create([
-                            'iar_number' => !empty($row['iar_number']) ? substr(trim((string) $row['iar_number']), 0, 100) : null,
-                            'inspected_by' => !empty($row['inspected_by']) ? substr(trim((string) $row['inspected_by']), 0, 255) : null,
-                            'inspection_date' => $this->parseDate($row['inspection_date'] ?? null),
-                        ]);
+                        $existingPo->inspectionEntries()->createMany($inspectionEntries);
                     }
 
                     // If workflow reached For Release or beyond, update Deliveries status
-                    $releaseSteps = ['For Release', 'Payment Processing', 'Forwarded to Finance'];
-                    if (in_array($existingPo->po_step, $releaseSteps, true) && $existingPo->coa_date) {
+                    if (in_array($existingPo->po_step, self::RELEASE_STEPS, true) && $existingPo->coa_date) {
                         Delivery::where('po_number', $existingPo->po_number)
                             ->whereNull('status')
                             ->update(['status' => 'PENDING']);
@@ -663,23 +880,23 @@ class PurchaseOrderImportService
 
                     $updated++;
                 } else {
+                    // New records need numeric amounts even when the sheet has none (e.g. 2026 has no ABC)
+                    foreach (['total_amount_po', 'total_amount_abc', 'total_amount_diff'] as $amountKey) {
+                        $attributes[$amountKey] ??= 0.0;
+                    }
+
                     $newPo = ServePo::create($attributes);
 
-                    if (!empty($validStockNos)) {
+                    if (! empty($validStockNos)) {
                         $newPo->items()->sync($validStockNos);
                     }
 
                     // Save Inspection Details if present
-                    if (!empty($row['iar_number']) || !empty($row['inspected_by']) || !empty($row['inspection_date'])) {
-                        $newPo->inspectionEntries()->create([
-                            'iar_number' => !empty($row['iar_number']) ? substr(trim((string) $row['iar_number']), 0, 100) : null,
-                            'inspected_by' => !empty($row['inspected_by']) ? substr(trim((string) $row['inspected_by']), 0, 255) : null,
-                            'inspection_date' => $this->parseDate($row['inspection_date'] ?? null),
-                        ]);
+                    if (! empty($inspectionEntries)) {
+                        $newPo->inspectionEntries()->createMany($inspectionEntries);
                     }
 
-                    $releaseSteps = ['For Release', 'Payment Processing', 'Forwarded to Finance'];
-                    if (in_array($newPo->po_step, $releaseSteps, true) && $newPo->coa_date) {
+                    if (in_array($newPo->po_step, self::RELEASE_STEPS, true) && $newPo->coa_date) {
                         Delivery::where('po_number', $newPo->po_number)
                             ->whereNull('status')
                             ->update(['status' => 'PENDING']);
@@ -721,6 +938,9 @@ class PurchaseOrderImportService
 
     /**
      * Parse date value to Y-m-d.
+     * - Real Excel serials (int/float) are converted; numeric *strings* from CSV are not treated as serials.
+     * - Multi-value cells ("2/5/2026; 2/27/2026") resolve to the latest date.
+     * - Dates outside 2015-2035 (typos like 4/16/20026) are rejected.
      */
     private function parseDate(mixed $value): ?string
     {
@@ -728,242 +948,358 @@ class PurchaseOrderImportService
             return null;
         }
 
-        if (is_numeric($value)) {
+        if (is_int($value) || is_float($value)) {
             try {
-                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $value)->format('Y-m-d');
+                return Date::excelToDateTimeObject((float) $value)->format('Y-m-d');
             } catch (\Throwable) {
-                // fallback
+                return null;
             }
         }
 
-        try {
-            return Carbon::parse($value)->format('Y-m-d');
-        } catch (\Throwable) {
-            return null;
+        preg_match_all(
+            '/(?<!\d)\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}(?!\d)|\d{4}-\d{2}-\d{2}/',
+            (string) $value,
+            $matches
+        );
+
+        foreach (array_reverse($matches[0]) as $candidate) {
+            try {
+                $date = Carbon::parse($candidate);
+                if ($date->year >= 2015 && $date->year <= 2035) {
+                    return $date->format('Y-m-d');
+                }
+            } catch (\Throwable) {
+                // try the next candidate
+            }
         }
+
+        return null;
     }
 
     /**
-     * Clean and parse numeric values.
+     * Clean and parse numeric values. Returns $default (null) when the value is empty or not numeric.
      */
-    private function parseNumeric(mixed $value, float $default = 0.0): float
+    private function parseNumeric(mixed $value, ?float $default = null): ?float
     {
         if ($value === null || $value === '') {
             return $default;
         }
 
         $clean = preg_replace('/[^0-9.-]/', '', (string) $value);
+
         return is_numeric($clean) ? (float) $clean : $default;
     }
 
     /**
-     * Complete template headers including all Core details and Workflow Modal details.
+     * Template headers. Mirrors the 2026 PIR Monitoring sheet column-for-column (same names, same order,
+     * including its repeated headers), then appends the columns that only exist in the 2025 SERVED PO sheet.
+     * Keep the PIR spellings ("SUPPPLIER", "NOIFIED", "RECIEPT"): the importer relies on them to detect the layout.
      */
     public function getTemplateHeaders(): array
     {
         return [
-            // --- Core Purchase Order Details ---
-            'PO Number',
-            'PO Date',
-            'Supplier',
-            'End User',
-            'Fund Cluster',
-            'Item Description',
-            'Operational Impact',
-            'Stock Numbers',
-            'Total Amount PO',
-            'Total Amount ABC',
-            'Mode of Procurement',
-            'Procurement Type',
-            'PR Number',
-            'PR Date',
-            'PhilGEPS Reference No',
-            'Delivery Term',
-            'Inclusive Date',
-            'ORS/BURS No',
-            'ORS/BURS Date',
-            'Responsibility Center',
-            'UACS Object Code',
-
-            // --- Workflow Modal Details ---
-            'PO Step',
-            'Date Received from VPAD',
-            'Forwarded by VPAD',
-            'VPAD Notified Date',
-            'VPAD Notified Via',
-            'Date Forwarded to End User',
-            'End User Forwarded by',
-            'Supplier Signature Date',
-            'Date Forwarded to Supplier',
-            'Forwarded by Supplier',
-            'Claimed by Supplier',
-            'Date Forwarded to COA',
-            'Forwarded by COA',
-            'Date Returned from COA',
-            'COA Stamp Date',
-            'COA Processed Date',
-            'Claim Date',
-            'Claimed by COA',
-            'COA Notified Date',
-            'COA Notified Via',
-            'Date Received by Supplier',
-            'Receipt Receiving Date',
-            'Receipt Claimed by',
-            'Release Notified Date',
-            'Release Notified Via',
-            'Items Receiving Date',
-            'Items Claimed by',
-            'IAR Number',
-            'Inspected by',
-            'Inspection Date',
-            'RIS Number',
-            'Invoice Number',
-            'Invoice Date',
-            'Delivery Receipt',
-            'PAR/ICS Number',
-            'Payment Status',
-            'Workflow Remarks',
-            'Date Completed',
-            'Date Forwarded to Finance',
-            'Finance Forwarded by',
+            'SUPPLIER',
+            'P.O. NO.',
+            'UNIT/OFFICE',
+            'P.O. DATE',
+            'DELIVERY TERM',
+            'FUND CLUSTER',
+            'P.R. NO.',
+            'P.R. DATE',
+            'ORS/BUR NO.',
+            'ORS/BUR DATE',
+            'PO AMOUNT',
+            'ITEM DESCRIPTION',
+            'OPERATINAL IMPACT',
+            'DATE FORWARDED',
+            'FORWARDED BY',
+            'NOTIFY THE END-USER (VIA EMAIL)',
+            'DATE NOIFIED THE END-USER',
+            'DATE CLAIMED',
+            'CLAIMED BY',
+            'DATE RECEIVED BY SUPPPLIER',
+            'DATE FORWARDED',
+            'FORWARDED BY',
+            'DATE RETURNED FROM COA',
+            'COA DATE',
+            'CLAIM DATE',
+            'CLAIMED BY',
+            'NOTIFY THE END-USER (VIA EMAIL)',
+            'DATE NOTIFIED THE END-USER',
+            'INVOICE NO.',
+            'INVOICE DATE',
+            'DELIVERY RECIEPT',
+            'DATE COMPLETED',
+            'ICS NO.',
+            'RIS NO.',
+            'INSPECTED BY',
+            'INSPECTION DATE',
+            'NOTIFY TO CLAIM THE RECEIPT',
+            'NOTIFY THE END-USER (VIA EMAIL)',
+            'RECEIPT RECEIVING DATE',
+            'CLAIMED BY',
+            'ITEM/S RECEIVING DATE',
+            'CLAIMED BY',
+            'IAR NO.',
+            'DATE FORWARDED TO FINANCE',
+            'STATUS',
+            'LINK (COMPLETE DOCUMENTS)',
+            'REMARKS',
+            'INCLUSIVE DATE',
+            'TYPE OF DELIVERY',
+            'PHILGEPS REFERENCE NO.',
+            'MODE OF PROCUREMENT',
+            'TOTAL AMOUNT OF ABC',
+            'RESPONSIBILITY CENTER',
+            'UACS OBJECTS CODE/ EXPENDITURES',
+            'DATE FORWARDED TO SMU',
+            'COA PROCESSED DATE',
+            'DATE FORWARDED TO SMU FRONT DESK',
         ];
     }
 
     /**
-     * Sample template rows demonstrating both Core PO and Workflow values.
+     * Sample rows taken from the real sheets: three 2026 PIR rows (full workflow, short workflow, just received)
+     * and one 2025 SERVED PO row (core PO columns + the 2025-only columns).
      */
     public function getExampleRows(): array
     {
         return [
             [
-                // Core
-                'PO-2026-0001',
-                '2026-01-15',
-                'Sample Supplier Inc.',
-                'OFC-01',
-                '101',
-                'Office Equipment and Consumables',
-                'HIGH',
-                'STK-0001',
-                '50000.00',
-                '55000.00',
-                'SMALL VALUE PROCUREMENT',
-                'Items',
-                'PR-2026-0001',
-                '2026-01-10',
-                '1234567',
-                '30',
-                '15 Calendar Days',
-                'ORS-2026-0001',
-                '2026-01-12',
-                'SMU',
-                '5020301000',
-                // Workflow
-                'PO From VPAD',
-                '2026-01-18',
-                'Juan VPAD',
-                '2026-01-19',
-                'ovpad@usep.edu.ph',
+                'E AND K. I. T. SOLUTIONS',
+                '2025-12-1377',
+                'SSU',
+                '12/23/2025',
+                '25',
+                '01-RAF',
+                '2025-11-1413',
+                '11/28/2025',
+                '06-101101-2025-12-2043',
+                '12/23/2025',
+                '₱648,000.00',
+                '',
+                '',
+                '1/8/2026',
+                'Shin',
+                '',
+                '1/14/2026',
+                '1/14/2025',
+                'Matmat',
+                '1/14/2025',
+                '1/15/2026',
+                'Marivic',
+                '1/16/2026',
+                '1/16/2026',
+                '1/20/2026',
+                'Tilud',
+                '',
+                '1/20/2026',
+                '834',
+                '2/13/2026',
+                '2563; 2562',
+                '2/13/2026',
+                'PAR No.: 2026020001; ICS No.: 2026020016',
+                '',
+                'Chris B. Villahermosa',
+                '2/19/2026',
+                '2/24/2026',
+                'SSU',
+                '2/25/2026',
+                'Ortega',
+                '',
+                '',
+                '202602130004',
+                '3/11/2026',
+                'COMPLETED',
+                '',
+                'Receipts and other documents forwarded on 2/24/26 due to consecutive FWA. Docs claimed by SG Ramil 2/16/2026. Docs forwarded by Ma\'am Marivic for IAE no., and to be forwarded to finance dept. 3/11/2026.',
                 '',
                 '',
                 '',
                 '',
                 '',
                 '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                'Pending',
                 '',
                 '',
                 '',
                 '',
             ],
             [
-                // Core
-                'PO-2026-0002',
-                '2026-02-01',
-                'Tech Solutions Co.',
-                'CED',
-                '101',
-                'Computer Peripherals and IT Equipment',
-                'MEDIUM',
-                'STK-0002',
-                '125000.00',
-                '130000.00',
-                'PUBLIC BIDDING',
-                'Items',
-                'PR-2026-0015',
-                '2026-01-25',
-                '7654321',
-                '45',
-                '30 Calendar Days',
-                'ORS-2026-0042',
-                '2026-01-28',
-                'ITRC',
-                '5020302000',
-                // Workflow (fully completed workflow)
-                'Forwarded to Finance',
-                '2026-02-05',
-                'Juan VPAD',
+                'N\'JOY BAR-BQ AT KAINAN',
+                '2026-01-0001',
+                'CCO',
+                '1/15/2026',
+                '25',
+                '05-IGF',
+                '2026-01-0004',
+                '1/13/2026',
+                '02-206441-2026-01-0001',
+                '1/16/2026',
+                '₱20,075.00',
                 '',
                 '',
-                '2026-02-08',
-                'Maria EndUser',
-                '2026-02-12',
-                '2026-02-10',
-                'Pedro Supplier',
-                'Pedro Supplier',
-                '2026-02-14',
-                'COA Liaison',
-                '2026-02-18',
-                '2026-02-18',
-                '2026-02-18',
-                '2026-02-19',
-                'Auditor Santos',
+                '1/19/2026',
+                'Shin',
+                '',
+                '1/19/2026',
+                '1/19/2026',
+                'Benjamin',
+                '1/20/2026',
+                '1/22/2026',
+                'Benjamin',
+                '1/22/2026',
+                '1/22/2026',
+                '1/23/2026',
+                'Benjamin',
+                '',
+                '1/22/2026',
+                '10',
+                '1/17/2026',
+                '',
+                '1/17/2026',
                 '',
                 '',
-                '2026-02-20',
-                '2026-02-22',
-                'Supply Officer',
+                'Maricris B. Palomar',
+                '1/17/2026',
                 '',
                 '',
-                '2026-02-25',
-                'Supply Officer',
-                'IAR-2026-0045',
-                'Inspector Ramos',
-                '2026-02-26',
-                'RIS-2026-010',
-                'INV-99881',
-                '2026-02-27',
-                'DR-10293',
-                'PAR-2026-001',
-                'Paid',
-                'All items delivered in good condition',
-                '2026-02-28',
-                '2026-03-01',
-                'Finance Officer Gomez',
+                '',
+                '',
+                '',
+                '',
+                '202601170001',
+                '',
+                'COMPLETED',
+                '',
+                'Docs forwarded by Benjamin for IAR no., and claimed by him; may procced to finance dept. 1/26/2026',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+            ],
+            [
+                'A-COLD REFRIGERATION REPAIR SERVICES',
+                '2026-09-0623-A',
+                'USeP MINTAL',
+                '9/14/2026',
+                '30',
+                '06-BRF',
+                '2026-06-0506',
+                '6/29/2026',
+                '06-206441-2026-10-0060',
+                '10/8/2026',
+                '₱5,888.00',
+                'OFFICE EQUIPMENT',
+                'HIGH',
+                '10/14/2026',
+                'Shin',
+                'BAC',
+                '10/14/2026',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+            ],
+            [
+                'KAIROS KITCHEN',
+                '2025-01-0001',
+                'PMMED',
+                '1/8/2025',
+                '',
+                '01-RAF',
+                '2025-01-0001',
+                '1/6/2025',
+                '02-101101-2025-01-0002',
+                '1/7/2025',
+                '28,704.00',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                'JAN 8-9',
+                'SERVICES',
+                '',
+                'SMALL VALUE PROCUREMENT',
+                '30,000.00',
+                '101 PMMED',
+                '50299030',
+                '1/8/2025',
+                '1/8/2025',
+                '1/9/2025',
             ],
         ];
     }
@@ -975,7 +1311,16 @@ class PurchaseOrderImportService
     {
         $headers = $this->getTemplateHeaders();
         $rows = $this->getExampleRows();
-        $jsonRows = array_map(fn ($r) => array_combine($headers, $r), $rows);
+
+        // Repeated headers (DATE FORWARDED, CLAIMED BY ...) need unique keys for the JSON view
+        $seen = [];
+        $jsonKeys = array_map(function ($h) use (&$seen) {
+            $seen[$h] = ($seen[$h] ?? 0) + 1;
+
+            return $seen[$h] > 1 ? $h.' ('.$seen[$h].')' : $h;
+        }, $headers);
+
+        $jsonRows = array_map(fn ($r) => array_combine($jsonKeys, $r), $rows);
 
         return [
             'headers' => $headers,
