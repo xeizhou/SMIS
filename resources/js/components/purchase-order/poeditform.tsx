@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X, RefreshCw, ExternalLink, Plus, Archive } from 'lucide-react';
+import { Paperclip, X, RefreshCw, ChevronsUpDown, Check, Plus, File, FileImage, FileText, FileSpreadsheet, FileArchive, ExternalLink } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,8 +16,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
     Command,
@@ -28,15 +26,7 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
-import {
-    File,
-    FileImage,
-    FileText,
-    FileSpreadsheet,
-    FileArchive,
-    Check,
-    ChevronsUpDown,
-} from "lucide-react";
+import { ScrollArea } from '@/components/ui/scroll-area';
 import SupplierQuickAddModal from '@/components/suppliers/supplier-quick-add-modal';
 import ItemMultiSelect, { type StockItemOption } from '@/components/purchase-order/item-multi-select';
 import StockItemQuickAddModal from '@/components/purchase-order/stock-item-quick-add-modal';
@@ -63,21 +53,20 @@ interface Attachment {
     original_name: string;
     file_size: number;
     created_at: string;
-    file_path: string; // add this
+    file_path: string;
 }
 
 interface PurchaseOrder {
     po_number: string;
-    item_description: string | null;
+    mode_of_procurement: string | null;
     po_date: string | null;
     po_received_date: string | null;
-    inclusive_date: string | null;
     delivery_term: number | string | null;
+    inclusive_date: string | null;
     pr_number: string | null;
     pr_date: string | null;
     philgeps_reference_no: string | null;
     procurement_type: string | null;
-    mode_of_procurement: string | null;
     total_amount_abc: string | number | null;
     total_amount_po: string | number | null;
     fund_cluster_id: string | null;
@@ -90,50 +79,8 @@ interface PurchaseOrder {
     date_forwarded_to_smu: string | null;
     coa_processed_date: string | null;
     date_forwarded_frontdesk: string | null;
-
-    po_step: string | null;
-    po_vpad_notified_date: string | null;
-    po_vpad_notified_via: string | null;
-    po_vpad_forwarded_by: string | null;
-    date_forwarded_to_end_user: string | null;
-    end_user_forwarded_by: string | null;
-    date_forwarded_supplier: string | null;
-    forwarded_by_supplier: string | null;
-    claimed_by_supplier: string | null;
-    supplier_signature_date: string | null;
-    date_forwarded_coa: string | null;
-    forwarded_by_coa: string | null;
-    date_returned_from_coa: string | null;
-    coa_date: string | null;
-    claim_date: string | null;
-    claimed_by_coa: string | null;
-    coa_stamp_notified_date: string | null;
-    coa_stamp_notified_via: string | null;
-    date_received_by_supplier: string | null;
-    receipt_receiving_date: string | null;
-    receipt_claimed_by: string | null;
-    receipt_claimed_notified_date: string | null;
-    receipt_claimed_notified_via: string | null;
-    items_receiving_date: string | null;
-    items_claimed_by: string | null;
-    payment_status: string | null;
-    workflow_remarks: string | null;
-    invoice_number: string | null;
-    invoice_date: string | null;
-    delivery_receipt: string | null;
-    par_ics_number: string | null;
-    ris_number: string | null;
-    date_completed: string | null;
-    date_forwarded_to_finance: string | null;
-    finance_forwarded_by: string | null;
-
     attachments?: Attachment[];
     items?: { stock_no: string }[];
-    inspection_entries?: Array<{
-        iar_number?: string | null;
-        inspected_by?: string | null;
-        inspection_date?: string | null;
-    }>;
 }
 
 interface Props {
@@ -164,55 +111,6 @@ interface FieldProps {
 const labelClass = 'mb-1 block text-sm text-foreground';
 const sectionTitleClass = 'text-sm font-semibold text-foreground border-b pb-2 mb-4';
 
-function getExtension(filename: string) {
-    return filename.split(".").pop()?.toLowerCase() ?? "";
-}
-
-function getFileType(filename: string) {
-    const ext = getExtension(filename);
-
-    if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext))
-        return "image";
-
-    if (ext === "pdf")
-        return "pdf";
-
-    if (["doc", "docx"].includes(ext))
-        return "word";
-
-    if (["xls", "xlsx", "csv"].includes(ext))
-        return "excel";
-
-    if (["zip", "rar", "7z"].includes(ext))
-        return "archive";
-
-    return "file";
-}
-
-function FileIcon({ type }: { type: string }) {
-    switch (type) {
-        case "image":
-            return <FileImage className="h-5 w-5 text-blue-500" />;
-
-        case "pdf":
-            return <FileText className="h-5 w-5 text-red-500" />;
-
-        case "word":
-            return <FileText className="h-5 w-5 text-blue-600" />;
-
-        case "excel":
-            return <FileSpreadsheet className="h-5 w-5 text-green-600" />;
-
-        case "archive":
-            return <FileArchive className="h-5 w-5 text-yellow-600" />;
-
-        default:
-            return <File className="h-5 w-5 text-muted-foreground" />;
-    }
-}
-
-// Defined outside the parent component so it doesn't remount (and drop
-// focus) on every parent re-render.
 function Field({
     label,
     name,
@@ -316,9 +214,6 @@ function SelectField({
     );
 }
 
-// Custom Searchable Dropdown — "Add new" row is always visible in the
-// list (not just tucked inside CommandEmpty), so it's there whether or
-// not the search currently has matches.
 interface SearchableSelectProps {
     label: string;
     value: string;
@@ -355,9 +250,6 @@ function SearchableSelect({
     const hasExactMatch = options.some(
         (o) => o.label.trim().toLowerCase() === trimmedQuery.toLowerCase()
     );
-    // Always show "Add new" once onAddNew is provided — pre-filled with
-    // the current query if there's no exact match, otherwise just opens
-    // the modal blank (or with the query, if they want to add a near-dup).
     const showAddNew = !!onAddNew && !hasExactMatch;
 
     return (
@@ -405,10 +297,11 @@ function SearchableSelect({
                             value={query}
                             onValueChange={setQuery}
                         />
+
                         <CommandList style={{ maxHeight: '200px', overflowY: 'auto' }}>
                             <CommandEmpty>
                                 <p className="px-2 py-3 text-center text-sm text-muted-foreground">
-                                    No item found.
+                                    No results found.
                                 </p>
                             </CommandEmpty>
 
@@ -419,11 +312,12 @@ function SearchableSelect({
                                         onSelect={() => {
                                             onAddNew(trimmedQuery);
                                             setOpen(false);
+                                            setQuery('');
                                         }}
-                                        className="text-primary"
+                                        className="text-primary font-medium cursor-pointer"
                                     >
                                         <Plus className="mr-2 h-4 w-4" />
-                                        {trimmedQuery ? `Add "${trimmedQuery}" as ${addNewLabel}` : `Add ${addNewLabel}`}
+                                        {`Add "${trimmedQuery}" as ${addNewLabel}`}
                                     </CommandItem>
                                 </CommandGroup>
                             )}
@@ -469,185 +363,6 @@ const MODE_OF_PROCUREMENT_OPTIONS = [
     { value: 'PUBLIC BIDDING', label: 'PUBLIC BIDDING' },
 ];
 
-const emptyForm = {
-    po_number: '',
-    item_description: '',
-    po_date: '',
-    po_received_date: '',
-    inclusive_date: '',
-    delivery_term: '',
-    pr_number: '',
-    pr_date: '',
-    philgeps_reference_no: '',
-    procurement_type: '', 
-    mode_of_procurement: '',
-    total_amount_abc: '',
-    total_amount_po: '',
-    fund_cluster_id: '',
-    ors_burs_no: '',
-    ors_burs_date: '',
-    responsibility_center: '',
-    uacs_object_code: '',
-    supplier_id: '',
-    end_user: '',
-    date_forwarded_to_smu: '',
-    coa_processed_date: '',
-    date_forwarded_frontdesk: '',
-
-    po_step: '',
-    po_vpad_notified_date: '',
-    po_vpad_notified_via: '',
-    po_vpad_forwarded_by: '',
-    date_forwarded_to_end_user: '',
-    end_user_forwarded_by: '',
-    date_forwarded_supplier: '',
-    forwarded_by_supplier: '',
-    claimed_by_supplier: '',
-    supplier_signature_date: '',
-    date_forwarded_coa: '',
-    forwarded_by_coa: '',
-    date_returned_from_coa: '',
-    coa_date: '',
-    claim_date: '',
-    claimed_by_coa: '',
-    coa_stamp_notified_date: '',
-    coa_stamp_notified_via: '',
-    date_received_by_supplier: '',
-    receipt_receiving_date: '',
-    receipt_claimed_by: '',
-    receipt_claimed_notified_date: '',
-    receipt_claimed_notified_via: '',
-    items_receiving_date: '',
-    items_claimed_by: '',
-    payment_status: '',
-    workflow_remarks: '',
-    invoice_number: '',
-    invoice_date: '',
-    delivery_receipt: '',
-    par_ics_number: '',
-    ris_number: '',
-    date_completed: '',
-    date_forwarded_to_finance: '',
-    finance_forwarded_by: '',
-
-    inspection_entries: [] as any[],
-};
-
-function toDateInputValue(value: string | null): string {
-    if (!value) {
-        return '';
-    }
-
-    // Already in YYYY-MM-DD form
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        return value;
-    }
-
-    // ISO timestamp (e.g. "2026-01-15T00:00:00.000000Z") — just slice it
-    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
-
-    if (match) {
-        return match[1];
-    }
-
-    // Fallback: let the Date constructor try, guard against Invalid Date
-    const parsed = new Date(value);
-
-    if (Number.isNaN(parsed.getTime())) {
-        return '';
-    }
-
-    return parsed.toISOString().slice(0, 10);
-}
-
-function toFormData(po: PurchaseOrder | null): typeof emptyForm {
-    if (!po) {
-        return emptyForm;
-    }
-
-    return {
-        po_number: po.po_number ?? '',
-        item_description: po.item_description ?? '',
-        po_date: toDateInputValue(po.po_date),
-        po_received_date: toDateInputValue(po.po_received_date),
-        inclusive_date: po.inclusive_date ?? '',
-        delivery_term:
-        po.delivery_term === null || po.delivery_term === undefined
-            ? ''
-            : String(po.delivery_term),
-        pr_number: po.pr_number ?? '',
-        pr_date: toDateInputValue(po.pr_date),
-        philgeps_reference_no: po.philgeps_reference_no ?? '',
-        procurement_type: po.procurement_type ?? '',
-        mode_of_procurement: po.mode_of_procurement ?? '',
-        total_amount_abc:
-            po.total_amount_abc === null || po.total_amount_abc === undefined
-                ? ''
-                : String(po.total_amount_abc),
-        total_amount_po:
-            po.total_amount_po === null || po.total_amount_po === undefined
-                ? ''
-                : String(po.total_amount_po),
-        fund_cluster_id: po.fund_cluster_id ?? '',
-        ors_burs_no: po.ors_burs_no ?? '',
-        ors_burs_date: toDateInputValue(po.ors_burs_date),
-        responsibility_center: po.responsibility_center ?? '',
-        uacs_object_code: po.uacs_object_code ?? '',
-        supplier_id:
-            po.supplier_id === null || po.supplier_id === undefined
-                ? ''
-                : String(po.supplier_id),
-        end_user: po.end_user ?? '',
-        date_forwarded_to_smu: toDateInputValue(po.date_forwarded_to_smu),
-        coa_processed_date: toDateInputValue(po.coa_processed_date),
-        date_forwarded_frontdesk: toDateInputValue(po.date_forwarded_frontdesk),
-        
-        po_step: po.po_step ?? '',
-        po_vpad_notified_date: toDateInputValue(po.po_vpad_notified_date),
-        po_vpad_notified_via: po.po_vpad_notified_via ?? '',
-        po_vpad_forwarded_by: po.po_vpad_forwarded_by ?? '',
-        date_forwarded_to_end_user: toDateInputValue(po.date_forwarded_to_end_user),
-        end_user_forwarded_by: po.end_user_forwarded_by ?? '',
-        date_forwarded_supplier: toDateInputValue(po.date_forwarded_supplier),
-        forwarded_by_supplier: po.forwarded_by_supplier ?? '',
-        claimed_by_supplier: po.claimed_by_supplier ?? '',
-        supplier_signature_date: toDateInputValue(po.supplier_signature_date),
-        date_forwarded_coa: toDateInputValue(po.date_forwarded_coa),
-        forwarded_by_coa: po.forwarded_by_coa ?? '',
-        date_returned_from_coa: toDateInputValue(po.date_returned_from_coa),
-        coa_date: toDateInputValue(po.coa_date),
-        claim_date: toDateInputValue(po.claim_date),
-        claimed_by_coa: po.claimed_by_coa ?? '',
-        coa_stamp_notified_date: toDateInputValue(po.coa_stamp_notified_date),
-        coa_stamp_notified_via: po.coa_stamp_notified_via ?? '',
-        date_received_by_supplier: toDateInputValue(po.date_received_by_supplier),
-        receipt_receiving_date: toDateInputValue(po.receipt_receiving_date),
-        receipt_claimed_by: po.receipt_claimed_by ?? '',
-        receipt_claimed_notified_date: toDateInputValue(po.receipt_claimed_notified_date),
-        receipt_claimed_notified_via: po.receipt_claimed_notified_via ?? '',
-        items_receiving_date: toDateInputValue(po.items_receiving_date),
-        items_claimed_by: po.items_claimed_by ?? '',
-        payment_status: po.payment_status ?? '',
-        workflow_remarks: po.workflow_remarks ?? '',
-        invoice_number: po.invoice_number ?? '',
-        invoice_date: toDateInputValue(po.invoice_date),
-        delivery_receipt: po.delivery_receipt ?? '',
-        par_ics_number: po.par_ics_number ?? '',
-        ris_number: po.ris_number ?? '',
-        date_completed: toDateInputValue(po.date_completed),
-        date_forwarded_to_finance: toDateInputValue(po.date_forwarded_to_finance),
-        finance_forwarded_by: po.finance_forwarded_by ?? '',
-
-        inspection_entries: po.inspection_entries?.length 
-            ? po.inspection_entries.map((entry: any) => ({
-                iar_number: entry.iar_number || '',
-                inspected_by: entry.inspected_by || '',
-                inspection_date: toDateInputValue(entry.inspection_date),
-            })) 
-            : [{ iar_number: '', inspected_by: '', inspection_date: '' }],
-    };
-}
-
 function calculateDiff(abc: string, po: string) {
     const abcValue = parseFloat(abc);
     const poValue = parseFloat(po);
@@ -655,22 +370,62 @@ function calculateDiff(abc: string, po: string) {
     const safeAbc = Number.isNaN(abcValue) ? 0 : abcValue;
     const safePo = Number.isNaN(poValue) ? 0 : poValue;
 
-    return safePo - safeAbc;
+    return safeAbc - safePo;
 }
 
 function calculateResponsibilityCenter(fundClusterId: string) {
     return fundClusterId || '';
 }
 
-
 function formatBytes(bytes: number) {
     const kb = bytes / 1024;
     return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
 }
 
-// crypto.randomUUID() requires a secure context (localhost/HTTPS). When
-// serving over a plain-HTTP LAN IP (e.g. php artisan serve --host=192.168.x.x)
-// it's undefined, so we roll our own simple unique id instead.
+function getExtension(filename: string) {
+    return filename.split('.').pop()?.toLowerCase() ?? '';
+}
+
+function getFileType(filename: string) {
+    const ext = getExtension(filename);
+
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
+    if (ext === 'pdf') return 'pdf';
+    if (['doc', 'docx'].includes(ext)) return 'word';
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return 'excel';
+    if (['zip', 'rar', '7z'].includes(ext)) return 'archive';
+
+    return 'file';
+}
+
+function FileTypeIcon({ type }: { type: string }) {
+    switch (type) {
+        case 'image':
+            return <FileImage className="h-5 w-5 text-blue-500" />;
+        case 'pdf':
+            return <FileText className="h-5 w-5 text-red-500" />;
+        case 'word':
+            return <FileText className="h-5 w-5 text-blue-600" />;
+        case 'excel':
+            return <FileSpreadsheet className="h-5 w-5 text-green-600" />;
+        case 'archive':
+            return <FileArchive className="h-5 w-5 text-yellow-600" />;
+        default:
+            return <File className="h-5 w-5 text-muted-foreground" />;
+    }
+}
+
+function toDateInputValue(value: string | null | undefined): string {
+    if (!value) return '';
+    try {
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return '';
+        return date.toISOString().split('T')[0];
+    } catch {
+        return '';
+    }
+}
+
 let fileIdCounter = 0;
 function generateFileId() {
     fileIdCounter += 1;
@@ -680,15 +435,66 @@ function generateFileId() {
 interface StagedFile {
     id: string;
     file: File;
-    previewUrl: string | null; // objectURL for images, null otherwise
+    previewUrl: string | null;
 }
 
-// Local preview target: either a brand-new (unsaved) file or an already
-// uploaded attachment. Normalized to one shape so the lightbox doesn't
-// need to care which kind it's showing.
 interface PreviewTarget {
     name: string;
     url: string;
+}
+
+function toFormData(po: PurchaseOrder | null) {
+    if (!po) {
+        return {
+            po_number: '',
+            mode_of_procurement: '',
+            po_date: '',
+            po_received_date: '',
+            delivery_term: '',
+            inclusive_date: '',
+            pr_number: '',
+            pr_date: '',
+            philgeps_reference_no: '',
+            procurement_type: '',
+            total_amount_abc: '',
+            total_amount_po: '',
+            fund_cluster_id: '',
+            ors_burs_no: '',
+            ors_burs_date: '',
+            responsibility_center: '',
+            uacs_object_code: '',
+            supplier_id: '',
+            end_user: '',
+            date_forwarded_to_smu: '',
+            coa_processed_date: '',
+            date_forwarded_frontdesk: '',
+        };
+    }
+
+    return {
+        po_number: po.po_number ?? '',
+        mode_of_procurement: po.mode_of_procurement ?? '',
+        po_date: toDateInputValue(po.po_date),
+        po_received_date: toDateInputValue(po.po_received_date),
+        delivery_term: po.delivery_term !== null && po.delivery_term !== undefined ? String(po.delivery_term) : '',
+        inclusive_date: po.inclusive_date ?? '',
+        pr_number: po.pr_number ?? '',
+        pr_date: toDateInputValue(po.pr_date),
+        philgeps_reference_no: po.philgeps_reference_no ?? '',
+        procurement_type: po.procurement_type ?? '',
+        total_amount_abc: po.total_amount_abc !== null && po.total_amount_abc !== undefined ? String(po.total_amount_abc) : '',
+        total_amount_po: po.total_amount_po !== null && po.total_amount_po !== undefined ? String(po.total_amount_po) : '',
+        fund_cluster_id: po.fund_cluster_id ?? '',
+        ors_burs_no: po.ors_burs_no ?? '',
+        ors_burs_date: toDateInputValue(po.ors_burs_date),
+        responsibility_center: po.responsibility_center ?? '',
+        uacs_object_code: po.uacs_object_code ?? '',
+        supplier_id: po.supplier_id !== null && po.supplier_id !== undefined ? String(po.supplier_id) : '',
+        end_user: po.end_user ?? '',
+        date_forwarded_to_smu: toDateInputValue(po.date_forwarded_to_smu),
+        coa_processed_date: toDateInputValue(po.coa_processed_date),
+        date_forwarded_frontdesk: toDateInputValue(po.date_forwarded_frontdesk),
+    };
 }
 
 export default function PurchaseOrderEditForm({
@@ -700,7 +506,7 @@ export default function PurchaseOrderEditForm({
     offices,
     stockItems,
 }: Props) {
-    const [data, setData] = useState(emptyForm);
+    const [data, setData] = useState(() => toFormData(purchaseOrder));
     const [errors, setErrors] = useState<Record<string, string>>({});
     const setError = (field: string, message: string) => setErrors((prev) => ({ ...prev, [field]: message }));
     const clearErrors = (field: string) => setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
@@ -714,18 +520,21 @@ export default function PurchaseOrderEditForm({
     const [refreshingField, setRefreshingField] = useState<string | null>(null);
     const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null);
 
-    // Supplier quick-add state — same pattern as PurchaseOrderAddForm.
+    // Supplier quick-add state
     const [supplierOptions, setSupplierOptions] = useState<Supplier[]>(suppliers);
     const [quickAddOpen, setQuickAddOpen] = useState(false);
     const [quickAddQuery, setQuickAddQuery] = useState('');
 
-    // Stock item quick-add state — same pattern as PurchaseOrderAddForm
+    // Stock item quick-add state
     const [stockItemOptions, setStockItemOptions] = useState<StockItemOption[]>(stockItems);
     const [itemQuickAddOpen, setItemQuickAddOpen] = useState(false);
     const [itemQuickAddQuery, setItemQuickAddQuery] = useState('');
 
-    // Keep local supplier list in sync if the parent passes a fresh
-    // `suppliers` prop (e.g. after a manual refresh).
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
     useEffect(() => {
         setSupplierOptions(suppliers);
     }, [suppliers]);
@@ -742,9 +551,7 @@ export default function PurchaseOrderEditForm({
         });
     };
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    // Re-sync form state whenever a different PO is opened for editing.
+    // Re-sync form state whenever a different PO is opened for editing
     useEffect(() => {
         if (open) {
             setData(toFormData(purchaseOrder));
@@ -757,12 +564,12 @@ export default function PurchaseOrderEditForm({
             setExistingAttachments(purchaseOrder?.attachments ?? []);
             setDeletedAttachmentIds([]);
             setPreviewTarget(null);
-            setItemStockNos(purchaseOrder?.items?.map((i) => i.stock_no) ?? []); // add this
+            setItemStockNos(purchaseOrder?.items?.map((i) => i.stock_no) ?? []);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, purchaseOrder]);
 
-    // Revoke every staged object URL when the component unmounts.
+    // Clean up preview object URLs
     useEffect(() => {
         return () => {
             newFiles.forEach((f) => {
@@ -807,16 +614,42 @@ export default function PurchaseOrderEditForm({
         }
     };
 
-
-
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) return;
-        const selectedFiles = Array.from(e.target.files).map((file) => ({
-            file,
-            id: generateFileId(),
-            previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
-        }));
-        setNewFiles((prev) => [...prev, ...selectedFiles]);
+
+        const incoming = Array.from(e.target.files);
+        const accepted: StagedFile[] = [];
+        const rejected: string[] = [];
+
+        for (const file of incoming) {
+            if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+                rejected.push(`${file.name} (unsupported type)`);
+                continue;
+            }
+            if (file.size > MAX_FILE_SIZE) {
+                rejected.push(`${file.name} (over 10MB)`);
+                continue;
+            }
+            accepted.push({
+                file,
+                id: generateFileId(),
+                previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+            });
+        }
+
+        if (rejected.length > 0) {
+            setErrors((prev) => ({
+                ...prev,
+                files: `Skipped: ${rejected.join(', ')}`,
+            }));
+        } else {
+            setErrors((prev) => {
+                const { files, ...rest } = prev;
+                return rest;
+            });
+        }
+
+        setNewFiles((prev) => [...prev, ...accepted]);
         e.target.value = '';
     };
 
@@ -856,9 +689,6 @@ export default function PurchaseOrderEditForm({
         }
     };
 
-    // Fires the actual PUT request. Note: the URL still uses the ORIGINAL
-    // po_number to identify the record; data.po_number (possibly changed)
-    // is sent in the body so the backend can rename it.
     const submitUpdate = () => {
         if (!purchaseOrder) return;
 
@@ -868,21 +698,19 @@ export default function PurchaseOrderEditForm({
             `/purchase-orders/${encodeURIComponent(purchaseOrder.po_number)}`,
             {
                 ...data,
-                item_stock_nos: itemStockNos, // add this
+                item_stock_nos: itemStockNos,
                 total_amount_diff: diff,
                 responsibility_center: responsibilityCenter,
                 deleted_attachment_ids: deletedAttachmentIds,
             },
             {
                 onSuccess: () => {
-                    // PO updated successfully — if there are new files,
-                    // upload them against the PO (using the original po_number).
                     if (newFiles.length > 0) {
                         const formData = new FormData();
                         newFiles.forEach(({ file }) => formData.append('files[]', file));
 
                         router.post(
-                            `/purchase-orders/${encodeURIComponent(purchaseOrder.po_number)}/attachments`,
+                            `/purchase-orders/${encodeURIComponent(data.po_number)}/attachments`,
                             formData,
                             {
                                 forceFormData: true,
@@ -912,6 +740,11 @@ export default function PurchaseOrderEditForm({
         e.preventDefault();
 
         if (!purchaseOrder) return;
+
+        if (!data.po_number.trim()) {
+            setErrors({ po_number: 'Purchase Order No. is required.' });
+            return;
+        }
 
         if (poNumberChanged) {
             setShowConfirmModal(true);
@@ -947,624 +780,448 @@ export default function PurchaseOrderEditForm({
                     className="w-[95vw] max-h-[95vh] overflow-hidden p-0"
                     style={{ maxWidth: '1200px' }}
                 >
-                <ScrollArea className="max-h-[95vh] w-full">
-                    <div className="p-6">
-                    <DialogHeader>
-                        <DialogTitle>Edit Purchase Order Record — {purchaseOrder?.po_number}</DialogTitle>
-                    </DialogHeader>
+                    <ScrollArea className="max-h-[95vh] w-full">
+                        <div className="p-6">
+                            <DialogHeader>
+                                <DialogTitle>Edit Purchase Order Record</DialogTitle>
+                            </DialogHeader>
 
-                    <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} noValidate className="mt-6 space-y-8">
-                        {/* Section: Purchase Order Details */}
-                        <div>
-                            <h3 className={sectionTitleClass}>Purchase Order Details</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Field
-                                    label="Purchase Order No."
-                                    name="po_number"
-                                    value={data.po_number}
-                                    onChange={handlePoNumberChange}
-                                    error={errors.po_number}
-                                    placeholder="2026-01-0001"
-                                    pattern={PATTERNS.poNo.source}
-                                    title={MESSAGES.numbersAndHyphens}
-                                    required
-                                />
-                                <SelectField
-                                    label="Mode of Procurement"
-                                    value={data.mode_of_procurement}
-                                    onChange={handleSelectChange('mode_of_procurement')}
-                                    error={errors.mode_of_procurement}
-                                    placeholder="--Select Mode of Procurement--"
-                                    options={MODE_OF_PROCUREMENT_OPTIONS}
-                                />
-                                <Field
-                                    label="PO Date"
-                                    name="po_date"
-                                    type="date"
-                                    value={data.po_date}
-                                    onChange={handleChange}
-                                    error={errors.po_date}
-                                />
-                                <Field
-                                    label="PO Received Date"
-                                    name="po_received_date"
-                                    type="date"
-                                    value={data.po_received_date}
-                                    onChange={handleChange}
-                                    error={errors.po_received_date}
-                                />
-                                <Field
-                                    label="Delivery Term (Days)"
-                                    name="delivery_term"
-                                    type="number"
-                                    value={data.delivery_term}
-                                    onChange={handleChange}
-                                    error={errors.delivery_term}
-                                    placeholder="e.g. 15"
-                                />
-                                <Field
-                                    label="Inclusive Date"
-                                    name="inclusive_date"
-                                    value={data.inclusive_date}
-                                    onChange={handleChange}
-                                    error={errors.inclusive_date}
-                                    placeholder="e.g. Jan 1 - Jan 15, 2026"
-                                    pattern={PATTERNS.inclusiveDate.source}
-                                    title={MESSAGES.inclusiveDate}
-                                />
-                                <Field
-                                    label="PR No."
-                                    name="pr_number"
-                                    value={data.pr_number}
-                                    onChange={handleChange}
-                                    error={errors.pr_number}
-                                    placeholder="20XX-0X-XXXX"
-                                    pattern={PATTERNS.prNo.source}
-                                    title={MESSAGES.numbersAndHyphens}
-                                />
-                                <Field
-                                    label="PR Date"
-                                    name="pr_date"
-                                    type="date"
-                                    value={data.pr_date}
-                                    onChange={handleChange}
-                                    error={errors.pr_date}
-                                />
-                                <Field
-                                    label="Philgeps Reference No."
-                                    name="philgeps_reference_no"
-                                    value={data.philgeps_reference_no}
-                                    onChange={handleChange}
-                                    error={errors.philgeps_reference_no}
-                                    placeholder="00000000"
-                                    pattern={PATTERNS.philgepsRefNo.source}
-                                    title={MESSAGES.numbersOnly}
-                                />
-
-                                <SelectField
-                                    label="Type of Procurement"
-                                    value={data.procurement_type}
-                                    onChange={(value) => {
-                                        handleSelectChange('procurement_type')(value);
-                                        // Clear inclusive_date if switching away from Services
-                                        if (value !== 'Services') {
-                                            setData((prev) => ({ ...prev, procurement_type: value, inclusive_date: '' }));
-                                        }
-                                    }}
-                                    error={errors.procurement_type}
-                                    placeholder="-- Select Type --"
-                                    options={PROCUREMENT_TYPE_OPTIONS}
-                                />
-
-                                {data.procurement_type === 'Services' && (
-                                    <Field
-                                        label="Inclusive Date"
-                                        name="inclusive_date"
-                                        value={data.inclusive_date}
-                                        onChange={handleChange}
-                                        error={errors.inclusive_date}
-                                        placeholder="e.g. Jan 1 - Jan 15, 2026"
-                                        pattern={PATTERNS.inclusiveDate.source}
-                                        title={MESSAGES.inclusiveDate}
-                                    />
-                                )}                 
-                                <div className="md:col-span-2">
-                                    <ItemMultiSelect
-                                        value={itemStockNos}
-                                        onChange={setItemStockNos}
-                                        options={stockItemOptions}
-                                        error={errors.item_stock_nos}
-                                        onAddNew={(query) => {
-                                            setItemQuickAddQuery(query);
-                                            setItemQuickAddOpen(true);
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        {/* Section: Financial Details */}
-                        <div>
-                            <h3 className={sectionTitleClass}>Financial Details</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <Field
-                                    label="Total Amount ABC"
-                                    name="total_amount_abc"
-                                    type="number"
-                                    value={data.total_amount_abc as string}
-                                    onChange={handleChange}
-                                    error={errors.total_amount_abc}
-                                />
-                                <Field
-                                    label="Total Amount PO"
-                                    name="total_amount_po"
-                                    type="number"
-                                    value={data.total_amount_po as string}
-                                    onChange={handleChange}
-                                    error={errors.total_amount_po}
-                                />
+                            <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} noValidate className="mt-6 space-y-8">
+                                {/* Section: Purchase Order Details */}
                                 <div>
-                                    <label className={labelClass}>Total Amount Difference</label>
-                                    <Input
-                                        value={diff.toFixed(2)}
-                                        disabled
-                                        className="bg-muted text-muted-foreground"
-                                    />
-                                </div>
-                                <SearchableSelect
-                                    label="Fund Cluster"
-                                    value={data.fund_cluster_id}
-                                    onChange={handleSelectChange('fund_cluster_id')}
-                                    error={errors.fund_cluster_id}
-                                    placeholder="Select"
-                                    options={fundClusters.map((fc) => ({
-                                        value: fc.fund_cluster_id,
-                                        label: fc.fund_cluster_id,
-                                    }))}
-                                    onRefresh={() => handleRefreshData('fund_cluster')}
-                                    isRefreshing={refreshingField === 'fund_cluster'}
-                                />
-                                <Field
-                                    label="ORS/BUR No."
-                                    name="ors_burs_no"
-                                    value={data.ors_burs_no}
-                                    onChange={handleChange}
-                                    error={errors.ors_burs_no}
-                                    placeholder="02-206441-2026-01-0001"
-                                    pattern={PATTERNS.orsBursNo.source}
-                                    title={MESSAGES.numbersAndHyphens}
-                                />
-                                <Field
-                                    label="ORS/BURS Date"
-                                    name="ors_burs_date"
-                                    type="date"
-                                    value={data.ors_burs_date}
-                                    onChange={handleChange}
-                                    error={errors.ors_burs_date}
-                                />
-                                <div>
-                                    <label className={labelClass}>Responsibility Center</label>
-                                    <Input
-                                        value={responsibilityCenter}
-                                        readOnly
-                                        className="bg-muted text-muted-foreground"
-                                        placeholder="Fund Cluster"
-                                    />
-                                    {errors.responsibility_center && (
-                                        <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.responsibility_center}</p>
-                                    )}
-                                </div>
-                                <Field
-                                    label="UACS Object Code"
-                                    name="uacs_object_code"
-                                    value={data.uacs_object_code}
-                                    onChange={handleChange}
-                                    error={errors.uacs_object_code}
-                                    placeholder="50299030"
-                                    pattern={PATTERNS.uacsObjectCode.source}
-                                    title={MESSAGES.numbersOnly}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Section: Routing & Processing */}
-                        <div>
-                            <h3 className={sectionTitleClass}>Routing & Processing</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <SearchableSelect
-                                    label="Supplier"
-                                    value={data.supplier_id as string}
-                                    onChange={handleSelectChange('supplier_id')}
-                                    error={errors.supplier_id}
-                                    placeholder="Search Supplier..."
-                                    options={supplierOptions.map((s) => ({
-                                        value: String(s.supplier_id),
-                                        label: s.supplier_name,
-                                    }))}
-                                    onRefresh={() => handleRefreshData('supplier')}
-                                    isRefreshing={refreshingField === 'supplier'}
-                                    onAddNew={(query) => {
-                                        setQuickAddQuery(query);
-                                        setQuickAddOpen(true);
-                                    }}
-                                    addNewLabel="new supplier"
-                                />
-                                <SearchableSelect
-                                    label="End User"
-                                    value={data.end_user}
-                                    onChange={handleSelectChange('end_user')}
-                                    error={errors.end_user}
-                                    placeholder="Search End User..."
-                                    options={offices.map((o) => ({
-                                        value: o.office_code,
-                                        label: o.office_code,
-                                    }))}
-                                    onRefresh={() => handleRefreshData('end_user')}
-                                    isRefreshing={refreshingField === 'end_user'}
-                                />
-                                <Field
-                                    label="Date forwarded to SMU"
-                                    name="date_forwarded_to_smu"
-                                    type="date"
-                                    value={data.date_forwarded_to_smu}
-                                    onChange={handleChange}
-                                    error={errors.date_forwarded_to_smu}
-                                />
-                                <Field
-                                    label="COA Processed Date"
-                                    name="coa_processed_date"
-                                    type="date"
-                                    value={data.coa_processed_date}
-                                    onChange={handleChange}
-                                    error={errors.coa_processed_date}
-                                />
-                                <Field
-                                    label="Date Forwarded to Frontdesk"
-                                    name="date_forwarded_frontdesk"
-                                    type="date"
-                                    value={data.date_forwarded_frontdesk}
-                                    onChange={handleChange}
-                                    error={errors.date_forwarded_frontdesk}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Section: Workflow Tracking & Progress */}
-                        <div>
-                            <h3 className={sectionTitleClass}>Workflow Tracking & Progress</h3>
-                            
-                            <div className="space-y-6">
-                                <div>
-                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">PO From VPAD</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Forwarded By" name="po_vpad_forwarded_by" value={data.po_vpad_forwarded_by} onChange={handleChange} error={errors.po_vpad_forwarded_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                        <Field label="Notified Date" name="po_vpad_notified_date" type="date" value={data.po_vpad_notified_date} onChange={handleChange} error={errors.po_vpad_notified_date} />
-                                        <Field label="Notified Via" name="po_vpad_notified_via" value={data.po_vpad_notified_via} onChange={handleChange} error={errors.po_vpad_notified_via} pattern={PATTERNS.contactInfo.source} title={MESSAGES.contactInfo} placeholder="email@example.com or +639..." />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">End User</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Date Forwarded" name="date_forwarded_to_end_user" type="date" value={data.date_forwarded_to_end_user} onChange={handleChange} error={errors.date_forwarded_to_end_user} />
-                                        <Field label="Forwarded By" name="end_user_forwarded_by" value={data.end_user_forwarded_by} onChange={handleChange} error={errors.end_user_forwarded_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">For Supplier's Signature</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Date Forwarded" name="date_forwarded_supplier" type="date" value={data.date_forwarded_supplier} onChange={handleChange} error={errors.date_forwarded_supplier} />
-                                        <Field label="Forwarded By" name="forwarded_by_supplier" value={data.forwarded_by_supplier} onChange={handleChange} error={errors.forwarded_by_supplier} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                        <Field label="Claimed By" name="claimed_by_supplier" value={data.claimed_by_supplier} onChange={handleChange} error={errors.claimed_by_supplier} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                        <Field label="Signature Date" name="supplier_signature_date" type="date" value={data.supplier_signature_date} onChange={handleChange} error={errors.supplier_signature_date} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">For COA Stamp</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Date Forwarded" name="date_forwarded_coa" type="date" value={data.date_forwarded_coa} onChange={handleChange} error={errors.date_forwarded_coa} />
-                                        <Field label="Forwarded By" name="forwarded_by_coa" value={data.forwarded_by_coa} onChange={handleChange} error={errors.forwarded_by_coa} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                        <Field label="Date Returned" name="date_returned_from_coa" type="date" value={data.date_returned_from_coa} onChange={handleChange} error={errors.date_returned_from_coa} />
-                                        <Field label="COA Date" name="coa_date" type="date" value={data.coa_date} onChange={handleChange} error={errors.coa_date} />
-                                        <Field label="Claim Date" name="claim_date" type="date" value={data.claim_date} onChange={handleChange} error={errors.claim_date} />
-                                        <Field label="Claimed By" name="claimed_by_coa" value={data.claimed_by_coa} onChange={handleChange} error={errors.claimed_by_coa} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                        <Field label="Notified Date" name="coa_stamp_notified_date" type="date" value={data.coa_stamp_notified_date} onChange={handleChange} error={errors.coa_stamp_notified_date} />
-                                        <Field label="Notified Via" name="coa_stamp_notified_via" value={data.coa_stamp_notified_via} onChange={handleChange} error={errors.coa_stamp_notified_via} pattern={PATTERNS.contactInfo.source} title={MESSAGES.contactInfo} placeholder="email@example.com or +639..." />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Receipt & Delivery</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Date Received by Supplier" name="date_received_by_supplier" type="date" value={data.date_received_by_supplier} onChange={handleChange} error={errors.date_received_by_supplier} />
-                                        <Field label="Receipt Receiving Date" name="receipt_receiving_date" type="date" value={data.receipt_receiving_date} onChange={handleChange} error={errors.receipt_receiving_date} />
-                                        <Field label="Receipt Claimed By" name="receipt_claimed_by" value={data.receipt_claimed_by} onChange={handleChange} error={errors.receipt_claimed_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                        <Field label="Notified Date" name="receipt_claimed_notified_date" type="date" value={data.receipt_claimed_notified_date} onChange={handleChange} error={errors.receipt_claimed_notified_date} />
-                                        <Field label="Notified Via" name="receipt_claimed_notified_via" value={data.receipt_claimed_notified_via} onChange={handleChange} error={errors.receipt_claimed_notified_via} pattern={PATTERNS.contactInfo.source} title={MESSAGES.contactInfo} placeholder="email@example.com or +639..." />
-                                        <Field label="Items Receiving Date" name="items_receiving_date" type="date" value={data.items_receiving_date} onChange={handleChange} error={errors.items_receiving_date} />
-                                        <Field label="Items Claimed By" name="items_claimed_by" value={data.items_claimed_by} onChange={handleChange} error={errors.items_claimed_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Additional Reference & Status</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Invoice No." name="invoice_number" value={data.invoice_number} onChange={handleChange} error={errors.invoice_number} pattern={PATTERNS.invoiceDocumentRef.source} title={MESSAGES.invoiceDocumentRef} />
-                                        <Field label="Invoice Date" name="invoice_date" type="date" value={data.invoice_date} onChange={handleChange} error={errors.invoice_date} />
-                                        <Field label="Delivery Receipt" name="delivery_receipt" value={data.delivery_receipt} onChange={handleChange} error={errors.delivery_receipt} pattern={PATTERNS.deliveryReceiptRef.source} title={MESSAGES.deliveryReceiptRef} />
-                                        <Field label="PAR/ICS No." name="par_ics_number" value={data.par_ics_number} onChange={handleChange} error={errors.par_ics_number} pattern={PATTERNS.parIcsMultiRef.source} title={MESSAGES.parIcsMultiRef} />
-                                        <Field label="RIS No." name="ris_number" value={data.ris_number} onChange={handleChange} error={errors.ris_number} pattern={PATTERNS.risMultiRef.source} title={MESSAGES.risMultiRef} />
-                                        <Field label="Payment Status" name="payment_status" value={data.payment_status} onChange={handleChange} error={errors.payment_status} />
-                                        <Field label="Workflow Remarks" name="workflow_remarks" value={data.workflow_remarks} onChange={handleChange} error={errors.workflow_remarks} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Completion & Finance</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Date Completed" name="date_completed" type="date" value={data.date_completed} onChange={handleChange} error={errors.date_completed} />
-                                        <Field label="Forwarded to Finance" name="date_forwarded_to_finance" type="date" value={data.date_forwarded_to_finance} onChange={handleChange} error={errors.date_forwarded_to_finance} />
-                                        <Field label="Forwarded By" name="finance_forwarded_by" value={data.finance_forwarded_by} onChange={handleChange} error={errors.finance_forwarded_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
+                                    <h3 className={sectionTitleClass}>Purchase Order Details</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Field
+                                            label="Purchase Order No."
+                                            name="po_number"
+                                            value={data.po_number}
+                                            onChange={handlePoNumberChange}
+                                            error={errors.po_number}
+                                            placeholder="2026-01-0001"
+                                            pattern={PATTERNS.poNo.source}
+                                            title={MESSAGES.poNo}
+                                            required
+                                        />
                                         <SelectField
-                                            label="PO Step"
-                                            value={data.po_step}
-                                            onChange={handleSelectChange('po_step')}
-                                            error={errors.po_step}
-                                            placeholder="-- Select Step --"
-                                            options={[
-                                                { value: 'PO From VPAD', label: 'PO From VPAD' },
-                                                { value: 'End User', label: 'End User' },
-                                                { value: "For Supplier's Signature", label: "For Supplier's Signature" },
-                                                { value: 'For COA Stamp', label: 'For COA Stamp' },
-                                                { value: 'Receipt & Delivery', label: 'Receipt & Delivery' },
-                                                { value: 'Completed', label: 'Completed' },
-                                            ]}
+                                            label="Mode of Procurement"
+                                            value={data.mode_of_procurement}
+                                            onChange={handleSelectChange('mode_of_procurement')}
+                                            error={errors.mode_of_procurement}
+                                            placeholder="--Select Mode of Procurement--"
+                                            options={MODE_OF_PROCUREMENT_OPTIONS}
+                                        />
+                                        <Field
+                                            label="PO Date"
+                                            name="po_date"
+                                            type="date"
+                                            value={data.po_date}
+                                            onChange={handleChange}
+                                            error={errors.po_date}
+                                        />
+                                        <Field
+                                            label="PO Received Date"
+                                            name="po_received_date"
+                                            type="date"
+                                            value={data.po_received_date}
+                                            onChange={handleChange}
+                                            error={errors.po_received_date}
+                                        />
+                                        <Field
+                                            label="Delivery Term (Days)"
+                                            name="delivery_term"
+                                            type="number"
+                                            value={data.delivery_term}
+                                            onChange={handleChange}
+                                            error={errors.delivery_term}
+                                            placeholder="e.g. 15"
+                                        />
+                                        <Field
+                                            label="Inclusive Date"
+                                            name="inclusive_date"
+                                            value={data.inclusive_date}
+                                            onChange={handleChange}
+                                            error={errors.inclusive_date}
+                                            placeholder="e.g. Jan 1 - Jan 15, 2026"
+                                            pattern={PATTERNS.inclusiveDate.source}
+                                            title={MESSAGES.inclusiveDate}
+                                        />
+                                        <Field
+                                            label="PR No."
+                                            name="pr_number"
+                                            value={data.pr_number}
+                                            onChange={handleChange}
+                                            error={errors.pr_number}
+                                            placeholder="20XX-0X-XXXX"
+                                            pattern={PATTERNS.prNo.source}
+                                            title={MESSAGES.prNo}
+                                        />
+                                        <Field
+                                            label="PR Date"
+                                            name="pr_date"
+                                            type="date"
+                                            value={data.pr_date}
+                                            onChange={handleChange}
+                                            error={errors.pr_date}
+                                        />
+                                        <Field
+                                            label="Philgeps Reference No."
+                                            name="philgeps_reference_no"
+                                            value={data.philgeps_reference_no}
+                                            onChange={handleChange}
+                                            error={errors.philgeps_reference_no}
+                                            placeholder="00000000"
+                                            pattern={PATTERNS.philgepsRefNo.source}
+                                            title={MESSAGES.numbersOnly}
+                                        />
+                                        <SelectField
+                                            label="Type of Procurement"
+                                            value={data.procurement_type}
+                                            onChange={handleSelectChange('procurement_type')}
+                                            error={errors.procurement_type}
+                                            placeholder="-- Select Type --"
+                                            options={PROCUREMENT_TYPE_OPTIONS}
+                                        />
+                                        <div className="md:col-span-2">
+                                            <ItemMultiSelect
+                                                value={itemStockNos}
+                                                onChange={setItemStockNos}
+                                                options={stockItemOptions}
+                                                error={errors.item_stock_nos}
+                                                onAddNew={(query) => {
+                                                    setItemQuickAddQuery(query);
+                                                    setItemQuickAddOpen(true);
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Section: Financial Details */}
+                                <div>
+                                    <h3 className={sectionTitleClass}>Financial Details</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <Field
+                                            label="Total Amount ABC"
+                                            name="total_amount_abc"
+                                            type="number"
+                                            value={data.total_amount_abc}
+                                            onChange={handleChange}
+                                            error={errors.total_amount_abc}
+                                            placeholder="Amount of the Budget"
+                                        />
+                                        <Field
+                                            label="Total Amount PO"
+                                            name="total_amount_po"
+                                            type="number"
+                                            value={data.total_amount_po}
+                                            onChange={handleChange}
+                                            error={errors.total_amount_po}
+                                            placeholder="Amount of the Budget"
+                                        />
+                                        <div>
+                                            <label className={labelClass}>Total Amount Difference</label>
+                                            <Input
+                                                value={diff.toFixed(2)}
+                                                disabled
+                                                className="bg-muted text-muted-foreground"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                        <SelectField
+                                            label="Fund Cluster"
+                                            value={data.fund_cluster_id}
+                                            onChange={handleSelectChange('fund_cluster_id')}
+                                            error={errors.fund_cluster_id}
+                                            placeholder="-- Select Fund Cluster --"
+                                            options={fundClusters.map((fc) => ({
+                                                value: fc.fund_cluster_id,
+                                                label: fc.fund_cluster_id,
+                                            }))}
+                                            onRefresh={() => handleRefreshData('fund_cluster')}
+                                            isRefreshing={refreshingField === 'fund_cluster'}
+                                        />
+                                        <Field
+                                            label="ORS/BUR No."
+                                            name="ors_burs_no"
+                                            value={data.ors_burs_no}
+                                            onChange={handleChange}
+                                            error={errors.ors_burs_no}
+                                            placeholder="00-000000-2025-00-0000"
+                                            pattern={PATTERNS.orsBursNo.source}
+                                            title={MESSAGES.orsBursNo}
+                                        />
+                                        <Field
+                                            label="ORS/BURS Date"
+                                            name="ors_burs_date"
+                                            type="date"
+                                            value={data.ors_burs_date}
+                                            onChange={handleChange}
+                                            error={errors.ors_burs_date}
+                                        />
+                                        <div>
+                                            <label className={labelClass}>Responsibility Center</label>
+                                            <Input
+                                                value={responsibilityCenter}
+                                                readOnly
+                                                className="bg-muted text-muted-foreground"
+                                                placeholder="Fund Cluster"
+                                            />
+                                            {errors.responsibility_center && (
+                                                <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.responsibility_center}</p>
+                                            )}
+                                        </div>
+                                        <Field
+                                            label="UACS Object Code"
+                                            name="uacs_object_code"
+                                            value={data.uacs_object_code}
+                                            onChange={handleChange}
+                                            error={errors.uacs_object_code}
+                                            placeholder="00000000"
+                                            pattern={PATTERNS.uacsObjectCode.source}
+                                            title={MESSAGES.numbersOnly}
                                         />
                                     </div>
                                 </div>
-                            </div>
-                        </div>
 
+                                {/* Section: Routing & Processing */}
+                                <div>
+                                    <h3 className={sectionTitleClass}>Routing & Processing</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <SearchableSelect
+                                            label="Supplier"
+                                            value={data.supplier_id as string}
+                                            onChange={handleSelectChange('supplier_id')}
+                                            error={errors.supplier_id}
+                                            placeholder="Search Supplier..."
+                                            options={supplierOptions.map((s) => ({
+                                                value: String(s.supplier_id),
+                                                label: s.supplier_name,
+                                            }))}
+                                            onRefresh={() => handleRefreshData('supplier')}
+                                            isRefreshing={refreshingField === 'supplier'}
+                                            onAddNew={(query) => {
+                                                setQuickAddQuery(query);
+                                                setQuickAddOpen(true);
+                                            }}
+                                            addNewLabel="new supplier"
+                                        />
+                                        <SearchableSelect
+                                            label="End User"
+                                            value={data.end_user}
+                                            onChange={handleSelectChange('end_user')}
+                                            error={errors.end_user}
+                                            placeholder="Search End User..."
+                                            options={offices.map((o) => ({
+                                                value: o.office_code,
+                                                label: o.office_code,
+                                            }))}
+                                            onRefresh={() => handleRefreshData('end_user')}
+                                            isRefreshing={refreshingField === 'end_user'}
+                                        />
+                                        <Field
+                                            label="Date forwarded to SMU"
+                                            name="date_forwarded_to_smu"
+                                            type="date"
+                                            value={data.date_forwarded_to_smu}
+                                            onChange={handleChange}
+                                            error={errors.date_forwarded_to_smu}
+                                        />
+                                        <Field
+                                            label="COA Processed Date"
+                                            name="coa_processed_date"
+                                            type="date"
+                                            value={data.coa_processed_date}
+                                            onChange={handleChange}
+                                            error={errors.coa_processed_date}
+                                        />
+                                        <Field
+                                            label="Date Forwarded to Frontdesk"
+                                            name="date_forwarded_frontdesk"
+                                            type="date"
+                                            value={data.date_forwarded_frontdesk}
+                                            onChange={handleChange}
+                                            error={errors.date_forwarded_frontdesk}
+                                        />
+                                    </div>
+                                </div>
 
+                                {/* Section: Attachments */}
+                                <div>
+                                    <h3 className={sectionTitleClass}>Attachments</h3>
+                                    <div>
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
+                                        >
+                                            <Paperclip className="size-4" />
+                                            Click to select files (PDF, JPG, PNG)
+                                        </button>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            multiple
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            className="hidden"
+                                            onChange={handleFileSelect}
+                                        />
+                                        {errors.files && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.files}</p>}
 
-                        {/* Section: Attachments */}
-                        <div>
-                            <h3 className={sectionTitleClass}>Attachments</h3>
-                            <div>
-                                <button
-                                    type="button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-input px-3 py-4 text-sm text-muted-foreground hover:bg-muted/40"
-                                >
-                                    <Paperclip className="size-4" />
-                                    Click to select files (PDF, JPG, PNG)
-                                </button>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    multiple
-                                    accept=".pdf,.jpg,.jpeg,.png"
-                                    className="hidden"
-                                    onChange={handleFileSelect}
-                                />
-
-                                {/* Existing Attachments */}
-                                {existingAttachments.length > 0 && (
-                                    <div className="mt-3">
-                                        <p className="text-xs font-medium text-muted-foreground mb-2">Existing Files</p>
-                                        <ScrollArea className="max-h-[180px]">
-                                            <div className="space-y-1.5">
-                                                {existingAttachments.map((att) => {
-                                                    const type = getFileType(att.original_name);
-                                                    return (
-                                                        <div
-                                                            key={att.id}
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            onClick={() => openExistingAttachmentPreview(att)}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                                    openExistingAttachmentPreview(att);
-                                                                }
-                                                            }}
-                                                            className="flex items-center gap-2 rounded-md border px-2 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer sm:gap-2.5 sm:px-2.5"
-                                                        >
-                                                            <div className="h-7 w-7 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden sm:h-8 sm:w-8">
-                                                                {type === 'image' ? (
-                                                                    <img
-                                                                        src={`/storage/${att.file_path}`}
-                                                                        alt={att.original_name}
-                                                                        className="h-full w-full object-cover"
-                                                                    />
-                                                                ) : (
-                                                                    <FileIcon type={type} />
-                                                                )}
-                                                            </div>
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className="truncate text-xs sm:text-sm">{att.original_name}</p>
-                                                                <p className="hidden text-[11px] text-muted-foreground sm:block">{formatBytes(att.file_size)}</p>
-                                                            </div>
-                                                            <Badge variant="outline" className="hidden text-[10px] h-5 sm:inline-flex">
-                                                                {getExtension(att.original_name).toUpperCase()}
-                                                            </Badge>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-6 w-6 shrink-0 text-red-500 hover:text-red-600 sm:h-7 sm:w-7"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    removeExistingAttachment(att.id);
-                                                                }}
-                                                            >
-                                                                <Archive className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                        </div>
-                                                    );
-                                                })}
+                                        {/* Existing attachments */}
+                                        {existingAttachments.length > 0 && (
+                                            <div className="mt-3">
+                                                <p className="text-xs font-medium text-muted-foreground mb-1.5">Existing Attachments</p>
+                                                <ul className="divide-y divide-border rounded-md border border-border">
+                                                    {existingAttachments.map((att) => {
+                                                        const type = getFileType(att.original_name);
+                                                        return (
+                                                            <li key={att.id}>
+                                                                <div className="flex w-full items-center gap-2 px-2 py-1.5 sm:gap-3 sm:px-3 sm:py-2 hover:bg-muted/30 transition-colors">
+                                                                    <div className="h-7 w-7 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden sm:h-9 sm:w-9">
+                                                                        {type === 'image' ? (
+                                                                            <img
+                                                                                src={`/storage/${att.file_path}`}
+                                                                                alt={att.original_name}
+                                                                                className="h-full w-full object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <FileTypeIcon type={type} />
+                                                                        )}
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => openExistingAttachmentPreview(att)}
+                                                                        className="min-w-0 flex-1 truncate text-left text-xs sm:text-sm hover:underline"
+                                                                    >
+                                                                        {att.original_name}
+                                                                    </button>
+                                                                    <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                                                                        {formatBytes(att.file_size)}
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeExistingAttachment(att.id)}
+                                                                        className="shrink-0 text-red-600 hover:text-red-800"
+                                                                        title="Remove attachment"
+                                                                    >
+                                                                        <X className="size-3.5 sm:size-4" />
+                                                                    </button>
+                                                                </div>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
                                             </div>
-                                        </ScrollArea>
+                                        )}
+
+                                        {/* Staged new files */}
+                                        {newFiles.length > 0 && (
+                                            <div className="mt-3">
+                                                <p className="text-xs font-medium text-muted-foreground mb-1.5">New Files to Upload</p>
+                                                <ul className="divide-y divide-border rounded-md border border-border">
+                                                    {newFiles.map((staged) => {
+                                                        const { id, file } = staged;
+                                                        const type = getFileType(file.name);
+                                                        return (
+                                                            <li key={id}>
+                                                                <div className="flex w-full items-center gap-2 px-2 py-1.5 sm:gap-3 sm:px-3 sm:py-2 hover:bg-muted/30 transition-colors">
+                                                                    <div className="h-7 w-7 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden sm:h-9 sm:w-9">
+                                                                        {staged.previewUrl ? (
+                                                                            <img
+                                                                                src={staged.previewUrl}
+                                                                                alt={file.name}
+                                                                                className="h-full w-full object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <FileTypeIcon type={type} />
+                                                                        )}
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => openNewFilePreview(staged)}
+                                                                        className="min-w-0 flex-1 truncate text-left text-xs sm:text-sm hover:underline"
+                                                                    >
+                                                                        {file.name}
+                                                                    </button>
+                                                                    <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                                                                        {formatBytes(file.size)}
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeNewFile(id)}
+                                                                        className="shrink-0 text-red-600 hover:text-red-800"
+                                                                        title="Remove file"
+                                                                    >
+                                                                        <X className="size-3.5 sm:size-4" />
+                                                                    </button>
+                                                                </div>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
+                                </div>
 
-                                {/* New Files */}
-                                {newFiles.length > 0 && (
-                                    <div className="mt-3">
-                                        <p className="text-xs font-medium text-muted-foreground mb-2">New Files</p>
-                                        <ul className="divide-y divide-border rounded-md border border-border">
-                                            {newFiles.map((staged) => {
-                                                const { id, file } = staged;
-                                                const type = getFileType(file.name);
-                                                return (
-                                                    <li key={id}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => openNewFilePreview(staged)}
-                                                            className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/50 transition-colors cursor-pointer sm:gap-3 sm:px-3 sm:py-2"
-                                                        >
-                                                            <div className="h-7 w-7 shrink-0 rounded border bg-muted flex items-center justify-center overflow-hidden sm:h-9 sm:w-9">
-                                                                {staged.previewUrl ? (
-                                                                    <img
-                                                                        src={staged.previewUrl}
-                                                                        alt={file.name}
-                                                                        className="h-full w-full object-cover"
-                                                                    />
-                                                                ) : (
-                                                                    <FileIcon type={type} />
-                                                                )}
-                                                            </div>
-                                                            <span className="min-w-0 flex-1 truncate text-xs sm:text-sm">
-                                                                {file.name}
-                                                            </span>
-                                                            <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-                                                                {formatBytes(file.size)}
-                                                            </span>
-                                                            <span
-                                                                role="button"
-                                                                tabIndex={0}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    removeNewFile(id);
-                                                                }}
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === 'Enter' || e.key === ' ') {
-                                                                        e.stopPropagation();
-                                                                        removeNewFile(id);
-                                                                    }
-                                                                }}
-                                                                className="shrink-0 text-red-600 hover:text-red-800"
-                                                                title="Remove/Archive"
-                                                            >
-                                                                <X className="size-3.5 sm:size-4" />
-                                                            </span>
-                                                        </button>
-                                                    </li>   
-                                                );
-                                            })}
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
+                                <div className="mt-8 flex justify-end gap-3">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => onOpenChange(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                        style={{ backgroundColor: '#370001' }}
+                                    >
+                                        {processing ? 'Saving...' : 'Save Changes'}
+                                    </Button>
+                                </div>
+                            </form>
                         </div>
-
-                        <div className="mt-8 flex justify-end gap-3">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => onOpenChange(false)}
-                            >
-                                Cancel
-                            </Button>
-
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                                style={{ backgroundColor: '#370001' }}
-                            >
-                                {processing ? 'Saving...' : 'Update Data'}
-                            </Button>
-                        </div>
-                    </form>
-                </div>
-                </ScrollArea>
-            </DialogContent>
+                    </ScrollArea>
+                </DialogContent>
             </Dialog>
 
-            {/* Confirmation Modal */}
+            {/* Confirmation Dialog when PO Number changed */}
             <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Confirm Update</DialogTitle>
+                        <DialogTitle>Confirm PO Number Change</DialogTitle>
                     </DialogHeader>
-                    <div className="py-4 text-sm text-foreground">
-                        <p className="font-semibold text-red-600">Warning:</p>
-                        <p>
-                            Changing the <strong>Purchase Order No.</strong> will also affect
-                            any linked records that reference this PO (Deliveries, IARs, and
-                            related documents).
-                        </p>
-                        <p className="mt-2">Are you sure you want to proceed with this change?</p>
-                    </div>
-                    <div className="flex justify-end gap-3 pt-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setShowConfirmModal(false)}
-                            disabled={processing}
-                        >
+                    <p className="text-sm text-muted-foreground">
+                        Are you sure you want to change the Purchase Order No. from{' '}
+                        <strong>{originalPoNumber}</strong> to <strong>{data.po_number}</strong>?
+                        This will update linked records.
+                    </p>
+                    <div className="mt-4 flex justify-end gap-3">
+                        <Button type="button" variant="outline" onClick={() => setShowConfirmModal(false)}>
                             Cancel
                         </Button>
                         <Button
                             type="button"
                             onClick={confirmAndSubmit}
+                            style={{ backgroundColor: '#370001' }}
                             disabled={processing}
-                            style={{ backgroundColor: '#612A35' }}
-                            className="text-white"
                         >
-                            {processing ? 'Updating...' : 'Yes, Proceed'}
+                            Confirm & Save
                         </Button>
                     </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Image Lightbox — used for both new (unsaved) files and existing attachments */}
-            <Dialog open={!!previewTarget} onOpenChange={(o) => !o && setPreviewTarget(null)}>
-                <DialogContent className="w-[95vw] p-0 overflow-hidden" style={{ maxWidth: '900px' }}>
-                    <div className="flex items-center justify-between px-4 py-3 border-b">
-                        <p className="text-sm font-medium truncate pr-4">
-                            {previewTarget?.name}
-                        </p>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 mr-6" asChild>
-                            <a
-                                href={previewTarget?.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="Open in new tab"
-                            >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                            </a>
-                        </Button>
-                    </div>
-                    <div className="flex items-center justify-center bg-muted/30 p-4 max-h-[80vh] overflow-auto">
-                        {previewTarget && (
-                            <img
-                                src={previewTarget.url}
-                                alt={previewTarget.name}
-                                className="max-w-full max-h-[75vh] object-contain rounded"
-                            />
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* Supplier Quick-Add — a sibling dialog, not nested inside the lightbox */}
+            {/* Quick Add Modals */}
             <SupplierQuickAddModal
                 open={quickAddOpen}
                 onOpenChange={setQuickAddOpen}
                 initialName={quickAddQuery}
-                onCreated={(created) => {
-                    setSupplierOptions((prev) => [...prev, created]);
-                    handleSelectChange('supplier_id')(String(created.supplier_id));
+                onCreated={(newSupplier) => {
+                    setSupplierOptions((prev) => [newSupplier, ...prev]);
+                    setData((prev) => ({ ...prev, supplier_id: String(newSupplier.supplier_id) }));
                 }}
             />
 
@@ -1572,11 +1229,27 @@ export default function PurchaseOrderEditForm({
                 open={itemQuickAddOpen}
                 onOpenChange={setItemQuickAddOpen}
                 initialName={itemQuickAddQuery}
-                onCreated={(created) => {
-                    setStockItemOptions((prev) => [...prev, created]);
-                    setItemStockNos((prev) => [...prev, created.stock_no]);
+                onCreated={(newStockItem) => {
+                    setStockItemOptions((prev) => [newStockItem, ...prev]);
+                    setItemStockNos((prev) => [...prev, newStockItem.stock_no]);
                 }}
             />
+
+            {/* Image Preview Modal */}
+            {previewTarget && (
+                <Dialog open={!!previewTarget} onOpenChange={(val) => !val && setPreviewTarget(null)}>
+                    <DialogContent className="max-w-3xl p-2">
+                        <div className="flex flex-col items-center">
+                            <img
+                                src={previewTarget.url}
+                                alt={previewTarget.name}
+                                className="max-h-[80vh] w-auto rounded object-contain"
+                            />
+                            <p className="mt-2 text-xs text-muted-foreground">{previewTarget.name}</p>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
         </>
     );
 }

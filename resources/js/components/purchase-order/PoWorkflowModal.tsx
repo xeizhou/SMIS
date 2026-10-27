@@ -544,14 +544,14 @@ export default function PoWorkflowModal({
             }
 
             const initialLd = purchaseOrder.ld_amount != null ? String(purchaseOrder.ld_amount) : '';
-            const initialTemplate = purchaseOrder.dv_template || 'ld_only';
+            const initialTemplate = purchaseOrder.dv_template || '';
             const defaultRetention = poTotal > 0 ? (poTotal * 0.01).toFixed(2) : '';
             const initialRetention = purchaseOrder.retention_amount != null && String(purchaseOrder.retention_amount).trim() !== ''
                 ? String(purchaseOrder.retention_amount)
                 : ((initialTemplate === 'retention_only' || initialTemplate === 'ld_and_retention') ? defaultRetention : '');
             setLdAmount(initialLd);
             setRetentionAmount(initialRetention);
-            setDvTemplate(initialTemplate);
+            setDvTemplate(initialTemplate || 'ld_only');
             setLdError(null);
             setRetentionError(null);
             setData({
@@ -586,7 +586,7 @@ export default function PoWorkflowModal({
                 payment_status: purchaseOrder.payment_status || '',
                 ld_amount: initialLd,
                 retention_amount: initialRetention,
-                dv_template: initialTemplate,
+                dv_template: purchaseOrder.dv_template || '',
                 workflow_remarks: purchaseOrder.workflow_remarks || '',
                 invoice_number: purchaseOrder.invoice_number || '',
                 invoice_date: toDateInputValue(purchaseOrder.invoice_date),
@@ -859,6 +859,26 @@ export default function PoWorkflowModal({
             }),
         };
         delete (payload as any).inspection_groups;
+
+        // If no delivery record exists or the user is saving a step prior to Payment Processing,
+        // do not send unconfigured/defaulted DV fields that would trigger backend validation.
+        if (!hasDeliveryRecord || (activeTab !== 'Payment Processing' && activeTab !== 'Forwarded to Finance')) {
+            if (purchaseOrder?.dv_template) {
+                payload.dv_template = purchaseOrder.dv_template;
+            } else {
+                delete (payload as any).dv_template;
+            }
+            if (purchaseOrder?.ld_amount != null) {
+                payload.ld_amount = purchaseOrder.ld_amount;
+            } else {
+                delete (payload as any).ld_amount;
+            }
+            if (purchaseOrder?.retention_amount != null) {
+                payload.retention_amount = purchaseOrder.retention_amount;
+            } else {
+                delete (payload as any).retention_amount;
+            }
+        }
 
         router.put(`/purchase-orders/${purchaseOrder.po_number}`, payload, {
             onSuccess: () => {
