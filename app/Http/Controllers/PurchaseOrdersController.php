@@ -433,20 +433,25 @@ class PurchaseOrdersController extends Controller
         // Restrict DV access if no delivery record exists in Delivery Monitoring
         $hasDeliveryRecord = $servePo->deliveries()->exists();
         if (! $hasDeliveryRecord) {
-            if ($request->filled('dv_template') && $request->input('dv_template') !== $servePo->dv_template) {
-                throw ValidationException::withMessages([
-                    'dv_template' => 'Disbursement Voucher cannot be configured until an existing Delivery Monitoring record is linked to this Purchase Order.',
-                ]);
-            }
-            if ($request->filled('ld_amount') && (float) $request->input('ld_amount') != (float) $servePo->ld_amount) {
-                throw ValidationException::withMessages([
-                    'ld_amount' => 'Disbursement Voucher Liquidated Damages cannot be set until an existing Delivery Monitoring record is linked to this Purchase Order.',
-                ]);
-            }
-            if ($request->filled('retention_amount') && (float) $request->input('retention_amount') != (float) $servePo->retention_amount) {
-                throw ValidationException::withMessages([
-                    'retention_amount' => 'Disbursement Voucher Retention cannot be set until an existing Delivery Monitoring record is linked to this Purchase Order.',
-                ]);
+            $currentStep = $request->input('po_step', $servePo->po_step);
+            $isPaymentStep = in_array($currentStep, ['Payment Processing', 'Forwarded to Finance'], true);
+
+            if ($isPaymentStep) {
+                if ($request->filled('dv_template') && $request->input('dv_template') !== $servePo->dv_template) {
+                    throw ValidationException::withMessages([
+                        'dv_template' => 'Disbursement Voucher cannot be configured until an existing Delivery Monitoring record is linked to this Purchase Order.',
+                    ]);
+                }
+                if ($request->filled('ld_amount') && (float) $request->input('ld_amount') != (float) $servePo->ld_amount) {
+                    throw ValidationException::withMessages([
+                        'ld_amount' => 'Disbursement Voucher Liquidated Damages cannot be set until an existing Delivery Monitoring record is linked to this Purchase Order.',
+                    ]);
+                }
+                if ($request->filled('retention_amount') && (float) $request->input('retention_amount') != (float) $servePo->retention_amount) {
+                    throw ValidationException::withMessages([
+                        'retention_amount' => 'Disbursement Voucher Retention cannot be set until an existing Delivery Monitoring record is linked to this Purchase Order.',
+                    ]);
+                }
             }
             unset($validated['dv_template'], $validated['ld_amount'], $validated['retention_amount']);
         }
