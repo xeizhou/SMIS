@@ -98,9 +98,11 @@ class ServePo extends Model
         'coa_stamp_notified_via',
         'receipt_claimed_notified_date',
         'receipt_claimed_notified_via',
+        'locked_steps',
     ];
 
     protected $casts = [
+        'locked_steps' => 'array',
         'po_date' => 'date',
         'po_received_date' => 'date',
         'pr_date' => 'date',
