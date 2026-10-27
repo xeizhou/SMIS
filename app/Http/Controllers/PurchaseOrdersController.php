@@ -304,8 +304,6 @@ class PurchaseOrdersController extends Controller
     {
         \Log::info('Entering PurchaseOrdersController@update for PO: '.$servePo->po_number);
 
-        abort_if($request->user() && $request->user()->isStaff(), 403, 'Staff users are not allowed to edit Purchase Orders.');
-
         $validated = $request->validate([
             'po_number' => [
                 'required',
@@ -314,6 +312,7 @@ class PurchaseOrdersController extends Controller
                 Rule::unique('serve_po', 'po_number')->ignore($servePo->po_number, 'po_number'),
                 'regex:'.ValidationHelper::pattern('poNo'),
             ],
+            'locked_steps' => ['nullable', 'array'],
             'item_stock_nos' => ['nullable', 'array'],
             'item_stock_nos.*' => ['string', 'exists:stock_items,stock_no'],
             'po_date' => ['nullable', 'date'],
@@ -423,6 +422,53 @@ class PurchaseOrdersController extends Controller
 
         $inspectionEntries = $request->has('inspection_entries') ? ($validated['inspection_entries'] ?? []) : null;
         unset($validated['inspection_entries']);
+
+        $existingLocked = is_array($servePo->locked_steps) ? $servePo->locked_steps : [];
+        if ($request->has('locked_steps')) {
+            $incomingLocked = is_array($validated['locked_steps'] ?? null) ? $validated['locked_steps'] : [];
+            if ($request->user() && $request->user()->isStaff()) {
+                // Staff cannot unlock steps; merge incoming with existing locked steps
+                $validated['locked_steps'] = array_merge($existingLocked, $incomingLocked);
+            } else {
+                // Admin has full control
+                $validated['locked_steps'] = $incomingLocked;
+            }
+        }
+
+        // If user is Staff, protect previously locked steps from modification
+        if ($request->user() && $request->user()->isStaff() && !empty($existingLocked)) {
+            $stepFields = [
+                'PO From VPAD' => ['po_received_date', 'po_vpad_forwarded_by', 'po_vpad_notified_date', 'po_vpad_notified_via'],
+                'End User' => ['date_forwarded_to_end_user', 'end_user_forwarded_by'],
+                'For COA Stamp' => [
+                    'date_forwarded_supplier', 'forwarded_by_supplier', 'claimed_by_supplier',
+                    'supplier_signature_date', 'date_forwarded_coa', 'forwarded_by_coa',
+                    'date_returned_from_coa', 'coa_date', 'claim_date', 'claimed_by_coa',
+                    'coa_stamp_notified_date', 'coa_stamp_notified_via',
+                ],
+                'For Release' => [
+                    'date_received_by_supplier', 'receipt_receiving_date', 'receipt_claimed_by',
+                    'items_receiving_date', 'items_claimed_by', 'receipt_claimed_notified_date',
+                    'receipt_claimed_notified_via',
+                ],
+                'Payment Processing' => [
+                    'payment_status', 'ld_amount', 'retention_amount', 'dv_template',
+                    'workflow_remarks', 'invoice_number', 'invoice_date', 'delivery_receipt',
+                    'par_ics_number', 'ris_number', 'date_completed',
+                ],
+                'Forwarded to Finance' => ['date_forwarded_to_finance', 'finance_forwarded_by'],
+            ];
+
+            foreach ($existingLocked as $lockedStepName => $lockedTimestamp) {
+                if (isset($stepFields[$lockedStepName])) {
+                    foreach ($stepFields[$lockedStepName] as $field) {
+                        if (array_key_exists($field, $validated)) {
+                            $validated[$field] = $servePo->$field;
+                        }
+                    }
+                }
+            }
+        }
 
         if ($request->has('total_amount_abc') || $request->has('total_amount_po')) {
             $validated['total_amount_abc'] ??= 0;

@@ -597,9 +597,18 @@ export default function PoWorkflowModal({
                 date_forwarded_to_finance: toDateInputValue(purchaseOrder.date_forwarded_to_finance),
                 inspection_groups: groupInspectionEntries(purchaseOrder.inspection_entries),
             });
-            const stepToSet = purchaseOrder.po_step === "For Supplier's Signature" 
+            let stepToSet = purchaseOrder.po_step === "For Supplier's Signature" 
                 ? "For COA Stamp" 
                 : (STEPS.includes(purchaseOrder.po_step) ? purchaseOrder.po_step : 'PO From VPAD');
+
+            if (isStaff && purchaseOrder.locked_steps) {
+                if (purchaseOrder.locked_steps[stepToSet]) {
+                    const firstUnlocked = STEPS.find((s) => !purchaseOrder.locked_steps[s]);
+                    if (firstUnlocked) {
+                        stepToSet = firstUnlocked;
+                    }
+                }
+            }
             setActiveTab(stepToSet);
             setErrors({});
             setProcessing(false);
@@ -836,8 +845,24 @@ export default function PoWorkflowModal({
 
         setProcessing(true);
 
+        const now = new Date().toISOString();
+        const updatedLockedSteps: Record<string, string> = {
+            ...(purchaseOrder?.locked_steps || {}),
+        };
+
+        for (let i = 0; i <= currentIdx; i++) {
+            const sName = STEPS[i];
+            if (!updatedLockedSteps[sName]) {
+                updatedLockedSteps[sName] = now;
+            }
+        }
+
+        const nextStep = currentIdx < STEPS.length - 1 ? STEPS[currentIdx + 1] : activeTab;
+
         const payload = {
             ...data,
+            po_step: nextStep,
+            locked_steps: updatedLockedSteps,
             ld_amount: ldAmount.trim() !== '' ? Number(ldAmount) : null,
             inspection_entries: (data.inspection_groups || []).flatMap((group: any) => {
                 const inspectors = (group.inspectors || []).filter((v: string) => v.trim() !== '');
@@ -956,10 +981,9 @@ export default function PoWorkflowModal({
     };
 
     const isStepLocked = (stepName: string) => {
-        const savedCurrentStepIndex = STEPS.indexOf(purchaseOrder?.po_step || 'PO From VPAD');
         const targetStepIndex = STEPS.indexOf(stepName);
         
-        // 1. Sequential Unlocking: Cannot edit a step if the previous step is not done in the form.
+        // 1. Sequential Unlocking: Cannot jump forward if previous step is not done in the form.
         // This applies to ALL roles to enforce workflow progression.
         if (targetStepIndex > 0) {
             const previousStep = STEPS[targetStepIndex - 1];
@@ -968,14 +992,20 @@ export default function PoWorkflowModal({
             }
         }
 
+        // Admin can access, view, and edit any step!
         if (isAdmin) return false;
 
-        // 2. Lock if it's already finished in the database
+        // 2. Staff Restriction: If step is locked in the database via Save & Exit, staff cannot edit it.
+        if (purchaseOrder?.locked_steps && purchaseOrder.locked_steps[stepName]) {
+            return true;
+        }
+
+        // 3. Fallback: Lock if it's already finished in the database
         if (isStepSavedAsDone(stepName)) {
             return true;
         }
 
-        // 3. Staff Restriction: Cannot edit ANY step that is BEFORE the saved current step.
+        const savedCurrentStepIndex = STEPS.indexOf(purchaseOrder?.po_step || 'PO From VPAD');
         if (isStaff && targetStepIndex < savedCurrentStepIndex) {
             return true;
         }
@@ -1005,9 +1035,9 @@ export default function PoWorkflowModal({
                                         <button
                                             key={step}
                                             type="button"
-                                            disabled={isLocked && !isActive}
+                                            disabled={isLocked && isStaff}
                                             onClick={() => {
-                                                if (isLocked) return;
+                                                if (isLocked && isStaff) return;
                                                 const currentIdx = STEPS.indexOf(activeTab);
                                                 const targetIdx = STEPS.indexOf(step);
                                                 if (targetIdx > currentIdx) {
@@ -1028,7 +1058,7 @@ export default function PoWorkflowModal({
                                                 "px-5 py-2 rounded-full text-sm transition-all duration-200 whitespace-nowrap flex items-center gap-2",
                                                 isActive 
                                                     ? "bg-background text-foreground font-semibold shadow-md ring-1 ring-border" 
-                                                    : isLocked
+                                                    : (isLocked && isStaff)
                                                         ? "text-muted-foreground/50 cursor-not-allowed"
                                                         : "text-muted-foreground font-medium hover:text-foreground hover:bg-background/40"
                                             )}
@@ -1043,7 +1073,11 @@ export default function PoWorkflowModal({
                             {isStepLocked(activeTab) && (
                                 <div className="flex items-center gap-2 p-4 bg-amber-500/10 text-amber-600 border border-amber-500/30 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-2">
                                     <Lock className="h-4 w-4" />
-                                    <span>This step is currently locked because the previous workflow step has not been completed yet.</span>
+                                    <span>
+                                        {purchaseOrder?.locked_steps && purchaseOrder.locked_steps[activeTab]
+                                            ? "This step was locked upon Save & Exit and cannot be modified by staff."
+                                            : "This step is currently locked because the previous workflow step has not been completed yet."}
+                                    </span>
                                 </div>
                             )}
 

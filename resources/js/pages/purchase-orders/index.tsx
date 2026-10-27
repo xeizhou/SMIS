@@ -67,6 +67,9 @@ interface PurchaseOrder {
     item_description: string | null;
     operational_impact: string | null;
     has_delivery_record?: boolean;
+    delivery_term?: number | string | null;
+    po_step?: string | null;
+    locked_steps?: Record<string, string> | null;
 }
 
 interface PaginatedPurchaseOrders {
@@ -488,16 +491,14 @@ export default function Index({
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-start gap-3">
-                                                {!isStaff && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleEdit(po)}
-                                                        className="text-blue-600 hover:text-blue-800"
-                                                        title="Edit"
-                                                    >
-                                                        <Pencil className="size-4" />
-                                                    </button>
-                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleEdit(po)}
+                                                    className="text-blue-600 hover:text-blue-800"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil className="size-4" />
+                                                </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleWorkflow(po)}
