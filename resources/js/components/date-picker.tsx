@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
@@ -27,6 +28,10 @@ const YEARS_AHEAD = 10;
 // Hides the scroll up/down arrow buttons inside the select dropdown
 const NO_SCROLL_ARROWS = '[&>div:not([data-radix-select-viewport])]:hidden';
 
+// Hides the browser's own calendar icon (we show our own button instead)
+const HIDE_NATIVE_ICON =
+    '[&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none';
+
 function toISO(d: Date) {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -37,12 +42,6 @@ function toISO(d: Date) {
 function parseISO(s: string) {
     const [y, m, d] = s.split('-').map(Number);
     return new Date(y, m - 1, d);
-}
-
-function formatLabel(s: string) {
-    const d = parseISO(s);
-    if (isNaN(d.getTime())) return s;
-    return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
 interface DatePickerProps {
@@ -61,7 +60,6 @@ export default function DatePicker({
     onChange,
     error,
     required = false,
-    placeholder = 'Pick a date',
     className,
 }: DatePickerProps) {
     const [open, setOpen] = useState(false);
@@ -99,161 +97,169 @@ export default function DatePicker({
                 </label>
             )}
 
-            <Popover
-                open={open}
-                onOpenChange={(o) => {
-                    setOpen(o);
-                    if (o) {
-                        const base = value ? parseISO(value) : new Date();
-                        setView({ year: base.getFullYear(), month: base.getMonth() });
-                    }
-                }}
-                modal={true}
-            >
-                <PopoverTrigger asChild>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className={cn(
-                            'w-full justify-start text-left font-normal overflow-hidden',
-                            !value && 'text-muted-foreground',
-                            error && 'border-red-500'
-                        )}
-                    >
-                        <CalendarIcon className="mr-2 size-4 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{value ? formatLabel(value) : placeholder}</span>
-                    </Button>
-                </PopoverTrigger>
+            <div className="relative">
+                {/* Native date input: typing, clamping and segment editing are all browser-native */}
+                <Input
+                    type="date"
+                    value={value}
+                    min="1900-01-01"
+                    max="9999-12-31"
+                    onChange={(e) => onChange(e.target.value)}
+                    className={cn('pr-10', HIDE_NATIVE_ICON, error && 'border-red-500')}
+                />
 
-                <PopoverContent className="w-auto p-3" align="start">
-                    {/* Header: prev | month dropdown | year dropdown | next */}
-                    <div className="mb-3 flex items-center justify-between gap-2">
+                <Popover
+                    open={open}
+                    onOpenChange={(o) => {
+                        setOpen(o);
+                        if (o) {
+                            const base = value ? parseISO(value) : new Date();
+                            setView({ year: base.getFullYear(), month: base.getMonth() });
+                        }
+                    }}
+                    modal={true}
+                >
+                    <PopoverTrigger asChild>
                         <Button
                             type="button"
-                            variant="outline"
-                            className="size-8 shrink-0 bg-transparent p-0 opacity-70 hover:opacity-100"
-                            onClick={() => shiftMonth(-1)}
+                            variant="ghost"
+                            size="icon"
+                            tabIndex={-1}
+                            className="absolute right-0 top-0 size-9 text-muted-foreground hover:bg-transparent hover:text-foreground"
+                            title="Open calendar"
                         >
-                            <ChevronLeft className="size-4" />
+                            <CalendarIcon className="size-4" />
                         </Button>
+                    </PopoverTrigger>
 
-                        <div className="flex items-center gap-2">
-                            <Select
-                                value={String(view.month)}
-                                onValueChange={(v) =>
-                                    setView((prev) => ({ ...prev, month: Number(v) }))
-                                }
+                    <PopoverContent className="w-auto p-3" align="end">
+                        {/* Header: prev | month dropdown | year dropdown | next */}
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="size-8 shrink-0 bg-transparent p-0 opacity-70 hover:opacity-100"
+                                onClick={() => shiftMonth(-1)}
                             >
-                                <SelectTrigger className="h-8 w-[78px] px-2.5 text-sm">
-                                    <SelectValue>{MONTH_SHORT[view.month]}</SelectValue>
-                                </SelectTrigger>
-                                <SelectContent className={cn('max-h-[240px]', NO_SCROLL_ARROWS)}>
-                                    {MONTH_NAMES.map((name, i) => (
-                                        <SelectItem key={name} value={String(i)}>
-                                            {name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                <ChevronLeft className="size-4" />
+                            </Button>
 
-                            <Select
-                                value={String(view.year)}
-                                onValueChange={(v) =>
-                                    setView((prev) => ({ ...prev, year: Number(v) }))
-                                }
-                            >
-                                <SelectTrigger className="h-8 w-[88px] px-2.5 text-sm">
-                                    <SelectValue>{view.year}</SelectValue>
-                                </SelectTrigger>
-                                <SelectContent className={cn('max-h-[240px]', NO_SCROLL_ARROWS)}>
-                                    {years.map((y) => (
-                                        <SelectItem key={y} value={String(y)}>
-                                            {y}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="size-8 shrink-0 bg-transparent p-0 opacity-70 hover:opacity-100"
-                            onClick={() => shiftMonth(1)}
-                        >
-                            <ChevronRight className="size-4" />
-                        </Button>
-                    </div>
-
-                    <div className="w-[252px]">
-                        <div className="mb-1 grid grid-cols-7">
-                            {WEEKDAYS.map((w) => (
-                                <div
-                                    key={w}
-                                    className="flex h-8 w-9 items-center justify-center text-[0.8rem] font-normal text-muted-foreground"
+                            <div className="flex items-center gap-2">
+                                <Select
+                                    value={String(view.month)}
+                                    onValueChange={(v) =>
+                                        setView((prev) => ({ ...prev, month: Number(v) }))
+                                    }
                                 >
-                                    {w}
-                                </div>
-                            ))}
+                                    <SelectTrigger className="h-8 w-[78px] px-2.5 text-sm">
+                                        <SelectValue>{MONTH_SHORT[view.month]}</SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent className={cn('max-h-[240px]', NO_SCROLL_ARROWS)}>
+                                        {MONTH_NAMES.map((name, i) => (
+                                            <SelectItem key={name} value={String(i)}>
+                                                {name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                <Select
+                                    value={String(view.year)}
+                                    onValueChange={(v) =>
+                                        setView((prev) => ({ ...prev, year: Number(v) }))
+                                    }
+                                >
+                                    <SelectTrigger className="h-8 w-[88px] px-2.5 text-sm">
+                                        <SelectValue>{view.year}</SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent className={cn('max-h-[240px]', NO_SCROLL_ARROWS)}>
+                                        {years.map((y) => (
+                                            <SelectItem key={y} value={String(y)}>
+                                                {y}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="size-8 shrink-0 bg-transparent p-0 opacity-70 hover:opacity-100"
+                                onClick={() => shiftMonth(1)}
+                            >
+                                <ChevronRight className="size-4" />
+                            </Button>
                         </div>
-                        <div className="grid grid-cols-7">
-                            {cells.map((day, i) => {
-                                if (day === null) return <div key={`e-${i}`} className="h-9 w-9" />;
 
-                                const iso = toISO(new Date(view.year, view.month, day));
-                                const isSelected = iso === value;
-                                const isToday = iso === todayISO;
-
-                                return (
-                                    <button
-                                        key={iso}
-                                        type="button"
-                                        onClick={() => {
-                                            onChange(iso);
-                                            setOpen(false);
-                                        }}
-                                        className={cn(
-                                            'h-9 w-9 rounded-md text-sm font-normal transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                                            isSelected
-                                                ? 'bg-[#612A35] text-white hover:bg-[#612A35]/90'
-                                                : 'hover:bg-accent hover:text-accent-foreground',
-                                            isToday && !isSelected && 'bg-accent font-semibold text-accent-foreground'
-                                        )}
+                        <div className="w-[252px]">
+                            <div className="mb-1 grid grid-cols-7">
+                                {WEEKDAYS.map((w) => (
+                                    <div
+                                        key={w}
+                                        className="flex h-8 w-9 items-center justify-center text-[0.8rem] font-normal text-muted-foreground"
                                     >
-                                        {day}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
+                                        {w}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-7">
+                                {cells.map((day, i) => {
+                                    if (day === null) return <div key={`e-${i}`} className="h-9 w-9" />;
 
-                    <div className="mt-3 flex items-center justify-between border-t pt-3">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                                onChange(todayISO);
-                                setOpen(false);
-                            }}
-                        >
-                            Today
-                        </Button>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            className="text-muted-foreground"
-                            disabled={!value}
-                            onClick={() => {
-                                onChange('');
-                            }}
-                        >
-                            Clear
-                        </Button>
-                    </div>
-                </PopoverContent>
-            </Popover>
+                                    const iso = toISO(new Date(view.year, view.month, day));
+                                    const isSelected = iso === value;
+                                    const isToday = iso === todayISO;
+
+                                    return (
+                                        <button
+                                            key={iso}
+                                            type="button"
+                                            onClick={() => {
+                                                onChange(iso);
+                                                setOpen(false);
+                                            }}
+                                            className={cn(
+                                                'h-9 w-9 rounded-md text-sm font-normal transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                                isSelected
+                                                    ? 'bg-[#612A35] text-white hover:bg-[#612A35]/90'
+                                                    : 'hover:bg-accent hover:text-accent-foreground',
+                                                isToday && !isSelected && 'bg-accent font-semibold text-accent-foreground'
+                                            )}
+                                        >
+                                            {day}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between border-t pt-3">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                    onChange(todayISO);
+                                    setOpen(false);
+                                }}
+                            >
+                                Today
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="text-muted-foreground"
+                                disabled={!value}
+                                onClick={() => onChange('')}
+                            >
+                                Clear
+                            </Button>
+                        </div>
+                    </PopoverContent>
+                </Popover>
+            </div>
 
             {error && <p className="mt-1 text-[11px] font-medium text-red-500">{error}</p>}
         </div>
