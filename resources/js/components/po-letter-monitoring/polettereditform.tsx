@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useRef, useState } from 'react';
-import { RefreshCw, Paperclip, X, Check, ChevronsUpDown, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive } from 'lucide-react';
+import { RefreshCw, Paperclip, X, Check, ChevronsUpDown, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -30,6 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useNativeValidation } from '@/hooks/useNativeValidation';
 import { PATTERNS, MESSAGES } from '@/lib/validation';
+import DatePicker from '@/components/date-picker';
 
 interface Supplier {
     supplier_id: number;
@@ -665,14 +666,12 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                             isRefreshing={refreshingField === 'poNumbers'}
                         />
 
-                            <Field
+                            <DatePicker
                                 label="PO Date"
-                                name="po_date"
-                                type="date"
-                                value={data.po_date}
-                                onChange={handleChange}
-                                error={errors.po_date}
                                 required
+                                value={data.po_date}
+                                onChange={handleSelectChange('po_date')}
+                                error={errors.po_date}
                             />
                         </div>
                     </div>
@@ -725,21 +724,17 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                     <div>
                         <h3 className={sectionTitleClass}>Routing & Status</h3>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                            <Field
+                            <DatePicker
                                 label="Date Received by SMU"
-                                name="date_received_by_smu"
-                                type="date"
                                 value={data.date_received_by_smu}
-                                onChange={handleChange}
+                                onChange={handleSelectChange('date_received_by_smu')}
                                 error={errors.date_received_by_smu}
                             />
 
-                            <Field
+                            <DatePicker
                                 label="Date Forwarded to OVPAD"
-                                name="date_forwarded_to_ovpad"
-                                type="date"
                                 value={data.date_forwarded_to_ovpad}
-                                onChange={handleChange}
+                                onChange={handleSelectChange('date_forwarded_to_ovpad')}
                                 error={errors.date_forwarded_to_ovpad}
                             />
 
@@ -774,12 +769,10 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                                 title={MESSAGES.documentLink}
                             />
 
-                            <Field
+                            <DatePicker
                                 label="Date Forwarded to End User"
-                                name="date_forwarded_to_end_user"
-                                type="date"
                                 value={data.date_forwarded_to_end_user}
-                                onChange={handleChange}
+                                onChange={handleSelectChange('date_forwarded_to_end_user')}
                                 error={errors.date_forwarded_to_end_user}
                             />
 
