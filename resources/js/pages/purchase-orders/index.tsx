@@ -272,8 +272,8 @@ export default function Index({
                     onSubmit={handleSearch}
                     className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
                 >
-                    <div className="flex flex-wrap gap-2 flex-1">
-                        <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
+                    <div className="flex flex-1 flex-wrap items-center gap-2">
+                        <div className="relative w-full sm:w-52 md:w-60">
                             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search PO"
@@ -287,7 +287,7 @@ export default function Index({
                             value={fundCluster}
                             onValueChange={handleFundClusterChange}
                         >
-                            <SelectTrigger className={`w-[200px] ${fundCluster === 'all' ? 'text-muted-foreground' : ''}`}>
+                            <SelectTrigger className={`w-full sm:w-[185px] ${fundCluster === 'all' ? 'text-muted-foreground' : ''}`}>
                                 <SelectValue placeholder="Filter by Fund Cluster" />
                             </SelectTrigger>
 
@@ -305,7 +305,7 @@ export default function Index({
                         </Select>
 
                         <Select value={officeFilter} onValueChange={handleOfficeChange}>
-                            <SelectTrigger className={`w-[200px] ${officeFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                            <SelectTrigger className={`w-full sm:w-[170px] ${officeFilter === 'all' ? 'text-muted-foreground' : ''}`}>
                                 <SelectValue placeholder="Filter by End User" />
                             </SelectTrigger>
                             <SelectContent>
@@ -319,7 +319,7 @@ export default function Index({
                         </Select>
 
                         <Select value={itemDescFilter} onValueChange={handleItemDescChange}>
-                            <SelectTrigger className={`w-[200px] ${itemDescFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                            <SelectTrigger className={`w-full sm:w-[215px] ${itemDescFilter === 'all' ? 'text-muted-foreground' : ''}`}>
                                 <SelectValue placeholder="Filter by Item Description" />
                             </SelectTrigger>
                             <SelectContent>
@@ -333,7 +333,7 @@ export default function Index({
                         </Select>
 
                         <Select value={opImpactFilter} onValueChange={handleOpImpactChange}>
-                            <SelectTrigger className={`w-[200px] ${opImpactFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                            <SelectTrigger className={`w-full sm:w-[225px] ${opImpactFilter === 'all' ? 'text-muted-foreground' : ''}`}>
                                 <SelectValue placeholder="Filter by Operational Impact" />
                             </SelectTrigger>
                             <SelectContent>
@@ -346,22 +346,25 @@ export default function Index({
                             </SelectContent>
                         </Select>
 
-                        <Button type="submit" variant="secondary">
-                            Search
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button type="submit" variant="secondary">
+                                Search
+                            </Button>
 
-                        <Button type="button" variant="ghost" onClick={handleClear}>
-                            Clear
-                        </Button>
+                            <Button type="button" variant="ghost" onClick={handleClear}>
+                                Clear
+                            </Button>
+                        </div>
                     </div>
 
-                    <div className="flex w-full flex-col sm:flex-row gap-2 lg:w-auto">
+                    <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row">
                         <Button
                             type="button"
                             onClick={() => setAddDialogOpen(true)}
-                            className="w-full sm:w-auto text-white"
+                            className="w-full lg:w-auto text-white shadow-sm"
                             style={{ backgroundColor: '#612A35' }}
                         >
+                            <Plus className="mr-2 size-4" />
                             Add Purchase Order
                         </Button>
                     </div>
