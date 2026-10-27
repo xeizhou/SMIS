@@ -574,6 +574,8 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
         ->name('purchase-orders.attachments.upload');
     Route::get('/purchase-orders/{purchaseOrder}/export-dv', [PurchaseOrdersController::class, 'exportDisbursementVoucher'])
         ->name('purchase-orders.export-dv');
+    Route::get('/purchase-orders/{purchaseOrder}/dv-eligibility', [PurchaseOrdersController::class, 'checkDvEligibility'])
+        ->name('purchase-orders.dv-eligibility');
 
     Route::get('/po-letter-monitoring', [POLetterMonitoringController::class, 'index'])->name('po-letter-monitoring.index');
     Route::post('/po-letter-monitoring', [POLetterMonitoringController::class, 'store'])->name('po-letter-monitoring.store');

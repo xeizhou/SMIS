@@ -341,6 +341,9 @@ export default function PoWorkflowModal({
     const [ldError, setLdError] = useState<string | null>(null);
     const [retentionAmount, setRetentionAmount] = useState<string>('');
     const [retentionError, setRetentionError] = useState<string | null>(null);
+    const [hasDeliveryRecord, setHasDeliveryRecord] = useState<boolean>(() =>
+        Boolean(purchaseOrder?.has_delivery_record ?? (purchaseOrder?.deliveries && purchaseOrder.deliveries.length > 0))
+    );
 
     const poTotal = Number(purchaseOrder?.total_amount_po ?? 0);
 
@@ -351,13 +354,13 @@ export default function PoWorkflowModal({
     const isRetentionValid = !isRetentionInputted || (!isNaN(Number(retentionAmount)) && Number(retentionAmount) >= 0 && Number(retentionAmount) <= poTotal && !retentionError);
 
     const isDateCompletedFilled = Boolean(data.date_completed) || Boolean(purchaseOrder?.date_completed);
-    const canExport = dvTemplate === 'neither'
+    const canExport = hasDeliveryRecord && (dvTemplate === 'neither'
         ? isDateCompletedFilled
         : (dvTemplate === 'retention_only'
             ? (isRetentionValid && isDateCompletedFilled)
             : (dvTemplate === 'ld_and_retention'
                 ? (isLdValid && isRetentionValid && isDateCompletedFilled)
-                : (isLdValid && isDateCompletedFilled)));
+                : (isLdValid && isDateCompletedFilled))));
 
     const validateLdAmount = (val: string): boolean => {
         if (!val || val.trim() === '') {
@@ -423,8 +426,24 @@ export default function PoWorkflowModal({
         }
     };
 
-    const handleExportDv = () => {
+    const handleExportDv = async () => {
         if (!purchaseOrder?.po_number) return;
+        if (!hasDeliveryRecord) {
+            alert('Disbursement Voucher export restricted: No matching Delivery Monitoring record was found for this Purchase Order.');
+            return;
+        }
+
+        try {
+            const check = await axios.get(`/purchase-orders/${encodeURIComponent(purchaseOrder.po_number)}/dv-eligibility`);
+            if (!check.data?.eligible) {
+                setHasDeliveryRecord(false);
+                alert('Disbursement Voucher export restricted: No matching Delivery Monitoring record was found for this Purchase Order.');
+                return;
+            }
+        } catch (e) {
+            // Proceed to backend endpoint where authoritative verification will occur
+        }
+
         if (dvTemplate === 'ld_only') {
             if (!isLdInputted) {
                 setLdError('Please enter an LD amount.');
@@ -512,6 +531,18 @@ export default function PoWorkflowModal({
 
     useEffect(() => {
         if (open && purchaseOrder) {
+            const initialHas = Boolean(purchaseOrder.has_delivery_record ?? (purchaseOrder.deliveries && purchaseOrder.deliveries.length > 0));
+            setHasDeliveryRecord(initialHas);
+            if (purchaseOrder.po_number) {
+                axios.get(`/purchase-orders/${encodeURIComponent(purchaseOrder.po_number)}/dv-eligibility`)
+                    .then((res) => {
+                        if (typeof res.data?.eligible === 'boolean') {
+                            setHasDeliveryRecord(res.data.eligible);
+                        }
+                    })
+                    .catch(() => {});
+            }
+
             const initialLd = purchaseOrder.ld_amount != null ? String(purchaseOrder.ld_amount) : '';
             const initialTemplate = purchaseOrder.dv_template || 'ld_only';
             const defaultRetention = poTotal > 0 ? (poTotal * 0.01).toFixed(2) : '';
@@ -1632,7 +1663,9 @@ export default function PoWorkflowModal({
                                                         Disbursement Voucher (DV) Template
                                                     </h4>
                                                     <p className="text-xs text-muted-foreground mt-0.5">
-                                                        Choose a template configuration below.
+                                                        {hasDeliveryRecord
+                                                            ? "Choose a template configuration below."
+                                                            : "A Delivery Monitoring record is required before accessing or configuring this voucher."}
                                                     </p>
                                                 </div>
                                                 {/* Edit DV in Excel Button */}
@@ -1643,42 +1676,67 @@ export default function PoWorkflowModal({
                                                         disabled={!canExport}
                                                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm transition-all flex items-center gap-2 shrink-0 self-start sm:self-auto disabled:opacity-50 disabled:cursor-not-allowed"
                                                         id="edit-dv-excel-btn"
-                                                        title={!canExport ? (
+                                                        title={!hasDeliveryRecord ? (
+                                                            "A Delivery Monitoring record is required before accessing or exporting the Disbursement Voucher"
+                                                        ) : (!canExport ? (
                                                             dvTemplate === 'neither' || dvTemplate === 'retention_only'
                                                                 ? "Complete Date Completed to export Excel"
                                                                 : "Enter an LD amount and complete Date Completed to export Excel"
-                                                        ) : "Export Disbursement Voucher in Excel"}
+                                                        ) : "Export Disbursement Voucher in Excel")}
                                                     >
-                                                        <FileSpreadsheet className="size-4" />
+                                                        {!hasDeliveryRecord ? <Lock className="size-4" /> : <FileSpreadsheet className="size-4" />}
                                                         Edit DV in Excel
                                                     </Button>
                                                 )}
                                             </div>
 
+                                            {!hasDeliveryRecord && (
+                                                <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200">
+                                                    <Lock className="size-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                                                    <div className="space-y-1">
+                                                        <h5 className="text-xs font-semibold text-amber-900 dark:text-amber-100 flex items-center gap-1.5">
+                                                            <span>Disbursement Voucher Locked</span>
+                                                            <span className="text-[11px] font-normal px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-200">Delivery Record Required</span>
+                                                        </h5>
+                                                        <p className="text-xs text-amber-800/90 dark:text-amber-200/90 leading-relaxed">
+                                                            The selected Purchase Order (<strong>{purchaseOrder?.po_number}</strong>) must have an existing record in <strong>Delivery Monitoring</strong> before the Disbursement Voucher can be fully accessed, configured, or exported.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Checklist of Templates */}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                {/* 1. LD only (Working Option) */}
+                                                {/* 1. LD only */}
                                                 <label
                                                     className={cn(
-                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all cursor-pointer select-none",
-                                                        dvTemplate === 'ld_only'
-                                                            ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30"
-                                                            : "border-border/60 hover:border-border hover:bg-muted/40"
+                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all select-none",
+                                                        !hasDeliveryRecord
+                                                            ? "border-border/40 bg-muted/20 opacity-60 cursor-not-allowed"
+                                                            : dvTemplate === 'ld_only'
+                                                                ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30 cursor-pointer"
+                                                                : "border-border/60 hover:border-border hover:bg-muted/40 cursor-pointer"
                                                     )}
                                                 >
                                                     <input
                                                         type="radio"
                                                         name="dv_template"
                                                         value="ld_only"
+                                                        disabled={!hasDeliveryRecord}
                                                         checked={dvTemplate === 'ld_only'}
-                                                        onChange={() => handleTemplateChange('ld_only')}
-                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500"
+                                                        onChange={() => hasDeliveryRecord && handleTemplateChange('ld_only')}
+                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     />
                                                     <div className="flex-1">
                                                         <div className="flex items-center justify-between gap-2">
                                                             <span className="text-sm font-medium text-foreground">LD only</span>
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                                                                Active
+                                                            <span className={cn(
+                                                                "inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold",
+                                                                !hasDeliveryRecord
+                                                                    ? "bg-muted text-muted-foreground"
+                                                                    : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                                                            )}>
+                                                                {!hasDeliveryRecord ? "Locked" : "Active"}
                                                             </span>
                                                         </div>
                                                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -1687,28 +1745,36 @@ export default function PoWorkflowModal({
                                                     </div>
                                                 </label>
 
-                                                {/* 2. Retention only (Active) */}
+                                                {/* 2. Retention only */}
                                                 <label
                                                     className={cn(
-                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all cursor-pointer select-none",
-                                                        dvTemplate === 'retention_only'
-                                                            ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30"
-                                                            : "border-border/60 hover:border-border hover:bg-muted/40"
+                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all select-none",
+                                                        !hasDeliveryRecord
+                                                            ? "border-border/40 bg-muted/20 opacity-60 cursor-not-allowed"
+                                                            : dvTemplate === 'retention_only'
+                                                                ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30 cursor-pointer"
+                                                                : "border-border/60 hover:border-border hover:bg-muted/40 cursor-pointer"
                                                     )}
                                                 >
                                                     <input
                                                         type="radio"
                                                         name="dv_template"
                                                         value="retention_only"
+                                                        disabled={!hasDeliveryRecord}
                                                         checked={dvTemplate === 'retention_only'}
-                                                        onChange={() => handleTemplateChange('retention_only')}
-                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500"
+                                                        onChange={() => hasDeliveryRecord && handleTemplateChange('retention_only')}
+                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     />
                                                     <div className="flex-1">
                                                         <div className="flex items-center justify-between gap-2">
                                                             <span className="text-sm font-medium text-foreground">Retention only</span>
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                                                                Active
+                                                            <span className={cn(
+                                                                "inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold",
+                                                                !hasDeliveryRecord
+                                                                    ? "bg-muted text-muted-foreground"
+                                                                    : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                                                            )}>
+                                                                {!hasDeliveryRecord ? "Locked" : "Active"}
                                                             </span>
                                                         </div>
                                                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -1717,28 +1783,36 @@ export default function PoWorkflowModal({
                                                     </div>
                                                 </label>
 
-                                                {/* 3. LD and retention (Active) */}
+                                                {/* 3. LD and retention */}
                                                 <label
                                                     className={cn(
-                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all cursor-pointer select-none",
-                                                        dvTemplate === 'ld_and_retention'
-                                                            ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30"
-                                                            : "border-border/60 hover:border-border hover:bg-muted/40"
+                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all select-none",
+                                                        !hasDeliveryRecord
+                                                            ? "border-border/40 bg-muted/20 opacity-60 cursor-not-allowed"
+                                                            : dvTemplate === 'ld_and_retention'
+                                                                ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30 cursor-pointer"
+                                                                : "border-border/60 hover:border-border hover:bg-muted/40 cursor-pointer"
                                                     )}
                                                 >
                                                     <input
                                                         type="radio"
                                                         name="dv_template"
                                                         value="ld_and_retention"
+                                                        disabled={!hasDeliveryRecord}
                                                         checked={dvTemplate === 'ld_and_retention'}
-                                                        onChange={() => handleTemplateChange('ld_and_retention')}
-                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500"
+                                                        onChange={() => hasDeliveryRecord && handleTemplateChange('ld_and_retention')}
+                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     />
                                                     <div className="flex-1">
                                                         <div className="flex items-center justify-between gap-2">
                                                             <span className="text-sm font-medium text-foreground">LD and retention</span>
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                                                                Active
+                                                            <span className={cn(
+                                                                "inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold",
+                                                                !hasDeliveryRecord
+                                                                    ? "bg-muted text-muted-foreground"
+                                                                    : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                                                            )}>
+                                                                {!hasDeliveryRecord ? "Locked" : "Active"}
                                                             </span>
                                                         </div>
                                                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -1747,28 +1821,36 @@ export default function PoWorkflowModal({
                                                     </div>
                                                 </label>
 
-                                                {/* 4. Neither LD nor retention (Active) */}
+                                                {/* 4. Neither LD nor retention */}
                                                 <label
                                                     className={cn(
-                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all cursor-pointer select-none",
-                                                        dvTemplate === 'neither'
-                                                            ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30"
-                                                            : "border-border/60 hover:border-border hover:bg-muted/40"
+                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all select-none",
+                                                        !hasDeliveryRecord
+                                                            ? "border-border/40 bg-muted/20 opacity-60 cursor-not-allowed"
+                                                            : dvTemplate === 'neither'
+                                                                ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30 cursor-pointer"
+                                                                : "border-border/60 hover:border-border hover:bg-muted/40 cursor-pointer"
                                                     )}
                                                 >
                                                     <input
                                                         type="radio"
                                                         name="dv_template"
                                                         value="neither"
+                                                        disabled={!hasDeliveryRecord}
                                                         checked={dvTemplate === 'neither'}
-                                                        onChange={() => handleTemplateChange('neither')}
-                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500"
+                                                        onChange={() => hasDeliveryRecord && handleTemplateChange('neither')}
+                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     />
                                                     <div className="flex-1">
                                                         <div className="flex items-center justify-between gap-2">
                                                             <span className="text-sm font-medium text-foreground">Neither LD nor retention</span>
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                                                                Active
+                                                            <span className={cn(
+                                                                "inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold",
+                                                                !hasDeliveryRecord
+                                                                    ? "bg-muted text-muted-foreground"
+                                                                    : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                                                            )}>
+                                                                {!hasDeliveryRecord ? "Locked" : "Active"}
                                                             </span>
                                                         </div>
                                                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -1780,7 +1862,7 @@ export default function PoWorkflowModal({
 
                                             {/* LD Amount Input for LD-only and Both templates */}
                                             {(dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') && (
-                                                <div className="p-4 rounded-lg border border-border/70 bg-card space-y-2">
+                                                <div className={cn("p-4 rounded-lg border border-border/70 bg-card space-y-2", !hasDeliveryRecord && "opacity-60 cursor-not-allowed")}>
                                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                                         <div>
                                                             <label className="text-xs font-semibold text-foreground flex items-center gap-1.5" htmlFor="ld-amount-input">
@@ -1799,7 +1881,8 @@ export default function PoWorkflowModal({
                                                                 min="0"
                                                                 max={poTotal}
                                                                 value={ldAmount}
-                                                                onChange={(e) => handleLdChange(e.target.value)}
+                                                                disabled={!hasDeliveryRecord}
+                                                                onChange={(e) => hasDeliveryRecord && handleLdChange(e.target.value)}
                                                                 placeholder="0.00"
                                                                 className={cn(
                                                                     "text-right font-medium",
@@ -1816,7 +1899,7 @@ export default function PoWorkflowModal({
 
                                             {/* Retention Amount Input for Retention-only and Both templates */}
                                             {(dvTemplate === 'retention_only' || dvTemplate === 'ld_and_retention') && (
-                                                <div className="p-4 rounded-lg border border-border/70 bg-card space-y-2">
+                                                <div className={cn("p-4 rounded-lg border border-border/70 bg-card space-y-2", !hasDeliveryRecord && "opacity-60 cursor-not-allowed")}>
                                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                                         <div>
                                                             <label className="text-xs font-semibold text-foreground flex items-center gap-1.5" htmlFor="retention-amount-input">
@@ -1835,7 +1918,8 @@ export default function PoWorkflowModal({
                                                                 min="0"
                                                                 max={poTotal}
                                                                 value={retentionAmount}
-                                                                onChange={(e) => handleRetentionChange(e.target.value)}
+                                                                disabled={!hasDeliveryRecord}
+                                                                onChange={(e) => hasDeliveryRecord && handleRetentionChange(e.target.value)}
                                                                 placeholder={poTotal > 0 ? (poTotal * 0.01).toFixed(2) : "0.00"}
                                                                 className={cn(
                                                                     "text-right font-medium",
@@ -1850,36 +1934,41 @@ export default function PoWorkflowModal({
                                                 </div>
                                             )}
 
-                                            {/* Hint when LD amount is not yet inputted */}
-                                            {(dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') && !isLdInputted && (
-                                                <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs">
-                                                    <Info className="size-4 shrink-0" />
-                                                    <span>Enter a value in the <strong>Liquidated Damages (LD) Amount</strong> field (e.g. 0.00 or penalty amount) to enable the <strong>Edit DV in Excel</strong> button.</span>
-                                                </div>
-                                            )}
+                                            {/* Hints only shown when eligible */}
+                                            {hasDeliveryRecord && (
+                                                <>
+                                                    {/* Hint when LD amount is not yet inputted */}
+                                                    {(dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') && !isLdInputted && (
+                                                        <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs">
+                                                            <Info className="size-4 shrink-0" />
+                                                            <span>Enter a value in the <strong>Liquidated Damages (LD) Amount</strong> field (e.g. 0.00 or penalty amount) to enable the <strong>Edit DV in Excel</strong> button.</span>
+                                                        </div>
+                                                    )}
 
-                                            {/* Hint when required information is not yet completed for LD template */}
-                                            {(dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') && isLdInputted && !isDateCompletedFilled && (
-                                                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
-                                                    <Info className="size-4 shrink-0" />
-                                                    <span>Complete the required <strong>Date Completed</strong> field above to enable the <strong>Edit DV in Excel</strong> button.</span>
-                                                </div>
-                                            )}
+                                                    {/* Hint when required information is not yet completed for LD template */}
+                                                    {(dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') && isLdInputted && !isDateCompletedFilled && (
+                                                        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+                                                            <Info className="size-4 shrink-0" />
+                                                            <span>Complete the required <strong>Date Completed</strong> field above to enable the <strong>Edit DV in Excel</strong> button.</span>
+                                                        </div>
+                                                    )}
 
-                                            {/* Hint when required information is not yet completed for Retention template */}
-                                            {dvTemplate === 'retention_only' && !isDateCompletedFilled && (
-                                                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
-                                                    <Info className="size-4 shrink-0" />
-                                                    <span>Complete the required <strong>Date Completed</strong> field above to enable the <strong>Edit DV in Excel</strong> button.</span>
-                                                </div>
-                                            )}
+                                                    {/* Hint when required information is not yet completed for Retention template */}
+                                                    {dvTemplate === 'retention_only' && !isDateCompletedFilled && (
+                                                        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+                                                            <Info className="size-4 shrink-0" />
+                                                            <span>Complete the required <strong>Date Completed</strong> field above to enable the <strong>Edit DV in Excel</strong> button.</span>
+                                                        </div>
+                                                    )}
 
-                                            {/* Hint when Date Completed is not yet completed for Neither template */}
-                                            {dvTemplate === 'neither' && !isDateCompletedFilled && (
-                                                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
-                                                    <Info className="size-4 shrink-0" />
-                                                    <span>Complete the required <strong>Date Completed</strong> field above to enable the <strong>Edit DV in Excel</strong> button.</span>
-                                                </div>
+                                                    {/* Hint when Date Completed is not yet completed for Neither template */}
+                                                    {dvTemplate === 'neither' && !isDateCompletedFilled && (
+                                                        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+                                                            <Info className="size-4 shrink-0" />
+                                                            <span>Complete the required <strong>Date Completed</strong> field above to enable the <strong>Edit DV in Excel</strong> button.</span>
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </div>

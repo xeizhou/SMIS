@@ -19,6 +19,7 @@ import {
     FileArchive,
     ExternalLink,
     Download,
+    Lock,
 } from "lucide-react";
 import {
     ItemDescriptionBadge,
@@ -119,6 +120,8 @@ interface PurchaseOrder {
     ld_amount?: string | number | null;
     retention_amount?: string | number | null;
     dv_template?: string | null;
+    has_delivery_record?: boolean;
+    deliveries?: any[];
     inspection_entries?: any[];
 }
 
@@ -437,6 +440,7 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Payment Processing</h4>
                                     {(() => {
                                         const selectedTemplate = po.dv_template || 'ld_only';
+                                        const hasDeliveryRecord = Boolean(po.has_delivery_record ?? (po.deliveries && po.deliveries.length > 0));
                                         const templateLabels: Record<string, string> = {
                                             ld_only: 'LD Only',
                                             neither: 'Neither LD nor retention',
@@ -449,7 +453,20 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                                             <>
                                                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 mb-4">
                                                     <Detail label="Payment Status" value={po.payment_status ?? '—'} />
-                                                    <Detail label="DV Template" value={templateLabel} />
+                                                    <Detail
+                                                        label="DV Template"
+                                                        value={
+                                                            hasDeliveryRecord ? (
+                                                                templateLabel
+                                                            ) : (
+                                                                <span className="flex items-center gap-1.5 text-muted-foreground">
+                                                                    <Lock className="size-3 text-amber-600 dark:text-amber-400" />
+                                                                    <span>{templateLabel}</span>
+                                                                    <span className="text-[10px] px-1 py-0.2 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300">Locked</span>
+                                                                </span>
+                                                            )
+                                                        }
+                                                    />
                                                     {(selectedTemplate === 'ld_only' || selectedTemplate === 'ld_and_retention') && (
                                                         <Detail label="LD Amount" value={po.ld_amount != null && String(po.ld_amount).trim() !== '' ? formatCurrency(po.ld_amount) : '₱0.00'} />
                                                     )}
@@ -469,23 +486,38 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                                                     <Detail label="Date Completed" value={formatDate(po.date_completed)} />
                                                 </div>
 
-                                                {po.date_completed && (
-                                                    <div className="mb-4 flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                                                        <div className="flex items-center gap-2 text-xs text-foreground font-medium">
-                                                            <FileSpreadsheet className="size-4 text-emerald-600 dark:text-emerald-400" />
-                                                            <span>Disbursement Voucher ({templateLabel} Template)</span>
+                                                {hasDeliveryRecord ? (
+                                                    po.date_completed && (
+                                                        <div className="mb-4 flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                                            <div className="flex items-center gap-2 text-xs text-foreground font-medium">
+                                                                <FileSpreadsheet className="size-4 text-emerald-600 dark:text-emerald-400" />
+                                                                <span>Disbursement Voucher ({templateLabel} Template)</span>
+                                                            </div>
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                onClick={() => window.location.href = `/purchase-orders/${encodeURIComponent(po.po_number)}/export-dv?template=${encodeURIComponent(selectedTemplate)}`}
+                                                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 flex items-center gap-1.5"
+                                                                id="export-dv-excel-btn"
+                                                                title={`Export Disbursement Voucher (${templateLabel})`}
+                                                            >
+                                                                <FileSpreadsheet className="size-3.5" />
+                                                                Export DV in Excel
+                                                            </Button>
                                                         </div>
-                                                        <Button
-                                                            type="button"
-                                                            size="sm"
-                                                            onClick={() => window.location.href = `/purchase-orders/${encodeURIComponent(po.po_number)}/export-dv?template=${encodeURIComponent(selectedTemplate)}`}
-                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 flex items-center gap-1.5"
-                                                            id="export-dv-excel-btn"
-                                                            title={`Export Disbursement Voucher (${templateLabel})`}
-                                                        >
-                                                            <FileSpreadsheet className="size-3.5" />
-                                                            Export DV in Excel
-                                                        </Button>
+                                                    )
+                                                ) : (
+                                                    <div className="mb-4 flex items-start gap-3 p-3.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200">
+                                                        <Lock className="size-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                                                        <div className="space-y-0.5 text-xs">
+                                                            <p className="font-semibold text-amber-900 dark:text-amber-100 flex items-center gap-1.5">
+                                                                <span>Disbursement Voucher Locked</span>
+                                                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-200">Delivery Record Required</span>
+                                                            </p>
+                                                            <p className="text-amber-800/90 dark:text-amber-200/90">
+                                                                This Purchase Order must have an existing record in <strong>Delivery Monitoring</strong> before the Disbursement Voucher can be accessed or exported.
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </>
