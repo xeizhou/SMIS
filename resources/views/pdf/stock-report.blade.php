@@ -7,7 +7,13 @@
             margin: 60px 60px 70px 60px;
         }
         body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
-        h1 { text-align: center; font-size: 21px; margin-bottom: 30px; }
+        .header-title { text-align: center; font-weight: bold; font-size: 21px; white-space: nowrap; }
+
+        table.header-table { width: 100%; border-collapse: collapse; margin-top: 0; margin-bottom: 20px; table-layout: fixed; }
+        table.header-table td { border: none; padding: 0; vertical-align: middle; }
+        table.header-table td.side { width: 72px; }
+        table.header-table td.title { text-align: center; }
+        table.header-table .logo { width: 72px; height: 72px; }
         .meta { font-size: 12px; font-weight: bold; margin: 4px 0; }
         
         /* Added table-layout: fixed to force strict column sizing */
@@ -34,7 +40,13 @@
     </style>
 </head>
 <body>
-    <h1>REPORT OF PHYSICAL COUNT INVENTORIES</h1>
+    <table class="header-table">
+        <tr>
+            <td class="side"><img class="logo" src="{{ public_path('usep-logo.png') }}" alt="USeP Logo"></td>
+            <td class="title"><div class="header-title">REPORT OF PHYSICAL COUNT INVENTORIES</div></td>
+            <td class="side"></td>
+        </tr>
+    </table>
 
     <p class="meta">FUND CLUSTER: {{ $fundClusterLabel }}</p>
     <p class="meta">AS OF: {{ $asOfLabel ?: '____________________' }}</p>
