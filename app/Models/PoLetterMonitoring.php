@@ -2,16 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\ServePo;
 use App\Traits\LogsActivity;
 use App\Traits\SerializesDatesWithoutTimezoneShift;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PoLetterMonitoring extends Model
 {
@@ -26,10 +25,12 @@ class PoLetterMonitoring extends Model
             'highlight_id' => $this->getKey(),
         ]);
     }
+
     protected $table = 'po_letter_monitoring';
 
     protected $fillable = [
         'reference_no',
+        'import_key',
         'supplier_id',
         'po_number',
         'po_date',
@@ -116,8 +117,6 @@ class PoLetterMonitoring extends Model
             },
         );
     }
-
-
 
     public function archiveMetadata(): MorphOne
     {

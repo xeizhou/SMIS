@@ -13,6 +13,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DeliveryImportService
@@ -46,7 +48,7 @@ class DeliveryImportService
         ],
         'po_date_received' => [
             'po_date_received', 'date_received_by_supplier', 'po_received_date',
-            'date_po_received', 'received_date_supplier', 'date_received',
+            'po_date_recieved', 'date_po_received', 'received_date_supplier', 'date_received',
         ],
         'delivery_term' => [
             'delivery_term', 'delivery_term_days', 'term', 'terms',
@@ -61,10 +63,12 @@ class DeliveryImportService
         ],
         'received_by_1' => [
             'received_by_1', 'received_by', 'receiver_1', 'received_by_one',
+            'received_by_person1', 'recieved_by', 'recieved_by_person1',
             'inspecting_officer', 'receivedby', 'receiver',
         ],
         'received_by_2' => [
-            'received_by_2', 'receiver_2', 'received_by_two', 'co_receiver',
+            'received_by_2', 'received_by_person2', 'recieved_by_person2',
+            'receiver_2', 'received_by_two', 'co_receiver',
         ],
         'end_user' => [
             'end_user', 'enduser', 'office', 'office_end_user',
@@ -88,6 +92,9 @@ class DeliveryImportService
         'folder_link' => [
             'folder_link', 'drive_link', 'link', 'url',
             'document_link', 'folder_url', 'attachment_link',
+        ],
+        'data_entry_timestamp' => [
+            'data_entry_timestamp', 'data_entry_date', 'timestamp',
         ],
         'remarks' => [
             'remarks', 'remark', 'notes', 'comments', 'comment',
@@ -142,6 +149,7 @@ class DeliveryImportService
                             'Cancelled Delivery import: %d created, %d updated, %d skipped.',
                             $created, $updated, $skippedCount
                         ));
+
                         return false;
                     }
 
@@ -178,7 +186,7 @@ class DeliveryImportService
                 'error_message' => $e->getMessage(),
             ]);
 
-            $this->logAudit($import, 'Delivery import failed: ' . $e->getMessage());
+            $this->logAudit($import, 'Delivery import failed: '.$e->getMessage());
             throw $e;
         }
     }
@@ -188,7 +196,7 @@ class DeliveryImportService
      */
     private function readExcel(string $filePath): array
     {
-        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+        $spreadsheet = IOFactory::load($filePath);
         $worksheet = $spreadsheet->getActiveSheet();
         $raw = $worksheet->toArray(null, true, true, false);
 
@@ -217,7 +225,7 @@ class DeliveryImportService
 
         fclose($handle);
 
-        if (!empty($raw) && isset($raw[0][0])) {
+        if (! empty($raw) && isset($raw[0][0])) {
             $raw[0][0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $raw[0][0]);
         }
 
@@ -252,19 +260,61 @@ class DeliveryImportService
             return [];
         }
 
-        $headerIndex = 0;
+        $poNumberHeaders = array_map(fn ($alias) => $this->normalizeHeaderKey($alias), self::ALIASES['po_number']);
+        $headerIndex = null;
         foreach ($raw as $idx => $row) {
-            $nonEmpty = array_filter($row, fn ($cell) => $cell !== null && trim((string) $cell) !== '');
-            if (count($nonEmpty) >= 2) {
+            $headers = array_map(fn ($cell) => $this->normalizeHeaderKey($cell), $row);
+            if (array_intersect($poNumberHeaders, $headers) !== []) {
                 $headerIndex = $idx;
                 break;
             }
         }
 
+        if ($headerIndex === null) {
+            foreach ($raw as $idx => $row) {
+                $nonEmpty = array_filter($row, fn ($cell) => $cell !== null && trim((string) $cell) !== '');
+                if (count($nonEmpty) >= 2) {
+                    $headerIndex = $idx;
+                    break;
+                }
+            }
+        }
+
+        if ($headerIndex === null) {
+            return [];
+        }
+
         $headers = array_map(fn ($h) => trim((string) $h), $raw[$headerIndex]);
+        $subheader = $raw[$headerIndex + 1] ?? [];
+        $hasReceiverSubheader = false;
+        foreach ($headers as $idx => $header) {
+            if ($this->normalizeHeaderKey($header) === 'recieved_by') {
+                $person1 = $this->normalizeHeaderKey($subheader[$idx] ?? '');
+                $person2 = $this->normalizeHeaderKey($subheader[$idx + 1] ?? '');
+                if ($person1 === 'person1' && $person2 === 'person2') {
+                    $headers[$idx] .= ' PERSON1';
+                    $headers[$idx + 1] = 'RECIEVED BY PERSON2';
+                    $hasReceiverSubheader = true;
+                }
+            }
+        }
+
+        $headerOccurrences = [];
+        foreach ($headers as $idx => $header) {
+            $headerKey = $this->normalizeHeaderKey($header);
+            if ($headerKey === '') {
+                continue;
+            }
+
+            $headerOccurrences[$headerKey] = ($headerOccurrences[$headerKey] ?? 0) + 1;
+            if ($headerOccurrences[$headerKey] > 1) {
+                $headers[$idx] .= '_'.$headerOccurrences[$headerKey];
+            }
+        }
+
         $rows = [];
 
-        foreach (array_slice($raw, $headerIndex + 1) as $line) {
+        foreach (array_slice($raw, $headerIndex + ($hasReceiverSubheader ? 2 : 1)) as $line) {
             if (count(array_filter($line, fn ($v) => $v !== null && trim((string) $v) !== '')) === 0) {
                 continue;
             }
@@ -287,6 +337,15 @@ class DeliveryImportService
         return $rows;
     }
 
+    private function normalizeHeaderKey(mixed $header): string
+    {
+        $cleanKey = strtolower(trim((string) $header));
+        $cleanKey = preg_replace('/[^a-z0-9_#]/', '_', $cleanKey);
+        $cleanKey = preg_replace('/_+/', '_', $cleanKey);
+
+        return trim($cleanKey, '_');
+    }
+
     /**
      * Normalize row keys using self::ALIASES.
      */
@@ -296,19 +355,13 @@ class DeliveryImportService
         $lookup = [];
 
         foreach ($row as $k => $v) {
-            $cleanKey = strtolower(trim((string) $k));
-            $cleanKey = preg_replace('/[^a-z0-9_#]/', '_', $cleanKey);
-            $cleanKey = preg_replace('/_+/', '_', $cleanKey);
-            $cleanKey = trim($cleanKey, '_');
+            $cleanKey = $this->normalizeHeaderKey($k);
             $lookup[$cleanKey] = $v;
         }
 
         foreach (self::ALIASES as $targetField => $aliases) {
             foreach ($aliases as $alias) {
-                $cleanAlias = strtolower(trim($alias));
-                $cleanAlias = preg_replace('/[^a-z0-9_#]/', '_', $cleanAlias);
-                $cleanAlias = preg_replace('/_+/', '_', $cleanAlias);
-                $cleanAlias = trim($cleanAlias, '_');
+                $cleanAlias = $this->normalizeHeaderKey($alias);
 
                 if (array_key_exists($cleanAlias, $lookup) && $lookup[$cleanAlias] !== null) {
                     $normalized[$targetField] = $lookup[$cleanAlias];
@@ -406,6 +459,7 @@ class DeliveryImportService
 
                 if ($poNumber === '') {
                     $skipped[] = "Row #{$rowNumber}: Skipped because PO Number is missing.";
+
                     continue;
                 }
 
@@ -413,7 +467,7 @@ class DeliveryImportService
 
                 // Supplier resolution
                 $supplierId = null;
-                if (!empty($row['supplier'])) {
+                if (! empty($row['supplier'])) {
                     $supplierVal = trim((string) $row['supplier']);
                     if (is_numeric($supplierVal) && isset($suppliersById[(int) $supplierVal])) {
                         $supplierId = (int) $supplierVal;
@@ -437,7 +491,7 @@ class DeliveryImportService
 
                 // Office / End User resolution
                 $endUser = null;
-                if (!empty($row['end_user'])) {
+                if (! empty($row['end_user'])) {
                     $officeVal = trim((string) $row['end_user']);
                     $officeLower = strtolower($officeVal);
                     if (isset($officesByCode[$officeLower])) {
@@ -453,7 +507,7 @@ class DeliveryImportService
 
                 // Delivery Dates parsing
                 $deliveryDates = [];
-                if (!empty($row['delivery_date'])) {
+                if (! empty($row['delivery_date'])) {
                     $rawDateStrings = preg_split('/[,;\n]+/', (string) $row['delivery_date']);
                     if (is_array($rawDateStrings)) {
                         foreach ($rawDateStrings as $dtStr) {
@@ -466,17 +520,17 @@ class DeliveryImportService
                 }
                 $deliveryDates = array_values(array_unique($deliveryDates));
                 sort($deliveryDates);
-                $latestDeliveryDate = !empty($deliveryDates) ? end($deliveryDates) : null;
+                $latestDeliveryDate = ! empty($deliveryDates) ? end($deliveryDates) : null;
 
                 // Dates and Terms
                 $poDateReceived = $this->parseDate($row['po_date_received'] ?? null);
-                if (!$poDateReceived && $linkedPo?->po_received_date) {
+                if (! $poDateReceived && $linkedPo?->po_received_date) {
                     $poDateReceived = $linkedPo->po_received_date->format('Y-m-d');
                 }
 
                 $deliveryTerm = null;
-                if (isset($row['delivery_term']) && is_numeric($row['delivery_term'])) {
-                    $deliveryTerm = (int) $row['delivery_term'];
+                if (! empty($row['delivery_term']) && preg_match('/-?\d+/', (string) $row['delivery_term'], $termMatch)) {
+                    $deliveryTerm = (int) $termMatch[0];
                 } elseif ($linkedPo?->delivery_term !== null) {
                     $deliveryTerm = (int) $linkedPo->delivery_term;
                 } else {
@@ -484,7 +538,7 @@ class DeliveryImportService
                 }
 
                 $dueDate = $this->parseDate($row['due_date'] ?? null);
-                if (!$dueDate && $poDateReceived && $deliveryTerm > 0) {
+                if (! $dueDate && $poDateReceived && $deliveryTerm > 0) {
                     $dueDate = Carbon::parse($poDateReceived)->addDays($deliveryTerm)->format('Y-m-d');
                 }
 
@@ -503,39 +557,40 @@ class DeliveryImportService
                 }
 
                 // Amounts
-                $poTotalAmount = isset($row['po_total_amount']) && is_numeric($row['po_total_amount'])
-                    ? (float) $row['po_total_amount']
+                $poTotalAmount = isset($row['po_total_amount']) && trim((string) $row['po_total_amount']) !== ''
+                    ? $this->parseNumeric($row['po_total_amount'])
                     : (float) ($linkedPo?->total_amount_po ?? 0);
 
-                $totalAmountDelivered = isset($row['total_amount_delivered']) && is_numeric($row['total_amount_delivered'])
-                    ? (float) $row['total_amount_delivered']
+                $totalAmountDelivered = isset($row['total_amount_delivered']) && trim((string) $row['total_amount_delivered']) !== ''
+                    ? $this->parseNumeric($row['total_amount_delivered'])
                     : $poTotalAmount;
 
                 // Status
                 $status = $this->normalizeStatus($row['status'] ?? null, $latestDeliveryDate);
+                $dataEntryTimestamp = $this->parseDateTime($row['data_entry_timestamp'] ?? null);
 
-                $receivedBy1 = !empty($row['received_by_1'])
+                $receivedBy1 = ! empty($row['received_by_1'])
                     ? substr(trim((string) $row['received_by_1']), 0, 150)
                     : null;
 
-                $receivedBy2 = !empty($row['received_by_2'])
+                $receivedBy2 = ! empty($row['received_by_2'])
                     ? substr(trim((string) $row['received_by_2']), 0, 150)
                     : null;
 
-                $placeOfDelivery = !empty($row['place_of_delivery'])
+                $placeOfDelivery = ! empty($row['place_of_delivery'])
                     ? substr(trim((string) $row['place_of_delivery']), 0, 255)
                     : null;
 
-                $folderLink = !empty($row['folder_link'])
+                $folderLink = ! empty($row['folder_link'])
                     ? substr(trim((string) $row['folder_link']), 0, 500)
                     : null;
 
-                $remarks = !empty($row['remarks'])
+                $remarks = ! empty($row['remarks'])
                     ? trim((string) $row['remarks'])
                     : null;
 
                 // Ensure linked ServePo exists
-                if (!$linkedPo) {
+                if (! $linkedPo) {
                     ServePo::withoutActivityLogging(function () use (
                         $poNumber,
                         $supplierId,
@@ -559,9 +614,12 @@ class DeliveryImportService
                 }
 
                 // Delivery ID resolution
-                $deliveryId = !empty($row['delivery_id'])
+                $deliveryId = ! empty($row['delivery_id'])
                     ? substr(trim((string) $row['delivery_id']), 0, 50)
                     : null;
+                if (! $deliveryId && $dataEntryTimestamp) {
+                    $deliveryId = 'IMP-'.substr(hash('sha256', $poNumber.'|'.$dataEntryTimestamp), 0, 40);
+                }
 
                 // Find existing delivery
                 $existingDelivery = null;
@@ -585,14 +643,16 @@ class DeliveryImportService
                     'place_of_delivery' => $placeOfDelivery,
                     'status' => $status,
                     'remarks' => $remarks,
+                    'data_entry_timestamp' => $dataEntryTimestamp,
                     'total_amount_delivered' => $totalAmountDelivered,
                     'po_total_amount' => $poTotalAmount,
                     'folder_link' => $folderLink,
                 ];
 
                 if ($existingDelivery) {
-                    if (!$mergeExisting) {
+                    if (! $mergeExisting) {
                         $skipped[] = "Row #{$rowNumber}: Delivery for PO '{$poNumber}' (ID: {$existingDelivery->delivery_id}) already exists (skipped).";
+
                         continue;
                     }
 
@@ -600,7 +660,7 @@ class DeliveryImportService
                     $existingDelivery->update($updateData);
 
                     // Sync delivery dates if dates were specified
-                    if (!empty($deliveryDates)) {
+                    if (! empty($deliveryDates)) {
                         $existingDelivery->deliveryDates()->delete();
                         foreach ($deliveryDates as $dDate) {
                             $existingDelivery->deliveryDates()->create(['delivery_date' => $dDate]);
@@ -609,12 +669,12 @@ class DeliveryImportService
 
                     $updated++;
                 } else {
-                    $attributes['delivery_id'] = $deliveryId ?: (now()->format('YmdHis') . '-' . substr(md5(uniqid()), 0, 6));
-                    $attributes['data_entry_timestamp'] = now();
+                    $attributes['delivery_id'] = $deliveryId ?: (now()->format('YmdHis').'-'.substr(md5(uniqid()), 0, 6));
+                    $attributes['data_entry_timestamp'] = $dataEntryTimestamp ?? now();
 
                     $newDelivery = Delivery::create($attributes);
 
-                    if (!empty($deliveryDates)) {
+                    if (! empty($deliveryDates)) {
                         foreach ($deliveryDates as $dDate) {
                             $newDelivery->deliveryDates()->create(['delivery_date' => $dDate]);
                         }
@@ -665,7 +725,7 @@ class DeliveryImportService
 
         if (is_numeric($value)) {
             try {
-                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $value)->format('Y-m-d');
+                return Date::excelToDateTimeObject((float) $value)->format('Y-m-d');
             } catch (\Throwable) {
                 // fallback
             }
@@ -678,29 +738,49 @@ class DeliveryImportService
         }
     }
 
+    private function parseDateTime(mixed $value): ?string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->format('Y-m-d H:i:s');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function parseNumeric(mixed $value): float
+    {
+        $clean = preg_replace('/[^0-9.-]/', '', (string) $value);
+
+        return is_numeric($clean) ? (float) $clean : 0.0;
+    }
+
     /**
      * Template headers for Delivery Monitoring import.
      */
     public function getTemplateHeaders(): array
     {
         return [
-            'Delivery ID',
-            'PO Number',
+            'PO NUMBER',
             'Supplier',
-            'Delivery Date',
-            'PO Date Received',
+            'Date of Delivery',
+            'PO Date Recieved',
             'Delivery Term',
             'Due Date',
-            'No of Days LD',
-            'Received By 1',
-            'Received By 2',
-            'End User',
-            'Place of Delivery',
-            'Status',
-            'Total Amount Delivered',
-            'PO Total Amount',
-            'Folder Link',
+            'No. of Days (LD)',
+            'RECIEVED BY PERSON1',
+            'RECIEVED BY PERSON2',
+            'END-USER',
+            'PLACE OF DELIVERY',
+            'STATUS',
             'Remarks',
+            'DATA ENTRY TIMESTAMP',
+            'TOTAL AMOUNT DELIVERED',
+            'PO TOTAL AMOUNT',
+            'FOLDER LINK',
         ];
     }
 
@@ -711,61 +791,61 @@ class DeliveryImportService
     {
         return [
             [
-                'DEL-2026-0001',
                 'PO-2026-0001',
                 'Sample Supplier Inc.',
-                '2026-02-15',
-                '2026-01-20',
-                '30',
-                '2026-02-19',
+                '2/15/2026',
+                '1/20/2026',
+                '30 DAYS',
+                '2/19/2026',
                 '0',
                 'JUAN DELA CRUZ',
                 'PEDRO SANTOS',
                 'OFC-01',
                 'Administration Building, SMU Warehouse',
                 'COMPLETE',
-                '50000.00',
-                '50000.00',
-                'https://drive.google.com/file/d/sample-delivery-receipt-1',
                 'Delivered in good condition, inspected upon receipt',
+                '2/20/2026 08:30:00',
+                '50,000.00',
+                '50,000.00',
+                'https://drive.google.com/file/d/sample-delivery-receipt-1',
             ],
             [
-                'DEL-2026-0002',
                 'PO-2026-0002',
                 'Tech Solutions Co.',
-                '2026-03-25',
-                '2026-02-05',
-                '45',
-                '2026-03-22',
+                '3/25/2026',
+                '2/5/2026',
+                '45 DAYS',
+                '3/22/2026',
                 '3',
                 'MARIA GARCIA',
                 '',
                 'CED',
                 'College of Education Laboratory',
-                'COMPLETE',
-                '125000.00',
-                '125000.00',
-                '',
+                'PARTIAL',
                 '3 days delayed due to courier logistics',
+                '3/26/2026 10:15:00',
+                '75,000.00',
+                '125,000.00',
+                '',
             ],
             [
-                '',
                 'PO-2026-0003',
                 'Prime Office Supplies',
                 '',
-                '2026-03-01',
-                '15',
-                '2026-03-16',
+                '3/1/2026',
+                '15 DAYS',
+                '3/16/2026',
                 '0',
                 '',
                 '',
                 'HRMD',
                 'HRMD Supply Room',
                 'PENDING',
-                '0.00',
-                '35000.00',
-                '',
                 'Awaiting delivery from supplier',
+                '',
+                '0.00',
+                '35,000.00',
+                '',
             ],
         ];
     }

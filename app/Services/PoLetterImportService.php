@@ -13,6 +13,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PoLetterImportService
@@ -34,7 +36,7 @@ class PoLetterImportService
             'reference', 'letter_ref', 'letter_reference', 'letter_no', 'letter_number',
         ],
         'po_number' => [
-            'po_number', 'ponumber', 'po_no', 'pono',
+            'po_number', 'p_o_number', 'ponumber', 'po_no', 'pono',
             'purchase_order_number', 'purchase_order_no', 'po_#', 'po#', 'po',
         ],
         'type_of_letter' => [
@@ -50,11 +52,11 @@ class PoLetterImportService
             'vendor', 'vendor_name',
         ],
         'po_date' => [
-            'po_date', 'podate', 'po_dt', 'date_of_po', 'date', 'order_date',
+            'po_date', 'p_o_date', 'podate', 'po_dt', 'date_of_po', 'date', 'order_date',
         ],
         'date_received_by_supplier' => [
             'date_received_by_supplier', 'date_received_supplier',
-            'supplier_received_date', 'received_by_supplier_date',
+            'date_received_by_the_supplier', 'supplier_received_date', 'received_by_supplier_date',
             'date_received', 'received_date',
         ],
         'delivery_term' => [
@@ -70,7 +72,7 @@ class PoLetterImportService
         ],
         'date_received_by_smu' => [
             'date_received_by_smu', 'received_by_smu', 'smu_received_date',
-            'date_smu_received', 'date_received_smu', 'smu_date',
+            'date_received_by_the_smu', 'date_smu_received', 'date_received_smu', 'smu_date',
         ],
         'date_forwarded_to_ovpad' => [
             'date_forwarded_to_ovpad', 'date_forwarded_ovpad',
@@ -88,7 +90,7 @@ class PoLetterImportService
         'date_forwarded_to_end_user' => [
             'date_forwarded_to_end_user', 'date_forwarded_end_user',
             'forwarded_to_end_user', 'forwarded_end_user',
-            'date_to_end_user', 'end_user_forwarded_date',
+            'date_forwarded_to_the_end_user', 'date_to_end_user', 'end_user_forwarded_date',
         ],
         'remarks' => [
             'remarks', 'remark', 'notes', 'comments', 'comment',
@@ -144,6 +146,7 @@ class PoLetterImportService
                             'Cancelled PO Letter import: %d created, %d updated, %d skipped.',
                             $created, $updated, $skippedCount
                         ));
+
                         return false;
                     }
 
@@ -180,7 +183,7 @@ class PoLetterImportService
                 'error_message' => $e->getMessage(),
             ]);
 
-            $this->logAudit($import, 'PO Letter import failed: ' . $e->getMessage());
+            $this->logAudit($import, 'PO Letter import failed: '.$e->getMessage());
             throw $e;
         }
     }
@@ -190,7 +193,7 @@ class PoLetterImportService
      */
     private function readExcel(string $filePath): array
     {
-        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+        $spreadsheet = IOFactory::load($filePath);
         $worksheet = $spreadsheet->getActiveSheet();
         $raw = $worksheet->toArray(null, true, true, false);
 
@@ -219,7 +222,7 @@ class PoLetterImportService
 
         fclose($handle);
 
-        if (!empty($raw) && isset($raw[0][0])) {
+        if (! empty($raw) && isset($raw[0][0])) {
             $raw[0][0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $raw[0][0]);
         }
 
@@ -266,7 +269,7 @@ class PoLetterImportService
         $headers = array_map(fn ($h) => trim((string) $h), $raw[$headerIndex]);
         $rows = [];
 
-        foreach (array_slice($raw, $headerIndex + 1) as $line) {
+        foreach (array_slice($raw, $headerIndex + 1) as $lineIndex => $line) {
             if (count(array_filter($line, fn ($v) => $v !== null && trim((string) $v) !== '')) === 0) {
                 continue;
             }
@@ -283,6 +286,7 @@ class PoLetterImportService
                     : (is_string($value) ? trim($value) : $value);
             }
 
+            $row['_row_number'] = $headerIndex + $lineIndex + 2;
             $rows[] = $row;
         }
 
@@ -409,6 +413,7 @@ class PoLetterImportService
         $created = 0;
         $updated = 0;
         $skipped = [];
+        $importKeyOccurrences = [];
 
         PoLetterMonitoring::withoutActivityLogging(function () use (
             $rows,
@@ -421,37 +426,44 @@ class PoLetterImportService
             &$existingServePos,
             &$created,
             &$updated,
-            &$skipped
+            &$skipped,
+            &$importKeyOccurrences
         ) {
             foreach ($rows as $index => $rawRow) {
-                $rowNumber = $index + 2;
+                $rowNumber = isset($rawRow['_row_number']) ? (int) $rawRow['_row_number'] : $index + 2;
                 $row = $this->normalizeRow($rawRow);
 
                 $poNumber = isset($row['po_number']) ? trim((string) $row['po_number']) : '';
 
                 if ($poNumber === '') {
                     $skipped[] = "Row #{$rowNumber}: Skipped because PO Number is missing.";
+
                     continue;
                 }
 
                 $rawType = $row['type_of_letter'] ?? null;
                 $typeOfLetter = $this->normalizeTypeOfLetter($rawType ? (string) $rawType : null);
 
-                if (!$typeOfLetter) {
+                if (! $typeOfLetter) {
                     if (empty($rawType)) {
                         $skipped[] = "Row #{$rowNumber}: Skipped because Type of Letter is missing.";
                     } else {
                         $skipped[] = "Row #{$rowNumber}: Invalid letter type '{$rawType}'. Must be EXTENSION, WAIVER, CANCELLATION, or REPLACEMENT/ALTERNATIVE OFFER.";
                     }
+
                     continue;
                 }
+
+                $rowSignature = hash('sha256', serialize($row));
+                $importKeyOccurrences[$rowSignature] = ($importKeyOccurrences[$rowSignature] ?? 0) + 1;
+                $importKey = hash('sha256', $rowSignature.'|'.$importKeyOccurrences[$rowSignature]);
 
                 // Reference linked ServePo if available
                 $linkedPo = $existingServePos->get($poNumber);
 
                 // Supplier resolution
                 $supplierId = null;
-                if (!empty($row['supplier'])) {
+                if (! empty($row['supplier'])) {
                     $supplierVal = trim((string) $row['supplier']);
                     if (is_numeric($supplierVal) && isset($suppliersById[(int) $supplierVal])) {
                         $supplierId = (int) $supplierVal;
@@ -474,7 +486,7 @@ class PoLetterImportService
                 }
 
                 // If still missing supplier, ensure we have a fallback supplier to fulfill not-null DB constraint
-                if (!$supplierId) {
+                if (! $supplierId) {
                     $firstSupplier = Supplier::first();
                     if ($firstSupplier) {
                         $supplierId = $firstSupplier->supplier_id;
@@ -491,7 +503,7 @@ class PoLetterImportService
 
                 // Office / End User resolution
                 $officeEndUser = null;
-                if (!empty($row['office_end_user'])) {
+                if (! empty($row['office_end_user'])) {
                     $officeVal = trim((string) $row['office_end_user']);
                     $officeLower = strtolower($officeVal);
                     if (isset($officesByCode[$officeLower])) {
@@ -509,15 +521,15 @@ class PoLetterImportService
 
                 // Parse dates
                 $poDate = $this->parseDate($row['po_date'] ?? null);
-                if (!$poDate && $linkedPo?->po_date) {
+                if (! $poDate && $linkedPo?->po_date) {
                     $poDate = $linkedPo->po_date->format('Y-m-d');
                 }
-                if (!$poDate) {
+                if (! $poDate) {
                     $poDate = now()->format('Y-m-d');
                 }
 
                 $dateReceivedBySupplier = $this->parseDate($row['date_received_by_supplier'] ?? null);
-                if (!$dateReceivedBySupplier && $linkedPo?->po_received_date) {
+                if (! $dateReceivedBySupplier && $linkedPo?->po_received_date) {
                     $dateReceivedBySupplier = $linkedPo->po_received_date->format('Y-m-d');
                 }
 
@@ -525,8 +537,8 @@ class PoLetterImportService
 
                 // Delivery term calculation or fallback
                 $deliveryTerm = null;
-                if (isset($row['delivery_term']) && is_numeric($row['delivery_term'])) {
-                    $deliveryTerm = (int) $row['delivery_term'];
+                if (! empty($row['delivery_term']) && preg_match('/\d+/', (string) $row['delivery_term'], $termMatch)) {
+                    $deliveryTerm = (int) $termMatch[0];
                 } elseif ($dateReceivedBySupplier && $dueDate) {
                     $deliveryTerm = max(0, Carbon::parse($dateReceivedBySupplier)->diffInDays(Carbon::parse($dueDate)));
                 } elseif ($linkedPo?->delivery_term !== null) {
@@ -536,7 +548,7 @@ class PoLetterImportService
                 }
 
                 // If due_date was not given but dateReceivedBySupplier and deliveryTerm exist, compute due_date
-                if (!$dueDate && $dateReceivedBySupplier && $deliveryTerm > 0) {
+                if (! $dueDate && $dateReceivedBySupplier && $deliveryTerm > 0) {
                     $dueDate = Carbon::parse($dateReceivedBySupplier)->addDays($deliveryTerm)->format('Y-m-d');
                 }
 
@@ -546,24 +558,24 @@ class PoLetterImportService
 
                 $statusOfTheLetter = $this->normalizeStatus($row['status_of_the_letter'] ?? null);
 
-                $referenceNo = !empty($row['reference_no'])
+                $referenceNo = ! empty($row['reference_no'])
                     ? substr(trim((string) $row['reference_no']), 0, 50)
                     : null;
 
-                $receivedBy = !empty($row['received_by'])
+                $receivedBy = ! empty($row['received_by'])
                     ? substr(trim((string) $row['received_by']), 0, 50)
                     : null;
 
-                $documentLink = !empty($row['document_link'])
+                $documentLink = ! empty($row['document_link'])
                     ? substr(trim((string) $row['document_link']), 0, 500)
                     : null;
 
-                $remarks = !empty($row['remarks'])
+                $remarks = ! empty($row['remarks'])
                     ? trim((string) $row['remarks'])
                     : null;
 
                 // Ensure linked ServePo exists to satisfy foreign key constraint
-                if (!$linkedPo) {
+                if (! $linkedPo) {
                     ServePo::withoutActivityLogging(function () use (
                         $poNumber,
                         $poDate,
@@ -588,6 +600,7 @@ class PoLetterImportService
 
                 $attributes = [
                     'reference_no' => $referenceNo,
+                    'import_key' => $importKey,
                     'supplier_id' => $supplierId,
                     'po_number' => substr($poNumber, 0, 50),
                     'po_date' => $poDate,
@@ -605,13 +618,18 @@ class PoLetterImportService
                     'remarks' => $remarks,
                 ];
 
-                $existingLetter = PoLetterMonitoring::where('po_number', $attributes['po_number'])
-                    ->where('type_of_letter', $attributes['type_of_letter'])
-                    ->first();
+                $existingLetter = PoLetterMonitoring::where('import_key', $importKey)->first();
+                if (! $existingLetter) {
+                    $existingLetter = PoLetterMonitoring::where('po_number', $attributes['po_number'])
+                        ->where('type_of_letter', $attributes['type_of_letter'])
+                        ->whereNull('import_key')
+                        ->first();
+                }
 
                 if ($existingLetter) {
-                    if (!$mergeExisting) {
+                    if (! $mergeExisting) {
                         $skipped[] = "Row #{$rowNumber}: PO Letter for '{$attributes['po_number']}' ({$attributes['type_of_letter']}) already exists (skipped).";
+
                         continue;
                     }
 
@@ -665,7 +683,7 @@ class PoLetterImportService
 
         if (is_numeric($value)) {
             try {
-                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $value)->format('Y-m-d');
+                return Date::excelToDateTimeObject((float) $value)->format('Y-m-d');
             } catch (\Throwable) {
                 // fallback
             }
@@ -684,22 +702,22 @@ class PoLetterImportService
     public function getTemplateHeaders(): array
     {
         return [
-            'Reference No',
-            'PO Number',
-            'Type of Letter',
-            'Status of the Letter',
-            'Supplier',
-            'PO Date',
-            'Date Received by Supplier',
-            'Delivery Term',
-            'Due Date',
-            'Office End User',
-            'Date Received by SMU',
-            'Date Forwarded to OVPAD',
-            'Received By',
-            'Document Link',
-            'Date Forwarded to End User',
-            'Remarks',
+            'REFERENCE NO.',
+            'SUPPLIER',
+            'P.O NUMBER',
+            'P.O DATE',
+            'DATE RECEIVED BY THE SUPPLIER',
+            'DELIVERY TERM',
+            'DUE DATE',
+            'OFFICE/ END-USER',
+            'TYPE OF LETTER',
+            'DATE RECEIVED BY THE SMU',
+            'DATE FORWARDED TO OVPAD',
+            'RECEIVED BY',
+            'STATUS OF THE LETTER',
+            'LINK',
+            'DATE FORWARDED TO THE END-USER',
+            'REMARKS',
         ];
     }
 
@@ -710,74 +728,74 @@ class PoLetterImportService
     {
         return [
             [
-                'REF-2026-0001',
-                'PO-2026-0001',
-                'EXTENSION',
-                'APPROVED',
+                '',
                 'Sample Supplier Inc.',
-                '2026-01-15',
-                '2026-01-20',
-                '30',
-                '2026-02-19',
+                'PO-2026-0001',
+                '1/15/2026',
+                '1/20/2026',
+                '30 Days',
+                '2/19/2026',
                 'OFC-01',
-                '2026-01-22',
-                '2026-01-25',
+                'EXTENSION',
+                '1/22/2026',
+                '1/25/2026',
                 'JOHN DOE',
-                'https://drive.google.com/file/d/sample-letter-1',
-                '2026-02-01',
+                'APPROVED',
+                '[VIEW HERE]',
+                '',
                 'Approved 15-day extension due to port congestion delay',
             ],
             [
-                'REF-2026-0002',
-                'PO-2026-0002',
-                'WAIVER',
-                'DISAPPROVED',
-                'Tech Solutions Co.',
-                '2026-02-01',
-                '2026-02-05',
-                '45',
-                '2026-03-22',
-                'CED',
-                '2026-02-10',
-                '2026-02-12',
-                'MARIA SANTOS',
                 '',
+                'Tech Solutions Co.',
+                'PO-2026-0002',
+                '2/1/2026',
+                '2/5/2026',
+                '45 Days',
+                '3/22/2026',
+                'CED',
+                'WAIVER',
+                '2/10/2026',
+                '2/12/2026',
+                'MARIA SANTOS',
+                'DISAPPROVED',
+                '[VIEW HERE]',
                 '',
                 'Waiver request rejected per BAC resolution',
             ],
             [
-                'REF-2026-0003',
-                'PO-2026-0003',
-                'CANCELLATION',
-                'APPROVED',
-                'Global Trade Partners',
-                '2026-02-15',
-                '2026-02-20',
-                '15',
-                '2026-03-07',
-                'ITRC',
-                '2026-02-22',
-                '2026-02-24',
-                'JUAN DELA CRUZ',
                 '',
+                'Global Trade Partners',
+                'PO-2026-0003',
+                '2/15/2026',
+                '2/20/2026',
+                '15 Days',
+                '3/7/2026',
+                'ITRC',
+                'CANCELLATION',
+                '2/22/2026',
+                '2/24/2026',
+                'JUAN DELA CRUZ',
+                'APPROVED',
+                '[VIEW HERE]',
                 '2026-02-28',
                 'PO cancelled due to vendor inability to supply items',
             ],
             [
-                'REF-2026-0004',
-                'PO-2026-0004',
-                'REPLACEMENT/ALTERNATIVE OFFER',
-                'APPROVED',
-                'Prime Office Supplies',
-                '2026-03-01',
-                '2026-03-05',
-                '30',
-                '2026-04-04',
-                'HRMD',
-                '2026-03-08',
-                '2026-03-10',
-                'ANA REYES',
                 '',
+                'Prime Office Supplies',
+                'PO-2026-0004',
+                '3/1/2026',
+                '3/5/2026',
+                '30 Days',
+                '4/4/2026',
+                'HRMD',
+                'REPLACEMENT/ALTERNATIVE OFFER',
+                '3/8/2026',
+                '3/10/2026',
+                'ANA REYES',
+                'APPROVED',
+                '[VIEW HERE]',
                 '2026-03-15',
                 'Alternative item accepted with equivalent technical specifications',
             ],
@@ -813,6 +831,12 @@ class PoLetterImportService
 
         return response()->streamDownload(function () use ($headers, $rows) {
             $handle = fopen('php://output', 'wb');
+            if ($handle === false) {
+                throw new \RuntimeException('Could not write the PO letter import template.');
+            }
+
+            fputcsv($handle, ['', '', 'REGULAR P.O']);
+            fputcsv($handle, ['', '', 'CONSOLIDATED']);
             fputcsv($handle, $headers);
             foreach ($rows as $row) {
                 fputcsv($handle, $row);
