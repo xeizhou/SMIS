@@ -33,6 +33,7 @@ import ItemMultiSelect, { type StockItemOption } from '@/components/purchase-ord
 import StockItemQuickAddModal from '@/components/purchase-order/stock-item-quick-add-modal';
 import { useNativeValidation } from '@/hooks/useNativeValidation';
 import { PATTERNS, MESSAGES, formatPoNumberInput } from '@/lib/validation';
+import DatePicker from '@/components/date-picker';
 
 interface Supplier {
     supplier_id: number;
@@ -698,20 +699,16 @@ export default function PurchaseOrderAddForm({
                                             placeholder="--Select Mode of Procurement--"
                                             options={MODE_OF_PROCUREMENT_OPTIONS}
                                         />
-                                        <Field
+                                        <DatePicker
                                             label="PO Date"
-                                            name="po_date"
-                                            type="date"
                                             value={data.po_date}
-                                            onChange={handleChange}
+                                            onChange={handleSelectChange('po_date')}
                                             error={errors.po_date}
                                         />
-                                        <Field
+                                        <DatePicker
                                             label="PO Received Date"
-                                            name="po_received_date"
-                                            type="date"
                                             value={data.po_received_date}
-                                            onChange={handleChange}
+                                            onChange={handleSelectChange('po_received_date')}
                                             error={errors.po_received_date}
                                         />
                                         <Field
@@ -743,12 +740,10 @@ export default function PurchaseOrderAddForm({
                                             pattern={PATTERNS.prNo.source}
                                             title={MESSAGES.numbersAndHyphens}
                                         />
-                                        <Field
+                                        <DatePicker
                                             label="PR Date"
-                                            name="pr_date"
-                                            type="date"
                                             value={data.pr_date}
-                                            onChange={handleChange}
+                                            onChange={handleSelectChange('pr_date')}
                                             error={errors.pr_date}
                                         />
                                         <Field
@@ -857,12 +852,10 @@ export default function PurchaseOrderAddForm({
                                             pattern={PATTERNS.orsBursNo.source}
                                             title={MESSAGES.numbersAndHyphens}
                                         />
-                                        <Field
+                                        <DatePicker
                                             label="ORS/BURS Date"
-                                            name="ors_burs_date"
-                                            type="date"
                                             value={data.ors_burs_date}
-                                            onChange={handleChange}
+                                            onChange={handleSelectChange('ors_burs_date')}
                                             error={errors.ors_burs_date}
                                         />
                                         <div>
@@ -925,28 +918,22 @@ export default function PurchaseOrderAddForm({
                                             onRefresh={() => handleRefreshData('end_user')}
                                             isRefreshing={refreshingField === 'end_user'}
                                         />
-                                        <Field
+                                        <DatePicker
                                             label="Date forwarded to SMU"
-                                            name="date_forwarded_to_smu"
-                                            type="date"
                                             value={data.date_forwarded_to_smu}
-                                            onChange={handleChange}
+                                            onChange={handleSelectChange('date_forwarded_to_smu')}
                                             error={errors.date_forwarded_to_smu}
                                         />
-                                        <Field
+                                        <DatePicker
                                             label="COA Processed Date"
-                                            name="coa_processed_date"
-                                            type="date"
                                             value={data.coa_processed_date}
-                                            onChange={handleChange}
+                                            onChange={handleSelectChange('coa_processed_date')}
                                             error={errors.coa_processed_date}
                                         />
-                                        <Field
+                                        <DatePicker
                                             label="Date Forwarded to Frontdesk"
-                                            name="date_forwarded_frontdesk"
-                                            type="date"
                                             value={data.date_forwarded_frontdesk}
-                                            onChange={handleChange}
+                                            onChange={handleSelectChange('date_forwarded_frontdesk')}
                                             error={errors.date_forwarded_frontdesk}
                                         />
                                     </div>

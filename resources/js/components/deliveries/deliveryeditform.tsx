@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X, RefreshCw, Check, ChevronsUpDown, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive, Plus } from 'lucide-react';
+import { Paperclip, X, RefreshCw, Check, ChevronsUpDown, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive, Plus, Archive } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,8 @@ import { cn } from '@/lib/utils';
 import { toDateInputValue, daysBetween, addDays } from '@/lib/date';
 import { useNativeValidation } from '@/hooks/useNativeValidation';
 import { PATTERNS, MESSAGES } from '@/lib/validation';
+import DatePicker from '@/components/date-picker';
+
 interface Attachment {
     id: number;
     original_name: string;
@@ -781,11 +783,11 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                         <div className="flex flex-wrap items-center gap-2">
                                             {data.delivery_dates.map((date, index) => (
                                                 <div key={`delivery-date-${index}`} className="flex items-center gap-1">
-                                                    <Input
-                                                        type="date"
+                                                    <DatePicker
                                                         value={date}
-                                                        onChange={(e) => updateDeliveryDate(index, e.target.value)}
-                                                        className="h-9 w-36"
+                                                        onChange={(v) => updateDeliveryDate(index, v)}
+                                                        placeholder="Pick date"
+                                                        className="w-[190px]"
                                                     />
                                                     {data.delivery_dates.length > 1 && (
                                                         <button

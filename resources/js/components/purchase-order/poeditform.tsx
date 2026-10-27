@@ -42,6 +42,7 @@ import ItemMultiSelect, { type StockItemOption } from '@/components/purchase-ord
 import StockItemQuickAddModal from '@/components/purchase-order/stock-item-quick-add-modal';
 import { useNativeValidation } from '@/hooks/useNativeValidation';
 import { PATTERNS, MESSAGES, formatPoNumberInput } from '@/lib/validation';
+import DatePicker from '@/components/date-picker';
 
 interface Supplier {
     supplier_id: number;
@@ -977,22 +978,8 @@ export default function PurchaseOrderEditForm({
                                     placeholder="--Select Mode of Procurement--"
                                     options={MODE_OF_PROCUREMENT_OPTIONS}
                                 />
-                                <Field
-                                    label="PO Date"
-                                    name="po_date"
-                                    type="date"
-                                    value={data.po_date}
-                                    onChange={handleChange}
-                                    error={errors.po_date}
-                                />
-                                <Field
-                                    label="PO Received Date"
-                                    name="po_received_date"
-                                    type="date"
-                                    value={data.po_received_date}
-                                    onChange={handleChange}
-                                    error={errors.po_received_date}
-                                />
+                                <DatePicker label="PO Date" value={data.po_date} onChange={handleSelectChange('po_date')} error={errors.po_date} />
+                                <DatePicker label="PO Received Date" value={data.po_received_date} onChange={handleSelectChange('po_received_date')} error={errors.po_received_date} />
                                 <Field
                                     label="Delivery Term (Days)"
                                     name="delivery_term"
@@ -1022,14 +1009,7 @@ export default function PurchaseOrderEditForm({
                                     pattern={PATTERNS.prNo.source}
                                     title={MESSAGES.numbersAndHyphens}
                                 />
-                                <Field
-                                    label="PR Date"
-                                    name="pr_date"
-                                    type="date"
-                                    value={data.pr_date}
-                                    onChange={handleChange}
-                                    error={errors.pr_date}
-                                />
+                                <DatePicker label="PR Date" value={data.pr_date} onChange={handleSelectChange('pr_date')} error={errors.pr_date} />
                                 <Field
                                     label="Philgeps Reference No."
                                     name="philgeps_reference_no"
@@ -1133,14 +1113,7 @@ export default function PurchaseOrderEditForm({
                                     pattern={PATTERNS.orsBursNo.source}
                                     title={MESSAGES.numbersAndHyphens}
                                 />
-                                <Field
-                                    label="ORS/BURS Date"
-                                    name="ors_burs_date"
-                                    type="date"
-                                    value={data.ors_burs_date}
-                                    onChange={handleChange}
-                                    error={errors.ors_burs_date}
-                                />
+                                <DatePicker label="ORS/BURS Date" value={data.ors_burs_date} onChange={handleSelectChange('ors_burs_date')} error={errors.ors_burs_date} />
                                 <div>
                                     <label className={labelClass}>Responsibility Center</label>
                                     <Input
@@ -1201,30 +1174,9 @@ export default function PurchaseOrderEditForm({
                                     onRefresh={() => handleRefreshData('end_user')}
                                     isRefreshing={refreshingField === 'end_user'}
                                 />
-                                <Field
-                                    label="Date forwarded to SMU"
-                                    name="date_forwarded_to_smu"
-                                    type="date"
-                                    value={data.date_forwarded_to_smu}
-                                    onChange={handleChange}
-                                    error={errors.date_forwarded_to_smu}
-                                />
-                                <Field
-                                    label="COA Processed Date"
-                                    name="coa_processed_date"
-                                    type="date"
-                                    value={data.coa_processed_date}
-                                    onChange={handleChange}
-                                    error={errors.coa_processed_date}
-                                />
-                                <Field
-                                    label="Date Forwarded to Frontdesk"
-                                    name="date_forwarded_frontdesk"
-                                    type="date"
-                                    value={data.date_forwarded_frontdesk}
-                                    onChange={handleChange}
-                                    error={errors.date_forwarded_frontdesk}
-                                />
+                                <DatePicker label="Date forwarded to SMU" value={data.date_forwarded_to_smu} onChange={handleSelectChange('date_forwarded_to_smu')} error={errors.date_forwarded_to_smu} />
+                                <DatePicker label="COA Processed Date" value={data.coa_processed_date} onChange={handleSelectChange('coa_processed_date')} error={errors.coa_processed_date} />
+                                <DatePicker label="Date Forwarded to Frontdesk" value={data.date_forwarded_frontdesk} onChange={handleSelectChange('date_forwarded_frontdesk')} error={errors.date_forwarded_frontdesk} />
                             </div>
                         </div>
 
@@ -1237,7 +1189,7 @@ export default function PurchaseOrderEditForm({
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">PO From VPAD</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         <Field label="Forwarded By" name="po_vpad_forwarded_by" value={data.po_vpad_forwarded_by} onChange={handleChange} error={errors.po_vpad_forwarded_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                        <Field label="Notified Date" name="po_vpad_notified_date" type="date" value={data.po_vpad_notified_date} onChange={handleChange} error={errors.po_vpad_notified_date} />
+                                        <DatePicker label="Notified Date" value={data.po_vpad_notified_date} onChange={handleSelectChange('po_vpad_notified_date')} error={errors.po_vpad_notified_date} />
                                         <Field label="Notified Via" name="po_vpad_notified_via" value={data.po_vpad_notified_via} onChange={handleChange} error={errors.po_vpad_notified_via} pattern={PATTERNS.contactInfo.source} title={MESSAGES.contactInfo} placeholder="email@example.com or +639..." />
                                     </div>
                                 </div>
@@ -1245,7 +1197,7 @@ export default function PurchaseOrderEditForm({
                                 <div>
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">End User</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Date Forwarded" name="date_forwarded_to_end_user" type="date" value={data.date_forwarded_to_end_user} onChange={handleChange} error={errors.date_forwarded_to_end_user} />
+                                        <DatePicker label="Date Forwarded" value={data.date_forwarded_to_end_user} onChange={handleSelectChange('date_forwarded_to_end_user')} error={errors.date_forwarded_to_end_user} />
                                         <Field label="Forwarded By" name="end_user_forwarded_by" value={data.end_user_forwarded_by} onChange={handleChange} error={errors.end_user_forwarded_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
                                     </div>
                                 </div>
@@ -1253,23 +1205,23 @@ export default function PurchaseOrderEditForm({
                                 <div>
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">For Supplier's Signature</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Date Forwarded" name="date_forwarded_supplier" type="date" value={data.date_forwarded_supplier} onChange={handleChange} error={errors.date_forwarded_supplier} />
+                                        <DatePicker label="Date Forwarded" value={data.date_forwarded_supplier} onChange={handleSelectChange('date_forwarded_supplier')} error={errors.date_forwarded_supplier} />
                                         <Field label="Forwarded By" name="forwarded_by_supplier" value={data.forwarded_by_supplier} onChange={handleChange} error={errors.forwarded_by_supplier} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
                                         <Field label="Claimed By" name="claimed_by_supplier" value={data.claimed_by_supplier} onChange={handleChange} error={errors.claimed_by_supplier} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                        <Field label="Signature Date" name="supplier_signature_date" type="date" value={data.supplier_signature_date} onChange={handleChange} error={errors.supplier_signature_date} />
+                                        <DatePicker label="Signature Date" value={data.supplier_signature_date} onChange={handleSelectChange('supplier_signature_date')} error={errors.supplier_signature_date} />
                                     </div>
                                 </div>
 
                                 <div>
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">For COA Stamp</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Date Forwarded" name="date_forwarded_coa" type="date" value={data.date_forwarded_coa} onChange={handleChange} error={errors.date_forwarded_coa} />
+                                        <DatePicker label="Date Forwarded" value={data.date_forwarded_coa} onChange={handleSelectChange('date_forwarded_coa')} error={errors.date_forwarded_coa} />
                                         <Field label="Forwarded By" name="forwarded_by_coa" value={data.forwarded_by_coa} onChange={handleChange} error={errors.forwarded_by_coa} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                        <Field label="Date Returned" name="date_returned_from_coa" type="date" value={data.date_returned_from_coa} onChange={handleChange} error={errors.date_returned_from_coa} />
-                                        <Field label="COA Date" name="coa_date" type="date" value={data.coa_date} onChange={handleChange} error={errors.coa_date} />
-                                        <Field label="Claim Date" name="claim_date" type="date" value={data.claim_date} onChange={handleChange} error={errors.claim_date} />
+                                        <DatePicker label="Date Returned" value={data.date_returned_from_coa} onChange={handleSelectChange('date_returned_from_coa')} error={errors.date_returned_from_coa} />
+                                        <DatePicker label="COA Date" value={data.coa_date} onChange={handleSelectChange('coa_date')} error={errors.coa_date} />
+                                        <DatePicker label="Claim Date" value={data.claim_date} onChange={handleSelectChange('claim_date')} error={errors.claim_date} />
                                         <Field label="Claimed By" name="claimed_by_coa" value={data.claimed_by_coa} onChange={handleChange} error={errors.claimed_by_coa} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                        <Field label="Notified Date" name="coa_stamp_notified_date" type="date" value={data.coa_stamp_notified_date} onChange={handleChange} error={errors.coa_stamp_notified_date} />
+                                        <DatePicker label="Notified Date" value={data.coa_stamp_notified_date} onChange={handleSelectChange('coa_stamp_notified_date')} error={errors.coa_stamp_notified_date} />
                                         <Field label="Notified Via" name="coa_stamp_notified_via" value={data.coa_stamp_notified_via} onChange={handleChange} error={errors.coa_stamp_notified_via} pattern={PATTERNS.contactInfo.source} title={MESSAGES.contactInfo} placeholder="email@example.com or +639..." />
                                     </div>
                                 </div>
@@ -1277,12 +1229,12 @@ export default function PurchaseOrderEditForm({
                                 <div>
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Receipt & Delivery</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Date Received by Supplier" name="date_received_by_supplier" type="date" value={data.date_received_by_supplier} onChange={handleChange} error={errors.date_received_by_supplier} />
-                                        <Field label="Receipt Receiving Date" name="receipt_receiving_date" type="date" value={data.receipt_receiving_date} onChange={handleChange} error={errors.receipt_receiving_date} />
+                                        <DatePicker label="Date Received by Supplier" value={data.date_received_by_supplier} onChange={handleSelectChange('date_received_by_supplier')} error={errors.date_received_by_supplier} />
+                                        <DatePicker label="Receipt Receiving Date" value={data.receipt_receiving_date} onChange={handleSelectChange('receipt_receiving_date')} error={errors.receipt_receiving_date} />
                                         <Field label="Receipt Claimed By" name="receipt_claimed_by" value={data.receipt_claimed_by} onChange={handleChange} error={errors.receipt_claimed_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
-                                        <Field label="Notified Date" name="receipt_claimed_notified_date" type="date" value={data.receipt_claimed_notified_date} onChange={handleChange} error={errors.receipt_claimed_notified_date} />
+                                        <DatePicker label="Notified Date" value={data.receipt_claimed_notified_date} onChange={handleSelectChange('receipt_claimed_notified_date')} error={errors.receipt_claimed_notified_date} />
                                         <Field label="Notified Via" name="receipt_claimed_notified_via" value={data.receipt_claimed_notified_via} onChange={handleChange} error={errors.receipt_claimed_notified_via} pattern={PATTERNS.contactInfo.source} title={MESSAGES.contactInfo} placeholder="email@example.com or +639..." />
-                                        <Field label="Items Receiving Date" name="items_receiving_date" type="date" value={data.items_receiving_date} onChange={handleChange} error={errors.items_receiving_date} />
+                                        <DatePicker label="Items Receiving Date" value={data.items_receiving_date} onChange={handleSelectChange('items_receiving_date')} error={errors.items_receiving_date} />
                                         <Field label="Items Claimed By" name="items_claimed_by" value={data.items_claimed_by} onChange={handleChange} error={errors.items_claimed_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
                                     </div>
                                 </div>
@@ -1291,7 +1243,7 @@ export default function PurchaseOrderEditForm({
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Additional Reference & Status</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         <Field label="Invoice No." name="invoice_number" value={data.invoice_number} onChange={handleChange} error={errors.invoice_number} pattern={PATTERNS.invoiceDocumentRef.source} title={MESSAGES.invoiceDocumentRef} />
-                                        <Field label="Invoice Date" name="invoice_date" type="date" value={data.invoice_date} onChange={handleChange} error={errors.invoice_date} />
+                                        <DatePicker label="Invoice Date" value={data.invoice_date} onChange={handleSelectChange('invoice_date')} error={errors.invoice_date} />
                                         <Field label="Delivery Receipt" name="delivery_receipt" value={data.delivery_receipt} onChange={handleChange} error={errors.delivery_receipt} pattern={PATTERNS.deliveryReceiptRef.source} title={MESSAGES.deliveryReceiptRef} />
                                         <Field label="PAR/ICS No." name="par_ics_number" value={data.par_ics_number} onChange={handleChange} error={errors.par_ics_number} pattern={PATTERNS.parIcsMultiRef.source} title={MESSAGES.parIcsMultiRef} />
                                         <Field label="RIS No." name="ris_number" value={data.ris_number} onChange={handleChange} error={errors.ris_number} pattern={PATTERNS.risMultiRef.source} title={MESSAGES.risMultiRef} />
@@ -1303,8 +1255,8 @@ export default function PurchaseOrderEditForm({
                                 <div>
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">Completion & Finance</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <Field label="Date Completed" name="date_completed" type="date" value={data.date_completed} onChange={handleChange} error={errors.date_completed} />
-                                        <Field label="Forwarded to Finance" name="date_forwarded_to_finance" type="date" value={data.date_forwarded_to_finance} onChange={handleChange} error={errors.date_forwarded_to_finance} />
+                                        <DatePicker label="Date Completed" value={data.date_completed} onChange={handleSelectChange('date_completed')} error={errors.date_completed} />
+                                        <DatePicker label="Forwarded to Finance" value={data.date_forwarded_to_finance} onChange={handleSelectChange('date_forwarded_to_finance')} error={errors.date_forwarded_to_finance} />
                                         <Field label="Forwarded By" name="finance_forwarded_by" value={data.finance_forwarded_by} onChange={handleChange} error={errors.finance_forwarded_by} pattern={PATTERNS.nameOrOffice.source} title={MESSAGES.names} />
                                         <SelectField
                                             label="PO Step"

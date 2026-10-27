@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { toDateInputValue, addDays, daysBetween } from '@/lib/date';
 import { useNativeValidation } from '@/hooks/useNativeValidation';
 import { PATTERNS, MESSAGES } from '@/lib/validation';
+import DatePicker from '@/components/date-picker';
 
 interface SupplierOption {
     supplier_id: number;
@@ -677,25 +678,25 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                 <label className={labelClass}>Date(s) of Delivery</label>
                                 <div className="flex flex-wrap items-center gap-2">
                                     {data.delivery_dates.map((date, index) => (
-                                        <div key={`delivery-date-${index}`} className="flex items-center gap-1">
-                                            <Input
-                                                type="date"
-                                                value={date}
-                                                onChange={(e) => updateDeliveryDate(index, e.target.value)}
-                                                className="h-9 w-36"
-                                            />
-                                            {data.delivery_dates.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeDeliveryDate(index)}
-                                                    className="text-muted-foreground hover:text-red-600"
-                                                    title="Remove date"
-                                                >
-                                                    <X className="h-3.5 w-3.5" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
+                                    <div key={`delivery-date-${index}`} className="flex items-center gap-1">
+                                        <DatePicker
+                                            value={date}
+                                            onChange={(v) => updateDeliveryDate(index, v)}
+                                            placeholder="Pick date"
+                                            className="w-[190px]"
+                                        />
+                                        {data.delivery_dates.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => removeDeliveryDate(index)}
+                                                className="text-muted-foreground hover:text-red-600"
+                                                title="Remove date"
+                                            >
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
                                     <button
                                         type="button"
                                         onClick={addDeliveryDate}
