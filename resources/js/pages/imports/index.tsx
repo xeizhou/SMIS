@@ -127,13 +127,15 @@ const importGroups: { title: string; options: ImportOption[] }[] = [
             {
                 id: 'po-letters',
                 title: 'PO Letters',
-                description: 'Import PO letter monitoring records.',
+                description:
+                    'Import PO letters using the consolidated extension, waiver, and cancellation monitoring CSV format.',
                 icon: FileSpreadsheet,
             },
             {
                 id: 'deliveries',
                 title: 'Deliveries',
-                description: 'Import delivery monitoring records.',
+                description:
+                    'Import delivery records using the SMU Delivery Monitoring CSV format.',
                 icon: Truck,
             },
             {
