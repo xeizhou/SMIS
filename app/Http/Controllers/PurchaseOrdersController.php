@@ -17,12 +17,14 @@ use App\Models\StockItem;
 use App\Models\Supplier;
 use App\Services\DisbursementVoucherService;
 use App\Services\PurchaseOrderImportService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -68,6 +70,7 @@ class PurchaseOrdersController extends Controller
                 'items:stock_no,item_name,description',
                 'inspectionEntries',
             ])
+            ->withExists('deliveries')
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('po_number', 'like', "%{$search}%")
@@ -427,7 +430,26 @@ class PurchaseOrdersController extends Controller
             $validated['total_amount_diff'] = $validated['total_amount_abc'] - $validated['total_amount_po'];
         }
 
-        // ... rest unchanged (attachment deletion, transaction, etc.)
+        // Restrict DV access if no delivery record exists in Delivery Monitoring
+        $hasDeliveryRecord = $servePo->deliveries()->exists();
+        if (! $hasDeliveryRecord) {
+            if ($request->filled('dv_template') && $request->input('dv_template') !== $servePo->dv_template) {
+                throw ValidationException::withMessages([
+                    'dv_template' => 'Disbursement Voucher cannot be configured until an existing Delivery Monitoring record is linked to this Purchase Order.',
+                ]);
+            }
+            if ($request->filled('ld_amount') && (float) $request->input('ld_amount') != (float) $servePo->ld_amount) {
+                throw ValidationException::withMessages([
+                    'ld_amount' => 'Disbursement Voucher Liquidated Damages cannot be set until an existing Delivery Monitoring record is linked to this Purchase Order.',
+                ]);
+            }
+            if ($request->filled('retention_amount') && (float) $request->input('retention_amount') != (float) $servePo->retention_amount) {
+                throw ValidationException::withMessages([
+                    'retention_amount' => 'Disbursement Voucher Retention cannot be set until an existing Delivery Monitoring record is linked to this Purchase Order.',
+                ]);
+            }
+            unset($validated['dv_template'], $validated['ld_amount'], $validated['retention_amount']);
+        }
 
         // Handle deleted attachments before updating PO
         $deletedAttachmentIds = $validated['deleted_attachment_ids'] ?? [];
@@ -761,10 +783,32 @@ class PurchaseOrdersController extends Controller
     }
 
     /**
+     * Check whether a Purchase Order is eligible for Disbursement Voucher processing.
+     */
+    public function checkDvEligibility(ServePo $purchaseOrder): JsonResponse
+    {
+        $hasDelivery = $purchaseOrder->deliveries()->exists();
+        $count = $hasDelivery ? $purchaseOrder->deliveries()->count() : 0;
+
+        return response()->json([
+            'eligible' => $hasDelivery,
+            'po_number' => $purchaseOrder->po_number,
+            'delivery_count' => $count,
+            'message' => $hasDelivery
+                ? 'Eligible for Disbursement Voucher processing.'
+                : 'No matching Delivery Monitoring record found for this Purchase Order.',
+        ]);
+    }
+
+    /**
      * Export the Disbursement Voucher as an Excel spreadsheet (LD-Only or Neither Template).
      */
     public function exportDisbursementVoucher(Request $request, ServePo $purchaseOrder, DisbursementVoucherService $dvService): StreamedResponse
     {
+        if (! $purchaseOrder->deliveries()->exists()) {
+            abort(403, 'A Delivery Monitoring record is required before accessing or exporting the Disbursement Voucher.');
+        }
+
         $template = $request->query('template', $purchaseOrder->dv_template ?: 'ld_only');
 
         if (! in_array($template, ['ld_only', 'neither', 'neither_ld_nor_retention', 'retention_only', 'ld_and_retention', 'both'], true)) {

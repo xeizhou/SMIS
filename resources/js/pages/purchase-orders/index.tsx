@@ -66,6 +66,7 @@ interface PurchaseOrder {
     office: Office | null;
     item_description: string | null;
     operational_impact: string | null;
+    has_delivery_record?: boolean;
 }
 
 interface PaginatedPurchaseOrders {

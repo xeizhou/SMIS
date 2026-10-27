@@ -27,6 +27,10 @@ class ServePo extends Model
 
     public $incrementing = false;
 
+    protected $appends = [
+        'has_delivery_record',
+    ];
+
     protected $fillable = [
         'po_number',
         'item_description',
@@ -182,5 +186,29 @@ class ServePo extends Model
     public function archiveMetadata(): MorphOne
     {
         return $this->morphOne(Archive::class, 'archivable');
+    }
+
+    /**
+     * Check whether this PO has an existing record in Delivery Monitoring.
+     */
+    public function hasDeliveryRecord(): bool
+    {
+        if (array_key_exists('deliveries_exists', $this->attributes)) {
+            return (bool) $this->attributes['deliveries_exists'];
+        }
+
+        if ($this->relationLoaded('deliveries')) {
+            return $this->deliveries->isNotEmpty();
+        }
+
+        return $this->deliveries()->exists();
+    }
+
+    /**
+     * Accessor for 'has_delivery_record' attribute.
+     */
+    public function getHasDeliveryRecordAttribute(): bool
+    {
+        return $this->hasDeliveryRecord();
     }
 }
