@@ -980,37 +980,39 @@ export default function PoWorkflowModal({
         }
     };
 
-    const isStepLocked = (stepName: string) => {
+    const isSequentiallyBlocked = (stepName: string) => {
         const targetStepIndex = STEPS.indexOf(stepName);
-        
-        // 1. Sequential Unlocking: Cannot jump forward if previous step is not done in the form.
-        // This applies to ALL roles to enforce workflow progression.
         if (targetStepIndex > 0) {
             const previousStep = STEPS[targetStepIndex - 1];
             if (!isStepDone(previousStep)) {
                 return true;
             }
         }
+        return false;
+    };
 
-        // Admin can access, view, and edit any step!
+    const isSavedLocked = (stepName: string) => {
         if (isAdmin) return false;
 
-        // 2. Staff Restriction: If step is locked in the database via Save & Exit, staff cannot edit it.
         if (purchaseOrder?.locked_steps && purchaseOrder.locked_steps[stepName]) {
             return true;
         }
 
-        // 3. Fallback: Lock if it's already finished in the database
         if (isStepSavedAsDone(stepName)) {
             return true;
         }
 
+        const targetStepIndex = STEPS.indexOf(stepName);
         const savedCurrentStepIndex = STEPS.indexOf(purchaseOrder?.po_step || 'PO From VPAD');
-        if (isStaff && targetStepIndex < savedCurrentStepIndex) {
+        if (targetStepIndex < savedCurrentStepIndex) {
             return true;
         }
 
         return false;
+    };
+
+    const isStepLocked = (stepName: string) => {
+        return isSequentiallyBlocked(stepName) || isSavedLocked(stepName);
     };
 
     return (
@@ -1031,13 +1033,14 @@ export default function PoWorkflowModal({
                                 {STEPS.map((step) => {
                                     const isActive = activeTab === step;
                                     const isLocked = isStepLocked(step);
+                                    const isBlocked = isSequentiallyBlocked(step);
                                     return (
                                         <button
                                             key={step}
                                             type="button"
-                                            disabled={isLocked && isStaff}
+                                            disabled={isBlocked && isStaff}
                                             onClick={() => {
-                                                if (isLocked && isStaff) return;
+                                                if (isBlocked && isStaff) return;
                                                 const currentIdx = STEPS.indexOf(activeTab);
                                                 const targetIdx = STEPS.indexOf(step);
                                                 if (targetIdx > currentIdx) {
@@ -1058,7 +1061,7 @@ export default function PoWorkflowModal({
                                                 "px-5 py-2 rounded-full text-sm transition-all duration-200 whitespace-nowrap flex items-center gap-2",
                                                 isActive 
                                                     ? "bg-background text-foreground font-semibold shadow-md ring-1 ring-border" 
-                                                    : (isLocked && isStaff)
+                                                    : (isBlocked && isStaff)
                                                         ? "text-muted-foreground/50 cursor-not-allowed"
                                                         : "text-muted-foreground font-medium hover:text-foreground hover:bg-background/40"
                                             )}
@@ -1074,8 +1077,8 @@ export default function PoWorkflowModal({
                                 <div className="flex items-center gap-2 p-4 bg-amber-500/10 text-amber-600 border border-amber-500/30 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-2">
                                     <Lock className="h-4 w-4" />
                                     <span>
-                                        {purchaseOrder?.locked_steps && purchaseOrder.locked_steps[activeTab]
-                                            ? "This step was locked upon Save & Exit and cannot be modified by staff."
+                                        {isSavedLocked(activeTab)
+                                            ? "This step has already been saved. Only an admin can edit it."
                                             : "This step is currently locked because the previous workflow step has not been completed yet."}
                                     </span>
                                 </div>
@@ -2056,25 +2059,27 @@ export default function PoWorkflowModal({
                                     Cancel
                                 </Button>
                                 <div className="flex items-center gap-3">
-                                    {STEPS.indexOf(activeTab) < STEPS.length - 1 && (
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            onClick={handleNextStep}
-                                            className={cn(
-                                                "transition-all duration-300",
-                                                isStepDone(activeTab)
-                                                    ? "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
-                                                    : "opacity-60 hover:bg-secondary cursor-not-allowed"
+                                    {!isStepLocked(activeTab) && (
+                                        <>
+                                            {STEPS.indexOf(activeTab) < STEPS.length - 1 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="secondary"
+                                                    onClick={handleNextStep}
+                                                    className={cn(
+                                                        "transition-all duration-300",
+                                                        isStepDone(activeTab)
+                                                            ? "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                                                            : "opacity-60 hover:bg-secondary cursor-not-allowed"
+                                                    )}
+                                                >
+                                                    Next Step
+                                                </Button>
                                             )}
-                                        >
-                                            Next Step
-                                        </Button>
-                                    )}
-                                    {(!isStepLocked(activeTab)) && (
-                                        <Button type="submit" disabled={processing}>
-                                            {processing ? 'Saving...' : 'Save & Exit'}
-                                        </Button>
+                                            <Button type="submit" disabled={processing}>
+                                                {processing ? 'Saving...' : 'Save & Exit'}
+                                            </Button>
+                                        </>
                                     )}
                                 </div>
                             </div>
