@@ -68,8 +68,8 @@ export default function DateRangePicker({
                     type="button"
                     variant="outline"
                     className={cn(
-                        'w-[240px] justify-start overflow-hidden text-left font-normal text-black',
-                        !dateFrom && !dateTo && 'text-muted-foreground',
+                        'w-[240px] justify-start overflow-hidden text-left font-normal',
+                        !dateFrom && !dateTo && 'text-muted-foreground',    
                     )}
                 >
                     <CalendarIcon className="mr-2 size-4 shrink-0" />
@@ -85,6 +85,16 @@ export default function DateRangePicker({
                     onSelect={(range) => {
                         setDateFrom(range?.from ? toISO(range.from) : '');
                         setDateTo(range?.to ? toISO(range.to) : '');
+                    }}
+                    classNames={{
+                        day: 'h-9 w-9 p-0 text-center text-sm relative focus-within:relative focus-within:z-20',
+                        selected: '',
+                        range_start:
+                            'bg-accent rounded-l-md [&>button]:bg-[#612A35] [&>button]:text-white [&>button:hover]:bg-[#612A35]/90 [&>button:hover]:text-white',
+                        range_end:
+                            'bg-accent rounded-r-md [&>button]:bg-[#612A35] [&>button]:text-white [&>button:hover]:bg-[#612A35]/90 [&>button:hover]:text-white',
+                        range_middle: 'bg-accent [&>button]:bg-transparent',
+                        today: 'rounded-md bg-accent text-accent-foreground',
                     }}
                 />
                 <div className="flex items-center justify-between gap-2 border-t p-2">
@@ -102,10 +112,8 @@ export default function DateRangePicker({
                     <Button
                         type="button"
                         size="sm"
-                        onClick={() => {
-                            setOpen(false);
-                            onApply();
-                        }}
+                        className="bg-[#612A35] text-white hover:bg-[#612A35]/90"
+                        onClick={() => { setOpen(false); onApply(); }}
                     >
                         Apply
                     </Button>
