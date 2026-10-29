@@ -1,5 +1,5 @@
 import { router, Link, useForm } from '@inertiajs/react';
-import { RefreshCw, User, CalendarDays, ClipboardList, Package, ArrowRight, MessageSquarePlus, Phone, Mail, Loader2, CheckCircle2, Filter, ArrowDownWideNarrow, ArrowUpNarrowWide, Check, Plus, X } from 'lucide-react';
+import { RefreshCw, User, CalendarDays, ClipboardList, Package, ArrowRight, MessageSquarePlus, Phone, Mail, Loader2, CheckCircle2, Filter, ArrowDownWideNarrow, ArrowUpNarrowWide, Check, Plus, X, Info } from 'lucide-react';
 import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
@@ -47,6 +47,8 @@ export type DueDelivery = {
 
 type Props = {
     deliveries?: DueDelivery[];
+    embedded?: boolean;
+    onOpenInfo?: () => void;
 };
 
 // Fallback mock data — shown only if no real `deliveries` prop is passed yet
@@ -119,7 +121,7 @@ function daysUntil(dateStr: string) {
     return null;
 }
 
-export function DueDeliveries({ deliveries }: Props) {
+export function DueDeliveries({ deliveries, embedded = false, onOpenInfo }: Props) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [filterStatus, setFilterStatus] = useState<'all' | 'overdue' | 'due_today' | 'due_soon'>('all');
@@ -349,11 +351,15 @@ export function DueDeliveries({ deliveries }: Props) {
     return (
         <>
             <Dialog>
-                <div className="relative flex h-full flex-col rounded-xl border border-sidebar-border/70 bg-white p-4 dark:border-sidebar-border dark:bg-neutral-900 overflow-hidden">
-                    <div className="mb-3 flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
-                            Due Deliveries
-                        </h3>
+                <div className={`relative flex h-full flex-col overflow-hidden ${embedded ? '' : 'rounded-xl border border-sidebar-border/70 bg-white p-4 dark:border-sidebar-border dark:bg-neutral-900'}`}>
+                    <div className="mb-2.5 flex items-center justify-between pb-1 border-b border-neutral-100 dark:border-neutral-800">
+                        {embedded ? (
+                            <span className="text-xs text-neutral-500 font-medium">Deliveries sorted by due date</span>
+                        ) : (
+                            <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+                                Due Deliveries
+                            </h3>
+                        )}
                         <div className="flex items-center gap-1">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -429,6 +435,8 @@ export function DueDeliveries({ deliveries }: Props) {
                             >
                                 <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                             </button>
+
+                          
                         </div>
                     </div>
 

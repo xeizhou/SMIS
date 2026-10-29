@@ -29,6 +29,7 @@ class ServePo extends Model
 
     protected $appends = [
         'has_delivery_record',
+        'has_cancelled_delivery',
     ];
 
     protected $fillable = [
@@ -212,5 +213,32 @@ class ServePo extends Model
     public function getHasDeliveryRecordAttribute(): bool
     {
         return $this->hasDeliveryRecord();
+    }
+
+    /**
+     * Check whether this PO has any cancelled delivery record in Delivery Monitoring.
+     */
+    public function hasCancelledDelivery(): bool
+    {
+        if (array_key_exists('has_cancelled_delivery', $this->attributes)) {
+            return (bool) $this->attributes['has_cancelled_delivery'];
+        }
+
+        if ($this->relationLoaded('deliveries')) {
+            return $this->deliveries->contains(fn ($d) => strtoupper((string) $d->status) === 'CANCELLED');
+        }
+
+        return $this->deliveries()
+            ->whereNull('deleted_at')
+            ->whereRaw("UPPER(COALESCE(status, '')) = 'CANCELLED'")
+            ->exists();
+    }
+
+    /**
+     * Accessor for 'has_cancelled_delivery' attribute.
+     */
+    public function getHasCancelledDeliveryAttribute(): bool
+    {
+        return $this->hasCancelledDelivery();
     }
 }

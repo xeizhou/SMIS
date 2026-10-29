@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { router } from '@inertiajs/react';
+import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
 import {
     Dialog,
     DialogContent,
@@ -20,6 +22,7 @@ import {
     ExternalLink,
     Download,
     Lock,
+    AlertTriangle,
 } from "lucide-react";
 import {
     ItemDescriptionBadge,
@@ -121,6 +124,7 @@ interface PurchaseOrder {
     retention_amount?: string | number | null;
     dv_template?: string | null;
     has_delivery_record?: boolean;
+    has_cancelled_delivery?: boolean;
     deliveries?: any[];
     inspection_entries?: any[];
 }
@@ -331,6 +335,28 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                     <DialogHeader>
                         <DialogTitle>Purchase Order Details — {po.po_number}</DialogTitle>
                     </DialogHeader>
+
+                    {po.has_cancelled_delivery && (
+                        <div className="mt-3 flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 p-3 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
+                            <div className="flex items-center gap-2 text-xs">
+                                <AlertTriangle className="size-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                                <span>
+                                    <strong>Notice:</strong> This Purchase Order has a cancelled delivery record in <strong>Delivery Monitoring</strong>.
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    auditLogsHighlight(po.po_number, '/deliveries');
+                                    router.get(`/deliveries?highlight_search=${encodeURIComponent(po.po_number)}&highlight_column=po_number`);
+                                }}
+                                className="inline-flex items-center gap-1 rounded bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 transition-colors cursor-pointer"
+                            >
+                                <span>View in Deliveries</span>
+                                <ExternalLink className="size-3" />
+                            </button>
+                        </div>
+                    )}
 
                     <div className="mt-2 space-y-6">
                         <section>

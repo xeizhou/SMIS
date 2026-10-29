@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
 import DatePicker from '@/components/date-picker';
-import { Plus, Trash2, Mail, Lock, X,  Check, ChevronsUpDown, FileSpreadsheet, Info } from 'lucide-react';
+import { Plus, Trash2, Mail, Lock, X, Check, ChevronsUpDown, FileSpreadsheet, Info, AlertTriangle, ExternalLink } from 'lucide-react';
+import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
 import {
     Select,
     SelectContent,
@@ -1041,6 +1042,28 @@ export default function PoWorkflowModal({
                                 Workflow Tracking — {purchaseOrder?.po_number}
                             </DialogTitle>
                         </DialogHeader>
+
+                        {purchaseOrder?.has_cancelled_delivery && (
+                            <div className="mt-4 flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 p-3 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
+                                <div className="flex items-center gap-2 text-xs">
+                                    <AlertTriangle className="size-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                                    <span>
+                                        <strong>Notice:</strong> This Purchase Order has a cancelled delivery record in <strong>Delivery Monitoring</strong>.
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        auditLogsHighlight(purchaseOrder.po_number, '/deliveries');
+                                        router.get(`/deliveries?highlight_search=${encodeURIComponent(purchaseOrder.po_number)}&highlight_column=po_number`);
+                                    }}
+                                    className="inline-flex items-center gap-1 rounded bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 transition-colors cursor-pointer"
+                                >
+                                    <span>View in Deliveries</span>
+                                    <ExternalLink className="size-3" />
+                                </button>
+                            </div>
+                        )}
 
                         <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} noValidate className="mt-6 space-y-6">
                             

@@ -31,6 +31,7 @@ use App\Http\Controllers\StockItemsController;
 use App\Http\Controllers\StockItemsListController;
 use App\Http\Controllers\StockReportsController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TransactionLogsController;
 use App\Http\Controllers\UnitsController;
 use App\Http\Controllers\UsersController;
@@ -42,6 +43,7 @@ use App\Models\FundCluster;
 use App\Models\Message;
 use App\Models\PoLetterMonitoring;
 use App\Models\ServePo;
+use App\Models\Task;
 use App\Models\User;
 use App\Notifications\ScheduledTaskCompleted;
 use Carbon\Carbon;
@@ -129,19 +131,16 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
         };
 
         $getDueDeliveries = function () {
-            return Delivery::with(['supplier', 'servePo'])
+            return Delivery::with(['supplier:supplier_id,supplier_name', 'servePo:po_number'])
                 ->withExists('deliveryFollowUps')
+                ->whereNotNull('due_date')
                 ->where(function ($query) {
-                    $query->whereNull('status')
-                        ->orWhere('status', '!=', 'CANCELLED');
+                    $query->whereIn('status', ['PENDING', 'PARTIAL'])
+                        ->orWhereNull('status');
                 })
+                ->orderBy('due_date', 'asc')
+                ->take(50)
                 ->get()
-                ->filter(function ($delivery) {
-                    return $delivery->due_date !== null;
-                })
-                ->sortByDesc(function ($delivery) {
-                    return $delivery->due_date;
-                })
                 ->map(function ($delivery) {
                     $due = $delivery->due_date ? Carbon::parse($delivery->due_date) : null;
                     $deliveryDate = $delivery->delivery_date;
@@ -149,7 +148,7 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
 
                     $isOverdue = false;
                     $daysOverdue = 0;
-                    $diffDays = 0;
+                    $diffDays = null;
 
                     if ($due) {
                         $dueStart = $due->copy()->startOfDay();
@@ -304,7 +303,7 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
             return ServePo::with(['supplier', 'inspectionEntries'])
                 ->where(function ($query) {
                     $query->whereNull('receipt_claimed_by')
-                        ->whereNull('items_claimed_by');
+                        ->orWhereNull('receipt_receiving_date');
                 })
                 ->where(function ($query) {
                     $query->whereNull('po_step')
@@ -332,18 +331,63 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
             $startMonth = ($reportsQuarter - 1) * 3 + 1;
             $endMonth = $startMonth + 2;
 
-            $reportsQuery = ServePo::whereYear('created_at', $reportsYear)
+            $pos = ServePo::whereYear('created_at', $reportsYear)
                 ->whereMonth('created_at', '>=', $startMonth)
-                ->whereMonth('created_at', '<=', $endMonth);
+                ->whereMonth('created_at', '<=', $endMonth)
+                ->get();
+
+            if ($pos->isEmpty()) {
+                return ['COMPLETED' => 0, 'CANCELLED' => 0, 'ONGOING' => 0];
+            }
+
+            $poNumbers = $pos->pluck('po_number')->filter()->values();
+
+            $deliveriesByPo = DB::table('delivery')
+                ->whereNull('deleted_at')
+                ->whereIn('po_number', $poNumbers)
+                ->select('po_number', DB::raw("UPPER(COALESCE(status, '')) as status_upper"))
+                ->get()
+                ->groupBy('po_number');
+
+            $completedCount = 0;
+            $cancelledCount = 0;
+            $ongoingCount = 0;
+
+            foreach ($pos as $po) {
+                $poDeliveries = $deliveriesByPo->get($po->po_number, collect());
+
+                $isCancelled = strtoupper((string) $po->po_step) === 'CANCELLED'
+                    || ($poDeliveries->isNotEmpty() && $poDeliveries->every(fn ($d) => $d->status_upper === 'CANCELLED'));
+
+                if ($isCancelled) {
+                    $cancelledCount++;
+                    continue;
+                }
+
+                // Check 1: Fully Paid (payment_status is 'Paid' or 'Fully Paid')
+                $isPaid = in_array(strtolower(trim((string) $po->payment_status)), ['paid', 'fully paid', 'completed'], true);
+
+                // Check 2: Steps are complete (po_step is 'Forwarded to Finance', 'Completed', or date_completed is set)
+                $stepsComplete = in_array(strtolower(trim((string) $po->po_step)), ['forwarded to finance', 'completed'], true)
+                    || ! empty($po->date_completed);
+
+                // Check 3: Delivery is complete (all linked shipments are marked COMPLETE / COMPLETED)
+                $deliveryComplete = false;
+                if ($poDeliveries->isNotEmpty()) {
+                    $deliveryComplete = $poDeliveries->count() === $poDeliveries->filter(fn ($d) => in_array($d->status_upper, ['COMPLETE', 'COMPLETED'], true))->count();
+                }
+
+                if ($isPaid && $stepsComplete && $deliveryComplete) {
+                    $completedCount++;
+                } else {
+                    $ongoingCount++;
+                }
+            }
 
             return [
-                'COMPLETED' => (clone $reportsQuery)->where('po_step', 'COMPLETED')->count(),
-                'CANCELLED' => (clone $reportsQuery)->where('po_step', 'CANCELLED')->count(),
-                'ONGOING' => (clone $reportsQuery)->where(function ($q) {
-                    $q->where('po_step', 'ONGOING')
-                        ->orWhereNull('po_step')
-                        ->orWhereNotIn('po_step', ['COMPLETED', 'CANCELLED']);
-                })->count(),
+                'COMPLETED' => $completedCount,
+                'CANCELLED' => $cancelledCount,
+                'ONGOING' => $ongoingCount,
             ];
         };
 
@@ -419,7 +463,7 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
             'allPendingInspections' => fn () => $getAllPendingInspections(),
             'pendingClearances' => fn () => ServePo::where(function ($query) {
                 $query->whereNull('receipt_claimed_by')
-                    ->whereNull('items_claimed_by');
+                    ->orWhereNull('receipt_receiving_date');
             })
                 ->where(function ($query) {
                     $query->whereNull('po_step')
@@ -428,7 +472,7 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
                 ->count(),
             'clearancesLastWeek' => fn () => ServePo::where(function ($query) {
                 $query->whereNull('receipt_claimed_by')
-                    ->whereNull('items_claimed_by');
+                    ->orWhereNull('receipt_receiving_date');
             })
                 ->where(function ($query) {
                     $query->whereNull('po_step')
@@ -442,6 +486,71 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
             'reportsQuarter' => $reportsQuarter,
             'poStats' => fn () => $getPoStats(),
             'userNotifications' => fn () => $request->user()->notifications()->latest()->take(20)->get(),
+            'assignedTasks' => function () use ($request) {
+                $userId = Auth::id() ?? $request->user()?->id;
+                if (! $userId) {
+                    return [];
+                }
+
+                return Task::with([
+                    'assignedTo:id,name',
+                    'assignedBy:id,name',
+                    'servePo:po_number,supplier_id',
+                    'servePo.supplier:id,supplier_name',
+                ])
+                ->where(function ($q) use ($userId) {
+                    $q->where('assigned_to', $userId)
+                      ->orWhere('assigned_by', $userId);
+                })
+                ->where('status', '!=', 'archived')
+                ->whereNull('archived_at')
+                ->where(function ($q) {
+                    // Always show active tasks; for completed tasks, only show those completed within the last 30 days
+                    $q->where('status', '!=', 'completed')
+                      ->orWhere('completed_at', '>=', now()->subDays(30))
+                      ->orWhereNull('completed_at');
+                })
+                ->orderByRaw("CASE WHEN status = 'completed' THEN 1 ELSE 0 END")
+                ->orderBy('due_date', 'asc')
+                ->latest()
+                ->take(100)
+                ->get()
+                ->map(function ($task) {
+                    $due = $task->due_date ? Carbon::parse($task->due_date) : null;
+                    $daysDue = null;
+                    if ($due) {
+                        $today = now()->startOfDay();
+                        $dueStart = $due->copy()->startOfDay();
+                        $daysDue = (int) $today->diffInDays($dueStart, false);
+                    }
+
+                    return [
+                        'id' => (string) $task->id,
+                        'title' => $task->title,
+                        'description' => $task->description,
+                        'po_number' => $task->po_number,
+                        'supplier_name' => $task->servePo?->supplier?->supplier_name,
+                        'priority' => $task->priority,
+                        'status' => $task->status,
+                        'due_date' => $due ? $due->format('Y-m-d') : null,
+                        'due_date_formatted' => $due ? $due->format('M d, Y') : null,
+                        'days_due' => $daysDue,
+                        'assigned_to' => $task->assignedTo ? [
+                            'id' => $task->assignedTo->id,
+                            'name' => $task->assignedTo->name,
+                        ] : null,
+                        'assigned_by' => $task->assignedBy ? [
+                            'id' => $task->assignedBy->id,
+                            'name' => $task->assignedBy->name,
+                        ] : null,
+                        'created_at' => $task->created_at?->diffForHumans(),
+                        'completed_at' => $task->completed_at ? Carbon::parse($task->completed_at)->diffForHumans() : null,
+                    ];
+                })
+                ->values();
+            },
+            'usersList' => fn () => User::select('id', 'name', 'role')->orderBy('name')->get(),
+            'poNumbers' => fn () => ServePo::select('po_number')->latest()->take(50)->pluck('po_number'),
         ]);
     })->name('dashboard');
 
@@ -622,6 +731,17 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
     Route::delete('/delivery-follow-ups/{id}', [DeliveryFollowUpController::class, 'destroy'])->name('delivery-follow-ups.destroy');
     Route::get('/deliveries/{id}/recent-follow-ups', [DeliveryFollowUpController::class, 'recentFollowUps'])->name('deliveries.recent-follow-ups');
     Route::post('/deliveries/{id}/send-follow-up', [DeliveryFollowUpController::class, 'sendFollowUpEmail'])->name('deliveries.send-follow-up');
+
+    Route::get('/tasks/archive', [TaskController::class, 'archive'])->name('tasks.archive');
+    Route::get('/tasks/archive/export', [TaskController::class, 'exportArchive'])->name('tasks.archive.export');
+    Route::patch('/tasks/{task}/archive', [TaskController::class, 'archiveTask'])->name('tasks.archive-task');
+    Route::patch('/tasks/{task}/unarchive', [TaskController::class, 'unarchiveTask'])->name('tasks.unarchive-task');
+    Route::post('/tasks/bulk-archive', [TaskController::class, 'bulkArchive'])->name('tasks.bulk-archive');
+    Route::post('/tasks/bulk-unarchive', [TaskController::class, 'bulkUnarchive'])->name('tasks.bulk-unarchive');
+    Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::patch('/tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.update-status');
+    Route::patch('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
 
     Route::get('/supplier', [SupplierController::class, 'index'])->name('supplier.index');
     Route::post('/supplier', [SupplierController::class, 'store'])->name('supplier.store');

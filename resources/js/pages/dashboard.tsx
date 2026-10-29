@@ -1,6 +1,8 @@
 // resources/js/pages/Dashboard.tsx
 import { Head, usePage, router, useForm } from '@inertiajs/react';
-import { RefreshCw, ClipboardCheck, FileText, Truck, Bell, Tv, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckCircle2, MessageSquarePlus, Phone, Mail, Plus, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { RefreshCw, ClipboardCheck, FileText, Truck, Bell, Tv, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckCircle2, MessageSquarePlus, Phone, Mail, Plus, X, Loader2, ListTodo, Info, ExternalLink } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { AnimatedKpiCard } from '@/components/animated-kpi-card';
 import { AnimatedChart } from '@/components/animated-chart';
@@ -12,6 +14,9 @@ import type {POLetterStatusRow} from '@/components/po-letter-status-chart';
 import { StatCard } from '@/components/stat-card';
 import { ReportsMonitoringWidget } from '@/components/reports-monitoring-widget';
 import { PoPieChart } from '@/components/po-pie-chart';
+import { AssignedTasks } from '@/components/assigned-tasks';
+import type { AssignedTask } from '@/components/assigned-tasks';
+import { ActionCenterCard } from '@/components/action-center-card';
 import { dashboard } from '@/routes';
 import { Link } from '@inertiajs/react';
 import { NotificationPanel } from '@/components/notification-panel';
@@ -22,13 +27,14 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
+    DialogFooter,
 } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DialogFooter } from '@/components/ui/dialog';
 
 // Remove MOCK_NOTIFICATIONS
 
@@ -84,37 +90,46 @@ type DashboardPageProps = {
         CANCELLED: number;
     };
     userNotifications?: any[];
+    assignedTasks?: AssignedTask[];
+    usersList?: Array<{ id: number; name: string; role: string }>;
+    poNumbers?: string[];
     // recentActivity?: RecentActivityRow[];
 };
 
 export default function Dashboard() {
     const {
-        deliveries,
-        poLettersStatus,
-        pendingInspections,
-        inspectionsLastWeek,
-        pendingClearances,
-        clearancesLastWeek,
-        pendingDeliveries,
-        deliveriesLastWeek,
-        allPendingDeliveries,
-        allPendingInspections,
-        allPendingClearances,
-        recentActivity,
-        recentDeliveries,
-        reportsStats,
-        reportsYear,
-        reportsQuarter,
-        poStats,
-        userNotifications,
+        deliveries = [],
+        poLettersStatus = { 'This Week': [], 'This Month': [], 'This Year': [] },
+        pendingInspections = 0,
+        inspectionsLastWeek = 0,
+        pendingClearances = 0,
+        clearancesLastWeek = 0,
+        pendingDeliveries = 0,
+        deliveriesLastWeek = 0,
+        allPendingDeliveries = [],
+        allPendingInspections = [],
+        allPendingClearances = [],
+        recentActivity = [],
+        recentDeliveries = [],
+        reportsStats = { COMPLETED: 0, ONGOING: 0, CANCELLED: 0 },
+        reportsYear = new Date().getFullYear(),
+        reportsQuarter = Math.floor((new Date().getMonth() + 3) / 3),
+        poStats = { COMPLETE: 0, PARTIAL: 0, PENDING: 0, CANCELLED: 0 },
+        userNotifications = [],
+        assignedTasks = [],
+        usersList = [],
+        poNumbers = [],
     } = usePage<DashboardPageProps>().props;
 
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
     const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
+    const [activeActionTab, setActiveActionTab] = useState<'tasks' | 'deliveries'>('tasks');
     const [isPendingInspectionsModalOpen, setIsPendingInspectionsModalOpen] = useState(false);
     const [isPendingClearancesModalOpen, setIsPendingClearancesModalOpen] = useState(false);
     const [pendingDeliveriesSort, setPendingDeliveriesSort] = useState<'desc' | 'asc'>('desc');
+    const [isKpiInfoOpen, setIsKpiInfoOpen] = useState(false);
+    const [kpiInfoTab, setKpiInfoTab] = useState<'definitions' | 'triggers'>('definitions');
 
     const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
     const [isCustomNoticeType, setIsCustomNoticeType] = useState(false);
@@ -195,6 +210,7 @@ export default function Dashboard() {
             if (document.hidden) return; // skip while tab isn't visible, same as OnlineUsersBar
             router.reload({
                 only: [
+                    'assignedTasks',
                     'pendingDeliveries', 'allPendingDeliveries',
                     'pendingInspections', 'allPendingInspections',
                     'pendingClearances', 'allPendingClearances',
@@ -228,34 +244,46 @@ export default function Dashboard() {
     const handleRefresh = () => {
         setIsRefreshing(true);
         router.reload({
+            onSuccess: () => {
+                toast.success('Dashboard refreshed.', { id: 'dashboard-refresh' });
+            },
             onFinish: () => setIsRefreshing(false),
         });
     };
 
     const { auth } = usePage().props as any;
+    const currentUserId = auth?.user?.id;
+    const assignedTasksCount = assignedTasks?.filter(t => t.assigned_to?.id === currentUserId && t.status !== 'completed').length ?? 0;
 
     return (
         <>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-3xl font-bold tracking-tight">Welcome to Dashboard, {auth?.user?.name || 'User'}!</h1>
-                    <div className="flex items-center gap-3">
+            <div className="flex flex-1 flex-col gap-3.5 p-4 sm:p-5 pb-6 overflow-x-hidden">
+                {/* Header Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-neutral-200/80 dark:border-neutral-800">
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+                        Welcome to Dashboard, <span className="text-indigo-600 dark:text-indigo-400">{auth?.user?.name || 'User'}</span>!
+                    </h1>
+
+                    <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
                         <Button
                             variant="outline"
+                            size="sm"
                             onClick={handleRefresh}
                             disabled={isRefreshing}
+                            className="h-8 gap-1.5 text-xs font-medium cursor-pointer shadow-2xs"
+                            title="Refresh dashboard data"
                         >
-                            <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
                             <span className="hidden sm:inline">Refresh</span>
                         </Button>
                         <CalendarButton deliveries={deliveries} />
                         
-                        <div className="h-6 w-px bg-border mx-1 hidden sm:block"></div>
+                        <div className="h-5 w-px bg-neutral-200 dark:bg-neutral-800 mx-0.5 hidden sm:block" />
                         
-                        <Button asChild variant="default" className="gap-2 bg-red-700 text-white hover:bg-red-800 shadow-sm dark:bg-red-800 dark:hover:bg-red-900">
+                        <Button asChild size="sm" variant="default" className="h-8 gap-1.5 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200 shadow-2xs cursor-pointer">
                             <Link href="/notice-of-delivery">
-                                <Truck className="size-4" />
+                                <Truck className="size-3.5" />
                                 <span className="hidden sm:inline">Notice of Delivery</span>
                             </Link>
                         </Button>
@@ -263,73 +291,344 @@ export default function Dashboard() {
                             userNotifications={userNotifications} 
                             deliveries={deliveries} 
                             recentDeliveries={recentDeliveries} 
+                            assignedTasks={assignedTasks}
                         />
                     </div>
                 </div>
 
-                <div className="flex-1 grid gap-6 md:grid-cols-4 md:grid-rows-[auto_1fr_1fr] min-h-0">
-                    <div className="md:col-span-3 grid gap-4 sm:grid-cols-3 md:row-start-1">
-                        <AnimatedKpiCard
-                            icon={<Truck className="size-4" />}
-                            label="Pending Deliveries"
-                            value={pendingDeliveries ?? 0}
-                            change={deliveriesLastWeek !== undefined ? `+ ${deliveriesLastWeek} this week` : ""}
-                            onClick={() => setIsPendingModalOpen(true)}
-                            index={0}
-                            brandColor="#3b82f6"
-                        />
-                        <AnimatedKpiCard
-                            icon={<ClipboardCheck className="size-4" />}
-                            label="Pending Inspection"
-                            value={pendingInspections ?? 0}
-                            change={inspectionsLastWeek !== undefined ? `+ ${inspectionsLastWeek} this week` : ""}
-                            onClick={() => setIsPendingInspectionsModalOpen(true)}
-                            index={1}
-                            brandColor="#d97706"
-                        />
-                        <AnimatedKpiCard
-                            icon={<FileText className="size-4" />}
-                            label="Pending Issuance"
-                            value={pendingClearances ?? 0}
-                            change={clearancesLastWeek !== undefined ? `+ ${clearancesLastWeek} this week` : ""}
-                            onClick={() => setIsPendingClearancesModalOpen(true)}
-                            index={2}
-                            brandColor="#f43f5e"
-                        />
-                    </div>
+                {/* Main Content Grid: Left Column (8 cols) + Right Column (4 cols) */}
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3.5 min-h-0 items-stretch">
+                    {/* Left Column (8 of 12 columns) - Expanded so KPI cards are not squished */}
+                    <div className="lg:col-span-8 flex flex-col gap-3.5 min-h-0">
+                        {/* Section 1: Operational Status KPIs */}
+                        <div className="flex flex-col gap-1.5 shrink-0">
+                            <div className="flex items-center justify-between h-[18px]">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                                        Operational Status
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsKpiInfoOpen(true)}
+                                        className="flex size-4.5 items-center justify-center rounded-full text-neutral-400 hover:text-indigo-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                                        title="About operational workflow metrics (ⓘ)"
+                                        aria-label="Operational Status Information"
+                                    >
+                                        <Info className="size-3" />
+                                    </button>
+                                </div>
+                                <span className="text-[11px] text-neutral-400">
+                                    Click card for details
+                                </span>
+                            </div>
 
-                    {/* FIX: flex-1 min-h-0 flex flex-col so the wrapper actually
-                        fills the grid cell instead of collapsing to 0 height,
-                        which is what was hiding the chart. */}
-                    <div className="md:col-span-3 md:row-start-2 min-h-0 flex flex-col">
-                        <AnimatedChart className="flex-1 min-h-0 flex flex-col">
-                            <PoLettersStatusChart data={poLettersStatus} />
-                        </AnimatedChart>
-                    </div>
+                            <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-4">
+                                <AnimatedKpiCard
+                                    icon={<ListTodo className="size-4" />}
+                                    label="My Active Tasks"
+                                    value={assignedTasksCount}
+                                    change="Assigned to me"
+                                    onClick={() => setActiveActionTab('tasks')}
+                                    index={0}
+                                    brandColor="#6366f1"
+                                />
+                                <AnimatedKpiCard
+                                    icon={<Truck className="size-4" />}
+                                    label="Pending Deliveries"
+                                    value={pendingDeliveries ?? 0}
+                                    change={deliveriesLastWeek !== undefined ? `+ ${deliveriesLastWeek} this week` : "Awaiting arrival"}
+                                    onClick={() => setIsPendingModalOpen(true)}
+                                    index={1}
+                                    brandColor="#3b82f6"
+                                />
+                                <AnimatedKpiCard
+                                    icon={<ClipboardCheck className="size-4" />}
+                                    label="Pending Inspection"
+                                    value={pendingInspections ?? 0}
+                                    change={inspectionsLastWeek !== undefined ? `+ ${inspectionsLastWeek} this week` : "Awaiting PIR / IAR"}
+                                    onClick={() => setIsPendingInspectionsModalOpen(true)}
+                                    index={2}
+                                    brandColor="#d97706"
+                                />
+                                <AnimatedKpiCard
+                                    icon={<FileText className="size-4" />}
+                                    label="Pending Issuance"
+                                    value={pendingClearances ?? 0}
+                                    change={clearancesLastWeek !== undefined ? `+ ${clearancesLastWeek} this week` : "Awaiting issuance"}
+                                    onClick={() => setIsPendingClearancesModalOpen(true)}
+                                    index={3}
+                                    brandColor="#10b981"
+                                />
+                            </div>
+                        </div>
 
-                    <div className="md:col-span-1 md:row-span-2 md:row-start-1 h-full min-h-0 flex flex-col">
-                        <DueDeliveries deliveries={deliveries} />
-                    </div>
-
-                    <div className="md:col-span-3 md:row-start-3 h-full flex flex-col">
-                        {reportsStats && reportsYear && reportsQuarter && (
-                            <ReportsMonitoringWidget 
-                                stats={reportsStats}
-                                year={reportsYear}
-                                quarter={reportsQuarter}
-                            />
-                        )}
-                    </div>
-                    
-                    <div className="md:col-span-1 md:row-start-3 h-full flex flex-col">
-                        {poStats && (
+                        {/* Section 2: P.O Letters Status Bar Chart */}
+                        <div className="h-[370px] shrink-0 flex flex-col">
                             <AnimatedChart className="w-full h-full flex flex-col">
-                                <PoPieChart stats={poStats} />
+                                <PoLettersStatusChart data={poLettersStatus} />
                             </AnimatedChart>
+                        </div>
+
+                        {/* Section 3: Reports Monitoring (Equal height h-[240px] - matches Purchase Orders) */}
+                        <div className="h-[240px] shrink-0 flex flex-col">
+                            {reportsStats && reportsYear && reportsQuarter && (
+                                <ReportsMonitoringWidget 
+                                    stats={reportsStats}
+                                    year={reportsYear}
+                                    quarter={reportsQuarter}
+                                />
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column: Real-Time Operational Action Center + Purchase Orders (4 of 12 columns) */}
+                    <div className="lg:col-span-4 flex flex-col gap-3.5 min-h-0">
+                        {/* Action Center Wrapper: Aligned at top with the KPI boxes */}
+                        <div className="flex-1 min-h-[340px] flex flex-col gap-1.5">
+                            {/* Matching header spacer on desktop so the top panel is aligned with the KPI boxes */}
+                            <div className="hidden lg:flex items-center justify-between h-[18px] select-none" aria-hidden="true" />
+
+                            <ActionCenterCard
+                                deliveries={deliveries}
+                                assignedTasks={assignedTasks}
+                                usersList={usersList}
+                                poNumbers={poNumbers}
+                                onOpenFollowUp={openFollowUpModal}
+                                activeTab={activeActionTab}
+                                onTabChange={setActiveActionTab}
+                            />
+                        </div>
+
+                        {/* Purchase Orders Status (Equal height h-[240px] - matches Reports Monitoring) */}
+                        {poStats && (
+                            <div className="h-[240px] shrink-0 flex flex-col">
+                                <AnimatedChart className="w-full h-full flex flex-col">
+                                    <PoPieChart stats={poStats} />
+                                </AnimatedChart>
+                            </div>
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Operational Status KPI Reference Dialog (ⓘ) */}
+            <Dialog open={isKpiInfoOpen} onOpenChange={setIsKpiInfoOpen}>
+                <DialogContent className="sm:max-w-xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
+                    <DialogHeader className="p-5 pb-3 border-b border-neutral-100 dark:border-neutral-800 shrink-0">
+                        <div className="flex items-center gap-2.5">
+                            <div className="flex size-9 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 shrink-0">
+                                <Info className="size-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <DialogTitle className="text-base sm:text-lg font-bold text-neutral-900 dark:text-neutral-100">
+                                    Operational Status Reference
+                                </DialogTitle>
+                                <DialogDescription className="text-xs text-neutral-500 font-normal mt-0.5">
+                                    Real-time procurement and inspection stage metrics
+                                </DialogDescription>
+                            </div>
+                        </div>
+
+                        {/* Page Source Attribution Banner */}
+                        <div className="mt-3 flex items-center justify-between rounded-lg bg-indigo-50/80 px-3 py-2 border border-indigo-100 dark:bg-indigo-950/40 dark:border-indigo-900/60 text-xs">
+                            <div className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-300">
+                                <span className="text-neutral-400 dark:text-neutral-500">Based on Pages:</span>
+                                <span className="font-semibold text-neutral-900 dark:text-neutral-100">Tasks, Deliveries & Purchase Orders</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href="/deliveries"
+                                    className="inline-flex items-center gap-1 font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline"
+                                >
+                                    <span>Deliveries</span>
+                                    <ExternalLink className="size-3" />
+                                </Link>
+                                <span className="text-neutral-300 dark:text-neutral-700">•</span>
+                                <Link
+                                    href="/purchase-orders"
+                                    className="inline-flex items-center gap-1 font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline"
+                                >
+                                    <span>Purchase Orders</span>
+                                    <ExternalLink className="size-3" />
+                                </Link>
+                            </div>
+                        </div>
+
+                        {/* Tab Switcher */}
+                        <div className="mt-3 flex items-center gap-1 p-0.5 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
+                            <button
+                                type="button"
+                                onClick={() => setKpiInfoTab('definitions')}
+                                className={cn(
+                                    "flex-1 py-1.5 px-3 text-xs font-semibold rounded-md transition-all cursor-pointer",
+                                    kpiInfoTab === 'definitions'
+                                        ? "bg-white text-indigo-700 shadow-xs dark:bg-neutral-900 dark:text-indigo-400"
+                                        : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+                                )}
+                            >
+                                Metric Definitions
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setKpiInfoTab('triggers')}
+                                className={cn(
+                                    "flex-1 py-1.5 px-3 text-xs font-semibold rounded-md transition-all cursor-pointer",
+                                    kpiInfoTab === 'triggers'
+                                        ? "bg-white text-indigo-700 shadow-xs dark:bg-neutral-900 dark:text-indigo-400"
+                                        : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+                                )}
+                            >
+                                Triggers & Workflow Examples
+                            </button>
+                        </div>
+                    </DialogHeader>
+
+                    <div className="flex-1 p-5 text-xs text-neutral-600 dark:text-neutral-300 overflow-y-auto">
+                        {kpiInfoTab === 'definitions' ? (
+                            <>
+                                <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed mb-4 pb-3 border-b border-neutral-100 dark:border-neutral-800">
+                                    Operational Status tracks active responsibilities and the lifecycle of procurement orders from initial team delegation through physical dock receiving, quality inspection, and inventory clearance.
+                                </p>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="pt-0.5 text-indigo-600 dark:text-indigo-400 shrink-0">
+                                            <ListTodo className="size-4" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-neutral-900 dark:text-neutral-100 leading-snug">
+                                                My Active Tasks
+                                            </h4>
+                                            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5 leading-relaxed">
+                                                Displays pending action items assigned directly to your user account. Selecting this card filters the Action Center to your assigned checklist for quick completion and note updates.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-3">
+                                        <div className="pt-0.5 text-blue-600 dark:text-blue-400 shrink-0">
+                                            <Truck className="size-4" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-neutral-900 dark:text-neutral-100 leading-snug">
+                                                Pending Deliveries
+                                            </h4>
+                                            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5 leading-relaxed">
+                                                Tracks approved purchase orders awaiting supplier delivery or dock receiving. Selecting this card opens the complete directory to review delivery deadlines and log supplier follow-ups.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-3">
+                                        <div className="pt-0.5 text-amber-600 dark:text-amber-400 shrink-0">
+                                            <ClipboardCheck className="size-4" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-neutral-900 dark:text-neutral-100 leading-snug">
+                                                Pending Inspection
+                                            </h4>
+                                            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5 leading-relaxed">
+                                                Shipments delivered to the facility awaiting technical examination, count verification, and inspection acceptance in Purchase Orders.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-3">
+                                        <div className="pt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0">
+                                            <FileText className="size-4" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-neutral-900 dark:text-neutral-100 leading-snug">
+                                                Pending Issuance
+                                            </h4>
+                                            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5 leading-relaxed">
+                                                Based on receipt claimed by and receipt receiving date. Tracks purchase orders awaiting final issuance endorsement where receipt claimed by or receipt receiving date is still pending completion.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="rounded-lg bg-neutral-50 dark:bg-neutral-800/60 p-3 border border-neutral-200/80 dark:border-neutral-800">
+                                    <h4 className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 mb-1">
+                                        How Operational Status Metrics Trigger Across Modules
+                                    </h4>
+                                    <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                                        Each KPI corresponds to a distinct phase in the institutional procurement pipeline, automatically triggering as records advance from assignment through delivery, inspection, and release.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3.5 pt-1">
+                                    <div className="p-3 rounded-lg border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="font-bold text-neutral-900 dark:text-neutral-100 text-xs">My Active Tasks</span>
+                                            <span className="rounded bg-indigo-50 text-indigo-700 px-1.5 py-0.5 text-[10px] font-bold dark:bg-indigo-950/40 dark:text-indigo-300">Based on Tasks</span>
+                                        </div>
+                                        <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                                            <strong>Trigger:</strong> Increments whenever an administrator or colleague assigns a task to your account, or when you assign an item to yourself with status <code>pending</code>.
+                                        </p>
+                                        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                            <strong>Scenario:</strong> You receive an assigned task &quot;Verify COA stamp requirements for PO-4641-8347&quot;. It reflects in your active count until marked completed.
+                                        </p>
+                                    </div>
+
+                                    <div className="p-3 rounded-lg border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="font-bold text-neutral-900 dark:text-neutral-100 text-xs">Pending Deliveries</span>
+                                            <span className="rounded bg-blue-50 text-blue-700 px-1.5 py-0.5 text-[10px] font-bold dark:bg-blue-950/40 dark:text-blue-300">Based on Deliveries</span>
+                                        </div>
+                                        <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                                            <strong>Trigger:</strong> Any delivery schedule record in the <strong>Deliveries</strong> module where <code>status = PENDING</code> (supplier has not yet delivered items to the dock).
+                                        </p>
+                                        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                            <strong>Scenario:</strong> PO-2026-0317 is scheduled for delivery today. It remains in Pending Deliveries until dock staff records physical arrival.
+                                        </p>
+                                    </div>
+
+                                    <div className="p-3 rounded-lg border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="font-bold text-neutral-900 dark:text-neutral-100 text-xs">Pending Inspection</span>
+                                            <span className="rounded bg-amber-50 text-amber-700 px-1.5 py-0.5 text-[10px] font-bold dark:bg-amber-950/40 dark:text-amber-300">Based on Purchase Orders</span>
+                                        </div>
+                                        <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                                            <strong>Trigger:</strong> Purchase order deliveries arrived at the facility, but inspection acceptance entries have not yet been completed.
+                                        </p>
+                                        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                            <strong>Scenario:</strong> 34 computer units arrived at the warehouse. They count as Pending Inspection until the inspection sign-off is recorded on the Purchase Order record.
+                                        </p>
+                                    </div>
+
+                                    <div className="p-3 rounded-lg border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="font-bold text-neutral-900 dark:text-neutral-100 text-xs">Pending Issuance</span>
+                                            <span className="rounded bg-emerald-50 text-emerald-700 px-1.5 py-0.5 text-[10px] font-bold dark:bg-emerald-950/40 dark:text-emerald-300">Based on Purchase Orders</span>
+                                        </div>
+                                        <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                                            <strong>Trigger:</strong> Purchase order records that have completed inspection, but the <strong>Receipt Claimed By</strong> and <strong>Receipt Receiving Date</strong> have not yet been recorded.
+                                        </p>
+                                        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                            <strong>Scenario:</strong> Goods for PO-2026-1015 arrived and passed inspection. The order remains under <strong>Pending Issuance</strong> until the requisitioning officer records both the receipt claimed by and receipt receiving date, finalizing property release.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="p-4 border-t border-neutral-100 dark:border-neutral-800 flex justify-end">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsKpiInfoOpen(false)}
+                            className="cursor-pointer text-xs"
+                        >
+                            Close
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={isPendingModalOpen} onOpenChange={setIsPendingModalOpen}>
                 <DialogContent className="sm:max-w-3xl w-full max-h-[85vh] flex flex-col gap-0 p-0">

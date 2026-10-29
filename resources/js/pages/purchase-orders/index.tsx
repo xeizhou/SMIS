@@ -1,8 +1,9 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Plus, Search, Trash2, Archive } from 'lucide-react';
+import { Eye, Pencil, Plus, Search, Trash2, Archive, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
+import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
 import PurchaseOrderAddForm from '@/components/purchase-order/poaddform';
 import type { StockItemOption } from '@/components/purchase-order/item-multi-select';
 import PurchaseOrderDeleteModal from '@/components/purchase-order/podeletemodal';
@@ -67,6 +68,7 @@ interface PurchaseOrder {
     item_description: string | null;
     operational_impact: string | null;
     has_delivery_record?: boolean;
+    has_cancelled_delivery?: boolean;
     delivery_term?: number | string | null;
     po_step?: string | null;
     locked_steps?: Record<string, string> | null;
@@ -460,7 +462,25 @@ export default function Index({
                                         data-record-id={po.po_number}
                                     >
                                         <td className="px-4 py-3 font-medium">
-                                            {po.po_number}
+                                            <div className="flex flex-col gap-1 items-start">
+                                                <span className="font-semibold text-neutral-900 dark:text-neutral-100">{po.po_number}</span>
+                                                {po.has_cancelled_delivery && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            auditLogsHighlight(po.po_number, '/deliveries');
+                                                            router.get(`/deliveries?highlight_search=${encodeURIComponent(po.po_number)}&highlight_column=po_number`);
+                                                        }}
+                                                        className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/60 dark:text-rose-400 dark:hover:bg-rose-900/60 transition-colors border border-rose-200 dark:border-rose-800 cursor-pointer"
+                                                        title="Delivery cancelled in Delivery Monitoring. Click to view record in Delivery Monitoring with highlights."
+                                                    >
+                                                        <AlertTriangle className="size-3 shrink-0" />
+                                                        <span>Delivery Cancelled</span>
+                                                        <ExternalLink className="size-2.5 shrink-0 opacity-70" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3">
                                             {po.supplier?.supplier_name ?? '—'}

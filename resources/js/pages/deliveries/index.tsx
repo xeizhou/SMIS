@@ -2,8 +2,9 @@ import { Head, Link, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Search, Archive} from 'lucide-react';
+import { Eye, Pencil, Search, Archive, ExternalLink } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
 import DeliveryAddForm from '@/components/deliveries/deliveryaddform';
 import DeliveryDeleteModal from '@/components/deliveries/deliverydeletemodal';
 import DeliveryEditForm from '@/components/deliveries/deliveryeditform';
@@ -302,7 +303,26 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                         data-search-1={delivery.po_number}
                                         data-record-id={delivery.delivery_id}
                                     >
-                                        <td className="px-4 py-3 font-medium">{delivery.po_number}</td>
+                                        <td className="px-4 py-3 font-medium">
+                                            <div className="flex flex-col gap-1 items-start">
+                                                <span>{delivery.po_number}</span>
+                                                {delivery.status === 'CANCELLED' && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            auditLogsHighlight(delivery.po_number, '/purchase-orders');
+                                                            router.get(`/purchase-orders?highlight_search=${encodeURIComponent(delivery.po_number)}&highlight_column=po_number`);
+                                                        }}
+                                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                                                        title="View this cancelled PO in Purchase Orders with highlights"
+                                                    >
+                                                        <span>View in POs</span>
+                                                        <ExternalLink className="size-2.5" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3">{delivery.supplier?.supplier_name ?? '—'}</td>
                                         <td className="px-4 py-3">{formatDate(delivery.delivery_date)}</td>
                                         
@@ -318,6 +338,19 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-start gap-3">
+                                                {delivery.status === 'CANCELLED' && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            auditLogsHighlight(delivery.po_number, '/purchase-orders');
+                                                            router.get(`/purchase-orders?highlight_search=${encodeURIComponent(delivery.po_number)}&highlight_column=po_number`);
+                                                        }}
+                                                        className="text-rose-600 hover:text-rose-800 cursor-pointer"
+                                                        title="View in Purchase Orders (with highlights)"
+                                                    >
+                                                        <ExternalLink className="size-4" />
+                                                    </button>
+                                                )}
                                                 <button type="button" onClick={() => handleEdit(delivery)} className="text-blue-600 hover:text-blue-800" title="Edit">
                                                     <Pencil className="size-4" />
                                                 </button>

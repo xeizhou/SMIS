@@ -71,6 +71,7 @@ class PurchaseOrdersController extends Controller
                 'inspectionEntries',
             ])
             ->withExists('deliveries')
+            ->withExists(['deliveries as has_cancelled_delivery' => fn ($q) => $q->whereNull('deleted_at')->whereRaw("UPPER(COALESCE(status, '')) = 'CANCELLED'")])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('po_number', 'like', "%{$search}%")
