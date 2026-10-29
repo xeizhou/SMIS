@@ -240,23 +240,58 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
             })->values();
         };
 
-        $getAllPendingInspections = function () {
-            return ServePo::with(['supplier', 'inspectionEntries'])
+        $getPendingInspectionsQuery = function () {
+            return ServePo::query()
                 ->whereDoesntHave('inspectionEntries', function ($query) {
                     $query->whereNotNull('inspection_date');
                 })
-                ->where(function ($query) {
-                    $query->whereNull('po_step')
-                        ->orWhere('po_step', '!=', 'CANCELLED');
+                ->whereNotExists(function ($query) {
+                    $query->selectRaw('1')
+                        ->from('pir_monitoring')
+                        ->whereColumn('pir_monitoring.po_number', 'serve_po.po_number')
+                        ->whereNotNull('pir_monitoring.inspection_date')
+                        ->whereNull('pir_monitoring.deleted_at');
                 })
+                ->where(function ($query) {
+                    $query->where('po_step', '!=', 'CANCELLED')
+                        ->orWhere(function ($query) {
+                            $query->whereNull('po_step')
+                                ->whereNotExists(function ($legacyQuery) {
+                                    $legacyQuery->selectRaw('1')
+                                        ->from('pir_monitoring')
+                                        ->whereColumn('pir_monitoring.po_number', 'serve_po.po_number')
+                                        ->where('pir_monitoring.status', 'CANCELLED')
+                                        ->whereNull('pir_monitoring.deleted_at');
+                                });
+                        });
+                });
+        };
+
+        $getAllPendingInspections = function () use ($getPendingInspectionsQuery) {
+            return $getPendingInspectionsQuery()
+                ->with(['supplier', 'inspectionEntries'])
+                ->addSelect([
+                    'legacy_iar_number' => DB::table('pir_monitoring')
+                        ->select('iar_number')
+                        ->whereColumn('pir_monitoring.po_number', 'serve_po.po_number')
+                        ->whereNull('pir_monitoring.deleted_at')
+                        ->orderByDesc('pir_id')
+                        ->limit(1),
+                    'legacy_invoice_number' => DB::table('pir_monitoring')
+                        ->select('invoice_number')
+                        ->whereColumn('pir_monitoring.po_number', 'serve_po.po_number')
+                        ->whereNull('pir_monitoring.deleted_at')
+                        ->orderByDesc('pir_id')
+                        ->limit(1),
+                ])
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function ($po) {
                     return [
-                        'pir_id' => $po->po_number,
                         'po_number' => $po->po_number,
-                        'iar_number' => $po->inspectionEntries->first()?->iar_number,
-                        'invoice_number' => $po->invoice_number,
+                        'iar_number' => $po->inspectionEntries->firstWhere('iar_number')?->iar_number
+                            ?? $po->legacy_iar_number,
+                        'invoice_number' => $po->invoice_number ?? $po->legacy_invoice_number,
                         'supplier' => $po->supplier ? [
                             'supplier_name' => $po->supplier->supplier_name,
                         ] : null,
@@ -279,7 +314,6 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
                 ->get()
                 ->map(function ($po) {
                     return [
-                        'pir_id' => $po->po_number,
                         'po_number' => $po->po_number,
                         'iar_number' => $po->inspectionEntries->first()?->iar_number,
                         'invoice_number' => $po->invoice_number,
@@ -378,21 +412,8 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
                 'This Month' => $getPoLettersStatusByPeriod('This Month'),
                 'This Year' => $getPoLettersStatusByPeriod('This Year'),
             ],
-            'pendingInspections' => fn () => ServePo::whereDoesntHave('inspectionEntries', function ($query) {
-                $query->whereNotNull('inspection_date');
-            })
-                ->where(function ($query) {
-                    $query->whereNull('po_step')
-                        ->orWhere('po_step', '!=', 'CANCELLED');
-                })
-                ->count(),
-            'inspectionsLastWeek' => fn () => ServePo::whereDoesntHave('inspectionEntries', function ($query) {
-                $query->whereNotNull('inspection_date');
-            })
-                ->where(function ($query) {
-                    $query->whereNull('po_step')
-                        ->orWhere('po_step', '!=', 'CANCELLED');
-                })
+            'pendingInspections' => fn () => $getPendingInspectionsQuery()->count(),
+            'inspectionsLastWeek' => fn () => $getPendingInspectionsQuery()
                 ->where('created_at', '>=', now()->startOfWeek())
                 ->count(),
             'allPendingInspections' => fn () => $getAllPendingInspections(),
