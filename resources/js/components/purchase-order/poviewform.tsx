@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -270,6 +270,49 @@ function FilePreviewModal({ file, onClose }: { file: Attachment | null; onClose:
     );
 }
 
+function FadeScrollList({
+    children,
+    className,
+    deps,
+}: {
+    children: React.ReactNode;
+    className?: string;
+    deps?: unknown;
+}) {
+    const ref = useRef<HTMLDivElement>(null);
+    const [showFade, setShowFade] = useState(false);
+
+    const update = () => {
+        const el = ref.current;
+        if (!el) return;
+        const hasOverflow = el.scrollHeight > el.clientHeight + 1;
+        const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+        setShowFade(hasOverflow && !atBottom);
+    };
+
+    useEffect(() => {
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [deps]);
+
+    return (
+        <div className="relative">
+            <div
+                ref={ref}
+                onScroll={update}
+                className={cn('overflow-y-auto', className)}
+            >
+                {children}
+            </div>
+            {showFade && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 rounded-b-md bg-gradient-to-t from-background to-transparent" />
+            )}
+        </div>
+    );
+}
+
 export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrder }: Props) {
     const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
 
@@ -316,27 +359,33 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                             </div>
 
                             <div className="mt-4">
-                                <p className={labelClass}>Items</p>
+                                <div className="flex items-center justify-between">
+                                    <p className={labelClass}>Items</p>
+                                    {items.length > 0 && (
+                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                                            {items.length}
+                                        </Badge>
+                                    )}
+                                </div>
+
                                 {items.length > 0 ? (
-                                    <ScrollArea className="max-h-[160px] mt-1.5">
-                                        <div className="space-y-1.5 pr-2">
-                                            {items.map((item) => (
-                                                <div
-                                                    key={item.stock_no}
-                                                    className="rounded-md border px-2.5 py-1.5"
-                                                >
-                                                    <p className="text-sm font-medium text-foreground">
-                                                        {item.item_name}
+                                    <FadeScrollList className="mt-1.5 max-h-[160px] space-y-1.5 pr-2" deps={items.length}>
+                                        {items.map((item) => (
+                                            <div
+                                                key={item.stock_no}
+                                                className="rounded-md border px-2.5 py-1.5"
+                                            >
+                                                <p className="text-sm font-medium text-foreground">
+                                                    {item.item_name}
+                                                </p>
+                                                {item.description && (
+                                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                                        {item.description}
                                                     </p>
-                                                    {item.description && (
-                                                        <p className="text-xs text-muted-foreground mt-0.5">
-                                                            {item.description}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </ScrollArea>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </FadeScrollList>
                                 ) : (
                                     <p className={valueClass}>—</p>
                                 )}
@@ -567,7 +616,7 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                                     No attachments uploaded.
                                 </div>
                             ) : (
-                                <ScrollArea className="max-h-[220px]">
+                                <div className="max-h-[220px] space-y-1.5 overflow-y-auto pr-2">
                                     <div className="space-y-1.5 pr-2">
                                     {attachments.map((att) => {
                                         const type = getFileType(att.original_name);
@@ -603,7 +652,7 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                                         );
                                     })}
                                     </div>
-                                </ScrollArea>
+                                </div>
                             )}
 
                             <Separator className="mt-4" />
