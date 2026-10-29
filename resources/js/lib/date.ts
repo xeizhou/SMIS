@@ -2,7 +2,7 @@
 
 /**
  * Converts a date string (from the backend, in any reasonable format) into
- * a YYYY-MM-DD string safe for <input type="date">.
+ * a YYYY-MM-DD string for date form controls.
  *
  * Deliberately avoids `new Date(value).toISOString()` — that round-trips
  * through UTC and can shift the date back a day for timezones ahead of UTC

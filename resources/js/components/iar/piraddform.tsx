@@ -27,6 +27,7 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import DatePicker from '@/components/date-picker';
 
 interface Supplier {
     supplier_id: number;
@@ -134,20 +135,35 @@ function Field({
 }: FieldProps) {
     return (
         <div>
-            <label className={labelClass}>
+            <label className={labelClass} htmlFor={name}>
                 {label}
                 {required && <span className="text-red-500"> *</span>}
             </label>
-            <Input
-                type={type}
-                name={name}
-                value={value}
-                onChange={onChange}
-                placeholder={placeholder}
-                disabled={disabled}
-                className={cn(error && 'border-red-500')}
-            />
-            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
+            {type === 'date' ? (
+                <DatePicker
+                    id={name}
+                    name={name}
+                    value={value ?? ''}
+                    onChange={(date) => onChange({ target: { name, value: date } } as React.ChangeEvent<HTMLInputElement>)}
+                    error={error}
+                    required={required}
+                    disabled={disabled}
+                    placeholder={placeholder}
+                />
+            ) : (
+                <>
+                    <Input
+                        type={type}
+                        name={name}
+                        value={value}
+                        onChange={onChange}
+                        placeholder={placeholder}
+                        disabled={disabled}
+                        className={cn(error && 'border-red-500')}
+                    />
+                    {error && <p className="mt-1 text-[11px] font-medium text-red-500">{error}</p>}
+                </>
+            )}
         </div>
     );
 }
@@ -1308,12 +1324,13 @@ export default function PirAddForm({
                                                                 key={`date-${groupIndex}-${dateIndex}`}
                                                                 className="flex items-center gap-1"
                                                             >
-                                                                <Input
-                                                                    type="date"
+                                                                <DatePicker
                                                                     value={date}
-                                                                    onChange={(e) => updateInspectionDate(groupIndex, dateIndex, e.target.value)}
+                                                                    onChange={(value) => updateInspectionDate(groupIndex, dateIndex, value)}
                                                                     disabled={!poSelected}
-                                                                    className="h-8 w-36"
+                                                                    className="w-36"
+                                                                    buttonClassName="h-8 px-2 text-xs"
+                                                                    ariaLabel={`Inspection date ${dateIndex + 1}`}
                                                                 />
                                                                 {group.inspection_dates.length > 1 && (
                                                                     <button

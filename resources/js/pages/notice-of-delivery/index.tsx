@@ -19,6 +19,7 @@ import {
 import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import DatePicker from '@/components/date-picker';
 import {
     HoverCard,
     HoverCardContent,
@@ -443,27 +444,29 @@ export default function NoticeOfDeliveryReport({
                         {/* Date Filters Group */}
                         <div className="flex items-center gap-3 bg-neutral-50/80 px-3 py-1.5 rounded-xl border border-neutral-200/80 dark:bg-neutral-800/50 dark:border-neutral-700/80">
                             <div className="flex items-center gap-1.5">
-                                <span className={`font-extrabold text-neutral-500 uppercase tracking-wider dark:text-neutral-400 ${isFullscreen ? 'text-sm' : 'text-xs'}`}>Today:</span>
-                                <input
-                                    type="date"
+                                <label htmlFor="today-date" className={`font-extrabold text-neutral-500 uppercase tracking-wider dark:text-neutral-400 ${isFullscreen ? 'text-sm' : 'text-xs'}`}>Today:</label>
+                                <DatePicker
+                                    id="today-date"
                                     value={selectedTodayDate}
-                                    onChange={(e) => {
-                                        setSelectedTodayDate(e.target.value);
-                                        handleFilterChange(e.target.value, undefined);
+                                    onChange={(date) => {
+                                        setSelectedTodayDate(date);
+                                        handleFilterChange(date, undefined);
                                     }}
-                                    className={`rounded-lg border border-neutral-300/80 bg-white px-2.5 font-semibold text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 shadow-2xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all ${isFullscreen ? 'h-9 w-38 text-sm' : 'h-8 w-34 text-xs'}`}
+                                    className={isFullscreen ? 'w-[9.5rem]' : 'w-[8.5rem]'}
+                                    ariaLabel="Today date filter"
                                 />
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <span className={`font-extrabold text-neutral-500 uppercase tracking-wider dark:text-neutral-400 ${isFullscreen ? 'text-sm' : 'text-xs'}`}>Prev:</span>
-                                <input
-                                    type="date"
+                                <label htmlFor="yesterday-date" className={`font-extrabold text-neutral-500 uppercase tracking-wider dark:text-neutral-400 ${isFullscreen ? 'text-sm' : 'text-xs'}`}>Prev:</label>
+                                <DatePicker
+                                    id="yesterday-date"
                                     value={selectedYesterdayDate}
-                                    onChange={(e) => {
-                                        setSelectedYesterdayDate(e.target.value);
-                                        handleFilterChange(undefined, e.target.value);
+                                    onChange={(date) => {
+                                        setSelectedYesterdayDate(date);
+                                        handleFilterChange(undefined, date);
                                     }}
-                                    className={`rounded-lg border border-neutral-300/80 bg-white px-2.5 font-semibold text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 shadow-2xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all ${isFullscreen ? 'h-9 w-38 text-sm' : 'h-8 w-34 text-xs'}`}
+                                    className={isFullscreen ? 'w-[9.5rem]' : 'w-[8.5rem]'}
+                                    ariaLabel="Previous date filter"
                                 />
                             </div>
                         </div>

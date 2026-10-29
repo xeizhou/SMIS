@@ -71,6 +71,7 @@ import {
     PaginationItem,
 } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
+import DatePicker from '@/components/date-picker';
 import RrppeViewModal from '@/components/rrppe-monitoring/rrppe-view-modal';
 import ItrPtrViewModal from '@/components/itr-ptr-monitoring/itr-ptr-view-modal';
 import ForDisposalViewModal from '@/components/for-disposal-monitoring/for-disposal-view-modal';
@@ -1162,10 +1163,9 @@ function ScheduledTasksTab({ onDirtyChange }: { onDirtyChange?: (dirty: boolean)
 
                                 {forceEmailDays === 'custom' && (
                                     <div className="mt-2">
-                                        <Input 
-                                            type="date" 
+                                        <DatePicker
                                             value={forceEmailDate}
-                                            onChange={(e) => setForceEmailDate(e.target.value)}
+                                            onChange={setForceEmailDate}
                                         />
                                     </div>
                                 )}

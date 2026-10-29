@@ -133,22 +133,36 @@ function Field({
                 {required && <span className="text-red-500"> *</span>}
             </label>
 
-            <Input
-                type={type}
-                name={name}
-                id={name}
-                pattern={pattern}
-                title={title}
-                value={value}
-                onChange={onChange}
-                placeholder={placeholder}
-                required={required}
-                readOnly={readOnly}
-                disabled={disabled}
-                className={cn(error && 'border-red-500')}
-            />
-
-            {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
+            {type === 'date' ? (
+                <DatePicker
+                    id={name}
+                    name={name}
+                    value={value ?? ''}
+                    onChange={(date) => onChange({ target: { name, value: date } } as React.ChangeEvent<HTMLInputElement>)}
+                    error={error}
+                    required={required}
+                    disabled={disabled || readOnly}
+                    placeholder={placeholder}
+                />
+            ) : (
+                <>
+                    <Input
+                        type={type}
+                        name={name}
+                        id={name}
+                        pattern={pattern}
+                        title={title}
+                        value={value}
+                        onChange={onChange}
+                        placeholder={placeholder}
+                        required={required}
+                        readOnly={readOnly}
+                        disabled={disabled}
+                        className={cn(error && 'border-red-500')}
+                    />
+                    {error && <p className="mt-1 text-[11px] font-medium text-red-500">{error}</p>}
+                </>
+            )}
         </div>
     );
 }
