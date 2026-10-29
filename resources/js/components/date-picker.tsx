@@ -52,6 +52,11 @@ interface DatePickerProps {
     required?: boolean;
     placeholder?: string;
     className?: string; // wrapper class, e.g. "w-[200px]"
+    buttonClassName?: string;
+    id?: string;
+    name?: string;
+    disabled?: boolean;
+    ariaLabel?: string;
 }
 
 export default function DatePicker({
@@ -60,7 +65,13 @@ export default function DatePicker({
     onChange,
     error,
     required = false,
+    placeholder,
     className,
+    buttonClassName,
+    id,
+    name,
+    disabled = false,
+    ariaLabel,
 }: DatePickerProps) {
     const [open, setOpen] = useState(false);
 
@@ -101,16 +112,22 @@ export default function DatePicker({
                 {/* Native date input: typing, clamping and segment editing are all browser-native */}
                 <Input
                     type="date"
+                    id={id}
+                    name={name}
                     value={value}
                     min="1900-01-01"
                     max="9999-12-31"
+                    placeholder={placeholder}
+                    disabled={disabled}
+                    aria-label={ariaLabel}
                     onChange={(e) => onChange(e.target.value)}
                     className={cn('pr-10', HIDE_NATIVE_ICON, error && 'border-red-500')}
                 />
 
                 <Popover
-                    open={open}
+                    open={disabled ? false : open}
                     onOpenChange={(o) => {
+                        if (disabled) return;
                         setOpen(o);
                         if (o) {
                             const base = value ? parseISO(value) : new Date();
@@ -124,8 +141,12 @@ export default function DatePicker({
                             type="button"
                             variant="ghost"
                             size="icon"
+                            disabled={disabled}
                             tabIndex={-1}
-                            className="absolute right-0 top-0 size-9 text-muted-foreground hover:bg-transparent hover:text-foreground"
+                            className={cn(
+                                "absolute right-0 top-0 size-9 text-muted-foreground hover:bg-transparent hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed",
+                                buttonClassName
+                            )}
                             title="Open calendar"
                         >
                             <CalendarIcon className="size-4" />
