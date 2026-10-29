@@ -295,7 +295,8 @@ class PurchaseOrdersController extends Controller
      *
      * po_number is the primary key, and it's user-editable in the edit form.
      * Renaming it must cascade to every child table that references it
-     * (delivery, po_letter_monitoring, pir_monitoring) since those FKs are
+     * (deliveries, po_letter_monitoring, pir_monitoring, rrsp_monitoring,
+     * inspection entries, the items pivot, attachments) since those FKs are
      * not all set to ON UPDATE CASCADE at the DB level. We defer FK
      * enforcement for the transaction so the rename can happen in one
      * atomic operation regardless of update order.
@@ -530,13 +531,6 @@ class PurchaseOrdersController extends Controller
         DB::transaction(function () use ($servePo, $validated, $itemStockNos, $inspectionEntries, $oldPoNumber, $newPoNumber, $poNumberChanged) {
             if ($poNumberChanged) {
                 DB::statement('PRAGMA defer_foreign_keys = ON');
-
-                Delivery::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
-                PoLetterMonitoring::where('po_number', $oldPoNumber)->update(['po_number' => $newPoNumber]);
-
-                Attachment::where('attachable_type', ServePo::class)
-                    ->where('attachable_id', $oldPoNumber)
-                    ->update(['attachable_id' => $newPoNumber]);
             }
 
             if (array_key_exists('item_description', $validated) && !empty($validated['item_description'])) {
@@ -547,8 +541,8 @@ class PurchaseOrdersController extends Controller
                 $validated['operational_impact'] = strtoupper(trim($validated['operational_impact']));
             }
 
-            $servePo->update($validated);
-
+            // Relation work runs FIRST, while $servePo still holds the OLD po_number,
+            // so sync()/delete() find the existing rows.
             if (is_array($itemStockNos)) {
                 $servePo->items()->sync($itemStockNos);
             }
@@ -562,6 +556,14 @@ class PurchaseOrdersController extends Controller
                 }
             }
 
+            // Then point every child table at the new po_number.
+            if ($poNumberChanged) {
+                $this->cascadePoNumberRename($servePo, $oldPoNumber, $newPoNumber);
+            }
+
+            // Finally update the PO itself (this changes the key if it was renamed).
+            $servePo->update($validated);
+
             // If the workflow step reached "For Release" or beyond, set related deliveries to PENDING
             $releaseSteps = ['For Release', 'Payment Processing', 'Forwarded to Finance'];
             if (in_array($validated['po_step'] ?? '', $releaseSteps) && $servePo->coa_date) {
@@ -572,6 +574,41 @@ class PurchaseOrdersController extends Controller
         });
 
         return redirect()->back()->with('success', 'Purchase Order record updated successfully.');
+    }
+
+    /**
+     * Point every table that references serve_po.po_number at the new value.
+     * Table and column names for relations are read from the relationships
+     * themselves, so they stay correct if the schema changes.
+     */
+    private function cascadePoNumberRename(ServePo $servePo, string $old, string $new): void
+    {
+        // hasMany relations on ServePo
+        foreach (['deliveries', 'letterMonitorings', 'inspectionEntries'] as $relationName) {
+            $relation = $servePo->{$relationName}();
+            $column = $relation->getForeignKeyName();
+
+            DB::table($relation->getRelated()->getTable())
+                ->where($column, $old)
+                ->update([$column => $new]);
+        }
+
+        // items() many-to-many pivot table
+        $items = $servePo->items();
+        $pivotColumn = $items->getForeignPivotKeyName();
+
+        DB::table($items->getTable())
+            ->where($pivotColumn, $old)
+            ->update([$pivotColumn => $new]);
+
+        // Monitoring tables linked by po_number
+        RrspMonitoring::where('po_number', $old)->update(['po_number' => $new]);
+        PirMonitoring::where('po_number', $old)->update(['po_number' => $new]);
+
+        // Polymorphic attachments
+        Attachment::where('attachable_type', ServePo::class)
+            ->where('attachable_id', $old)
+            ->update(['attachable_id' => $new]);
     }
 
     /**

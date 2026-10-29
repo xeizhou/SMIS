@@ -59,14 +59,12 @@ type DashboardPageProps = {
         supplier?: { supplier_name: string } | null;
     }[];
     allPendingInspections?: {
-        pir_id: string;
         po_number: string;
         iar_number?: string | null;
         invoice_number?: string | null;
         supplier?: { supplier_name: string } | null;
     }[];
     allPendingClearances?: {
-        pir_id: string;
         po_number: string;
         iar_number?: string | null;
         invoice_number?: string | null;
@@ -448,12 +446,12 @@ export default function Dashboard() {
                         {allPendingInspections && allPendingInspections.length > 0 ? (
                             <div className="grid gap-3 mt-4">
                                 {allPendingInspections.map((inspection) => (
-                                    <div key={inspection.pir_id} className="relative group flex items-center rounded-lg border border-l-4 border-l-amber-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-amber-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+                                    <div key={inspection.po_number} className="relative group flex items-center rounded-lg border border-l-4 border-l-amber-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-amber-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
                                                 <Link 
-                                                    href={`/iar?highlight_search=${inspection.po_number}`} 
-                                                    onClick={() => auditLogsHighlight(inspection.po_number, '/iar')}
+                                                    href={`/purchase-orders?search=${encodeURIComponent(inspection.po_number)}`}
+                                                    onClick={() => auditLogsHighlight(inspection.po_number, '/purchase-orders')}
                                                     className="before:absolute before:inset-0 hover:underline"
                                                 >
                                                     {inspection.po_number}
@@ -506,12 +504,12 @@ export default function Dashboard() {
                         {allPendingClearances && allPendingClearances.length > 0 ? (
                             <div className="grid gap-3 mt-4">
                                 {allPendingClearances.map((issuance) => (
-                                    <div key={issuance.pir_id} className="relative group flex items-center rounded-lg border border-l-4 border-l-rose-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-rose-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+                                    <div key={issuance.po_number} className="relative group flex items-center rounded-lg border border-l-4 border-l-rose-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-rose-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
                                                 <Link 
-                                                    href={`/iar?highlight_search=${issuance.po_number}`} 
-                                                    onClick={() => auditLogsHighlight(issuance.po_number, '/iar')}
+                                                    href={`/purchase-orders?search=${encodeURIComponent(issuance.po_number)}`}
+                                                    onClick={() => auditLogsHighlight(issuance.po_number, '/purchase-orders')}
                                                     className="before:absolute before:inset-0 hover:underline"
                                                 >
                                                     {issuance.po_number}
