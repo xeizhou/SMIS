@@ -1,9 +1,26 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Plus, Search, Trash2, Archive, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Eye, Pencil, Plus, Search, Trash2, Archive, AlertTriangle, ExternalLink, Truck, FileText, AlertCircle, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
+import { useColumnVisibility } from '@/hooks/useColumnVisibility';
+import TableColumnsPopover from '@/components/table/TableColumnsPopover';
+import TableToolbar from '@/components/table/TableToolbar';
 import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import PurchaseOrderAddForm from '@/components/purchase-order/poaddform';
 import type { StockItemOption } from '@/components/purchase-order/item-multi-select';
 import PurchaseOrderDeleteModal from '@/components/purchase-order/podeletemodal';
@@ -69,6 +86,7 @@ interface PurchaseOrder {
     operational_impact: string | null;
     has_delivery_record?: boolean;
     has_cancelled_delivery?: boolean;
+    has_po_letter_record?: boolean;
     delivery_term?: number | string | null;
     po_step?: string | null;
     locked_steps?: Record<string, string> | null;
@@ -139,6 +157,38 @@ return '—';
     });
 }
 
+const DEFAULT_VISIBLE_COLUMNS: Record<string, boolean> = {
+    po_number: true,
+    supplier: true,
+    office: true,
+    fund_cluster: true,
+    item_description: true,
+    operational_impact: true,
+    mode_of_procurement: true,
+    po_date: true,
+    due_date: true,
+    total_amount_po: true,
+    pr_number: false,
+    philgeps_reference_no: false,
+    po_received_date: false,
+};
+
+const AVAILABLE_COLUMNS = [
+    { key: 'po_number', label: 'PO Number', locked: true },
+    { key: 'supplier', label: 'Supplier' },
+    { key: 'office', label: 'End User' },
+    { key: 'fund_cluster', label: 'Fund Cluster' },
+    { key: 'item_description', label: 'Item Description' },
+    { key: 'operational_impact', label: 'Operational Impact' },
+    { key: 'mode_of_procurement', label: 'Mode of Procurement' },
+    { key: 'po_date', label: 'PO Date' },
+    { key: 'due_date', label: 'Due Date' },
+    { key: 'total_amount_po', label: 'PO Amount' },
+    { key: 'pr_number', label: 'PR Number' },
+    { key: 'philgeps_reference_no', label: 'PhilGEPS Ref No' },
+    { key: 'po_received_date', label: 'PO Received Date' },
+];
+
 export default function Index({
     purchaseOrders,
     filters,
@@ -152,6 +202,13 @@ export default function Index({
     const { auth } = usePage().props as any;
     const isStaff = auth?.user?.role === 'staff';
 
+    const columnVisibility = useColumnVisibility({
+        storageKey: 'smis_po_visible_columns',
+        columns: AVAILABLE_COLUMNS,
+        defaultVisible: DEFAULT_VISIBLE_COLUMNS,
+    });
+    const { visibleColumns } = columnVisibility;
+
     const [search, setSearch] = useState(filters.search ?? '');
     const [fundCluster, setFundCluster] = useState(filters.fund_cluster ?? 'all');
     const [officeFilter, setOfficeFilter] = useState(filters.office ?? 'all');
@@ -164,6 +221,37 @@ export default function Index({
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
     const [poToDelete, setPoToDelete] = useState<PurchaseOrder | null>(null);
+    const [noLinkedRecordModal, setNoLinkedRecordModal] = useState<{
+        open: boolean;
+        poNumber: string;
+        targetModule: string;
+    } | null>(null);
+
+    const handleNavigateLinkedRecord = (po: PurchaseOrder, target: 'delivery' | 'po_letter') => {
+        if (target === 'delivery') {
+            if (!po.has_delivery_record) {
+                setNoLinkedRecordModal({
+                    open: true,
+                    poNumber: po.po_number,
+                    targetModule: 'Delivery Monitoring',
+                });
+                return;
+            }
+            auditLogsHighlight(po.po_number, '/deliveries');
+            router.get(`/deliveries?highlight_search=${encodeURIComponent(po.po_number)}&highlight_column=po_number`);
+        } else {
+            if (!po.has_po_letter_record) {
+                setNoLinkedRecordModal({
+                    open: true,
+                    poNumber: po.po_number,
+                    targetModule: 'PO Letter Monitoring',
+                });
+                return;
+            }
+            auditLogsHighlight(po.po_number, '/po-letter-monitoring');
+            router.get(`/po-letter-monitoring?highlight_search=${encodeURIComponent(po.po_number)}&highlight_column=po_number`);
+        }
+    };
 
     const runSearch = (
         nextFundCluster?: string,
@@ -260,180 +348,232 @@ export default function Index({
         <>
             <Head title="Purchase Order Monitoring" />
 
-            <div className="p-4 space-y-6 sm:p-6">
-                {/* Header */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">
-                            Purchase Order Monitoring
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Manage and track all purchase orders
-                        </p>
-                    </div>
-                </div>
-
-                {/* Search & Actions */}
-                <form
-                    onSubmit={handleSearch}
-                    className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
-                >
-                    <div className="flex flex-1 flex-wrap items-center gap-2">
-                        <div className="relative w-full sm:w-52 md:w-60">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search PO"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
-                            />
+            <div className="flex flex-col h-[calc(100vh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
+                {/* Sticky Header & Search */}
+                <div className="shrink-0 relative z-30 -mx-4 -mt-4 bg-background/95 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-4">
+                    {/* Header */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">
+                                Purchase Order Monitoring
+                            </h1>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Manage and track all purchase orders
+                            </p>
                         </div>
+                    </div>
 
-                        <Select
-                            value={fundCluster}
-                            onValueChange={handleFundClusterChange}
-                        >
-                            <SelectTrigger className={`w-full sm:w-[185px] ${fundCluster === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Fund Cluster" />
-                            </SelectTrigger>
+                    {/* Search & Actions */}
+                    <form
+                        onSubmit={handleSearch}
+                        className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+                    >
+                        <div className="flex flex-1 flex-wrap items-center gap-2">
+                            <div className="relative w-full sm:w-44 md:w-48">
+                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search PO"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9"
+                                />
+                            </div>
 
-                            <SelectContent>
-                                <SelectItem value="all">Filter by Fund Cluster</SelectItem>
-                                {fundClusters.map((fc) => (
-                                    <SelectItem
-                                        key={fc.fund_cluster_id}
-                                        value={fc.fund_cluster_id}
-                                    >
-                                        {fc.fund_cluster_id}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            <Select
+                                value={fundCluster}
+                                onValueChange={handleFundClusterChange}
+                            >
+                                <SelectTrigger className={`w-full sm:w-[160px] ${fundCluster === 'all' ? 'text-muted-foreground' : ''}`}>
+                                    <SelectValue placeholder="Filter by Fund Cluster" />
+                                </SelectTrigger>
 
-                        <Select value={officeFilter} onValueChange={handleOfficeChange}>
-                            <SelectTrigger className={`w-full sm:w-[170px] ${officeFilter === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by End User" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Filter by End User</SelectItem>
-                                {offices.map((o) => (
-                                    <SelectItem key={o.office_code} value={o.office_code}>
-                                        {o.office_name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                                <SelectContent>
+                                    <SelectItem value="all">Filter by Fund Cluster</SelectItem>
+                                    {fundClusters.map((fc) => (
+                                        <SelectItem
+                                            key={fc.fund_cluster_id}
+                                            value={fc.fund_cluster_id}
+                                        >
+                                            {fc.fund_cluster_id}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                        <Select value={itemDescFilter} onValueChange={handleItemDescChange}>
-                            <SelectTrigger className={`w-full sm:w-[215px] ${itemDescFilter === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Item Description" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Filter by Item Description</SelectItem>
-                                {itemDescriptions.map((desc) => (
-                                    <SelectItem key={desc} value={desc}>
-                                        {desc}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            <Select value={officeFilter} onValueChange={handleOfficeChange}>
+                                <SelectTrigger className={`w-full sm:w-[150px] ${officeFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                                    <SelectValue placeholder="Filter by End User" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Filter by End User</SelectItem>
+                                    {offices.map((o) => (
+                                        <SelectItem key={o.office_code} value={o.office_code}>
+                                            {o.office_name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                        <Select value={opImpactFilter} onValueChange={handleOpImpactChange}>
-                            <SelectTrigger className={`w-full sm:w-[225px] ${opImpactFilter === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Operational Impact" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Filter by Operational Impact</SelectItem>
-                                {operationalImpacts.map((impact) => (
-                                    <SelectItem key={impact} value={impact}>
-                                        {impact}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            <Select value={itemDescFilter} onValueChange={handleItemDescChange}>
+                                <SelectTrigger className={`w-full sm:w-[175px] ${itemDescFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                                    <SelectValue placeholder="Filter by Item Description" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Filter by Item Description</SelectItem>
+                                    {itemDescriptions.map((desc) => (
+                                        <SelectItem key={desc} value={desc}>
+                                            {desc}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                        <div className="flex items-center gap-2">
-                            <Button type="submit" variant="secondary">
+                            <Select value={opImpactFilter} onValueChange={handleOpImpactChange}>
+                                <SelectTrigger className={`w-full sm:w-[185px] ${opImpactFilter === 'all' ? 'text-muted-foreground' : ''}`}>
+                                    <SelectValue placeholder="Filter by Operational Impact" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Filter by Operational Impact</SelectItem>
+                                    {operationalImpacts.map((impact) => (
+                                        <SelectItem key={impact} value={impact}>
+                                            {impact}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Button type="submit" variant="secondary" className="cursor-pointer">
                                 Search
                             </Button>
 
-                            <Button type="button" variant="ghost" onClick={handleClear}>
+                            <Button type="button" variant="ghost" onClick={handleClear} className="cursor-pointer">
                                 Clear
                             </Button>
                         </div>
-                    </div>
 
-                    <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row">
                         <Button
                             type="button"
                             onClick={() => setAddDialogOpen(true)}
-                            className="w-full lg:w-auto text-white shadow-sm"
+                            className="w-full lg:w-auto text-white shadow-sm shrink-0 cursor-pointer"
                             style={{ backgroundColor: '#612A35' }}
                         >
                             <Plus className="mr-2 size-4" />
                             Add Purchase Order
                         </Button>
-                    </div>
-                </form>
+                    </form>
 
-                {/* Table */}
-                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
-                        <thead
-                            className="border-b"
-                            style={{ backgroundColor: '#370001' }}
-                        >
+                    {/* Horizontal fading border */}
+                    <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
+                </div>
+
+                <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    {/* Table View Toolbar */}
+                    <TableToolbar
+                        currentCount={purchaseOrders.data.length}
+                        total={purchaseOrders.total}
+                        entityName="purchase orders"
+                    >
+                        <TableColumnsPopover visibility={columnVisibility} />
+                    </TableToolbar>
+                    <div className="flex-initial min-h-0 overflow-x-auto overflow-y-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+                        <table className="w-full text-left text-xs sm:text-sm whitespace-nowrap">
+                            <thead
+                                className="sticky top-0 z-20 border-b"
+                                style={{ backgroundColor: '#370001' }}
+                            >
                             <tr>
-                                <th className="p-0 font-semibold text-white">
-                                    <button type="button" onClick={() => handleSort('po_number')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
-                                        PO Number
-                                    </button>
-                                </th>
-                                <th className="p-0 font-semibold text-white">
-                                    <button type="button" onClick={() => handleSort('supplier')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
-                                        Supplier
-                                    </button>
-                                </th>
-                                <th className="p-0 font-semibold text-white">
-                                    <button type="button" onClick={() => handleSort('office')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
-                                        End User
-                                    </button>
-                                </th>
-                                <th className="p-0 font-semibold text-white">
-                                    <button type="button" onClick={() => handleSort('fund_cluster')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
-                                        Fund Cluster
-                                    </button>
-                                </th>
-                                <th className="p-0 font-semibold text-white">
-                                    <button type="button" onClick={() => handleSort('item_description')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
-                                        Item Description
-                                    </button>
-                                </th>
-                                <th className="p-0 font-semibold text-white">
-                                    <button type="button" onClick={() => handleSort('operational_impact')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
-                                        Operational Impact
-                                    </button>
-                                </th>
-                                <th className="p-0 font-semibold text-white">
-                                    <button type="button" onClick={() => handleSort('mode_of_procurement')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
-                                        Mode of Procurement
-                                    </button>
-                                </th>
-                                <th className="p-0 font-semibold text-white">
-                                    <button type="button" onClick={() => handleSort('po_date')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
-                                        PO Date
-                                    </button>
-                                </th>
-                                <th className="p-0 font-semibold text-white">
-                                    <button type="button" onClick={() => handleSort('due_date')} className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-[#4C0002]">
-                                        Due Date
-                                    </button>
-                                </th>
-                                <th className="p-0 font-semibold text-white">
-                                    <button type="button" onClick={() => handleSort('total_amount_po')} className="flex w-full items-center justify-end gap-2 px-4 py-3 text-right hover:bg-[#4C0002]">
-                                        PO Amount
-                                    </button>
-                                </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white">
+                                {visibleColumns.po_number && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('po_number')} className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left hover:bg-[#4C0002]">
+                                            PO Number
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.supplier && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('supplier')} className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left hover:bg-[#4C0002]">
+                                            Supplier
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.office && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('office')} className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left hover:bg-[#4C0002]">
+                                            End User
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.fund_cluster && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('fund_cluster')} className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left hover:bg-[#4C0002]">
+                                            Fund Cluster
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.item_description && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('item_description')} className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left hover:bg-[#4C0002]">
+                                            Item Description
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.operational_impact && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('operational_impact')} className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left hover:bg-[#4C0002]">
+                                            Operational Impact
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.mode_of_procurement && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('mode_of_procurement')} className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left hover:bg-[#4C0002]">
+                                            Mode of Procurement
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.po_date && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('po_date')} className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left hover:bg-[#4C0002]">
+                                            PO Date
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.due_date && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('due_date')} className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left hover:bg-[#4C0002]">
+                                            Due Date
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.total_amount_po && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('total_amount_po')} className="flex w-full items-center justify-end gap-1.5 px-3 py-2.5 text-right hover:bg-[#4C0002]">
+                                            PO Amount
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.pr_number && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('pr_number')} className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left hover:bg-[#4C0002]">
+                                            PR Number
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.philgeps_reference_no && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('philgeps_reference_no')} className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left hover:bg-[#4C0002]">
+                                            PhilGEPS Ref No
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.po_received_date && (
+                                    <th className="p-0 font-semibold text-white">
+                                        <button type="button" onClick={() => handleSort('po_received_date')} className="flex w-full items-center gap-1.5 px-3 py-2.5 text-left hover:bg-[#4C0002]">
+                                            PO Received Date
+                                        </button>
+                                    </th>
+                                )}
+                                <th className="sticky right-0 z-30 bg-[#370001] px-3 py-2.5 text-center font-semibold text-white shadow-[-3px_0_6px_-1px_rgba(0,0,0,0.35)]">
                                     Actions
                                 </th>
                             </tr>
@@ -442,7 +582,7 @@ export default function Index({
                         <tbody>
                             {purchaseOrders.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={11} className="px-6 py-16 text-center">
+                                    <td colSpan={Object.values(visibleColumns).filter(Boolean).length + 1} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No purchase orders added yet.
                                         </p>
@@ -457,60 +597,115 @@ export default function Index({
                                    <AnimatedTableRow
                                         key={po.po_number}
                                         index={i}
-                                        className="border-b transition-colors hover:bg-muted/40"
+                                        className="group/row border-b transition-colors hover:bg-muted/40"
                                         data-search-0={po.po_number}
                                         data-record-id={po.po_number}
                                     >
-                                        <td className="px-4 py-3 font-medium">
-                                            <div className="flex flex-col gap-1 items-start">
-                                                <span className="font-semibold text-neutral-900 dark:text-neutral-100">{po.po_number}</span>
-                                                {po.has_cancelled_delivery && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            auditLogsHighlight(po.po_number, '/deliveries');
-                                                            router.get(`/deliveries?highlight_search=${encodeURIComponent(po.po_number)}&highlight_column=po_number`);
-                                                        }}
-                                                        className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/60 dark:text-rose-400 dark:hover:bg-rose-900/60 transition-colors border border-rose-200 dark:border-rose-800 cursor-pointer"
-                                                        title="Delivery cancelled in Delivery Monitoring. Click to view record in Delivery Monitoring with highlights."
-                                                    >
-                                                        <AlertTriangle className="size-3 shrink-0" />
-                                                        <span>Delivery Cancelled</span>
-                                                        <ExternalLink className="size-2.5 shrink-0 opacity-70" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {po.supplier?.supplier_name ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {po.office?.office_name ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {po.fund_cluster?.fund_cluster_id ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <ItemDescriptionBadge value={po.item_description} />
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <OperationalImpactBadge value={po.operational_impact} />
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {po.mode_of_procurement ?? '—'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {formatDate(po.po_date)}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {formatDate(po.due_date)}
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            {formatCurrency(po.total_amount_po)}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-start gap-3">
+                                        {visibleColumns.po_number && (
+                                            <td className="px-3 py-2 font-medium">
+                                                <div className="flex flex-col gap-1 items-start">
+                                                    <span className="font-semibold text-neutral-900 dark:text-neutral-100">{po.po_number}</span>
+                                                    {po.has_cancelled_delivery && (
+                                                        <span
+                                                            className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60"
+                                                            title="Delivery cancelled in Delivery Monitoring"
+                                                        >                                                       
+                                                            <span>Delivery Cancelled</span>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        )}
+                                        {visibleColumns.supplier && (
+                                            <td className="px-3 py-2" title={po.supplier?.supplier_name ?? undefined}>
+                                                {po.supplier?.supplier_name ?? '—'}
+                                            </td>
+                                        )}
+                                        {visibleColumns.office && (
+                                            <td className="px-3 py-2" title={po.office?.office_name ?? undefined}>
+                                                {po.office?.office_name ?? '—'}
+                                            </td>
+                                        )}
+                                        {visibleColumns.fund_cluster && (
+                                            <td className="px-3 py-2">
+                                                {po.fund_cluster?.fund_cluster_id ?? '—'}
+                                            </td>
+                                        )}
+                                        {visibleColumns.item_description && (
+                                            <td className="px-3 py-2">
+                                                <ItemDescriptionBadge value={po.item_description} />
+                                            </td>
+                                        )}
+                                        {visibleColumns.operational_impact && (
+                                            <td className="px-3 py-2">
+                                                <OperationalImpactBadge value={po.operational_impact} />
+                                            </td>
+                                        )}
+                                        {visibleColumns.mode_of_procurement && (
+                                            <td className="px-3 py-2" title={po.mode_of_procurement ?? undefined}>
+                                                {po.mode_of_procurement ?? '—'}
+                                            </td>
+                                        )}
+                                        {visibleColumns.po_date && (
+                                            <td className="px-3 py-2">
+                                                {formatDate(po.po_date)}
+                                            </td>
+                                        )}
+                                        {visibleColumns.due_date && (
+                                            <td className="px-3 py-2">
+                                                {formatDate(po.due_date)}
+                                            </td>
+                                        )}
+                                        {visibleColumns.total_amount_po && (
+                                            <td className="px-3 py-2 text-right font-medium">
+                                                {formatCurrency(po.total_amount_po)}
+                                            </td>
+                                        )}
+                                        {visibleColumns.pr_number && (
+                                            <td className="px-3 py-2">
+                                                {po.pr_number ?? '—'}
+                                            </td>
+                                        )}
+                                        {visibleColumns.philgeps_reference_no && (
+                                            <td className="px-3 py-2">
+                                                {po.philgeps_reference_no ?? '—'}
+                                            </td>
+                                        )}
+                                        {visibleColumns.po_received_date && (
+                                            <td className="px-3 py-2">
+                                                {formatDate(po.po_received_date)}
+                                            </td>
+                                        )}
+                                        <td className="sticky right-0 z-10 bg-white dark:bg-gray-900 group-hover/row:bg-slate-50 dark:group-hover/row:bg-gray-800/90 px-3 py-2 shadow-[-3px_0_6px_-1px_rgba(0,0,0,0.08)]">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <button
+                                                            type="button"
+                                                            className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors cursor-pointer"
+                                                            title="View linked records"
+                                                        >
+                                                            <ExternalLink className="size-4" />
+                                                        </button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-56 text-xs">
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleNavigateLinkedRecord(po, 'delivery')}
+                                                            className="cursor-pointer gap-2 py-2"
+                                                        >
+                                                            <Truck className="size-3.5 text-blue-500" />
+                                                            <span>View this in Delivery Monitoring</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleNavigateLinkedRecord(po, 'po_letter')}
+                                                            className="cursor-pointer gap-2 py-2"
+                                                        >
+                                                            <FileText className="size-3.5 text-amber-500" />
+                                                            <span>View in PO Letter Monitoring</span>
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+
                                                 <button
                                                     type="button"
                                                     onClick={() => handleEdit(po)}
@@ -551,14 +746,16 @@ export default function Index({
                                 ))
                             )}
                         </tbody>
-                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
+                    </table>
+                </div>
 
-                    {purchaseOrders.data.length > 0 && (
-                        <div className="p-4">
-                            <Pagination meta={purchaseOrders} />
-                        </div>
-                    )}
+                {purchaseOrders.data.length > 0 && (
+                    <div className="shrink-0">
+                        <Pagination meta={purchaseOrders} />
+                    </div>
+                )}
             </div>
+        </div>
 
             <PurchaseOrderAddForm
                 open={addDialogOpen}
@@ -598,6 +795,31 @@ export default function Index({
                 onOpenChange={setDeleteDialogOpen}
                 poNumber={poToDelete?.po_number ?? null}
             />
+
+            <Dialog open={noLinkedRecordModal?.open ?? false} onOpenChange={(o) => !o && setNoLinkedRecordModal(null)}>
+                <DialogContent className="sm:max-w-md p-6">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900 dark:text-neutral-100">
+                            <AlertCircle className="size-5 text-amber-500 shrink-0" />
+                            <span>No Linked Record</span>
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-3 text-sm text-neutral-600 dark:text-neutral-400">
+                        Purchase Order <strong className="text-neutral-900 dark:text-neutral-100">{noLinkedRecordModal?.poNumber}</strong> has no linked existing record in <strong className="text-neutral-900 dark:text-neutral-100">{noLinkedRecordModal?.targetModule}</strong>.
+                    </div>
+                    <DialogFooter className="flex justify-end gap-2 mt-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setNoLinkedRecordModal(null)}
+                            className="cursor-pointer text-xs"
+                        >
+                            Close
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

@@ -1,7 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Archive } from 'lucide-react';
+import { Search, Pencil, Archive, Plus } from 'lucide-react';
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -165,7 +165,8 @@ export default function Areas({ areas, filters }: Props) {
                             )}
                         </form>
                         <Button onClick={openAddModal} style={{ backgroundColor: '#612A35' }}>
-                            + Add Area
+                            <Plus className="mr-2 size-4" />
+                            Add Area
                         </Button>
                     </div>
 

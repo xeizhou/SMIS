@@ -1,6 +1,9 @@
 import { Head, router } from '@inertiajs/react';
-import { Archive, Eye, Pencil, Search } from 'lucide-react';
+import { Archive, Eye, Pencil, Search, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { useColumnVisibility } from '@/hooks/useColumnVisibility';
+import TableColumnsPopover from '@/components/table/TableColumnsPopover';
+import TableToolbar from '@/components/table/TableToolbar';
 import Pagination from '@/components/Pagination';
 import SortableTable from '@/components/table/SortableTable';
 import type { ColumnDef } from '@/components/table/SortableTable';
@@ -119,6 +122,15 @@ interface Props {
     fundClusters: FundCluster[];
 }
 
+const WMR_COLUMNS = [
+    { key: 'wmr_no', label: 'WMR No.', locked: true },
+    { key: 'wmr_date', label: 'WMR Date' },
+    { key: 'supplier', label: 'Supplier' },
+    { key: 'item_vehicle', label: 'Item / Vehicle' },
+    { key: 'job_order_no', label: 'Job Order No.' },
+    { key: 'labor_cost', label: 'Labor Cost' },
+];
+
 export default function Index({
     records,
     filters,
@@ -126,6 +138,12 @@ export default function Index({
     offices,
     fundClusters,
 }: Props) {
+    const columnVisibility = useColumnVisibility({
+        storageKey: 'smis_wmr_visible_columns',
+        columns: WMR_COLUMNS,
+    });
+    const { visibleColumns } = columnVisibility;
+
     const [search, setSearch] = useState(filters.search ?? '');
     const [supplierId, setSupplierId] = useState(filters.supplier_id ?? 'all');
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -345,6 +363,7 @@ export default function Index({
                                 className="w-full lg:w-auto"
                                 style={{ backgroundColor: '#612A35' }}
                             >
+                                <Plus className="mr-2 size-4" />
                                 Add WMR Record
                             </Button>
                         </div>
@@ -354,7 +373,15 @@ export default function Index({
                     <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
                 </div>
 
-                <div className="flex min-h-0 flex-1 flex-col gap-6">
+                <div className="flex min-h-0 flex-1 flex-col gap-3">
+                    <TableToolbar
+                        currentCount={records.data.length}
+                        total={records.total}
+                        entityName="WMR records"
+                    >
+                        <TableColumnsPopover visibility={columnVisibility} />
+                    </TableToolbar>
+
                     <SortableTable
                         data={records.data}
                         columns={columns}
@@ -367,6 +394,7 @@ export default function Index({
                         }}
                         emptyMessage="No WMR records added yet."
                         getRowId={(record) => record.id}
+                        visibleColumns={visibleColumns}
                     />
 
                     {records.data.length > 0 && (

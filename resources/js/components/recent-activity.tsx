@@ -147,7 +147,7 @@ export function RecentActivity({ data }: Props) {
                                             onClick={() => {
                                                 try {
                                                     const url = new URL(row.target_url!, window.location.origin);
-                                                    const highlightId = url.searchParams.get('highlight_id');
+                                                    const highlightId = url.searchParams.get('highlight_id') || url.searchParams.get('highlight_task_id');
                                                     const highlightSearch = url.searchParams.get('highlight_search');
                                                     if (highlightId) {
                                                         auditLogsHighlight(highlightId, url.pathname);

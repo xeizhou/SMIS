@@ -1,7 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Archive, Eye } from 'lucide-react';
+import { Search, Pencil, Archive, Eye, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { useColumnVisibility } from '@/hooks/useColumnVisibility';
+import TableColumnsPopover from '@/components/table/TableColumnsPopover';
+import TableToolbar from '@/components/table/TableToolbar';
 import BonaVidaAddForm from '@/components/bona-vida-monitoring/bonavidaaddform';
 import BonaVidaDeleteModal from '@/components/bona-vida-monitoring/bonavidadeletemodal';
 import BonaVidaEditForm from '@/components/bona-vida-monitoring/bonavidaeditform';
@@ -57,7 +60,20 @@ interface Props {
     offices: Office[];
 }
 
+const BONA_VIDA_COLUMNS = [
+    { key: 'invoice_no', label: 'Invoice No', locked: true },
+    { key: 'date_received', label: 'Date Received' },
+    { key: 'office_code', label: 'Office' },
+    { key: 'total_amount', label: 'Total Amount' },
+];
+
 export default function Index({ records, filters, offices }: Props) {
+    const columnVisibility = useColumnVisibility({
+        storageKey: 'smis_bona_vida_visible_columns',
+        columns: BONA_VIDA_COLUMNS,
+    });
+    const { visibleColumns } = columnVisibility;
+
     const [search, setSearch] = useState(filters.search ?? '');
     const [officeCode, setOfficeCode] = useState(filters.office_code ?? 'all');
 
@@ -244,6 +260,7 @@ export default function Index({ records, filters, offices }: Props) {
                                 className="w-full lg:w-auto"
                                 style={{ backgroundColor: '#612A35' }}
                             >
+                                <Plus className="mr-2 size-4" />
                                 Add Bona Vida Record
                             </Button>
                         </div>
@@ -253,7 +270,15 @@ export default function Index({ records, filters, offices }: Props) {
                     <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
                 </div>
 
-                <div className="flex-1 min-h-0 flex flex-col gap-6">
+                <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    <TableToolbar
+                        currentCount={records.data.length}
+                        total={records.total}
+                        entityName="Bona Vida records"
+                    >
+                        <TableColumnsPopover visibility={columnVisibility} />
+                    </TableToolbar>
+
                     <SortableTable
                         data={records.data}
                         columns={columns}
@@ -263,6 +288,7 @@ export default function Index({ records, filters, offices }: Props) {
                         currentFilters={{ search, office_code: officeCode === 'all' ? '' : officeCode }}
                         emptyMessage="No Bona Vida records added yet."
                         getRowId={(record) => record.bvm_id}
+                        visibleColumns={visibleColumns}
                     />
 
                     {records.data.length > 0 && (

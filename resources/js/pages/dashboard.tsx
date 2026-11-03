@@ -40,6 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 type DashboardPageProps = {
     deliveries?: DueDelivery[];
+    calendarDeliveries?: DueDelivery[];
     poLettersStatus?: Record<string, POLetterStatusRow[]>;
     pendingInspections?: number;
     inspectionsLastWeek?: number;
@@ -99,6 +100,7 @@ type DashboardPageProps = {
 export default function Dashboard() {
     const {
         deliveries = [],
+        calendarDeliveries = [],
         poLettersStatus = { 'This Week': [], 'This Month': [], 'This Year': [] },
         pendingInspections = 0,
         inspectionsLastWeek = 0,
@@ -202,6 +204,25 @@ export default function Dashboard() {
         setIsLoaded(true);
     }, []);
 
+    // Automatically switch Action Center to Tasks tab if a task is targeted
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const highlightTaskId = params.get('highlight_task_id');
+        const highlightId = params.get('highlight_id');
+
+        if (highlightTaskId) {
+            setActiveActionTab('tasks');
+            auditLogsHighlight(highlightTaskId, '/dashboard');
+        } else if (highlightId) {
+            const isTask = assignedTasks.some(t => String(t.id) === highlightId || `task-${t.id}` === highlightId);
+            if (isTask) {
+                setActiveActionTab('tasks');
+                auditLogsHighlight(highlightId, '/dashboard');
+            }
+        }
+    }, [assignedTasks]);
+
     // Auto-refresh data periodically and on tab focus to keep dashboard "real-time"
     useEffect(() => {
         let pollInterval: ReturnType<typeof setInterval> | undefined;
@@ -277,7 +298,7 @@ export default function Dashboard() {
                             <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
                             <span className="hidden sm:inline">Refresh</span>
                         </Button>
-                        <CalendarButton deliveries={deliveries} />
+                        <CalendarButton deliveries={calendarDeliveries.length > 0 ? calendarDeliveries : deliveries} />
                         
                         <div className="h-5 w-px bg-neutral-200 dark:bg-neutral-800 mx-0.5 hidden sm:block" />
                         

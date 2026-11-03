@@ -59,38 +59,65 @@ export function ClientContainer({ deliveries = [] }: { deliveries?: DueDelivery[
   const selectedUserId = useCalendarStore(state => state.selectedUserId);
   
   const events = useMemo<IEvent[]>(() => {
-    return deliveries.map((d, index) => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const due = new Date(d.due_date);
-      due.setHours(0, 0, 0, 0);
-      const diff = Math.round((due.getTime() - today.getTime()) / 86400000);
+    return deliveries
+      .filter(d => Boolean(d.due_date))
+      .map((d, index) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-      let color: TEventColor = "green";
-      if (diff < 0) color = "red";
-      else if (diff === 0) color = "yellow";
-      else if (diff === 1) color = "blue";
-      else if (diff <= 7) color = "purple";
-      
-      const startDate = new Date(d.due_date);
-      startDate.setHours(8, 0, 0, 0);
-      const endDate = new Date(d.due_date);
-      endDate.setHours(17, 0, 0, 0);
+        const parts = String(d.due_date).split('-');
+        let due: Date;
+        let startDate: Date;
+        let endDate: Date;
 
-      return {
-        id: d.delivery_id ?? index,
-        title: d.po_number,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        color,
-        description: `Supplier: ${d.supplier?.supplier_name ?? 'N/A'}\nStatus: ${d.status ?? 'Pending'}\nEnd User: ${d.end_user ?? 'N/A'}`,
-        user: {
+        if (parts.length === 3) {
+          const year = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1;
+          const day = parseInt(parts[2], 10);
+          due = new Date(year, month, day, 0, 0, 0);
+          startDate = new Date(year, month, day, 8, 0, 0);
+          endDate = new Date(year, month, day, 17, 0, 0);
+        } else {
+          due = new Date(d.due_date);
+          due.setHours(0, 0, 0, 0);
+          startDate = new Date(d.due_date);
+          startDate.setHours(8, 0, 0, 0);
+          endDate = new Date(d.due_date);
+          endDate.setHours(17, 0, 0, 0);
+        }
+
+        const diff = Math.round((due.getTime() - today.getTime()) / 86400000);
+
+        let color: TEventColor = "green";
+        const statusUpper = (d.status ?? '').toUpperCase();
+        if (statusUpper === 'CANCELLED') {
+          color = "red";
+        } else if (statusUpper === 'COMPLETE') {
+          color = "green";
+        } else if (diff < 0) {
+          color = "red";
+        } else if (diff === 0) {
+          color = "yellow";
+        } else if (diff === 1) {
+          color = "blue";
+        } else if (diff <= 7) {
+          color = "purple";
+        }
+
+        return {
+          id: d.delivery_id ?? index,
+          title: d.po_number,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          color,
+          description: `Supplier: ${d.supplier?.supplier_name ?? 'N/A'}\nStatus: ${d.status ?? 'Pending'}\nEnd User: ${d.end_user ?? 'N/A'}`,
+          user: {
             id: d.supplier?.supplier_name ?? "No Supplier",
             name: d.supplier?.supplier_name ?? "No Supplier",
             picturePath: null,
-        }
-      };
-    });
+          }
+        };
+      });
   }, [deliveries]);
 
   // Filter events based on view and user selection

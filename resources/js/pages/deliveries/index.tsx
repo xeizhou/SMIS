@@ -1,9 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Search, Archive, ExternalLink } from 'lucide-react';
+import { Eye, Pencil, Search, Archive, ExternalLink, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useColumnVisibility } from '@/hooks/useColumnVisibility';
+import TableColumnsPopover from '@/components/table/TableColumnsPopover';
+import TableToolbar from '@/components/table/TableToolbar';
 import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
 import DeliveryAddForm from '@/components/deliveries/deliveryaddform';
 import DeliveryDeleteModal from '@/components/deliveries/deliverydeletemodal';
@@ -131,8 +133,21 @@ return '—';
     });
 }
 
+const DELIVERY_COLUMNS = [
+    { key: 'po_number', label: 'PO Number', locked: true },
+    { key: 'supplier', label: 'Supplier' },
+    { key: 'delivery_date', label: 'Date of Delivery' },
+    { key: 'status', label: 'Status' },
+];
+
 export default function Index({ deliveries, filters, purchaseOrders, statuses, suppliers }: Props) {
-        const [search, setSearch] = useState(filters.search ?? '');
+    const columnVisibility = useColumnVisibility({
+        storageKey: 'smis_deliveries_visible_columns',
+        columns: DELIVERY_COLUMNS,
+    });
+    const { visibleColumns } = columnVisibility;
+
+    const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [poNumber, setPoNumber] = useState(filters.po_number ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -213,166 +228,187 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
         <>
             <Head title="Delivery Monitoring" />
 
-            <div className="p-4 space-y-6 sm:p-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">Delivery Monitoring</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">Manage and track all deliveries</p>
+            <div className="flex flex-col h-[calc(100vh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
+                {/* Sticky Header & Search */}
+                <div className="shrink-0 relative z-30 -mx-4 -mt-4 bg-background/95 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">Delivery Monitoring</h1>
+                            <p className="mt-1 text-sm text-muted-foreground">Manage and track all deliveries</p>
+                        </div>
+                        <div className="bg-muted/50 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
+                            <Link
+                                href="/deliveries"
+                                preserveState
+                                className="bg-background text-foreground shadow-sm inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                            >
+                                Deliveries
+                            </Link>
+                            <Link
+                                href="/delivery-follow-ups"
+                                className="text-muted-foreground hover:text-foreground inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                            >
+                                Follow-ups
+                            </Link>
+                        </div>
                     </div>
-                    <div className="bg-muted/50 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
-                        <Link
-                            href="/deliveries"
-                            preserveState
-                            className="bg-background text-foreground shadow-sm inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
-                        >
-                            Deliveries
-                        </Link>
-                        <Link
-                            href="/delivery-follow-ups"
-                            className="text-muted-foreground hover:text-foreground inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
-                        >
-                            Follow-ups
-                        </Link>
-                    </div>
-                </div>
 
-                <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex flex-wrap gap-2 flex-1">
-                        <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search delivery"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
-                            />
+                    <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex flex-wrap gap-2 flex-1">
+                            <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
+                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search delivery"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9"
+                                />
+                            </div>
+
+                            <Select value={status} onValueChange={handleStatusChange}>
+                                <SelectTrigger className={`w-[180px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
+                                    <SelectValue placeholder="Filter by Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Filter by Status</SelectItem>
+                                    {statuses.map((statusOption) => (
+                                        <SelectItem key={statusOption} value={statusOption}>
+                                            {statusOption}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Button type="submit" variant="secondary">Search</Button>
+                            <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
                         </div>
 
-                        <Select value={status} onValueChange={handleStatusChange}>
-                            <SelectTrigger className={`w-[180px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Filter by Status</SelectItem>
-                                {statuses.map((statusOption) => (
-                                    <SelectItem key={statusOption} value={statusOption}>
-                                        {statusOption}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Button type="button" onClick={() => setAddDialogOpen(true)} className="w-full lg:w-auto text-white shadow-sm" style={{ backgroundColor: '#612A35' }}>
+                            <Plus className="mr-2 size-4" />
+                            Add Delivery
+                        </Button>
+                    </form>
 
-                        <Button type="submit" variant="secondary">Search</Button>
-                        <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
-                    </div>
+                    {/* Horizontal fading border */}
+                    <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
+                </div>
 
-                    <Button type="button" onClick={() => setAddDialogOpen(true)} className="w-full lg:w-auto" style={{ backgroundColor: '#612A35' }}>
-                        Add Delivery
-                    </Button>
-                </form>
+                <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    <TableToolbar
+                        currentCount={deliveries.data.length}
+                        total={deliveries.total}
+                        entityName="delivery records"
+                    >
+                        <TableColumnsPopover visibility={columnVisibility} />
+                    </TableToolbar>
 
-                <ScrollArea className="w-full rounded-md border border-border bg-card overflow-hidden"><table className="w-full text-sm">
-                        <thead className="border-b" style={{ backgroundColor: '#370001' }}>
-                            <tr>
-                                {[
-                                    ['PO Number', 'po_number'], ['Supplier', 'supplier'],
-                                    ['Date of Delivery', 'delivery_date'], ['Status', 'status'],
-                                ].map(([label, field]) => (
-                                    <th key={field} className="p-0 text-left font-semibold text-white">
-                                        <button type="button" onClick={() => handleSort(field)} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button>
-                                    </th>
-                                ))}
-                                <th className="px-4 py-3 text-left font-semibold text-white">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {deliveries.data.length === 0 ? (
+                    <div className="flex-initial min-h-0 overflow-x-auto overflow-y-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="sticky top-0 z-20 border-b" style={{ backgroundColor: '#370001' }}>
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-16 text-center">
-                                        <p className="text-base font-medium text-muted-foreground">No delivery records added yet.</p>
-                                        <p className="mt-1 text-sm text-muted-foreground">Click <strong>&quot;Add Delivery&quot;</strong> to create your first entry.</p>
-                                    </td>
+                                    {visibleColumns.po_number && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('po_number')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">PO Number</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.supplier && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('supplier')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Supplier</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.delivery_date && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('delivery_date')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Date of Delivery</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.status && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('status')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Status</button>
+                                        </th>
+                                    )}
+                                    <th className="px-4 py-3 text-left font-semibold text-white">Actions</th>
                                 </tr>
-                            ) : (
-                                deliveries.data.map((delivery, index) => (
-                                    <AnimatedTableRow
-                                        key={delivery.delivery_id}
-                                        index={index}
-                                        className="border-b transition-colors hover:bg-muted/40"
-                                        data-search-0={delivery.delivery_id}
-                                        data-search-1={delivery.po_number}
-                                        data-record-id={delivery.delivery_id}
-                                    >
-                                        <td className="px-4 py-3 font-medium">
-                                            <div className="flex flex-col gap-1 items-start">
-                                                <span>{delivery.po_number}</span>
-                                                {delivery.status === 'CANCELLED' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            auditLogsHighlight(delivery.po_number, '/purchase-orders');
-                                                            router.get(`/purchase-orders?highlight_search=${encodeURIComponent(delivery.po_number)}&highlight_column=po_number`);
-                                                        }}
-                                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
-                                                        title="View this cancelled PO in Purchase Orders with highlights"
+                            </thead>
+                            <tbody>
+                                {deliveries.data.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={columnVisibility.activeCount + 1} className="px-6 py-16 text-center">
+                                            <p className="text-base font-medium text-muted-foreground">No delivery records added yet.</p>
+                                            <p className="mt-1 text-sm text-muted-foreground">Click <strong>&quot;Add Delivery&quot;</strong> to create your first entry.</p>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    deliveries.data.map((delivery, index) => (
+                                        <AnimatedTableRow
+                                            key={delivery.delivery_id}
+                                            index={index}
+                                            className="border-b transition-colors hover:bg-muted/40"
+                                            data-search-0={delivery.delivery_id}
+                                            data-search-1={delivery.po_number}
+                                            data-record-id={delivery.delivery_id}
+                                        >
+                                            {visibleColumns.po_number && (
+                                                <td className="px-4 py-3 font-medium">
+                                                    <span>{delivery.po_number}</span>
+                                                </td>
+                                            )}
+                                            {visibleColumns.supplier && (
+                                                <td className="px-4 py-3">{delivery.supplier?.supplier_name ?? '—'}</td>
+                                            )}
+                                            {visibleColumns.delivery_date && (
+                                                <td className="px-4 py-3">{formatDate(delivery.delivery_date)}</td>
+                                            )}
+                                            {visibleColumns.status && (
+                                                <td className="px-4 py-3 text-left">
+                                                    <span
+                                                        className={
+                                                            'px-2 py-1 rounded-full text-xs font-semibold ' +
+                                                            (statusColors[delivery.status ?? ''] ?? 'bg-muted text-muted-foreground')
+                                                        }
                                                     >
-                                                        <span>View in POs</span>
-                                                        <ExternalLink className="size-2.5" />
+                                                        {delivery.status ?? '—'}
+                                                    </span>
+                                                </td>
+                                            )}
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center justify-start gap-3">
+                                                    {delivery.po_number && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                auditLogsHighlight(delivery.po_number, '/purchase-orders');
+                                                                router.get(`/purchase-orders?highlight_search=${encodeURIComponent(delivery.po_number)}&highlight_column=po_number`);
+                                                            }}
+                                                            className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors cursor-pointer"
+                                                            title="View this in Purchase Orders"
+                                                        >
+                                                            <ExternalLink className="size-4" />
+                                                        </button>
+                                                    )}
+                                                    <button type="button" onClick={() => handleEdit(delivery)} className="text-blue-600 hover:text-blue-800" title="Edit">
+                                                        <Pencil className="size-4" />
                                                     </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3">{delivery.supplier?.supplier_name ?? '—'}</td>
-                                        <td className="px-4 py-3">{formatDate(delivery.delivery_date)}</td>
-                                        
-                                        <td className="px-4 py-3 text-left">
-                                            <span
-                                                className={
-                                                    'px-2 py-1 rounded-full text-xs font-semibold ' +
-                                                    (statusColors[delivery.status ?? ''] ?? 'bg-muted text-muted-foreground')
-                                                }
-                                            >
-                                                {delivery.status ?? '—'}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-start gap-3">
-                                                {delivery.status === 'CANCELLED' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            auditLogsHighlight(delivery.po_number, '/purchase-orders');
-                                                            router.get(`/purchase-orders?highlight_search=${encodeURIComponent(delivery.po_number)}&highlight_column=po_number`);
-                                                        }}
-                                                        className="text-rose-600 hover:text-rose-800 cursor-pointer"
-                                                        title="View in Purchase Orders (with highlights)"
-                                                    >
-                                                        <ExternalLink className="size-4" />
+                                                    <button type="button" onClick={() => handleDelete(delivery)} className="text-red-600 hover:text-red-800" title="Archive">
+                                                        <Archive className="size-4" />
                                                     </button>
-                                                )}
-                                                <button type="button" onClick={() => handleEdit(delivery)} className="text-blue-600 hover:text-blue-800" title="Edit">
-                                                    <Pencil className="size-4" />
-                                                </button>
-                                                <button type="button" onClick={() => handleDelete(delivery)} className="text-red-600 hover:text-red-800" title="Archive">
-                                                    <Archive className="size-4" />
-                                                </button>
-                                                <button type="button" onClick={() => handleView(delivery)} className="text-foreground hover:text-muted-foreground" title="View">
-                                                    <Eye className="size-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </AnimatedTableRow>
-                                ))
-                            )}
-                        </tbody>
-                    </table><ScrollBar orientation="horizontal" /></ScrollArea>
-
-                {deliveries.data.length > 0 && (
-                    <div className="p-4">
-                        <Pagination meta={deliveries} />
+                                                    <button type="button" onClick={() => handleView(delivery)} className="text-foreground hover:text-muted-foreground" title="View">
+                                                        <Eye className="size-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </AnimatedTableRow>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                )}
+
+                    {deliveries.data.length > 0 && (
+                        <div className="shrink-0">
+                            <Pagination meta={deliveries} />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <DeliveryAddForm open={addDialogOpen} onOpenChange={setAddDialogOpen} purchaseOrders={purchaseOrders} statuses={statuses} />

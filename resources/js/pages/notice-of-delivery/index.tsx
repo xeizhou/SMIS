@@ -288,6 +288,8 @@ export default function NoticeOfDeliveryReport({
                             deliveries.map((item, idx) => (
                                 <tr
                                     key={item.delivery_id || idx}
+                                    data-record-id={item.delivery_id}
+                                    data-search-0={item.po_number}
                                     className={`transition-colors hover:bg-red-50/40 dark:hover:bg-red-950/20 group ${
                                         flashedIds.has(item.delivery_id) ? 'bg-amber-100/70 dark:bg-amber-900/30' : ''
                                     }`}

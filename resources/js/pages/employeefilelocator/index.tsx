@@ -1,7 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Archive } from 'lucide-react';
+import { Search, Pencil, Archive, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { useColumnVisibility } from '@/hooks/useColumnVisibility';
+import TableColumnsPopover from '@/components/table/TableColumnsPopover';
+import TableToolbar from '@/components/table/TableToolbar';
 import EmployeeFileAddForm from '@/components/employee-file-locator/employeefileaddform';
 import EmployeeFileDeleteModal from '@/components/employee-file-locator/employeefiledeletemodal';
 import EmployeeFileEditForm from '@/components/employee-file-locator/employeefileeditform';
@@ -47,6 +50,13 @@ interface Props {
     statuses: string[];
 }
 
+const EMPLOYEE_FILE_COLUMNS = [
+    { key: 'last_name', label: 'Name', locked: true },
+    { key: 'area', label: 'Area' },
+    { key: 'status', label: 'Status' },
+    { key: 'actions', label: 'Actions', locked: true },
+];
+
 export default function Index({ records, filters, statuses }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? '');
@@ -54,6 +64,12 @@ export default function Index({ records, filters, statuses }: Props) {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<EmployeeFileRecord | null>(null);
+
+    const columnVisibility = useColumnVisibility({
+        storageKey: 'smis_employee_file_visible_columns',
+        columns: EMPLOYEE_FILE_COLUMNS,
+    });
+    const { visibleColumns } = columnVisibility;
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -137,88 +153,106 @@ export default function Index({ records, filters, statuses }: Props) {
         <>
             <Head title="Employee File Locator" />
 
-            <div className="p-4 space-y-6 sm:p-6">
-                {/* Header Section */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">
-                            Employee File Locator
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Manage employee personnel file locator records.
-                        </p>
+            <div className="flex flex-col h-[calc(100vh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
+                {/* Sticky Header & Search */}
+                <div className="shrink-0 relative z-30 -mx-4 -mt-4 bg-background/95 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-4">
+                    {/* Header Section */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">
+                                Employee File Locator
+                            </h1>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Manage employee personnel file locator records.
+                            </p>
+                        </div>
                     </div>
-                </div>
 
-                {/* Filters Section */}
-                <form
-                    onSubmit={handleSearch}
-                    className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
-                >
-                    <div className="flex flex-wrap gap-2 flex-1">
-                        <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search by name or area"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
-                            />
+                    {/* Filters Section */}
+                    <form
+                        onSubmit={handleSearch}
+                        className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+                    >
+                        <div className="flex flex-wrap gap-2 flex-1">
+                            <div className="relative w-full max-w-sm">
+                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search by name or area"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9"
+                                />
+                            </div>
+
+                            <Select value={status} onValueChange={handleStatusChange}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="All Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Status</SelectItem>
+                                    {statuses.map((item) => (
+                                        <SelectItem key={item} value={item}>
+                                            {item}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Button type="submit" variant="secondary">
+                                Search
+                            </Button>
+
+                            <Button type="button" variant="ghost" onClick={handleClear}>
+                                Clear
+                            </Button>
                         </div>
 
-                        <Select value={status} onValueChange={handleStatusChange}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="All Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Status</SelectItem>
-                                {statuses.map((item) => (
-                                    <SelectItem key={item} value={item}>
-                                        {item}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-col gap-2 w-full lg:w-auto lg:flex-row">
+                            <Button
+                                type="button"
+                                onClick={() => setIsAddOpen(true)}
+                                className="w-full lg:w-auto text-white shadow-sm"
+                                style={{ backgroundColor: '#612A35' }}
+                            >
+                                <Plus className="mr-2 size-4" />
+                                Add Employee File
+                            </Button>
+                        </div>
+                    </form>
 
-                        <Button type="submit" variant="secondary">
-                            Search
-                        </Button>
+                    {/* Horizontal fading border */}
+                    <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
+                </div>
 
-                        <Button type="button" variant="ghost" onClick={handleClear}>
-                            Clear
-                        </Button>
-                    </div>
+                <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    <TableToolbar
+                        currentCount={records.data.length}
+                        total={records.total}
+                        entityName="employee file records"
+                    >
+                        <TableColumnsPopover visibility={columnVisibility} />
+                    </TableToolbar>
 
-                    <div className="flex flex-col gap-2 w-full lg:w-auto lg:flex-row">
-                        <Button
-                            type="button"
-                            onClick={() => setIsAddOpen(true)}
-                            className="w-full lg:w-auto"
-                            style={{ backgroundColor: '#612A35' }}
-                        >
-                            Add Employee File
-                        </Button>
-                    </div>
-                </form>
+                    {/* 3. Drop in the new Reusable Table */}
+                    <SortableTable
+                        data={records.data}
+                        columns={columns}
+                        visibleColumns={visibleColumns}
+                        sortField={filters.sort_field}
+                        sortDirection={filters.sort_direction}
+                        url="/employee-file-locator"
+                        // Pass current search and status so sorting doesn't reset them!
+                        currentFilters={{ search, status: status === 'all' ? '' : status }}
+                        emptyMessage="No employee file records added yet."
+                        getRowId={(record) => record.efr_id}
+                    />
 
-                {/* 3. Drop in the new Reusable Table */}
-                <SortableTable
-                    data={records.data}
-                    columns={columns}
-                    sortField={filters.sort_field}
-                    sortDirection={filters.sort_direction}
-                    url="/employee-file-locator"
-                    // Pass current search and status so sorting doesn't reset them!
-                    currentFilters={{ search, status: status === 'all' ? '' : status }}
-                    emptyMessage="No employee file records added yet."
-                    getRowId={(record) => record.efr_id}
-                />
-
-                {records.data.length > 0 && (
-                    <div className="p-4">
-                        <Pagination meta={records} />
-                    </div>
-                )}
+                    {records.data.length > 0 && (
+                        <div className="shrink-0">
+                            <Pagination meta={records} />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <EmployeeFileAddForm open={isAddOpen} onOpenChange={setIsAddOpen} />

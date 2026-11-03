@@ -1,6 +1,6 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Archive } from 'lucide-react';
+import { Search, Pencil, Archive, Plus } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -241,6 +241,7 @@ export default function ClearanceOffices({ offices, filters }: Props) {
                         className="w-full text-white lg:w-auto"
                         style={{ backgroundColor: '#612A35' }}
                     >
+                        <Plus className="mr-2 size-4" />
                         Add Office
                     </Button>
                 </form>

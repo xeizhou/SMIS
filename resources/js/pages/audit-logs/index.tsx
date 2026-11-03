@@ -282,7 +282,7 @@ export default function Index({ logs, filters, userActions }: Props) {
                                                     href={row.target_url}
                                                     onClick={() => {
                                                         const url = new URL(row.target_url!, 'http://localhost');
-                                                        const highlightSearch = url.searchParams.get('highlight_search') || url.searchParams.get('highlight_id');
+                                                        const highlightSearch = url.searchParams.get('highlight_search') || url.searchParams.get('highlight_id') || url.searchParams.get('highlight_task_id');
                                                         if (highlightSearch) {
                                                             auditLogsHighlight(highlightSearch, url.pathname);
                                                         }

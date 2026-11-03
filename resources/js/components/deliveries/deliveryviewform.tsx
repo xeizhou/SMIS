@@ -17,7 +17,9 @@ import {
     FileArchive,
     ExternalLink,
     Download,
+    Info,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface Attachment {
     id: number;
@@ -71,11 +73,25 @@ const labelClass = 'text-xs font-medium text-muted-foreground';
 const valueClass = 'text-sm text-foreground mt-0.5';
 const sectionTitleClass = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground/80 mb-3 pb-2 border-b';
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({
+    label,
+    value,
+    labelAction,
+    subtext,
+}: {
+    label: string;
+    value: React.ReactNode;
+    labelAction?: React.ReactNode;
+    subtext?: React.ReactNode;
+}) {
     return (
         <div>
-            <p className={labelClass}>{label}</p>
-            <p className={valueClass}>{value}</p>
+            <div className="flex items-center justify-between mb-0.5">
+                <p className={labelClass}>{label}</p>
+                {labelAction}
+            </div>
+            <div className={valueClass}>{value}</div>
+            {subtext && <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{subtext}</p>}
         </div>
     );
 }
@@ -241,9 +257,149 @@ export default function DeliveryViewForm({ open, onOpenChange, delivery }: Props
                                 <Detail label="Supplier" value={delivery.supplier?.supplier_name ?? '—'} />
                                 <DeliveryDatesDetail delivery={delivery} />
                                 <Detail label="PO Date Received" value={formatDate(delivery.po_date_received)} />
-                                <Detail label="Delivery Term" value={delivery.delivery_term ?? '—'} />
-                                <Detail label="Due Date" value={formatDate(delivery.due_date)} />
-                                <Detail label="No. of Days (LD)" value={delivery.no_of_days_ld ? String(delivery.no_of_days_ld) : '0'} />
+                                <Detail
+                                    label="Delivery Term"
+                                    value={delivery.delivery_term ? `${delivery.delivery_term} day(s)` : '—'}
+                                    labelAction={
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                                    title="Delivery Term details"
+                                                >
+                                                    <Info className="size-3.5" />
+                                                </button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-80 p-3.5 text-xs space-y-2.5 shadow-md" align="start">
+                                                <div className="font-semibold text-foreground flex items-center gap-1.5 border-b pb-1.5 border-border/60">
+                                                    <Info className="size-4 text-muted-foreground" />
+                                                    <span>Delivery Term Information</span>
+                                                </div>
+                                                <p className="text-muted-foreground leading-relaxed">
+                                                    The <strong>Delivery Term</strong> specifies the contracted duration (in calendar days) granted to the supplier to fulfill and deliver the order.
+                                                </p>
+                                                <div className="rounded-md bg-muted/60 p-2 font-mono text-[11px] text-foreground border border-border/50">
+                                                    Delivery Term = Contracted completion duration (days)
+                                                </div>
+                                                <div className="space-y-1 text-muted-foreground text-[11px]">
+                                                    <p>
+                                                        • <strong>Source:</strong> Specified in the contract and imported from the linked <strong>Purchase Order</strong>.
+                                                    </p>
+                                                    <p>
+                                                        • <strong>Starting Baseline:</strong> Measured from the <strong>PO Date Received</strong> by the supplier.
+                                                    </p>
+                                                    <p>
+                                                        • <strong>Due Date Calculation:</strong> Used to compute the fulfillment deadline: <code>PO Date Received + Delivery Term</code>.
+                                                    </p>
+                                                </div>
+                                                {delivery.delivery_term ? (
+                                                    <div className="rounded bg-muted/70 dark:bg-muted/40 border border-border p-2 text-[11px] text-foreground">
+                                                        <strong>Current Contract Term:</strong><br />
+                                                        {delivery.delivery_term} calendar day(s)
+                                                    </div>
+                                                ) : null}
+                                            </PopoverContent>
+                                        </Popover>
+                                    }
+                                />
+                                <Detail
+                                    label="Due Date"
+                                    value={formatDate(delivery.due_date)}
+                                    labelAction={
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                                    title="Due Date calculation details"
+                                                >
+                                                    <Info className="size-3.5" />
+                                                </button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-80 p-3.5 text-xs space-y-2.5 shadow-md" align="start">
+                                                <div className="font-semibold text-foreground flex items-center gap-1.5 border-b pb-1.5 border-border/60">
+                                                    <Info className="size-4 text-muted-foreground" />
+                                                    <span>Due Date Calculation & Source</span>
+                                                </div>
+                                                <p className="text-muted-foreground leading-relaxed">
+                                                    The <strong>Due Date</strong> represents the supplier fulfillment deadline and is automatically computed from the linked record in <strong>Purchase Orders</strong>.
+                                                </p>
+                                                <div className="rounded-md bg-muted/60 p-2 font-mono text-[11px] text-foreground border border-border/50">
+                                                    Due Date = PO Date Received + Delivery Term (days)
+                                                </div>
+                                                <div className="space-y-1 text-muted-foreground text-[11px]">
+                                                    <p>
+                                                        • <strong>PO Date Received:</strong> Official date the purchase order was received by the supplier.
+                                                    </p>
+                                                    <p>
+                                                        • <strong>Delivery Term:</strong> Agreed calendar duration for completion stipulated in the contract.
+                                                    </p>
+                                                    <p>
+                                                        • <strong>Late Delivery (LD):</strong> If shipments arrive after this date, liquidated damages begin accruing.
+                                                    </p>
+                                                </div>
+                                                {delivery.po_date_received && delivery.delivery_term ? (
+                                                    <div className="rounded bg-muted/70 dark:bg-muted/40 border border-border p-2 text-[11px] text-foreground">
+                                                        <strong>Current PO Calculation:</strong><br />
+                                                        {delivery.po_date_received} + {delivery.delivery_term} day(s) = <strong>{delivery.due_date || 'Pending'}</strong>
+                                                    </div>
+                                                ) : null}
+                                            </PopoverContent>
+                                        </Popover>
+                                    }
+                                />
+                                <Detail
+                                    label="No. of Days (LD)"
+                                    value={delivery.no_of_days_ld ? String(delivery.no_of_days_ld) : '0'}
+                                    labelAction={
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                                    title="Late Delivery (LD) details"
+                                                >
+                                                    <Info className="size-3.5" />
+                                                </button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-80 p-3.5 text-xs space-y-2.5 shadow-md" align="start">
+                                                <div className="font-semibold text-foreground flex items-center gap-1.5 border-b pb-1.5 border-border/60">
+                                                    <Info className="size-4 text-muted-foreground" />
+                                                    <span>Late Delivery (LD) Information</span>
+                                                </div>
+                                                <p className="text-muted-foreground leading-relaxed">
+                                                    <strong>No. of Days (LD)</strong> measures the calendar days elapsed past the Due Date before actual delivery occurs, which is used for calculating liquidated damages.
+                                                </p>
+                                                <div className="rounded-md bg-muted/60 p-2 font-mono text-[11px] text-foreground border border-border/50">
+                                                    No. of Days (LD) = Latest Delivery Date - Due Date
+                                                </div>
+                                                <div className="space-y-1 text-muted-foreground text-[11px]">
+                                                    <p>
+                                                        • <strong>On-Time Delivery:</strong> If actual delivery is completed on or before the Due Date, LD is <strong>0 days</strong>.
+                                                    </p>
+                                                    <p>
+                                                        • <strong>Delayed Delivery:</strong> Each calendar day past the Due Date incurs liquidated damages under procurement regulations.
+                                                    </p>
+                                                    <p>
+                                                        • <strong>Basis:</strong> Automatically computed from the latest logged delivery date against the scheduled Due Date.
+                                                    </p>
+                                                </div>
+                                                {delivery.no_of_days_ld ? (
+                                                    <div className="rounded bg-muted/70 dark:bg-muted/40 border border-border p-2 text-[11px] text-foreground">
+                                                        <strong>Current Record:</strong><br />
+                                                        {delivery.no_of_days_ld} day(s) delay recorded
+                                                    </div>
+                                                ) : (
+                                                    <div className="rounded bg-muted/70 dark:bg-muted/40 border border-border p-2 text-[11px] text-foreground">
+                                                        <strong>Current Record:</strong><br />
+                                                        0 days (Completed on or before deadline)
+                                                    </div>
+                                                )}
+                                            </PopoverContent>
+                                        </Popover>
+                                    }
+                                />
                                 <Detail label="Status" value={delivery.status ?? '—'} />
                             </div>
 

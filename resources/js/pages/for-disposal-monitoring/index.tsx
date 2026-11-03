@@ -4,6 +4,9 @@ import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Archive, Eye } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useColumnVisibility } from '@/hooks/useColumnVisibility';
+import TableColumnsPopover from '@/components/table/TableColumnsPopover';
+import TableToolbar from '@/components/table/TableToolbar';
 import ForDisposalDeleteModal from '@/components/for-disposal-monitoring/for-disposal-delete-modal';
 import ForDisposalViewModal from '@/components/for-disposal-monitoring/for-disposal-view-modal';
 import { Button } from '@/components/ui/button';
@@ -64,7 +67,21 @@ const conditionBadgeClass = (condition: string) => {
     return 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300';
 };
 
+const DISPOSAL_COLUMNS = [
+    { key: 'transaction_no', label: 'Transaction No.', locked: true },
+    { key: 'property_no', label: 'Property No.' },
+    { key: 'description', label: 'Description' },
+    { key: 'location', label: 'Location' },
+    { key: 'amount', label: 'Amount' },
+];
+
 export default function Index({ data = { data: [], links: [], current_page: 1, last_page: 1, per_page: 10, total: 0, from: null, to: null }, filters = {} }: { data?: PaginatedForDisposal, filters?: any }) {
+    const columnVisibility = useColumnVisibility({
+        storageKey: 'smis_for_disposal_visible_columns',
+        columns: DISPOSAL_COLUMNS,
+    });
+    const { visibleColumns } = columnVisibility;
+
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -183,12 +200,44 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                     <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
                 </div>
 
-                <div className="flex-1 min-h-0 flex flex-col gap-6">
+                <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    <TableToolbar
+                        currentCount={data.data.length}
+                        total={data.total}
+                        entityName="For Disposal records"
+                    >
+                        <TableColumnsPopover visibility={columnVisibility} />
+                    </TableToolbar>
+
                     <div className="flex-initial min-h-0 overflow-x-auto overflow-y-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                             <tr>
-                                {['Transaction No.', 'Property No.', 'Description', 'Location', 'Amount'].map((label, index) => <th key={label} className="p-0 font-medium"><button type="button" onClick={() => handleSort(['transaction_no', 'property_no', 'description', 'location', 'amount'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
+                                {visibleColumns.transaction_no && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('transaction_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Transaction No.</button>
+                                    </th>
+                                )}
+                                {visibleColumns.property_no && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('property_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Property No.</button>
+                                    </th>
+                                )}
+                                {visibleColumns.description && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('description')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Description</button>
+                                    </th>
+                                )}
+                                {visibleColumns.location && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('location')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Location</button>
+                                    </th>
+                                )}
+                                {visibleColumns.amount && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('amount')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Amount</button>
+                                    </th>
+                                )}
                                 <th className="px-4 py-3 font-medium text-left">Actions</th>
                             </tr>
                         </thead>
@@ -203,11 +252,21 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                         data-search-1={item.transaction_no}
                                         data-record-id={item.id}
                                     >
-                                        <td className="px-4 py-3 font-medium">{item.transaction_no?.replace(/-\d+$/, '')}</td>
-                                        <td className="px-4 py-3">{item.property_no}</td>
-                                        <td className="px-4 py-3">{item.description}</td>
-                                        <td className="px-4 py-3">{item.location}</td>
-                                        <td className="px-4 py-3">{formatCurrency(item.amount)}</td>
+                                        {visibleColumns.transaction_no && (
+                                            <td className="px-4 py-3 font-medium">{item.transaction_no?.replace(/-\d+$/, '')}</td>
+                                        )}
+                                        {visibleColumns.property_no && (
+                                            <td className="px-4 py-3">{item.property_no}</td>
+                                        )}
+                                        {visibleColumns.description && (
+                                            <td className="px-4 py-3">{item.description}</td>
+                                        )}
+                                        {visibleColumns.location && (
+                                            <td className="px-4 py-3">{item.location}</td>
+                                        )}
+                                        {visibleColumns.amount && (
+                                            <td className="px-4 py-3">{formatCurrency(item.amount)}</td>
+                                        )}
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-start gap-3">
                                                 <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
@@ -225,7 +284,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center">
+                                    <td colSpan={columnVisibility.activeCount + 1} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No For Disposal records added yet.
                                         </p>

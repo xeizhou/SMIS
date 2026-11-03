@@ -48,6 +48,14 @@ class DatabaseSeeder extends Seeder
             $suppliers = Supplier::all();
         }
 
+        Supplier::firstOrCreate(
+            ['supplier_name' => 'Acme Test Corp 1'],
+            [
+                'contact_person' => 'Aize Test 1',
+                'email_address' => 'aizevirtudazo@gmail.com',
+            ]
+        );
+
         // Units, stock items and transactions (parents before children)
         if (Unit::count() === 0) {
             $units = Unit::factory(8)->create();
