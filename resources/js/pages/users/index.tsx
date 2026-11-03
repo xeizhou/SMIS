@@ -1,6 +1,6 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import { Pencil, Search, Archive, Mail, ShieldCheck, Lock, Camera, X, ZoomIn, Loader2 } from 'lucide-react';
+import { Pencil, Search, Archive, Mail, ShieldCheck, Lock, Camera, X, ZoomIn, Loader2, Plus } from 'lucide-react';
 import Cropper, { type Area } from 'react-easy-crop';
 import { Button } from '@/components/ui/button';
 import {
@@ -457,6 +457,7 @@ export default function Index({ users }: IndexProps) {
                         className="w-full lg:w-auto"
                         style={{ backgroundColor: '#612A35' }}
                     >
+                        <Plus className="mr-2 size-4" />
                         Add User
                     </Button>
                 </div>

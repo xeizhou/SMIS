@@ -120,6 +120,7 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
                         'delivery_id' => $delivery->delivery_id,
                         'po_number' => $delivery->po_number,
                         'time_ago' => ($delivery->data_entry_timestamp ?? now())->diffForHumans(),
+                        'created_at_raw' => ($delivery->data_entry_timestamp ?? $delivery->created_at)?->toISOString(),
                         'is_overdue' => $isOverdue,
                         'daysOverdue' => $daysOverdue,
                         'diff_days' => $diffDays,
@@ -131,7 +132,7 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
         };
 
         $getDueDeliveries = function () {
-            return Delivery::with(['supplier:supplier_id,supplier_name', 'servePo:po_number'])
+            return Delivery::with(['supplier:supplier_id,supplier_name', 'servePo:po_number,po_received_date,delivery_term'])
                 ->withExists('deliveryFollowUps')
                 ->whereNotNull('due_date')
                 ->where(function ($query) {
@@ -168,12 +169,35 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
                         'due_date' => $due ? $due->format('Y-m-d') : null,
                         'due_date_formatted' => $due ? $due->format('M d, Y') : null,
                         'time_ago' => ($delivery->data_entry_timestamp ?? $delivery->created_at ?? now())->diffForHumans(),
+                        'created_at_raw' => ($delivery->data_entry_timestamp ?? $delivery->created_at)?->toISOString(),
                         'is_overdue' => $isOverdue,
                         'days_overdue' => $daysOverdue,
                         'diff_days' => $diffDays,
                         'status' => $delivery->status,
                         'end_user' => $delivery->end_user,
                         'has_follow_up' => $delivery->delivery_follow_ups_exists ?? false,
+                        'supplier' => $delivery->supplier ? [
+                            'supplier_name' => $delivery->supplier->supplier_name,
+                        ] : null,
+                    ];
+                })
+                ->values();
+        };
+
+        $getCalendarDeliveries = function () {
+            return Delivery::with(['supplier:supplier_id,supplier_name', 'servePo:po_number,po_received_date,delivery_term'])
+                ->whereNotNull('due_date')
+                ->orderBy('due_date', 'asc')
+                ->get()
+                ->map(function ($delivery) {
+                    $due = $delivery->due_date ? Carbon::parse($delivery->due_date) : null;
+                    return [
+                        'delivery_id' => $delivery->delivery_id,
+                        'po_number' => $delivery->po_number,
+                        'due_date' => $due ? $due->format('Y-m-d') : null,
+                        'due_date_formatted' => $due ? $due->format('M d, Y') : null,
+                        'status' => $delivery->status,
+                        'end_user' => $delivery->end_user,
                         'supplier' => $delivery->supplier ? [
                             'supplier_name' => $delivery->supplier->supplier_name,
                         ] : null,
@@ -446,6 +470,7 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
             'recentActivity' => fn () => $getRecentActivity(),
             'recentDeliveries' => fn () => $getRecentDeliveries(),
             'deliveries' => fn () => $getDueDeliveries(),
+            'calendarDeliveries' => fn () => $getCalendarDeliveries(),
             'pendingDeliveries' => fn () => Delivery::where('status', 'PENDING')->count(),
             'deliveriesLastWeek' => fn () => Delivery::where('status', 'PENDING')
                 ->where('data_entry_timestamp', '>=', now()->startOfWeek())
@@ -544,6 +569,7 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
                             'name' => $task->assignedBy->name,
                         ] : null,
                         'created_at' => $task->created_at?->diffForHumans(),
+                        'created_at_raw' => $task->created_at?->toISOString(),
                         'completed_at' => $task->completed_at ? Carbon::parse($task->completed_at)->diffForHumans() : null,
                     ];
                 })
@@ -1311,7 +1337,29 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
 
     // Calendar
     Route::get('/calendar', function () {
-        return Inertia::render('calendar/index');
+        $calendarDeliveries = Delivery::with(['supplier:supplier_id,supplier_name', 'servePo:po_number,po_received_date,delivery_term'])
+            ->whereNotNull('due_date')
+            ->orderBy('due_date', 'asc')
+            ->get()
+            ->map(function ($delivery) {
+                $due = $delivery->due_date ? Carbon::parse($delivery->due_date) : null;
+                return [
+                    'delivery_id' => $delivery->delivery_id,
+                    'po_number' => $delivery->po_number,
+                    'due_date' => $due ? $due->format('Y-m-d') : null,
+                    'due_date_formatted' => $due ? $due->format('M d, Y') : null,
+                    'status' => $delivery->status,
+                    'end_user' => $delivery->end_user,
+                    'supplier' => $delivery->supplier ? [
+                        'supplier_name' => $delivery->supplier->supplier_name,
+                    ] : null,
+                ];
+            })
+            ->values();
+
+        return Inertia::render('calendar/index', [
+            'deliveries' => $calendarDeliveries,
+        ]);
     })->name('calendar.index');
 
 });

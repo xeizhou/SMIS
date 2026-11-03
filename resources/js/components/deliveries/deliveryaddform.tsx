@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState, useRef } from 'react';
-import { RefreshCw, Paperclip, X, Check, ChevronsUpDown, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive, Plus } from 'lucide-react';
+import { RefreshCw, Paperclip, X, Check, ChevronsUpDown, ExternalLink, File, FileImage, FileText, FileSpreadsheet, FileArchive, Plus, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -67,6 +67,8 @@ interface FieldProps {
     disabled?: boolean;
     pattern?: string;
     title?: string;
+    labelAction?: React.ReactNode;
+    helperText?: React.ReactNode;
 }
 
 const labelClass = 'mb-1 block text-sm text-foreground';
@@ -116,13 +118,18 @@ function Field({
     disabled = false,
     pattern,
     title,
+    labelAction,
+    helperText,
 }: FieldProps) {
     return (
         <div>
-            <label htmlFor={name} className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+                <label htmlFor={name} className="block text-sm text-foreground">
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {labelAction}
+            </div>
             <Input
                 id={name}
                 type={type}
@@ -137,6 +144,7 @@ function Field({
                 title={title}
                 className={cn(error && 'border-red-500')}
             />
+            {helperText && <p className="mt-1 text-[11px] text-muted-foreground leading-normal">{helperText}</p>}
             {error && <p className="mt-1 text-[11px] text-red-500 font-medium">{error}</p>}
         </div>
     );
@@ -654,6 +662,48 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                 placeholder="Auto-filled from selected PO"
                                 readOnly
                                 disabled
+                                labelAction={
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                                title="Delivery Term details"
+                                            >
+                                                <Info className="size-3.5" />
+                                            </button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80 p-3.5 text-xs space-y-2.5 shadow-md" align="end">
+                                            <div className="font-semibold text-foreground flex items-center gap-1.5 border-b pb-1.5 border-border/60">
+                                                <Info className="size-4 text-muted-foreground" />
+                                                <span>Delivery Term Information</span>
+                                            </div>
+                                            <p className="text-muted-foreground leading-relaxed">
+                                                The <strong>Delivery Term</strong> specifies the contracted duration (in calendar days) granted to the supplier to fulfill and deliver the order.
+                                            </p>
+                                            <div className="rounded-md bg-muted/60 p-2 font-mono text-[11px] text-foreground border border-border/50">
+                                                Delivery Term = Contracted completion duration (days)
+                                            </div>
+                                            <div className="space-y-1 text-muted-foreground text-[11px]">
+                                                <p>
+                                                    • <strong>Source:</strong> Specified in the contract and imported from the linked <strong>Purchase Order</strong>.
+                                                </p>
+                                                <p>
+                                                    • <strong>Starting Baseline:</strong> Measured from the <strong>PO Date Received</strong> by the supplier.
+                                                </p>
+                                                <p>
+                                                    • <strong>Due Date Calculation:</strong> Used to compute the fulfillment deadline: <code>PO Date Received + Delivery Term</code>.
+                                                </p>
+                                            </div>
+                                            {data.delivery_term ? (
+                                                <div className="rounded bg-muted/70 dark:bg-muted/40 border border-border p-2 text-[11px] text-foreground">
+                                                    <strong>Current Contract Term:</strong><br />
+                                                    {data.delivery_term} calendar day(s)
+                                                </div>
+                                            ) : null}
+                                        </PopoverContent>
+                                    </Popover>
+                                }
                             />
 
                             <Field
@@ -665,6 +715,48 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                 placeholder="Auto-calculated from PO dates"
                                 readOnly
                                 disabled
+                                labelAction={
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                                title="Due Date calculation details"
+                                            >
+                                                <Info className="size-3.5" />
+                                            </button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80 p-3.5 text-xs space-y-2.5 shadow-md" align="end">
+                                            <div className="font-semibold text-foreground flex items-center gap-1.5 border-b pb-1.5 border-border/60">
+                                                <Info className="size-4 text-muted-foreground" />
+                                                <span>Due Date Calculation & Source</span>
+                                            </div>
+                                            <p className="text-muted-foreground leading-relaxed">
+                                                The <strong>Due Date</strong> represents the supplier fulfillment deadline and is automatically computed from the linked record in <strong>Purchase Orders</strong>.
+                                            </p>
+                                            <div className="rounded-md bg-muted/60 p-2 font-mono text-[11px] text-foreground border border-border/50">
+                                                Due Date = PO Date Received + Delivery Term (days)
+                                            </div>
+                                            <div className="space-y-1 text-muted-foreground text-[11px]">
+                                                <p>
+                                                    • <strong>PO Date Received:</strong> Official date the purchase order was received by the supplier.
+                                                </p>
+                                                <p>
+                                                    • <strong>Delivery Term:</strong> Agreed calendar duration for completion stipulated in the contract.
+                                                </p>
+                                                <p>
+                                                    • <strong>Late Delivery (LD):</strong> If shipments arrive after this date, liquidated damages begin accruing.
+                                                </p>
+                                            </div>
+                                            {data.po_date_received && data.delivery_term ? (
+                                                <div className="rounded bg-muted/70 dark:bg-muted/40 border border-border p-2 text-[11px] text-foreground">
+                                                    <strong>Current PO Calculation:</strong><br />
+                                                    {data.po_date_received} + {data.delivery_term} day(s) = <strong>{data.due_date || 'Pending'}</strong>
+                                                </div>
+                                            ) : null}
+                                        </PopoverContent>
+                                    </Popover>
+                                }
                             />
                         </div>
                     </div>
@@ -718,6 +810,48 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                 error={errors.no_of_days_ld}
                                 readOnly
                                 disabled
+                                labelAction={
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                                title="Late Delivery (LD) details"
+                                            >
+                                                <Info className="size-3.5" />
+                                            </button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80 p-3.5 text-xs space-y-2.5 shadow-md" align="end">
+                                            <div className="font-semibold text-foreground flex items-center gap-1.5 border-b pb-1.5 border-border/60">
+                                                <Info className="size-4 text-muted-foreground" />
+                                                <span>Late Delivery (LD) Information</span>
+                                            </div>
+                                            <p className="text-muted-foreground leading-relaxed">
+                                                <strong>No. of Days (LD)</strong> measures the calendar days elapsed past the Due Date before actual delivery occurs, which is used for calculating liquidated damages.
+                                            </p>
+                                            <div className="rounded-md bg-muted/60 p-2 font-mono text-[11px] text-foreground border border-border/50">
+                                                No. of Days (LD) = Latest Delivery Date - Due Date
+                                            </div>
+                                            <div className="space-y-1 text-muted-foreground text-[11px]">
+                                                <p>
+                                                    • <strong>On-Time Delivery:</strong> If actual delivery is completed on or before the Due Date, LD is <strong>0 days</strong>.
+                                                </p>
+                                                <p>
+                                                    • <strong>Delayed Delivery:</strong> Each calendar day past the Due Date incurs liquidated damages under procurement regulations.
+                                                </p>
+                                                <p>
+                                                    • <strong>Basis:</strong> Automatically computed from the latest logged delivery date against the scheduled Due Date.
+                                                </p>
+                                            </div>
+                                            {data.due_date && latestDeliveryDate ? (
+                                                <div className="rounded bg-muted/70 dark:bg-muted/40 border border-border p-2 text-[11px] text-foreground">
+                                                    <strong>Current LD Calculation:</strong><br />
+                                                    {latestDeliveryDate} (Delivery) - {data.due_date} (Due Date) = <strong>{computedLdDays} day(s)</strong>
+                                                </div>
+                                            ) : null}
+                                        </PopoverContent>
+                                    </Popover>
+                                }
                             />
 
                             <Field

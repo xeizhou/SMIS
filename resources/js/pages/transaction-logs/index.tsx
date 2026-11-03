@@ -2,8 +2,11 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Archive, Eye, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Search, Pencil, Archive, Eye, ChevronUp, ChevronDown, ChevronsUpDown, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { useColumnVisibility } from '@/hooks/useColumnVisibility';
+import TableColumnsPopover from '@/components/table/TableColumnsPopover';
+import TableToolbar from '@/components/table/TableToolbar';
 import TransactionAddForm from '@/components/transaction-logs/transactionaddform';
 import TransactionDeleteModal from '@/components/transaction-logs/transactiondeletemodal';
 import TransactionEditForm from '@/components/transaction-logs/transactioneditform';
@@ -104,6 +107,17 @@ interface Props {
     filters: Filters;
 }
 
+const TRANSACTION_COLUMNS = [
+    { key: 'transaction_type', label: 'Type' },
+    { key: 'transaction_date', label: 'Date' },
+    { key: 'item_name', label: 'Item Name', locked: true },
+    { key: 'unit_name', label: 'Unit' },
+    { key: 'quantity', label: 'Qty' },
+    { key: 'reference', label: 'Reference' },
+    { key: 'office_code', label: 'Office' },
+    { key: 'actions', label: 'Actions', locked: true },
+];
+
 export default function Index({
     transactions,
     units,
@@ -127,6 +141,12 @@ export default function Index({
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
+
+    const columnVisibility = useColumnVisibility({
+        storageKey: 'smis_transaction_logs_visible_columns',
+        columns: TRANSACTION_COLUMNS,
+    });
+    const { visibleColumns } = columnVisibility;
 
     const getFilterParams = (overrides = {}) =>
         buildFilterUrl({
@@ -195,205 +215,237 @@ export default function Index({
     return (
         <>
             <Head title="Transaction Logs" />
-            <div className="p-4 space-y-6 sm:p-6">
-                {/* Header */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">
-                            Transaction Logs
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Track stock issue and receive transactions.
-                        </p>
+            <div className="flex flex-col h-[calc(100vh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
+                {/* Sticky Header & Search */}
+                <div className="shrink-0 relative z-30 -mx-4 -mt-4 bg-background/95 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-4">
+                    {/* Header */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">
+                                Transaction Logs
+                            </h1>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Track stock issue and receive transactions.
+                            </p>
+                        </div>
                     </div>
-                </div>
 
-                {/* Search + Filter */}
-                <form
-                    onSubmit={handleSearch}
-                    className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
-                >
-                    <div className="flex flex-wrap items-center gap-2 flex-1">
-                        <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search item, reference, office..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
+                    {/* Search + Filter */}
+                    <form
+                        onSubmit={handleSearch}
+                        className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
+                    >
+                        <div className="flex flex-wrap items-center gap-2 flex-1">
+                            <div className="relative w-full max-w-sm">
+                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search item, reference, office..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9"
+                                />
+                            </div>
+
+                            <Select
+                                value={transactionType}
+                                onValueChange={(value) => {
+                                    setTransactionType(value);
+                                    router.get(
+                                        '/transaction-logs',
+                                        getFilterParams({ transaction_type: value, page: 1 }),
+                                        { preserveState: true, preserveScroll: true, replace: true }
+                                    );
+                                }}
+                            >
+                                <SelectTrigger className="w-[140px] text-black">
+                                    <SelectValue placeholder="Filter by Type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Types</SelectItem>
+                                    <SelectItem value="ISSUE">ISSUE</SelectItem>
+                                    <SelectItem value="RECEIVE">RECEIVE</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={officeFilter}
+                                onValueChange={(value) => {
+                                    setOfficeFilter(value);
+                                    router.get(
+                                        '/transaction-logs',
+                                        getFilterParams({ office_code: value, page: 1 }),
+                                        { preserveState: true, preserveScroll: true, replace: true }
+                                    );
+                                }}
+                            >
+                                <SelectTrigger className="w-[140px] text-black">
+                                    <SelectValue placeholder="All Offices" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Offices</SelectItem>
+                                    {offices.map((o) => (
+                                        <SelectItem key={o.office_code} value={o.office_code}>
+                                            {o.office_code}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={fundClusterFilter}
+                                onValueChange={(value) => {
+                                    setFundClusterFilter(value);
+                                    router.get(
+                                        '/transaction-logs',
+                                        getFilterParams({ fund_cluster: value, page: 1 }),
+                                        { preserveState: true, preserveScroll: true, replace: true }
+                                    );
+                                }}
+                            >
+                                <SelectTrigger className="w-[160px] text-black">
+                                    <SelectValue placeholder="All Fund Clusters" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Fund Clusters</SelectItem>
+                                    {fundClusters.map((fc) => (
+                                        <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
+                                            {fc.fund_cluster_id}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <DateRangePicker
+                                dateFrom={dateFrom}
+                                dateTo={dateTo}
+                                setDateFrom={setDateFrom}
+                                setDateTo={setDateTo}
+                                onApply={() =>
+                                    router.get(
+                                        '/transaction-logs',
+                                        getFilterParams({ page: 1 }),
+                                        { preserveState: true, preserveScroll: true, replace: true }
+                                    )
+                                }
                             />
+
+                            <Button type="submit" variant="secondary">
+                                Search
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={handleClear}
+                            >
+                                Clear
+                            </Button>
                         </div>
 
-                        <Select
-                            value={transactionType}
-                            onValueChange={(value) => {
-                                setTransactionType(value);
-                                router.get(
-                                    '/transaction-logs',
-                                    getFilterParams({ transaction_type: value, page: 1 }),
-                                    { preserveState: true, preserveScroll: true, replace: true }
-                                );
-                            }}
-                        >
-                            <SelectTrigger className="w-[140px] text-black">
-                                <SelectValue placeholder="Filter by Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Types</SelectItem>
-                                <SelectItem value="ISSUE">ISSUE</SelectItem>
-                                <SelectItem value="RECEIVE">RECEIVE</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-col gap-2 w-full xl:w-auto xl:flex-row">
+                            <Button
+                                type="button"
+                                onClick={() => setDialogOpen(true)}
+                                className="w-full xl:w-auto bg-[#612A35] hover:bg-[#612A35]/90 text-white flex items-center gap-2 shadow-sm"
+                            >
+                                <Plus className="size-4" />
+                                Add Transaction
+                            </Button>
+                        </div>
+                    </form>
 
-                        <Select
-                            value={officeFilter}
-                            onValueChange={(value) => {
-                                setOfficeFilter(value);
-                                router.get(
-                                    '/transaction-logs',
-                                    getFilterParams({ office_code: value, page: 1 }),
-                                    { preserveState: true, preserveScroll: true, replace: true }
-                                );
-                            }}
-                        >
-                            <SelectTrigger className="w-[140px] text-black">
-                                <SelectValue placeholder="All Offices" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Offices</SelectItem>
-                                {offices.map((o) => (
-                                    <SelectItem key={o.office_code} value={o.office_code}>
-                                        {o.office_code}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    {/* Horizontal fading border */}
+                    <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
+                </div>
 
-                        <Select
-                            value={fundClusterFilter}
-                            onValueChange={(value) => {
-                                setFundClusterFilter(value);
-                                router.get(
-                                    '/transaction-logs',
-                                    getFilterParams({ fund_cluster: value, page: 1 }),
-                                    { preserveState: true, preserveScroll: true, replace: true }
-                                );
-                            }}
-                        >
-                            <SelectTrigger className="w-[160px] text-black">
-                                <SelectValue placeholder="All Fund Clusters" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Fund Clusters</SelectItem>
-                                {fundClusters.map((fc) => (
-                                    <SelectItem key={fc.fund_cluster_id} value={fc.fund_cluster_id}>
-                                        {fc.fund_cluster_id}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    <TableToolbar
+                        currentCount={transactions.data.length}
+                        total={transactions.total}
+                        entityName="transaction logs"
+                    >
+                        <TableColumnsPopover visibility={columnVisibility} />
+                    </TableToolbar>
 
-                        <DateRangePicker
-                            dateFrom={dateFrom}
-                            dateTo={dateTo}
-                            setDateFrom={setDateFrom}
-                            setDateTo={setDateTo}
-                            onApply={() =>
-                                router.get(
-                                    '/transaction-logs',
-                                    getFilterParams({ page: 1 }),
-                                    { preserveState: true, preserveScroll: true, replace: true }
-                                )
-                            }
-                        />
-
-                        <Button type="submit" variant="secondary">
-                            Search
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={handleClear}
-                        >
-                            Clear
-                        </Button>
-                    </div>
-
-                    <div className="flex flex-col gap-2 w-full xl:w-auto xl:flex-row">
-                        <Button
-                            type="button"
-                            onClick={() => setDialogOpen(true)}
-                            className="w-full xl:w-auto bg-[#612A35] hover:bg-[#612A35]/90 text-white flex items-center gap-2"
-                        >
-                            Add Transaction
-                        </Button>
-                    </div>
-                </form>
-
-                {/* Table */}
-                <div className="overflow-hidden rounded-xl border border-border bg-card overflow-x-auto">
-                    <table className="w-full text-sm table-fixed">
-                        <colgroup>
-                            <col className="w-[8%]" />   {/* Type */}
-                            <col className="w-[10%]" />  {/* Date */}
-                            <col className="w-[24%]" />  {/* Item Name */}
-                            <col className="w-[8%]" />   {/* Unit */}
-                            <col className="w-[7%]" />   {/* Qty */}
-                            <col className="w-[13%]" />  {/* Reference */}
-                            <col className="w-[10%]" />  {/* Office */}
-                            <col className="w-[10%]" />  {/* Actions */}
-                        </colgroup>
-                        <thead className="border-b">
+                    {/* Table */}
+                    <div className="flex-initial min-h-0 overflow-x-auto overflow-y-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+                        <table className="w-full text-left text-sm whitespace-nowrap table-fixed">
+                            <colgroup>
+                                {visibleColumns.transaction_type && <col className="w-[8%]" />}
+                                {visibleColumns.transaction_date && <col className="w-[10%]" />}
+                                {visibleColumns.item_name && <col className="w-[24%]" />}
+                                {visibleColumns.unit_name && <col className="w-[8%]" />}
+                                {visibleColumns.quantity && <col className="w-[7%]" />}
+                                {visibleColumns.reference && <col className="w-[13%]" />}
+                                {visibleColumns.office_code && <col className="w-[10%]" />}
+                                {visibleColumns.actions && <col className="w-[10%]" />}
+                            </colgroup>
+                            <thead className="border-b sticky top-0 z-20">
                             <tr>
-                                <th
-                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
-                                    onClick={() => handleSort('transaction_type')}
-                                >
-                                    <div className="flex items-center gap-2">Type</div>
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
-                                    onClick={() => handleSort('transaction_date')}
-                                >
-                                    <div className="flex items-center gap-2">Date</div>
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
-                                    onClick={() => handleSort('item_name')}
-                                >
-                                    <div className="flex items-center gap-2">Item Name</div>
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
-                                    onClick={() => handleSort('unit_name')}
-                                >
-                                    <div className="flex items-center gap-2">Unit</div>
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
-                                    onClick={() => handleSort('quantity')}
-                                >
-                                    <div className="flex items-center justify-start gap-2">Qty</div>
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
-                                    onClick={() => handleSort('reference')}
-                                >
-                                    <div className="flex items-center gap-2">Reference</div>
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
-                                    onClick={() => handleSort('office_code')}
-                                >
-                                    <div className="flex items-center gap-2">Office</div>
-                                </th>
-                                <th className="px-4 py-3 text-left font-semibold text-white bg-[#370001]">Actions</th>
+                                {visibleColumns.transaction_type && (
+                                    <th
+                                        className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
+                                        onClick={() => handleSort('transaction_type')}
+                                    >
+                                        <div className="flex items-center gap-2">Type</div>
+                                    </th>
+                                )}
+                                {visibleColumns.transaction_date && (
+                                    <th
+                                        className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
+                                        onClick={() => handleSort('transaction_date')}
+                                    >
+                                        <div className="flex items-center gap-2">Date</div>
+                                    </th>
+                                )}
+                                {visibleColumns.item_name && (
+                                    <th
+                                        className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
+                                        onClick={() => handleSort('item_name')}
+                                    >
+                                        <div className="flex items-center gap-2">Item Name</div>
+                                    </th>
+                                )}
+                                {visibleColumns.unit_name && (
+                                    <th
+                                        className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
+                                        onClick={() => handleSort('unit_name')}
+                                    >
+                                        <div className="flex items-center gap-2">Unit</div>
+                                    </th>
+                                )}
+                                {visibleColumns.quantity && (
+                                    <th
+                                        className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
+                                        onClick={() => handleSort('quantity')}
+                                    >
+                                        <div className="flex items-center justify-start gap-2">Qty</div>
+                                    </th>
+                                )}
+                                {visibleColumns.reference && (
+                                    <th
+                                        className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
+                                        onClick={() => handleSort('reference')}
+                                    >
+                                        <div className="flex items-center gap-2">Reference</div>
+                                    </th>
+                                )}
+                                {visibleColumns.office_code && (
+                                    <th
+                                        className="px-4 py-3 text-left font-semibold text-white bg-[#370001] cursor-pointer select-none hover:bg-[#4C0002] transition-colors"
+                                        onClick={() => handleSort('office_code')}
+                                    >
+                                        <div className="flex items-center gap-2">Office</div>
+                                    </th>
+                                )}
+                                {visibleColumns.actions && (
+                                    <th className="px-4 py-3 text-left font-semibold text-white bg-[#370001]">Actions</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody>
                             {transactions.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-16 text-center">
+                                    <td colSpan={Object.values(visibleColumns).filter(Boolean).length} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No transactions added yet.
                                         </p>
@@ -410,50 +462,66 @@ export default function Index({
                                         data-record-id={tx.transactionID}
                                         className="border-b transition-colors hover:bg-muted/40"
                                     >
-                                        <td className="px-4 py-3 truncate">
-                                            <span
-                                                className={
-                                                    'px-2 py-1 rounded-full text-xs font-semibold ' +
-                                                    (tx.transaction_type === 'ISSUE'
-                                                        ? 'bg-yellow-100 text-yellow-700'
-                                                        : 'bg-green-100 text-green-700')
-                                                }
+                                        {visibleColumns.transaction_type && (
+                                            <td className="px-4 py-3 truncate">
+                                                <span
+                                                    className={
+                                                        'px-2 py-1 rounded-full text-xs font-semibold ' +
+                                                        (tx.transaction_type === 'ISSUE'
+                                                            ? 'bg-yellow-100 text-yellow-700'
+                                                            : 'bg-green-100 text-green-700')
+                                                    }
+                                                >
+                                                    {tx.transaction_type}
+                                                </span>
+                                            </td>
+                                        )}
+                                        {visibleColumns.transaction_date && (
+                                            <td className="px-4 py-3 truncate">{formatDate(tx.transaction_date)}</td>
+                                        )}
+                                        {visibleColumns.item_name && (
+                                            <td
+                                                className="px-4 py-3 truncate"
+                                                title={`${tx.item_name}${tx.description ? ` - ${tx.description}` : ''}`}
                                             >
-                                                {tx.transaction_type}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 truncate">{formatDate(tx.transaction_date)}</td>
-                                        <td
-                                            className="px-4 py-3 truncate"
-                                            title={`${tx.item_name}${tx.description ? ` - ${tx.description}` : ''}`}
-                                        >
-                                            {tx.item_name}
-                                            {tx.description ? ` - ${tx.description}` : ''}
-                                        </td>
-                                        <td className="px-4 py-3 truncate">{tx.unit?.unit_short_name ?? '—'}</td>
-                                        <td className="px-4 py-3 text-left truncate">{tx.quantity}</td>
-                                        <td className="px-4 py-3 truncate">{tx.reference}</td>
-                                        <td className="px-4 py-3 truncate">{tx.office?.office_code ?? '—'}</td>
-                                        <td className="px-4 py-3 text-left">
-                                            <div className="flex items-center justify-start gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleEdit(tx)}
-                                                    className="text-blue-600 hover:text-blue-800"
-                                                    title="Edit"
-                                                >
-                                                    <Pencil className="size-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openDeleteModal(tx.transactionID)}
-                                                    className="text-red-600 hover:text-red-800"
-                                                    title="Archive"
-                                                >
-                                                    <Archive className="size-4" />
-                                                </button>
-                                            </div>
-                                        </td>
+                                                {tx.item_name}
+                                                {tx.description ? ` - ${tx.description}` : ''}
+                                            </td>
+                                        )}
+                                        {visibleColumns.unit_name && (
+                                            <td className="px-4 py-3 truncate">{tx.unit?.unit_short_name ?? '—'}</td>
+                                        )}
+                                        {visibleColumns.quantity && (
+                                            <td className="px-4 py-3 text-left truncate">{tx.quantity}</td>
+                                        )}
+                                        {visibleColumns.reference && (
+                                            <td className="px-4 py-3 truncate">{tx.reference}</td>
+                                        )}
+                                        {visibleColumns.office_code && (
+                                            <td className="px-4 py-3 truncate">{tx.office?.office_code ?? '—'}</td>
+                                        )}
+                                        {visibleColumns.actions && (
+                                            <td className="px-4 py-3 text-left">
+                                                <div className="flex items-center justify-start gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleEdit(tx)}
+                                                        className="text-blue-600 hover:text-blue-800"
+                                                        title="Edit"
+                                                    >
+                                                        <Pencil className="size-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openDeleteModal(tx.transactionID)}
+                                                        className="text-red-600 hover:text-red-800"
+                                                        title="Archive"
+                                                    >
+                                                        <Archive className="size-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        )}
                                     </AnimatedTableRow>
                                 ))
                             )}
@@ -462,11 +530,12 @@ export default function Index({
                 </div>
 
                 {transactions.data.length > 0 && (
-                    <div className="p-4">
+                    <div className="shrink-0">
                         <Pagination meta={transactions} />
                     </div>
                 )}
             </div>
+        </div>
 
             <TransactionAddForm
                 open={dialogOpen}

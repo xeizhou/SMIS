@@ -31,11 +31,92 @@ export interface NotificationItem {
     badge: string;
     badgeVariant: 'rose' | 'amber' | 'sky' | 'violet' | 'neutral';
     time: string;
+    fullDate?: string;
+    timestamp: number;
     target_url: string;
     isOverdue?: boolean;
     isDueToday?: boolean;
     isDueSoon?: boolean;
     isRead: boolean;
+}
+
+function parseNotificationTimestamp(dateValue: any, timeAgoString?: string): number {
+    if (dateValue) {
+        const d = new Date(dateValue);
+        if (!isNaN(d.getTime())) return d.getTime();
+    }
+    if (timeAgoString) {
+        const now = Date.now();
+        const minsMatch = timeAgoString.match(/(\d+)\s*min/i);
+        if (minsMatch) return now - parseInt(minsMatch[1], 10) * 60 * 1000;
+        const hoursMatch = timeAgoString.match(/(\d+)\s*hour/i);
+        if (hoursMatch) return now - parseInt(hoursMatch[1], 10) * 3600 * 1000;
+        const daysMatch = timeAgoString.match(/(\d+)\s*day/i);
+        if (daysMatch) return now - parseInt(daysMatch[1], 10) * 86400 * 1000;
+        const weeksMatch = timeAgoString.match(/(\d+)\s*week/i);
+        if (weeksMatch) return now - parseInt(weeksMatch[1], 10) * 7 * 86400 * 1000;
+    }
+    return 0;
+}
+
+function formatNotificationTime(timestamp: number, fallbackText?: string): string {
+    if (!timestamp || isNaN(timestamp) || timestamp <= 0) return fallbackText || 'Recently';
+
+    const now = Date.now();
+    const diffMs = now - timestamp;
+
+    // Handle future dates or clock skew under 5 seconds
+    if (diffMs < 5000) {
+        return 'just now';
+    }
+
+    const diffSeconds = Math.floor(diffMs / 1000);
+    if (diffSeconds < 60) {
+        return diffSeconds <= 10 ? 'just now' : `${diffSeconds} seconds ago`;
+    }
+
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) {
+        return diffMinutes === 1 ? '1 minute ago' : `${diffMinutes} minutes ago`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) {
+        return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+    }
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) {
+        return diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+    }
+
+    const diffWeeks = Math.floor(diffDays / 7);
+    if (diffWeeks < 4) {
+        return diffWeeks === 1 ? '1 week ago' : `${diffWeeks} weeks ago`;
+    }
+
+    const diffMonths = Math.floor(diffDays / 30);
+    if (diffMonths < 12) {
+        return diffMonths === 1 ? '1 month ago' : `${diffMonths} months ago`;
+    }
+
+    const diffYears = Math.floor(diffDays / 365);
+    return diffYears === 1 ? '1 year ago' : `${diffYears} years ago`;
+}
+
+function formatFullDateTime(timestamp: number): string | undefined {
+    if (!timestamp || isNaN(timestamp) || timestamp <= 0) return undefined;
+    const d = new Date(timestamp);
+    if (isNaN(d.getTime())) return undefined;
+    return d.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+    });
 }
 
 export type NotificationPanelProps = {
@@ -58,6 +139,15 @@ export function NotificationPanel({
     const [notifFilter, setNotifFilter] = useState<'all' | 'unread'>('all');
     const [typeFilter, setTypeFilter] = useState<'all' | 'delivery' | 'task'>('all');
     const [isLoaded, setIsLoaded] = useState(false);
+    const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+    // Update relative timestamps every 15 seconds
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(Date.now());
+        }, 15000);
+        return () => clearInterval(timer);
+    }, []);
 
     // Initialize from localStorage on mount
     useEffect(() => {
@@ -146,6 +236,11 @@ export function NotificationPanel({
                 message = 'Awaiting delivery schedule';
             }
 
+            const delTimestamp = parseNotificationTimestamp(d.created_at_raw || d.data_entry_timestamp || d.created_at, d.time_ago);
+            const timeStr = delTimestamp > 0 
+                ? formatNotificationTime(delTimestamp, d.time_ago) 
+                : (d.time_ago || (dueDateFormatted ? `Due ${dueDateFormatted}` : 'Recently'));
+
             notifMap.set(idStr, {
                 id: idStr,
                 type: 'delivery',
@@ -154,7 +249,9 @@ export function NotificationPanel({
                 supplier: supplierName,
                 badge,
                 badgeVariant,
-                time: d.time_ago || (dueDateFormatted ? `Due ${dueDateFormatted}` : 'Recently'),
+                time: timeStr,
+                fullDate: formatFullDateTime(delTimestamp),
+                timestamp: delTimestamp,
                 target_url: `/deliveries?highlight_id=${d.delivery_id}`,
                 isOverdue,
                 isDueToday,
@@ -196,6 +293,11 @@ export function NotificationPanel({
                 message = `Urgent task • ${t.title}`;
             }
 
+            const taskTimestamp = parseNotificationTimestamp(t.created_at_raw || t.created_at, t.created_at);
+            const timeStr = taskTimestamp > 0 
+                ? formatNotificationTime(taskTimestamp, t.created_at) 
+                : (t.created_at || (t.due_date_formatted ? `Due ${t.due_date_formatted}` : 'Recently'));
+
             notifMap.set(idStr, {
                 id: idStr,
                 type: 'task',
@@ -204,8 +306,10 @@ export function NotificationPanel({
                 supplier: t.po_number ? `Related to ${t.po_number}` : undefined,
                 badge,
                 badgeVariant,
-                time: t.created_at || (t.due_date_formatted ? `Due ${t.due_date_formatted}` : 'Recently'),
-                target_url: '/dashboard',
+                time: timeStr,
+                fullDate: formatFullDateTime(taskTimestamp),
+                timestamp: taskTimestamp,
+                target_url: `/dashboard?highlight_task_id=${t.id}`,
                 isOverdue,
                 isDueToday,
                 isDueSoon,
@@ -222,11 +326,10 @@ export function NotificationPanel({
             const msg = notifData.message || 'Notification alert';
             const targetUrl = notifData.target_url || '#';
 
-            const dateObj = new Date(dbNotif.created_at);
-            const isToday = dateObj.toDateString() === new Date().toDateString();
-            const timeStr = isToday 
-                ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-                : dateObj.toLocaleDateString();
+            const notifTimestamp = parseNotificationTimestamp(dbNotif.created_at);
+            const timeStr = notifTimestamp > 0 
+                ? formatNotificationTime(notifTimestamp) 
+                : 'just now';
 
             notifMap.set(idStr, {
                 id: idStr,
@@ -236,12 +339,14 @@ export function NotificationPanel({
                 badge: 'NOTICE',
                 badgeVariant: 'neutral',
                 time: timeStr,
+                fullDate: formatFullDateTime(notifTimestamp),
+                timestamp: notifTimestamp,
                 target_url: targetUrl,
                 isRead: readIds.includes(idStr) || !!dbNotif.read_at,
             });
         });
 
-        // Sort: Unread first, then Overdue first, then Due Today, then others
+        // Sort: Unread first, then Overdue first, then Due Today, then newest timestamp first
         return Array.from(notifMap.values()).sort((a, b) => {
             if (!a.isRead && b.isRead) return -1;
             if (a.isRead && !b.isRead) return 1;
@@ -249,9 +354,9 @@ export function NotificationPanel({
             if (!a.isOverdue && b.isOverdue) return 1;
             if (a.isDueToday && !b.isDueToday) return -1;
             if (!a.isDueToday && b.isDueToday) return 1;
-            return 0;
+            return (b.timestamp || 0) - (a.timestamp || 0);
         });
-    }, [deliveries, recentDeliveries, assignedTasks, userNotifications, readIds, clearedIds, isLoaded]);
+    }, [deliveries, recentDeliveries, assignedTasks, userNotifications, readIds, clearedIds, isLoaded, currentTime]);
 
     const filteredNotifications = useMemo(() => {
         return allNotifications.filter(n => {
@@ -340,7 +445,7 @@ export function NotificationPanel({
 
         try {
             const url = new URL(notif.target_url, window.location.origin);
-            const highlightId = url.searchParams.get('highlight_id');
+            const highlightId = url.searchParams.get('highlight_id') || url.searchParams.get('highlight_task_id');
             const highlightSearch = url.searchParams.get('highlight_search');
             if (highlightId) {
                 auditLogsHighlight(highlightId, url.pathname);
@@ -559,8 +664,8 @@ export function NotificationPanel({
 
                                             {/* Footer: Timestamp and Quick Actions */}
                                             <div className="mt-1.5 flex items-center justify-between text-[11px] text-neutral-400 dark:text-neutral-500">
-                                                <span className="flex items-center gap-1 text-[11px]">
-                                                    <Clock className="size-3" />
+                                                <span className="flex items-center gap-1 text-[11px]" title={notif.fullDate || notif.time}>
+                                                    <Clock className="size-3 shrink-0" />
                                                     <span>{notif.time}</span>
                                                 </span>
 

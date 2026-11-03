@@ -5,7 +5,7 @@ import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Pencil, Archive, Eye } from 'lucide-react';
+import { Search, Pencil, Archive, Eye, Plus } from 'lucide-react';
 import {
     Select,
     SelectTrigger,
@@ -310,6 +310,7 @@ export default function Index({
                         className="w-full lg:w-auto"
                         style={{ backgroundColor: '#612A35' }}
                     >
+                        <Plus className="mr-2 size-4" />
                         Add Report
                     </Button>
                 </form>

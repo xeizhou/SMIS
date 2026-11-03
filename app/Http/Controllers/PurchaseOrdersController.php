@@ -59,6 +59,9 @@ class PurchaseOrdersController extends Controller
             'po_date' => 'po_date',
             'due_date' => 'due_date',
             'total_amount_po' => 'total_amount_po',
+            'pr_number' => 'pr_number',
+            'philgeps_reference_no' => 'philgeps_reference_no',
+            'po_received_date' => 'po_received_date',
         ];
 
         $purchaseOrders = ServePo::query()
@@ -72,6 +75,7 @@ class PurchaseOrdersController extends Controller
             ])
             ->withExists('deliveries')
             ->withExists(['deliveries as has_cancelled_delivery' => fn ($q) => $q->whereNull('deleted_at')->whereRaw("UPPER(COALESCE(status, '')) = 'CANCELLED'")])
+            ->withExists('letterMonitorings')
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('po_number', 'like', "%{$search}%")

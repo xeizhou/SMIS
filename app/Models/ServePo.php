@@ -30,6 +30,7 @@ class ServePo extends Model
     protected $appends = [
         'has_delivery_record',
         'has_cancelled_delivery',
+        'has_po_letter_record',
     ];
 
     protected $fillable = [
@@ -240,5 +241,35 @@ class ServePo extends Model
     public function getHasCancelledDeliveryAttribute(): bool
     {
         return $this->hasCancelledDelivery();
+    }
+
+    /**
+     * Check whether this PO has an existing record in PO Letter Monitoring.
+     */
+    public function hasPoLetterRecord(): bool
+    {
+        if (array_key_exists('letter_monitorings_exists', $this->attributes)) {
+            return (bool) $this->attributes['letter_monitorings_exists'];
+        }
+
+        if (array_key_exists('has_po_letter_record', $this->attributes)) {
+            return (bool) $this->attributes['has_po_letter_record'];
+        }
+
+        if ($this->relationLoaded('letterMonitorings')) {
+            return $this->letterMonitorings->isNotEmpty();
+        }
+
+        return $this->letterMonitorings()
+            ->whereNull('deleted_at')
+            ->exists();
+    }
+
+    /**
+     * Accessor for 'has_po_letter_record' attribute.
+     */
+    public function getHasPoLetterRecordAttribute(): bool
+    {
+        return $this->hasPoLetterRecord();
     }
 }

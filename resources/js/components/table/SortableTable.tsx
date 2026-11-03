@@ -1,4 +1,5 @@
 
+import React, { useMemo } from 'react';
 import { router } from '@inertiajs/react';
 import { buildFilterUrl } from '@/lib/filterUrl';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,7 @@ interface SortableTableProps<T> {
     url: string;
     currentFilters?: Record<string, any>;
     emptyMessage?: string;
+    visibleColumns?: Record<string, boolean>;
     /**
      * Return a stable, unique string/number ID for a row.
      * When provided, the rendered <tr> gets a `data-record-id` attribute so
@@ -35,8 +37,14 @@ export default function SortableTable<T>({
     url,
     currentFilters = {},
     emptyMessage = 'No records found.',
+    visibleColumns,
     getRowId,
 }: SortableTableProps<T>) {
+
+    const activeColumns = useMemo(() => {
+        if (!visibleColumns) return columns;
+        return columns.filter((col) => col.key === 'actions' || visibleColumns[col.key] !== false);
+    }, [columns, visibleColumns]);
 
     const handleSort = (field: string) => {
         const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
@@ -51,13 +59,13 @@ export default function SortableTable<T>({
         <div className="flex-initial min-h-0 overflow-x-auto overflow-y-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
             <table className="w-full text-sm table-fixed">
                 <colgroup>
-                    {columns.map((col, idx) => (
+                    {activeColumns.map((col, idx) => (
                         <col key={idx} className={col.width} />
                     ))}
                 </colgroup>
                 <thead className="border-b sticky top-0 z-20">
                     <tr>
-                        {columns.map((col) => (
+                        {activeColumns.map((col) => (
                             <th key={col.key} className="p-0 font-semibold text-white bg-[#370001]">
                                 {col.sortable ? (
                                     <button
@@ -77,7 +85,7 @@ export default function SortableTable<T>({
                 <tbody>
                     {data.length === 0 ? (
                         <tr>
-                            <td colSpan={columns.length} className="px-6 py-16 text-center text-muted-foreground">
+                            <td colSpan={activeColumns.length} className="px-6 py-16 text-center text-muted-foreground">
                                 {emptyMessage}
                             </td>
                         </tr>
@@ -89,7 +97,7 @@ export default function SortableTable<T>({
                                 style={{ animationDelay: `${rowIndex * 30}ms` }}
                                 {...(getRowId ? { 'data-record-id': String(getRowId(item)) } : {})}
                             >
-                                {columns.map((col) => (
+                                {activeColumns.map((col) => (
                                     <td key={col.key} className="px-4 py-3 truncate">
                                         {col.render ? col.render(item) : (item as any)[col.key] || '—'}
                                     </td>

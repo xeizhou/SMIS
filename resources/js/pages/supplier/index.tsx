@@ -1,7 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Archive } from 'lucide-react';
+import { Search, Pencil, Archive, Plus } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { useColumnVisibility } from '@/hooks/useColumnVisibility';
+import TableColumnsPopover from '@/components/table/TableColumnsPopover';
+import TableToolbar from '@/components/table/TableToolbar';
 import SupplierAddForm from '@/components/suppliers/supplieraddform';
 import SupplierDeleteModal from '@/components/suppliers/supplierdeletemodal';
 import SupplierEditForm from '@/components/suppliers/suppliereditform';
@@ -45,7 +48,22 @@ interface Props {
     filters: Filters;
 }
 
+const SUPPLIER_COLUMNS = [
+    { key: 'supplier_id', label: 'ID' },
+    { key: 'supplier_name', label: 'Supplier Name', locked: true },
+    { key: 'contact_number', label: 'Contact Number' },
+    { key: 'contact_person', label: 'Contact Person' },
+    { key: 'email_address', label: 'Email Address' },
+    { key: 'status', label: 'Status' },
+];
+
 export default function Index({ suppliers, filters }: Props) {
+    const columnVisibility = useColumnVisibility({
+        storageKey: 'smis_supplier_visible_columns',
+        columns: SUPPLIER_COLUMNS,
+    });
+    const { visibleColumns } = columnVisibility;
+
     const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
     
@@ -159,80 +177,98 @@ export default function Index({ suppliers, filters }: Props) {
         <>
             <Head title="Supplier List" />
 
-            <div className="p-4 space-y-6 sm:p-6">
-                {/* Header */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">Supplier List</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">Manage and monitor all suppliers</p>
+            <div className="flex flex-col h-[calc(100vh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
+                {/* Sticky Header & Search */}
+                <div className="shrink-0 relative z-30 -mx-4 -mt-4 bg-background/95 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-4">
+                    {/* Header */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">Supplier List</h1>
+                            <p className="mt-1 text-sm text-muted-foreground">Manage and monitor all suppliers</p>
+                        </div>
                     </div>
+
+                    {/* Search & Actions */}
+                    <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex flex-wrap gap-2 flex-1">
+                            <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
+                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search suppliers..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9"
+                                />
+                            </div>
+
+                            <Select
+                                value={status}
+                                onValueChange={(value) => {
+                                    setStatus(value);
+                                    router.get(
+                                        '/supplier',
+                                        buildFilterUrl({ search, status: value, page: 1 }),
+                                        { preserveState: true, preserveScroll: true, replace: true }
+                                    );
+                                }}
+                            >
+                                <SelectTrigger className={`w-[180px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
+                                    <SelectValue placeholder="Filter by Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Filter by Status</SelectItem>
+                                    <SelectItem value="active">Active</SelectItem>
+                                    <SelectItem value="inactive">Inactive</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Button type="submit" variant="secondary">Search</Button>
+                            <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
+                        </div>
+                        
+                        <Button
+                            type="button"
+                            onClick={() => setDialogOpen(true)}
+                            className="w-full lg:w-auto text-white shadow-sm"
+                            style={{ backgroundColor: '#612A35' }}
+                        >
+                            <Plus className="mr-2 size-4" />
+                            Add Supplier
+                        </Button>
+                    </form>
+
+                    {/* Horizontal fading border */}
+                    <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
                 </div>
 
-                {/* Search & Actions */}
-                <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex flex-wrap gap-2 flex-1">
-                        <div className="relative w-full max-w-sm flex-1 sm:flex-initial">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search suppliers..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
-                            />
-                        </div>
-
-                        <Select
-                            value={status}
-                            onValueChange={(value) => {
-                                setStatus(value);
-                                router.get(
-                                    '/supplier',
-                                    buildFilterUrl({ search, status: value, page: 1 }),
-                                    { preserveState: true, preserveScroll: true, replace: true }
-                                );
-                            }}
-                        >
-                            <SelectTrigger className={`w-[180px] ${status === 'all' ? 'text-muted-foreground' : ''}`}>
-                                <SelectValue placeholder="Filter by Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Filter by Status</SelectItem>
-                                <SelectItem value="active">Active</SelectItem>
-                                <SelectItem value="inactive">Inactive</SelectItem>
-                            </SelectContent>
-                        </Select>
-
-                        <Button type="submit" variant="secondary">Search</Button>
-                        <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
-                    </div>
-                    
-                    <Button
-                        type="button"
-                        onClick={() => setDialogOpen(true)}
-                        className="w-full lg:w-auto"
-                        style={{ backgroundColor: '#612A35' }}
+                <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    <TableToolbar
+                        currentCount={suppliers.data.length}
+                        total={suppliers.total}
+                        entityName="suppliers"
                     >
-                        Add Supplier
-                    </Button>
-                </form>
+                        <TableColumnsPopover visibility={columnVisibility} />
+                    </TableToolbar>
 
-                {/* 3. Reusable Table Component */}
-                <SortableTable
-                    data={suppliers.data}
-                    columns={columns}
-                    sortField={filters.sort_field}
-                    sortDirection={filters.sort_direction}
-                    url="/supplier"
-                    currentFilters={{ search, status }}
-                    emptyMessage="No suppliers added yet."
-                    getRowId={(supplier) => supplier.supplier_id}
-                />
+                    {/* 3. Reusable Table Component */}
+                    <SortableTable
+                        data={suppliers.data}
+                        columns={columns}
+                        sortField={filters.sort_field}
+                        sortDirection={filters.sort_direction}
+                        url="/supplier"
+                        currentFilters={{ search, status }}
+                        emptyMessage="No suppliers added yet."
+                        getRowId={(supplier) => supplier.supplier_id}
+                        visibleColumns={visibleColumns}
+                    />
 
-                {suppliers.data.length > 0 && (
-                    <div className="p-4">
-                        <Pagination meta={suppliers} />
-                    </div>
-                )}
+                    {suppliers.data.length > 0 && (
+                        <div className="shrink-0">
+                            <Pagination meta={suppliers} />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <SupplierAddForm open={dialogOpen} onOpenChange={setDialogOpen} />

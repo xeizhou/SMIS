@@ -2,8 +2,11 @@ import { Head, Link, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Eye, Pencil, Search, Archive } from 'lucide-react';
+import { Eye, Pencil, Search, Archive, Plus } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
+import { useColumnVisibility } from '@/hooks/useColumnVisibility';
+import TableColumnsPopover from '@/components/table/TableColumnsPopover';
+import TableToolbar from '@/components/table/TableToolbar';
 import RrspAddForm from '@/components/rrsp-monitoring/rrspaddform';
 import RrspDeleteModal from '@/components/rrsp-monitoring/rrspdeletemodal';
 import RrspEditForm from '@/components/rrsp-monitoring/rrspeditform';
@@ -116,8 +119,28 @@ return '—';
     });
 }
 
+const RRSP_COLUMNS = [
+    { key: 'rrsp_no', label: 'RRSP No', locked: true },
+    { key: 'po_number', label: 'P.O Number' },
+    { key: 'item_name', label: 'Item Name' },
+    { key: 'property_no', label: 'Property No' },
+    { key: 'end_user', label: 'End User' },
+    { key: 'return_by', label: 'Return By' },
+    { key: 'area', label: 'Area' },
+    { key: 'date_received', label: 'Date Received' },
+    { key: 'qty', label: 'Qty' },
+    { key: 'cost', label: 'Cost' },
+    { key: 'status', label: 'Status' },
+];
+
 export default function Index({ rrspMonitorings, filters, areas, stockItems }: Props) {
-        const [search, setSearch] = useState(filters.search ?? '');
+    const columnVisibility = useColumnVisibility({
+        storageKey: 'smis_rrsp_visible_columns',
+        columns: RRSP_COLUMNS,
+    });
+    const { visibleColumns } = columnVisibility;
+
+    const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -263,6 +286,7 @@ export default function Index({ rrspMonitorings, filters, areas, stockItems }: P
                             className="w-full lg:w-auto"
                             style={{ backgroundColor: '#612A35' }}
                         >
+                            <Plus className="mr-2 size-4" />
                             Add RRSP
                         </Button>
                     </form>
@@ -272,22 +296,84 @@ export default function Index({ rrspMonitorings, filters, areas, stockItems }: P
                 </div>
 
                     {/* Table */}
-                    <div className="flex-1 min-h-0 flex flex-col gap-6">
+                    <div className="flex-1 min-h-0 flex flex-col gap-3">
+                        <TableToolbar
+                            currentCount={rrspMonitorings.data.length}
+                            total={rrspMonitorings.total}
+                            entityName="RRSP records"
+                        >
+                            <TableColumnsPopover visibility={columnVisibility} />
+                        </TableToolbar>
+
                     <div className="flex-initial min-h-0 overflow-x-auto overflow-y-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                                 <tr>
-                                {['RRSP No', 'P.O Number', 'Item Name', 'Property No', 'End User', 'Return By', 'Area', 'Date Received', 'Qty', 'Cost', 'Status'].map((label, index) => <th key={label} className="p-0 text-left font-semibold text-white"><button type="button" onClick={() => handleSort(['rrsp_no', 'rrsp_no', 'rrsp_no', 'end_user_name', 'return_by', 'rrsp_no', 'date_received', 'rrsp_no', 'rrsp_no', 'rrsp_no'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
-                                <th className="px-4 py-3 text-left font-semibold text-white">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
+                                    {visibleColumns.rrsp_no && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('rrsp_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">RRSP No</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.po_number && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('rrsp_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">P.O Number</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.item_name && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('rrsp_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Item Name</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.property_no && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('rrsp_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Property No</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.end_user && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('end_user_name')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">End User</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.return_by && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('return_by')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Return By</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.area && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('rrsp_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Area</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.date_received && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('date_received')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Date Received</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.qty && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('rrsp_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Qty</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.cost && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('rrsp_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Cost</button>
+                                        </th>
+                                    )}
+                                    {visibleColumns.status && (
+                                        <th className="p-0 text-left font-semibold text-white">
+                                            <button type="button" onClick={() => handleSort('rrsp_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">Status</button>
+                                        </th>
+                                    )}
+                                    <th className="px-4 py-3 text-left font-semibold text-white">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
 
                         {rrspMonitorings.data.length === 0 ? (
                             <tbody>
                                 <tr>
-                                    <td colSpan={11} className="px-6 py-16 text-center">
+                                    <td colSpan={columnVisibility.activeCount + 1} className="px-6 py-16 text-center">
                                             <p className="text-base font-medium text-muted-foreground">
                                                 No RRSP records added yet.
                                             </p>
@@ -312,39 +398,61 @@ export default function Index({ rrspMonitorings, filters, areas, stockItems }: P
                                                     data-search-1={rrsp.rrspNo}
                                                     data-record-id={rrsp.id}
                                                 >
-                                                    <td className="px-4 py-3 font-medium" rowSpan={itemsCount}>
-                                                        {rrsp.rrspNo}
-                                                    </td>
-                                                    <td className="px-4 py-3 font-medium" rowSpan={itemsCount}>
-                                                        {rrsp.poNumber}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        {firstItem?.itemName ?? '—'}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        {firstItem?.propertyNo ?? '—'}
-                                                    </td>
-                                                    <td className="px-4 py-3" rowSpan={itemsCount}>
-                                                        {rrsp.endUserName ?? '—'}
-                                                    </td>
-                                                    <td className="px-4 py-3" rowSpan={itemsCount}>
-                                                        {rrsp.returnBy ?? '—'}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        {firstItem?.area ?? '—'}
-                                                    </td>
-                                                    <td className="px-4 py-3" rowSpan={itemsCount}>
-                                                        {formatDate(rrsp.dateReceived)}
-                                                    </td>
-                                                <td className="px-4 py-3 text-left">
-                                                    {firstItem?.quantity ?? '—'}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    {firstItem?.cost ? `₱${Number(firstItem.cost).toLocaleString('en-US', {minimumFractionDigits: 2})}` : '—'}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    {firstItem?.status ? <StatusBadge status={firstItem.status} /> : '—'}
-                                                </td>
+                                                    {visibleColumns.rrsp_no && (
+                                                        <td className="px-4 py-3 font-medium" rowSpan={itemsCount}>
+                                                            {rrsp.rrspNo}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.po_number && (
+                                                        <td className="px-4 py-3 font-medium" rowSpan={itemsCount}>
+                                                            {rrsp.poNumber}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.item_name && (
+                                                        <td className="px-4 py-3">
+                                                            {firstItem?.itemName ?? '—'}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.property_no && (
+                                                        <td className="px-4 py-3">
+                                                            {firstItem?.propertyNo ?? '—'}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.end_user && (
+                                                        <td className="px-4 py-3" rowSpan={itemsCount}>
+                                                            {rrsp.endUserName ?? '—'}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.return_by && (
+                                                        <td className="px-4 py-3" rowSpan={itemsCount}>
+                                                            {rrsp.returnBy ?? '—'}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.area && (
+                                                        <td className="px-4 py-3">
+                                                            {firstItem?.area ?? '—'}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.date_received && (
+                                                        <td className="px-4 py-3" rowSpan={itemsCount}>
+                                                            {formatDate(rrsp.dateReceived)}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.qty && (
+                                                        <td className="px-4 py-3 text-left">
+                                                            {firstItem?.quantity ?? '—'}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.cost && (
+                                                        <td className="px-4 py-3">
+                                                            {firstItem?.cost ? `₱${Number(firstItem.cost).toLocaleString('en-US', {minimumFractionDigits: 2})}` : '—'}
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.status && (
+                                                        <td className="px-4 py-3">
+                                                            {firstItem?.status ? <StatusBadge status={firstItem.status} /> : '—'}
+                                                        </td>
+                                                    )}
                                                     <td className="px-4 py-3" rowSpan={itemsCount}>
                                                         <div className="flex items-center justify-start gap-3">
                                                             <button
@@ -384,24 +492,36 @@ export default function Index({ rrspMonitorings, filters, areas, stockItems }: P
                                                 </AnimatedTableRow>
                                                 {rrsp.items && rrsp.items.length > 1 && rrsp.items.slice(1).map((item) => (
                                                     <AnimatedTableRow key={item.id} index={i} className="border-b border-border/50 transition-colors duration-1000 hover:bg-muted/40" data-search-0={item.propertyNo} data-search-1={rrsp.rrspNo} data-record-id={rrsp.id}>
-                                                        <td className="px-4 py-3">
-                                                            {item.itemName ?? '—'}
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            {item.propertyNo ?? '—'}
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            {item.area ?? '—'}
-                                                        </td>
-                                                    <td className="px-4 py-3 text-left">
-                                                        {item.quantity ?? '—'}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        {item.cost ? `₱${Number(item.cost).toLocaleString('en-US', {minimumFractionDigits: 2})}` : '—'}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        {item.status ? <StatusBadge status={item.status} /> : '—'}
-                                                    </td>
+                                                        {visibleColumns.item_name && (
+                                                            <td className="px-4 py-3">
+                                                                {item.itemName ?? '—'}
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.property_no && (
+                                                            <td className="px-4 py-3">
+                                                                {item.propertyNo ?? '—'}
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.area && (
+                                                            <td className="px-4 py-3">
+                                                                {item.area ?? '—'}
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.qty && (
+                                                            <td className="px-4 py-3 text-left">
+                                                                {item.quantity ?? '—'}
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.cost && (
+                                                            <td className="px-4 py-3">
+                                                                {item.cost ? `₱${Number(item.cost).toLocaleString('en-US', {minimumFractionDigits: 2})}` : '—'}
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.status && (
+                                                            <td className="px-4 py-3">
+                                                                {item.status ? <StatusBadge status={item.status} /> : '—'}
+                                                            </td>
+                                                        )}
                                                     </AnimatedTableRow>
                                                 ))}
                                             </tbody>

@@ -111,7 +111,7 @@ class Delivery extends Model
     protected function poDateReceived(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->servePo?->po_received_date?->format('Y-m-d'),
+            get: fn ($value) => $this->servePo?->po_received_date?->format('Y-m-d') ?? ($value ? Carbon::parse($value)->format('Y-m-d') : null),
         );
     }
 
@@ -122,13 +122,14 @@ class Delivery extends Model
     protected function deliveryTerm(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->servePo?->delivery_term,
+            get: fn ($value) => $this->servePo?->delivery_term ?? $value,
         );
     }
 
     /**
      * Computed from the linked PO's po_received_date + its delivery_term
-     * (days). Null when either piece is missing.
+     * (days). Falls back to the stored column value when the relationship
+     * or its dates are not available.
      *
      * Returns a plain Y-m-d string, not a Carbon instance — see
      * poDateReceived() above for why.
@@ -136,12 +137,12 @@ class Delivery extends Model
     protected function dueDate(): Attribute
     {
         return Attribute::make(
-            get: function () {
+            get: function ($value) {
                 $received = $this->servePo?->po_received_date;
                 $term = $this->servePo?->delivery_term;
 
                 if (! $received || $term === null) {
-                    return null;
+                    return $value ? Carbon::parse($value)->format('Y-m-d') : null;
                 }
 
                 return $received->copy()->addDays($term)->format('Y-m-d');

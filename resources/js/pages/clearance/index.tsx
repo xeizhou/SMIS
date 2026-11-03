@@ -1,7 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
-import { Search, Pencil, Archive, ClipboardCheck, Eye } from 'lucide-react';
+import { Search, Pencil, Archive, ClipboardCheck, Eye, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { useColumnVisibility } from '@/hooks/useColumnVisibility';
+import TableColumnsPopover from '@/components/table/TableColumnsPopover';
+import TableToolbar from '@/components/table/TableToolbar';
 import ClearanceAddForm from '@/components/clearance/clearanceaddform';
 import ClearanceDeleteModal from '@/components/clearance/clearancedeletemodal';
 import ClearanceEditForm from '@/components/clearance/clearanceeditform';
@@ -64,6 +67,17 @@ interface Props {
     offices: OfficeOption[];
 }
 
+const CLEARANCE_COLUMNS = [
+    { key: 'name', label: 'Name', locked: true },
+    { key: 'offices', label: 'Offices' },
+    { key: 'form_attribute', label: 'Type' },
+    { key: 'checker', label: 'Released By' },
+    { key: 'end_user_claim', label: 'Claimed By' },
+    { key: 'claim_date', label: 'Claim Date' },
+    { key: 'status', label: 'Status' },
+    { key: 'actions', label: 'Actions', locked: true },
+];
+
 export default function Index({ records, filters, statuses, forms, offices }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [statusFilter, setStatusFilter] = useState(filters.status ?? 'all');
@@ -75,6 +89,12 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
     const [isProcessOpen, setIsProcessOpen] = useState(false);
     const [isViewOpen, setIsViewOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<ClearanceRecord | null>(null);
+
+    const columnVisibility = useColumnVisibility({
+        storageKey: 'smis_clearance_visible_columns',
+        columns: CLEARANCE_COLUMNS,
+    });
+    const { visibleColumns } = columnVisibility;
 
     const updateFilters = (newSearch: string, newStatus: string, newType: string) => {
         router.get(
@@ -210,91 +230,109 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
         <>
             <Head title="Clearance" />
 
-            <div className="p-4 space-y-6 sm:p-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">Clearance</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">Manage clearance records.</p>
+            <div className="flex flex-col h-[calc(100vh-4rem)] group-has-data-[collapsible=icon]/sidebar-wrapper:h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
+                {/* Sticky Header & Search */}
+                <div className="shrink-0 relative z-30 -mx-4 -mt-4 bg-background/95 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6 flex flex-col gap-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">Clearance</h1>
+                            <p className="mt-1 text-sm text-muted-foreground">Manage clearance records.</p>
+                        </div>
+                        <div className="bg-muted/50 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
+                            <Link
+                                href="/clearance"
+                                preserveState
+                                className="bg-background text-foreground shadow-sm inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                            >
+                                Clearance Records
+                            </Link>
+                            <Link
+                                href="/clearance/offices"
+                                className="text-muted-foreground hover:text-foreground inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
+                            >
+                                Office Settings
+                            </Link>
+                        </div>
                     </div>
-                    <div className="bg-muted/50 text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
-                        <Link
-                            href="/clearance"
-                            preserveState
-                            className="bg-background text-foreground shadow-sm inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
-                        >
-                            Clearance Records
-                        </Link>
-                        <Link
-                            href="/clearance/offices"
-                            className="text-muted-foreground hover:text-foreground inline-flex h-full items-center justify-center rounded-md px-8 py-1.5 text-sm font-medium transition-all"
-                        >
-                            Office Settings
-                        </Link>
-                    </div>
-                </div>
 
-                <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex flex-wrap gap-2 flex-1">
-                        <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input placeholder="Search by name or received by" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+                    <form onSubmit={handleSearch} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex flex-wrap gap-2 flex-1">
+                            <div className="relative w-full max-w-sm">
+                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input placeholder="Search by name or received by" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+                            </div>
+
+                            <Select value={statusFilter} onValueChange={handleStatusChange}>
+                                <SelectTrigger className="w-[160px]">
+                                    <SelectValue placeholder="All Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Status</SelectItem>
+                                    {statuses.map((item) => (
+                                        <SelectItem key={item} value={item}>{item}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={typeFilter} onValueChange={handleTypeChange}>
+                                <SelectTrigger className="w-[160px]">
+                                    <SelectValue placeholder="All Types" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Types</SelectItem>
+                                    {forms.map((item) => (
+                                        <SelectItem key={item} value={item}>{item}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Button type="submit" variant="secondary">Search</Button>
+                            <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
                         </div>
 
-                        <Select value={statusFilter} onValueChange={handleStatusChange}>
-                            <SelectTrigger className="w-[160px]">
-                                <SelectValue placeholder="All Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Status</SelectItem>
-                                {statuses.map((item) => (
-                                    <SelectItem key={item} value={item}>{item}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-col gap-2 w-full lg:w-auto lg:flex-row">
+                            <Button type="button" onClick={() => setIsAddOpen(true)} className="w-full lg:w-auto text-white shadow-sm" style={{ backgroundColor: '#612A35' }}>
+                                <Plus className="mr-2 size-4" />
+                                Add Clearance
+                            </Button>
+                        </div>
+                    </form>
 
-                        <Select value={typeFilter} onValueChange={handleTypeChange}>
-                            <SelectTrigger className="w-[160px]">
-                                <SelectValue placeholder="All Types" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Types</SelectItem>
-                                {forms.map((item) => (
-                                    <SelectItem key={item} value={item}>{item}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    {/* Horizontal fading border */}
+                    <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
+                </div>
 
-                        <Button type="submit" variant="secondary">Search</Button>
-                        <Button type="button" variant="ghost" onClick={handleClear}>Clear</Button>
-                    </div>
+                <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    <TableToolbar
+                        currentCount={records.data.length}
+                        total={records.total}
+                        entityName="clearance records"
+                    >
+                        <TableColumnsPopover visibility={columnVisibility} />
+                    </TableToolbar>
 
-                    <div className="flex flex-col gap-2 w-full lg:w-auto lg:flex-row">
-                        <Button type="button" onClick={() => setIsAddOpen(true)} className="w-full lg:w-auto" style={{ backgroundColor: '#612A35' }}>
-                            Add Clearance
-                        </Button>
-                    </div>
-                </form>
+                    <SortableTable
+                        data={records.data}
+                        columns={columns}
+                        visibleColumns={visibleColumns}
+                        sortField={filters.sort_field}
+                        sortDirection={filters.sort_direction}
+                        url="/clearance"
+                        currentFilters={{
+                            search,
+                            status: statusFilter === 'all' ? '' : statusFilter,
+                            form_attribute: typeFilter === 'all' ? '' : typeFilter
+                        }}
+                        emptyMessage="No clearance records added yet."
+                        getRowId={(record) => record.clearance_id}
+                    />
 
-                <SortableTable
-                    data={records.data}
-                    columns={columns}
-                    sortField={filters.sort_field}
-                    sortDirection={filters.sort_direction}
-                    url="/clearance"
-                    currentFilters={{
-                        search,
-                        status: statusFilter === 'all' ? '' : statusFilter,
-                        form_attribute: typeFilter === 'all' ? '' : typeFilter
-                    }}
-                    emptyMessage="No clearance records added yet."
-                    getRowId={(record) => record.clearance_id}
-                />
-
-                {records.data.length > 0 && (
-                    <div className="p-4">
-                        <Pagination meta={records} />
-                    </div>
-                )}
+                    {records.data.length > 0 && (
+                        <div className="shrink-0">
+                            <Pagination meta={records} />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <ClearanceAddForm open={isAddOpen} onOpenChange={setIsAddOpen} offices={offices} />

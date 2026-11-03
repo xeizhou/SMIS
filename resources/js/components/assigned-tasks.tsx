@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { 
@@ -283,6 +283,32 @@ export function AssignedTasks({
         setStatusFilter(filter);
         setSelectedTaskIds(new Set());
     };
+
+    // Automatically adjust filter/scope and trigger highlight if directed to a specific task
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const targetTaskId = params.get('highlight_task_id') || params.get('highlight_id');
+        if (!targetTaskId) return;
+
+        const cleanId = String(targetTaskId).replace(/^task-/, '');
+        const targetTask = tasks.find(t => String(t.id) === cleanId || String(t.id) === targetTaskId);
+        if (!targetTask) return;
+
+        // If completed or archived, switch statusFilter so it renders in the filtered list
+        const isCompleted = targetTask.status?.toLowerCase() === 'completed' || targetTask.status?.toLowerCase() === 'archived' || Boolean(targetTask.completed_at);
+        if (isCompleted && statusFilter === 'pending') {
+            setStatusFilter('all');
+        }
+
+        // If assigned by user to someone else, switch taskScope
+        if (targetTask.assigned_by?.id === currentUserId && targetTask.assigned_to?.id !== currentUserId && taskScope === 'to_me') {
+            setTaskScope('by_me');
+        }
+
+        // Trigger highlight on the task
+        auditLogsHighlight(cleanId, window.location.pathname);
+    }, [tasks, currentUserId]);
 
     // Counts for scope pills (self-assigned tasks appear in both)
     const toMePendingCount = useMemo(() => {
@@ -819,6 +845,9 @@ export function AssignedTasks({
                             return (
                                 <div
                                     key={task.id}
+                                    id={`task-${task.id}`}
+                                    data-record-id={task.id}
+                                    data-task-id={task.id}
                                     onClick={() => handleOpenDetail(task)}
                                     className={`group rounded-lg border p-2.5 transition-all cursor-pointer ${
                                         isSelected

@@ -2,8 +2,11 @@ import { Head, Link, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Archive, Eye } from 'lucide-react';
+import { Search, Pencil, Archive, Eye, Plus } from 'lucide-react';
 import React, { useState } from 'react';
+import { useColumnVisibility } from '@/hooks/useColumnVisibility';
+import TableColumnsPopover from '@/components/table/TableColumnsPopover';
+import TableToolbar from '@/components/table/TableToolbar';
 import RrppeAddForm from '@/components/rrppe-monitoring/rrppe-add-form';
 import RrppeDeleteModal from '@/components/rrppe-monitoring/rrppe-delete-modal';
 import RrppeEditForm from '@/components/rrppe-monitoring/rrppe-edit-form';
@@ -95,7 +98,25 @@ function formatDate(value: string | null | undefined) {
     });
 }
 
+const RRPPE_COLUMNS = [
+    { key: 'rrppe_no', label: 'RRPPE No.', locked: true },
+    { key: 'item_description', label: 'Item Description' },
+    { key: 'property_no', label: 'Property No.' },
+    { key: 'end_user', label: 'End User' },
+    { key: 'return_by', label: 'Return By' },
+    { key: 'area', label: 'Area' },
+    { key: 'date_received', label: 'Date Received' },
+    { key: 'qty', label: 'Qty' },
+    { key: 'status', label: 'Status' },
+];
+
 export default function Index({ data, filters = {}, statuses, areas, stockItems }: { data: PaginatedRRPPE, filters?: any, statuses: string[], areas: string[], stockItems: { stock_no: string; item_name: string; description: string | null }[] }) {
+    const columnVisibility = useColumnVisibility({
+        storageKey: 'smis_rrppe_visible_columns',
+        columns: RRPPE_COLUMNS,
+    });
+    const { visibleColumns } = columnVisibility;
+
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -237,6 +258,7 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                             className="w-full lg:w-auto text-white"
                             style={{ backgroundColor: '#612A35' }}
                         >
+                            <Plus className="mr-2 size-4" />
                             Add RRPPE
                         </Button>
                     </form>
@@ -245,12 +267,82 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                     <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent opacity-50" />
                 </div>
 
-                <div className="flex-1 min-h-0 flex flex-col gap-6">
+                <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    <TableToolbar
+                        currentCount={data.data.length}
+                        total={data.total}
+                        entityName="RRPPE records"
+                    >
+                        <TableColumnsPopover visibility={columnVisibility} />
+                    </TableToolbar>
+
                     <div className="flex-initial min-h-0 overflow-x-auto overflow-y-auto rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-[#3e0b0e] text-white/90 sticky top-0 z-20">
                             <tr>
-                                {['RRPPE No.', 'Item Description', 'Property No.', 'End User', 'Return By', 'Area', 'Date Received', 'Qty', 'Status'].map((label, index) => <th key={label} className="p-0 font-medium"><button type="button" onClick={() => handleSort(['rrppe_no', 'rrppe_no', 'rrppe_no', 'end_user_name', 'return_by', 'rrppe_no', 'date_received', 'rrppe_no', 'rrppe_no'][index])} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">{label}</button></th>)}
+                                {visibleColumns.rrppe_no && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('rrppe_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">
+                                            RRPPE No.
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.item_description && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('rrppe_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">
+                                            Item Description
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.property_no && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('rrppe_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">
+                                            Property No.
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.end_user && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('end_user_name')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">
+                                            End User
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.return_by && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('return_by')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">
+                                            Return By
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.area && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('rrppe_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">
+                                            Area
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.date_received && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('date_received')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">
+                                            Date Received
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.qty && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('rrppe_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">
+                                            Qty
+                                        </button>
+                                    </th>
+                                )}
+                                {visibleColumns.status && (
+                                    <th className="p-0 font-medium">
+                                        <button type="button" onClick={() => handleSort('rrppe_no')} className="w-full px-4 py-3 text-left hover:bg-[#4C0002]">
+                                            Status
+                                        </button>
+                                    </th>
+                                )}
                                 <th className="px-4 py-3 font-medium text-left">Actions</th>
                             </tr>
                         </thead>
@@ -269,26 +361,44 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                                                 data-search-1={item.rrppeNo}
                                                 data-record-id={item.id}
                                             >
-                                                <td className="px-4 py-3 font-medium border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{item.rrppeNo}</td>
-                                                <td className="px-4 py-3 max-w-[220px]">
-                                                    <span
-                                                        className="block truncate"
-                                                        title={firstItem ? `${firstItem.itemName}${firstItem.itemDescription ? ` - ${firstItem.itemDescription}` : ''}` : undefined}
-                                                    >
-                                                        {firstItem
-                                                            ? `${firstItem.itemName}${firstItem.itemDescription ? ` - ${firstItem.itemDescription}` : ''}`
-                                                            : '—'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3">{firstItem?.propertyNo ?? '—'}</td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{item.endUserName ?? '—'}</td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{item.returnBy ?? '—'}</td>
-                                                <td className="px-4 py-3">{firstItem?.area ?? '—'}</td>
-                                                <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{formatDate(item.dateReceived)}</td>
-                                                <td className="px-4 py-3 text-left">{firstItem?.quantity ?? '—'}</td>
-                                                <td className="px-4 py-3">
-                                                    {firstItem?.status ? <StatusBadge status={firstItem.status} /> : '—'}
-                                                </td>
+                                                {visibleColumns.rrppe_no && (
+                                                    <td className="px-4 py-3 font-medium border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{item.rrppeNo}</td>
+                                                )}
+                                                {visibleColumns.item_description && (
+                                                    <td className="px-4 py-3 max-w-[220px]">
+                                                        <span
+                                                            className="block truncate"
+                                                            title={firstItem ? `${firstItem.itemName}${firstItem.itemDescription ? ` - ${firstItem.itemDescription}` : ''}` : undefined}
+                                                        >
+                                                            {firstItem
+                                                                ? `${firstItem.itemName}${firstItem.itemDescription ? ` - ${firstItem.itemDescription}` : ''}`
+                                                                : '—'}
+                                                        </span>
+                                                    </td>
+                                                )}
+                                                {visibleColumns.property_no && (
+                                                    <td className="px-4 py-3">{firstItem?.propertyNo ?? '—'}</td>
+                                                )}
+                                                {visibleColumns.end_user && (
+                                                    <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{item.endUserName ?? '—'}</td>
+                                                )}
+                                                {visibleColumns.return_by && (
+                                                    <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{item.returnBy ?? '—'}</td>
+                                                )}
+                                                {visibleColumns.area && (
+                                                    <td className="px-4 py-3">{firstItem?.area ?? '—'}</td>
+                                                )}
+                                                {visibleColumns.date_received && (
+                                                    <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>{formatDate(item.dateReceived)}</td>
+                                                )}
+                                                {visibleColumns.qty && (
+                                                    <td className="px-4 py-3 text-left">{firstItem?.quantity ?? '—'}</td>
+                                                )}
+                                                {visibleColumns.status && (
+                                                    <td className="px-4 py-3">
+                                                        {firstItem?.status ? <StatusBadge status={firstItem.status} /> : '—'}
+                                                    </td>
+                                                )}
                                                 <td className="px-4 py-3 border-b border-gray-200 dark:border-gray-800" rowSpan={itemsCount}>
                                                     <div className="flex items-center justify-start gap-3">
                                                         <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
@@ -313,22 +423,32 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                                             </AnimatedTableRow>
                                             {item.items && item.items.length > 1 && item.items.slice(1).map((subItem) => (
                                                 <AnimatedTableRow key={subItem.id} index={i} className="transition-colors duration-1000 hover:bg-gray-50/50 dark:hover:bg-gray-800/50" data-search-0={subItem.propertyNo} data-search-1={item.rrppeNo} data-record-id={item.id}>
-                                                    <td className="px-4 py-3 max-w-[220px]">
-                                                        <span
-                                                            className="block truncate"
-                                                            title={subItem.itemName ? `${subItem.itemName}${subItem.itemDescription ? ` - ${subItem.itemDescription}` : ''}` : undefined}
-                                                        >
-                                                            {subItem.itemName
-                                                                ? `${subItem.itemName}${subItem.itemDescription ? ` - ${subItem.itemDescription}` : ''}`
-                                                                : '—'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-3">{subItem.propertyNo ?? '—'}</td>
-                                                    <td className="px-4 py-3">{subItem.area ?? '—'}</td>
-                                                    <td className="px-4 py-3 text-left">{subItem.quantity ?? '—'}</td>
-                                                    <td className="px-4 py-3">
-                                                        {subItem.status ? <StatusBadge status={subItem.status} /> : '—'}
-                                                    </td>
+                                                    {visibleColumns.item_description && (
+                                                        <td className="px-4 py-3 max-w-[220px]">
+                                                            <span
+                                                                className="block truncate"
+                                                                title={subItem.itemName ? `${subItem.itemName}${subItem.itemDescription ? ` - ${subItem.itemDescription}` : ''}` : undefined}
+                                                            >
+                                                                {subItem.itemName
+                                                                    ? `${subItem.itemName}${subItem.itemDescription ? ` - ${subItem.itemDescription}` : ''}`
+                                                                    : '—'}
+                                                            </span>
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.property_no && (
+                                                        <td className="px-4 py-3">{subItem.propertyNo ?? '—'}</td>
+                                                    )}
+                                                    {visibleColumns.area && (
+                                                        <td className="px-4 py-3">{subItem.area ?? '—'}</td>
+                                                    )}
+                                                    {visibleColumns.qty && (
+                                                        <td className="px-4 py-3 text-left">{subItem.quantity ?? '—'}</td>
+                                                    )}
+                                                    {visibleColumns.status && (
+                                                        <td className="px-4 py-3">
+                                                            {subItem.status ? <StatusBadge status={subItem.status} /> : '—'}
+                                                        </td>
+                                                    )}
                                                 </AnimatedTableRow>
                                             ))}
                                         </React.Fragment>
@@ -336,7 +456,7 @@ export default function Index({ data, filters = {}, statuses, areas, stockItems 
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-16 text-center">
+                                    <td colSpan={columnVisibility.activeCount + 1} className="px-6 py-16 text-center">
                                         <p className="text-base font-medium text-muted-foreground">
                                             No RRPPE added yet.
                                         </p>

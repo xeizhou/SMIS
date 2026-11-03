@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Pencil, Archive, Eye } from 'lucide-react';
+import { Search, Pencil, Archive, Eye, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ItrPtrAddForm from '@/components/itr-ptr-monitoring/itr-ptr-add-form';
 import ItrPtrDeleteModal from '@/components/itr-ptr-monitoring/itr-ptr-delete-modal';
@@ -184,6 +184,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                             className="w-full lg:w-auto text-white"
                             style={{ backgroundColor: '#612A35' }}
                         >
+                            <Plus className="mr-2 size-4" />
                             Add ITR/PTR
                         </Button>
                     </form>
