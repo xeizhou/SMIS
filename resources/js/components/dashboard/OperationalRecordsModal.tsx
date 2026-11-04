@@ -436,20 +436,21 @@ export function OperationalRecordsModal({
                                                     }
                                                 }}
                                                 className="group transition-colors hover:bg-indigo-50/40 dark:hover:bg-neutral-800/50 cursor-pointer"
-                                                title="Click to redirect, middle-click or right-click to open in new tab"
+                                                title="Click to redirect to this record"
                                             >
                                                 {visibleColumns.po_number && (
                                                     <td className="py-3.5 px-4 sm:px-5 font-bold text-sm sm:text-base text-neutral-900 dark:text-neutral-100 whitespace-nowrap">
                                                         <a
                                                             href={targetUrl}
                                                             onClick={(e) => {
+                                                                e.stopPropagation();
                                                                 if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
                                                                     e.preventDefault();
-                                                                    handleNavigate(item);
+                                                                    handleNavigate(item, e);
                                                                 }
                                                             }}
                                                             className="group/link inline-flex items-center gap-1.5 text-neutral-900 dark:text-neutral-100 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline cursor-pointer"
-                                                            title="Click to redirect, middle-click or right-click to open in new tab"
+                                                            title="Click to redirect to this record"
                                                         >
                                                             <span>{item.po_number}</span>
                                                             <ExternalLink className="size-3.5 opacity-60 group-hover/link:opacity-100 text-indigo-500 transition-opacity shrink-0" />

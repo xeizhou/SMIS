@@ -12,7 +12,7 @@ beforeEach(function () {
             session()->flash('warning', 'Be cautious!');
             session()->flash('info', 'Helpful details.');
             session()->flash('deleteError', 'Cannot delete item.');
-            return inertia('Dashboard');
+            return inertia('dashboard');
         });
 
         Route::post('/test-query-exception', function () {

@@ -27,12 +27,17 @@ export function auditLogsHighlight(recordId: string, expectedPath: string) {
     if (!recordId) return;
 
     let executed = false;
+    let checkAttempts = 0;
 
     const handleHighlight = () => {
         if (executed) return;
 
         // Guard against interrupted/stale navigations: Ensure we are actually on the target module.
         if (!window.location.pathname.startsWith(expectedPath)) {
+            if (checkAttempts < 20) {
+                checkAttempts++;
+                setTimeout(handleHighlight, 50);
+            }
             return;
         }
 
@@ -90,20 +95,29 @@ export function auditLogsHighlight(recordId: string, expectedPath: string) {
         };
 
         const highlightElement = (element: Element) => {
-            element.classList.add(
-                '!bg-yellow-100',
-                '!dark:bg-yellow-900/40',
-                '!border-amber-400',
-                'ring-2',
-                'ring-amber-400/60',
-                'transition-all',
-                'duration-700'
-            );
+            const isTableRow = element.tagName === 'TR';
 
-            if (element.tagName === 'TR') {
+            if (isTableRow) {
+                element.classList.add(
+                    '!bg-yellow-100',
+                    '!dark:bg-yellow-900/40',
+                    'transition-colors',
+                    'duration-700'
+                );
+
                 Array.from(element.children).forEach(child => {
                     child.classList.add('!bg-yellow-100', '!dark:bg-yellow-900/40');
                 });
+            } else {
+                element.classList.add(
+                    '!bg-yellow-100',
+                    '!dark:bg-yellow-900/40',
+                    '!border-amber-400',
+                    'ring-2',
+                    'ring-amber-400/60',
+                    'transition-all',
+                    'duration-700'
+                );
             }
 
             // Clean the URL so a manual page refresh doesn't retain the highlight filter,
@@ -122,18 +136,23 @@ export function auditLogsHighlight(recordId: string, expectedPath: string) {
 
             // Remove the highlight after 3 seconds
             setTimeout(() => {
-                element.classList.remove(
-                    '!bg-yellow-100',
-                    '!dark:bg-yellow-900/40',
-                    '!border-amber-400',
-                    'ring-2',
-                    'ring-amber-400/60'
-                );
+                if (isTableRow) {
+                    element.classList.remove(
+                        '!bg-yellow-100',
+                        '!dark:bg-yellow-900/40'
+                    );
 
-                if (element.tagName === 'TR') {
                     Array.from(element.children).forEach(child => {
                         child.classList.remove('!bg-yellow-100', '!dark:bg-yellow-900/40');
                     });
+                } else {
+                    element.classList.remove(
+                        '!bg-yellow-100',
+                        '!dark:bg-yellow-900/40',
+                        '!border-amber-400',
+                        'ring-2',
+                        'ring-amber-400/60'
+                    );
                 }
             }, 3000);
         };
@@ -199,10 +218,25 @@ export function auditLogsHighlight(recordId: string, expectedPath: string) {
         setTimeout(handleHighlight, 50);
     }
 
-    // Hook into Inertia's finish event for page transitions
-    const removeListener = router.on('finish', () => {
-        removeListener();
+    // Hook into Inertia's events for page transitions
+    const onTransition = () => {
         setTimeout(handleHighlight, 50);
+        setTimeout(handleHighlight, 150);
+    };
+
+    const removeFinish = router.on('finish', () => {
+        removeFinish();
+        onTransition();
+    });
+
+    const removeNavigate = router.on('navigate', () => {
+        removeNavigate();
+        onTransition();
+    });
+
+    const removeSuccess = router.on('success', () => {
+        removeSuccess();
+        onTransition();
     });
 }
 
@@ -223,11 +257,19 @@ export function initHighlightFromUrl() {
     }
 }
 
-// Auto-run on client-side initial load
+// Auto-run on client-side initial load and every Inertia navigation
 if (typeof window !== 'undefined') {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => initHighlightFromUrl());
     } else {
         setTimeout(initHighlightFromUrl, 80);
     }
+
+    // Always inspect URL on Inertia SPA transitions
+    router.on('navigate', () => {
+        setTimeout(initHighlightFromUrl, 60);
+    });
+    router.on('success', () => {
+        setTimeout(initHighlightFromUrl, 60);
+    });
 }

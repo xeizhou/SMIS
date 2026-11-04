@@ -591,7 +591,14 @@ export function AssignedTasks({
     }, [taskToDelete, selectedDetailTask]);
 
     const handleNavigateToRecord = useCallback((poNumber: string, e?: React.MouseEvent) => {
-        if (e) e.stopPropagation();
+        if (e) {
+            e.stopPropagation();
+            if (e.ctrlKey || e.metaKey || e.button === 1) {
+                window.open(`/purchase-orders?highlight_id=${encodeURIComponent(poNumber)}`, '_blank');
+                return;
+            }
+            e.preventDefault();
+        }
         setIsDetailModalOpen(false);
         auditLogsHighlight(poNumber, '/purchase-orders');
         router.visit(`/purchase-orders?highlight_id=${encodeURIComponent(poNumber)}`);
@@ -914,15 +921,15 @@ export function AssignedTasks({
                                                 </div>
 
                                                 {task.po_number && (
-                                                    <button
-                                                        type="button"
+                                                    <a
+                                                        href={`/purchase-orders?highlight_id=${encodeURIComponent(task.po_number)}`}
                                                         onClick={(e) => handleNavigateToRecord(task.po_number!, e)}
                                                         className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline shrink-0 cursor-pointer"
-                                                        title="Go to purchase order record"
+                                                        title="View task"
                                                     >
-                                                        <span>Go to Task</span>
+                                                        <span>View PO</span>
                                                         <ArrowUpRight className="size-3" />
-                                                    </button>
+                                                    </a>
                                                 )}
                                             </div>
 
@@ -1215,15 +1222,15 @@ export function AssignedTasks({
 
                                     {/* Direct jump to PO record */}
                                     {selectedDetailTask.po_number && (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            onClick={() => handleNavigateToRecord(selectedDetailTask.po_number!)}
-                                            className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs gap-1 font-semibold cursor-pointer shadow-xs"
+                                        <a
+                                            href={`/purchase-orders?highlight_id=${encodeURIComponent(selectedDetailTask.po_number)}`}
+                                            onClick={(e) => handleNavigateToRecord(selectedDetailTask.po_number!, e)}
+                                            className="inline-flex items-center justify-center rounded-md bg-indigo-600 hover:bg-indigo-700 text-white h-8 px-3 text-xs gap-1 font-semibold cursor-pointer shadow-xs transition-colors"
+                                            title="View task"
                                         >
                                             <span>Go to PO Record</span>
                                             <ArrowUpRight className="size-3.5" />
-                                        </Button>
+                                        </a>
                                     )}
                                 </div>
                             </DialogFooter>
