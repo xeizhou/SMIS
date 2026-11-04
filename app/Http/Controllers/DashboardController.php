@@ -27,7 +27,6 @@ class DashboardController extends Controller
         $reportsQuarter = (int) $request->input('reports_quarter', now()->quarter);
 
         return Inertia::render('dashboard', [
-            'recentActivity' => fn () => $this->getRecentActivity(),
             'recentDeliveries' => fn () => $this->getRecentDeliveries(),
             'deliveries' => fn () => $this->getDueDeliveries(),
             'calendarDeliveries' => fn () => $this->getCalendarDeliveries(),

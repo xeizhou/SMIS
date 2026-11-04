@@ -43,7 +43,7 @@ export function PoPieChart({ stats }: Props) {
     const getPct = (val: number) => (total > 0 ? Math.round((val / total) * 100) : 0);
 
     return (
-        <div className="relative flex h-full flex-col justify-between rounded-xl border border-sidebar-border/70 bg-white p-4 dark:border-sidebar-border dark:bg-neutral-900 shadow-2xs overflow-hidden">
+        <div className="relative flex h-full flex-col justify-between rounded-xl border border-sidebar-border/70 bg-white p-3.5 sm:p-4 dark:border-sidebar-border dark:bg-neutral-900 shadow-2xs overflow-hidden">
             {/* Header: Title, Description, and Info Button */}
             <div className="flex items-center justify-between pb-2.5 border-b border-neutral-100 dark:border-neutral-800 shrink-0">
                 <div>

@@ -20,28 +20,20 @@ class NoticeOfDeliveryReportController extends Controller
 
         $todayDate = Carbon::parse($todayInput)->startOfDay();
         $yesterdayDate = Carbon::parse($yesterdayInput)->startOfDay();
-        $sortField = $request->string('sort_field')->toString();
-        $sortDirection = $request->string('sort_direction')->toString() === 'desc' ? 'desc' : 'asc';
-        $sorts = [
-            'po_number' => 'po_number',
-            'supplier' => 'supplier_id',
-            'status' => 'status',
-            'delivery_date' => 'delivery_date',
-        ];
 
-        $getDeliveriesForDate = function (Carbon $date) use ($sortField, $sorts, $sortDirection) {
+        $getDeliveriesForDate = function (Carbon $date) {
             return Delivery::query()
                 ->with(['supplier:supplier_id,supplier_name', 'servePo:po_number,end_user,total_amount_po,item_description,due_date'])
                 ->whereDate('delivery_date', $date->format('Y-m-d'))    
                 ->whereIn('status', ['COMPLETE', 'PARTIAL'])
-                ->when(isset($sorts[$sortField]), fn ($query) => $query->orderBy($sorts[$sortField], $sortDirection), fn ($query) => $query->orderBy('po_number', 'asc'))
+                ->orderBy('po_number', 'asc')
                 ->get()
                 ->map(function ($delivery) {
                     return [
                         'delivery_id' => $delivery->delivery_id,
                         'po_number' => $delivery->po_number, 
                         'supplier_name' => $delivery->supplier?->supplier_name ?? 'N/A',
-                        'status' => $delivery->status ?? 'COMPLETE', 'PARTIAL',
+                        'status' => $delivery->status ?? 'COMPLETE',
                         'delivery_date' => $delivery->delivery_date?->format('Y-m-d') ?? 'N/A',
                         'end_user' => $delivery->end_user ?? $delivery->servePo?->end_user ?? 'N/A',
                         'total_amount_delivered' => (float) ($delivery->total_amount_delivered ?? 0),
@@ -53,14 +45,28 @@ class NoticeOfDeliveryReportController extends Controller
                 ->values();
         };
 
-        $todayDeliveries = $getDeliveriesForDate($todayDate);
-        $yesterdayDeliveries = $getDeliveriesForDate($yesterdayDate);
+        $todayDeliveries = null;
+        $getTodayDeliveries = function () use (&$todayDeliveries, $getDeliveriesForDate, $todayDate) {
+            if ($todayDeliveries === null) {
+                $todayDeliveries = $getDeliveriesForDate($todayDate);
+            }
+            return $todayDeliveries;
+        };
+
+        $yesterdayDeliveries = null;
+        $getYesterdayDeliveries = function () use (&$yesterdayDeliveries, $getDeliveriesForDate, $yesterdayDate) {
+            if ($yesterdayDeliveries === null) {
+                $yesterdayDeliveries = $getDeliveriesForDate($yesterdayDate);
+            }
+            return $yesterdayDeliveries;
+        };
 
         $getStats = function ($deliveries) {
             return [
                 'total_count' => $deliveries->count(),
                 'complete_count' => $deliveries->where('status', 'COMPLETE')->count(),
-                'total_delivered_amount' => $deliveries->sum('total_amount_delivered'),
+                'partial_count' => $deliveries->where('status', 'PARTIAL')->count(),
+                'total_delivered_amount' => (float) $deliveries->sum('total_amount_delivered'),
             ];
         };
 
@@ -69,12 +75,12 @@ class NoticeOfDeliveryReportController extends Controller
             'todayDateFormatted' => $todayDate->format('M j, Y'),
             'yesterdayDate' => $yesterdayDate->format('Y-m-d'),
             'yesterdayDateFormatted' => $yesterdayDate->format('M j, Y'),
-            'todayDeliveries' => $todayDeliveries,
-            'yesterdayDeliveries' => $yesterdayDeliveries,
-            'todayStats' => $getStats($todayDeliveries),
-            'yesterdayStats' => $getStats($yesterdayDeliveries),
-            'sortField' => $sortField ?: 'po_number',
-            'sortDirection' => $sortDirection,
+            'isCustomToday' => $request->filled('today_date') && $request->input('today_date') !== now()->format('Y-m-d'),
+            'isCustomYesterday' => $request->filled('yesterday_date') && $request->input('yesterday_date') !== now()->subDay()->format('Y-m-d'),
+            'todayDeliveries' => fn () => $getTodayDeliveries(),
+            'yesterdayDeliveries' => fn () => $getYesterdayDeliveries(),
+            'todayStats' => fn () => $getStats($getTodayDeliveries()),
+            'yesterdayStats' => fn () => $getStats($getYesterdayDeliveries()),
         ]);
     }
 }

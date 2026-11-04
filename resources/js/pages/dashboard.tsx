@@ -2,25 +2,21 @@
 import { Head, usePage, router, useForm } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { RefreshCw, ClipboardCheck, FileText, Truck, Bell, Tv, CheckCircle2, MessageSquarePlus, Phone, Mail, Plus, X, Loader2, ListTodo, Info, ExternalLink } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { RefreshCw, ClipboardCheck, FileText, Truck, Phone, Mail, Plus, X, Loader2, ListTodo, Info, ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { AnimatedKpiCard } from '@/components/animated-kpi-card';
 import { AnimatedChart } from '@/components/animated-chart';
 import { CalendarButton } from '@/calendar/components/calendar-button';
-import { DueDeliveries  } from '@/components/due-deliveries';
-import type {DueDelivery} from '@/components/due-deliveries';
-import { PoLettersStatusChart  } from '@/components/po-letter-status-chart';
-import type {POLetterStatusRow} from '@/components/po-letter-status-chart';
-import { StatCard } from '@/components/stat-card';
+import type { DueDelivery } from '@/components/due-deliveries';
+import { PoLettersStatusChart } from '@/components/po-letter-status-chart';
+import type { POLetterStatusRow } from '@/components/po-letter-status-chart';
 import { ReportsMonitoringWidget } from '@/components/reports-monitoring-widget';
 import { PoPieChart } from '@/components/po-pie-chart';
-import { AssignedTasks } from '@/components/assigned-tasks';
 import type { AssignedTask } from '@/components/assigned-tasks';
 import { ActionCenterCard } from '@/components/action-center-card';
 import { dashboard } from '@/routes';
 import { Link } from '@inertiajs/react';
 import { NotificationPanel } from '@/components/notification-panel';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
 import { OperationalRecordsModal, type OperationalType } from '@/components/dashboard/OperationalRecordsModal';
 import {
@@ -112,7 +108,6 @@ export default function Dashboard() {
         allPendingDeliveries = [],
         allPendingInspections = [],
         allPendingClearances = [],
-        recentActivity = [],
         recentDeliveries = [],
         reportsStats = { COMPLETED: 0, ONGOING: 0, CANCELLED: 0 },
         reportsYear = new Date().getFullYear(),
@@ -125,7 +120,6 @@ export default function Dashboard() {
     } = usePage<DashboardPageProps>().props;
 
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [isLoaded, setIsLoaded] = useState(false);
     const [operationalModalType, setOperationalModalType] = useState<OperationalType | null>(null);
     const [activeActionTab, setActiveActionTab] = useState<'tasks' | 'deliveries'>('tasks');
     const [isKpiInfoOpen, setIsKpiInfoOpen] = useState(false);
@@ -188,11 +182,6 @@ export default function Dashboard() {
         });
     };
 
-    // Initialize from localStorage on mount
-    useEffect(() => {
-        setIsLoaded(true);
-    }, []);
-
     // Automatically switch Action Center to Tasks tab if a task is targeted
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -227,7 +216,9 @@ export default function Dashboard() {
                     'deliveries',
                     'deliveriesLastWeek',
                     'poLettersStatus',
-                    'recentDeliveries'
+                    'recentDeliveries',
+                    'poStats',
+                    'reportsStats',
                 ],
             });
         };
@@ -310,9 +301,9 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* Main Content Grid: Left Column (8 cols) + Right Column (4 cols) */}
+                {/* Main Content Grid: 2-Row CSS Grid (Top: KPIs + Bar Chart & Action Center; Bottom: Reports Monitoring & Purchase Orders) */}
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3.5 min-h-0 items-start">
-                    {/* Left Column (8 of 12 columns) - Operational KPIs, Bar Chart & Reports Monitoring */}
+                    {/* Row 1, Left: Operational KPIs & P.O Letters Status Bar Chart (8 of 12 columns) */}
                     <div className="lg:col-span-8 flex flex-col gap-3.5 min-w-0 w-full">
                         {/* Section 1: Operational Status KPIs */}
                         <div className="flex flex-col gap-1.5 shrink-0">
@@ -382,27 +373,15 @@ export default function Dashboard() {
                                 <PoLettersStatusChart data={poLettersStatus} />
                             </AnimatedChart>
                         </div>
-
-                        {/* Section 3: Reports Monitoring (Equal height - matches Purchase Orders) */}
-                        <div className="h-[230px] lg:h-[230px] flex flex-col shrink-0">
-                            {reportsStats && reportsYear && reportsQuarter && (
-                                <ReportsMonitoringWidget 
-                                    stats={reportsStats}
-                                    year={reportsYear}
-                                    quarter={reportsQuarter}
-                                />
-                            )}
-                        </div>
                     </div>
 
-                    {/* Right Column: Real-Time Operational Action Center + Purchase Orders (4 of 12 columns) */}
-                    <div className="lg:col-span-4 flex flex-col gap-3.5 min-w-0 w-full">
-                        {/* Action Center Wrapper: Height synchronized with left top section (KPIs + Bar Chart) */}
+                    {/* Row 1, Right: Real-Time Operational Action Center (4 of 12 columns, matched height & aligned with Left Top) */}
+                    <div className="lg:col-span-4 flex flex-col min-w-0 w-full">
                         <div className="flex flex-col gap-1.5 shrink-0">
                             {/* Matching header spacer on desktop so the top panel is aligned with the KPI boxes */}
                             <div className="hidden lg:flex items-center justify-between h-[18px] select-none" aria-hidden="true" />
 
-                            <div className="h-[460px] lg:h-[489px] flex flex-col min-h-0">
+                            <div className="h-[460px] lg:h-[523px] flex flex-col min-h-0">
                                 <ActionCenterCard
                                     deliveries={deliveries}
                                     assignedTasks={assignedTasks}
@@ -414,16 +393,27 @@ export default function Dashboard() {
                                 />
                             </div>
                         </div>
+                    </div>
 
-                        {/* Purchase Orders Status (Equal height - matches Reports Monitoring) */}
-                        {poStats && (
-                            <div className="h-[230px] lg:h-[230px] flex flex-col shrink-0">
-                                <AnimatedChart className="w-full h-full flex flex-col">
-                                    <PoPieChart stats={poStats} />
-                                </AnimatedChart>
-                            </div>
+                    {/* Row 2, Left: Reports Monitoring (8 of 12 columns) */}
+                    <div className="lg:col-span-8 flex flex-col min-w-0 w-full h-[230px] shrink-0">
+                        {reportsStats && reportsYear && reportsQuarter && (
+                            <ReportsMonitoringWidget 
+                                stats={reportsStats}
+                                year={reportsYear}
+                                quarter={reportsQuarter}
+                            />
                         )}
                     </div>
+
+                    {/* Row 2, Right: Purchase Orders Fulfillment Status (4 of 12 columns, matched height & aligned with Reports Monitoring) */}
+                    {poStats && (
+                        <div className="lg:col-span-4 flex flex-col min-w-0 w-full h-[230px] shrink-0">
+                            <AnimatedChart className="w-full h-full flex flex-col">
+                                <PoPieChart stats={poStats} />
+                            </AnimatedChart>
+                        </div>
+                    )}
                 </div>
             </div>
 

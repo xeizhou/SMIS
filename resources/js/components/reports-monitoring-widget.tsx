@@ -77,7 +77,7 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
     const cancelledPct = totalRecords > 0 ? Math.round(((stats.CANCELLED || 0) / totalRecords) * 100) : 0;
 
     return (
-        <div className="relative flex flex-col justify-between rounded-xl border border-sidebar-border/70 bg-white p-4 dark:border-sidebar-border dark:bg-neutral-900 shadow-2xs h-full overflow-hidden">
+        <div className="relative flex flex-col justify-between rounded-xl border border-sidebar-border/70 bg-white p-3.5 sm:p-4 dark:border-sidebar-border dark:bg-neutral-900 shadow-2xs h-full overflow-hidden">
             {isLoading && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/50 backdrop-blur-xs">
                     <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
