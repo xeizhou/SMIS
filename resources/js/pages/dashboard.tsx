@@ -2,7 +2,7 @@
 import { Head, usePage, router, useForm } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { RefreshCw, ClipboardCheck, FileText, Truck, Bell, Tv, ArrowDownWideNarrow, ArrowUpNarrowWide, CheckCircle2, MessageSquarePlus, Phone, Mail, Plus, X, Loader2, ListTodo, Info, ExternalLink } from 'lucide-react';
+import { RefreshCw, ClipboardCheck, FileText, Truck, Bell, Tv, CheckCircle2, MessageSquarePlus, Phone, Mail, Plus, X, Loader2, ListTodo, Info, ExternalLink } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { AnimatedKpiCard } from '@/components/animated-kpi-card';
 import { AnimatedChart } from '@/components/animated-chart';
@@ -22,6 +22,7 @@ import { Link } from '@inertiajs/react';
 import { NotificationPanel } from '@/components/notification-panel';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
+import { OperationalRecordsModal, type OperationalType } from '@/components/dashboard/OperationalRecordsModal';
 import {
     Dialog,
     DialogContent,
@@ -125,11 +126,8 @@ export default function Dashboard() {
 
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
-    const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
+    const [operationalModalType, setOperationalModalType] = useState<OperationalType | null>(null);
     const [activeActionTab, setActiveActionTab] = useState<'tasks' | 'deliveries'>('tasks');
-    const [isPendingInspectionsModalOpen, setIsPendingInspectionsModalOpen] = useState(false);
-    const [isPendingClearancesModalOpen, setIsPendingClearancesModalOpen] = useState(false);
-    const [pendingDeliveriesSort, setPendingDeliveriesSort] = useState<'desc' | 'asc'>('desc');
     const [isKpiInfoOpen, setIsKpiInfoOpen] = useState(false);
     const [kpiInfoTab, setKpiInfoTab] = useState<'definitions' | 'triggers'>('definitions');
 
@@ -190,15 +188,6 @@ export default function Dashboard() {
         });
     };
 
-    const sortedPendingDeliveries = useMemo(() => {
-        if (!allPendingDeliveries) return [];
-        return [...allPendingDeliveries].sort((a, b) => {
-            const dateA = a.due_date ? new Date(a.due_date).getTime() : 0;
-            const dateB = b.due_date ? new Date(b.due_date).getTime() : 0;
-            return pendingDeliveriesSort === 'desc' ? dateB - dateA : dateA - dateB;
-        });
-    }, [allPendingDeliveries, pendingDeliveriesSort]);
-
     // Initialize from localStorage on mount
     useEffect(() => {
         setIsLoaded(true);
@@ -232,11 +221,13 @@ export default function Dashboard() {
             router.reload({
                 only: [
                     'assignedTasks',
-                    'pendingDeliveries', 'allPendingDeliveries',
-                    'pendingInspections', 'allPendingInspections',
-                    'pendingClearances', 'allPendingClearances',
-                    'deliveries', 'deliveriesLastWeek',
-                    'poLettersStatus', 'recentDeliveries'
+                    'pendingDeliveries',
+                    'pendingInspections',
+                    'pendingClearances',
+                    'deliveries',
+                    'deliveriesLastWeek',
+                    'poLettersStatus',
+                    'recentDeliveries'
                 ],
             });
         };
@@ -279,14 +270,16 @@ export default function Dashboard() {
     return (
         <>
             <Head title="Dashboard" />
-            <div className="flex flex-1 flex-col gap-3.5 p-4 sm:p-5 pb-6 overflow-x-hidden">
+            <div className="flex flex-1 flex-col gap-3.5 p-3.5 sm:p-5 pb-6 overflow-x-hidden w-full max-w-full min-h-0">
                 {/* Header Bar */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-neutral-200/80 dark:border-neutral-800">
-                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
-                        Welcome to Dashboard, <span className="text-indigo-600 dark:text-indigo-400">{auth?.user?.name || 'User'}</span>!
-                    </h1>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2.5 border-b border-neutral-200/80 dark:border-neutral-800">
+                    <div className="min-w-0">
+                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 truncate">
+                            Welcome to Dashboard, <span className="text-indigo-600 dark:text-indigo-400">{auth?.user?.name || 'User'}</span>!
+                        </h1>
+                    </div>
 
-                    <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+                    <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap shrink-0">
                         <Button
                             variant="outline"
                             size="sm"
@@ -318,9 +311,9 @@ export default function Dashboard() {
                 </div>
 
                 {/* Main Content Grid: Left Column (8 cols) + Right Column (4 cols) */}
-                <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3.5 min-h-0 items-stretch">
-                    {/* Left Column (8 of 12 columns) - Expanded so KPI cards are not squished */}
-                    <div className="lg:col-span-8 flex flex-col gap-3.5 min-h-0">
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3.5 min-h-0 items-start">
+                    {/* Left Column (8 of 12 columns) - Operational KPIs, Bar Chart & Reports Monitoring */}
+                    <div className="lg:col-span-8 flex flex-col gap-3.5 min-w-0 w-full">
                         {/* Section 1: Operational Status KPIs */}
                         <div className="flex flex-col gap-1.5 shrink-0">
                             <div className="flex items-center justify-between h-[18px]">
@@ -358,7 +351,7 @@ export default function Dashboard() {
                                     label="Pending Deliveries"
                                     value={pendingDeliveries ?? 0}
                                     change={deliveriesLastWeek !== undefined ? `+ ${deliveriesLastWeek} this week` : "Awaiting arrival"}
-                                    onClick={() => setIsPendingModalOpen(true)}
+                                    onClick={() => setOperationalModalType('deliveries')}
                                     index={1}
                                     brandColor="#3b82f6"
                                 />
@@ -367,7 +360,7 @@ export default function Dashboard() {
                                     label="Pending Inspection"
                                     value={pendingInspections ?? 0}
                                     change={inspectionsLastWeek !== undefined ? `+ ${inspectionsLastWeek} this week` : "Awaiting PIR / IAR"}
-                                    onClick={() => setIsPendingInspectionsModalOpen(true)}
+                                    onClick={() => setOperationalModalType('inspections')}
                                     index={2}
                                     brandColor="#d97706"
                                 />
@@ -376,7 +369,7 @@ export default function Dashboard() {
                                     label="Pending Issuance"
                                     value={pendingClearances ?? 0}
                                     change={clearancesLastWeek !== undefined ? `+ ${clearancesLastWeek} this week` : "Awaiting issuance"}
-                                    onClick={() => setIsPendingClearancesModalOpen(true)}
+                                    onClick={() => setOperationalModalType('clearances')}
                                     index={3}
                                     brandColor="#10b981"
                                 />
@@ -384,14 +377,14 @@ export default function Dashboard() {
                         </div>
 
                         {/* Section 2: P.O Letters Status Bar Chart */}
-                        <div className="h-[370px] shrink-0 flex flex-col">
+                        <div className="h-[320px] sm:h-[350px] lg:h-[350px] flex flex-col shrink-0">
                             <AnimatedChart className="w-full h-full flex flex-col">
                                 <PoLettersStatusChart data={poLettersStatus} />
                             </AnimatedChart>
                         </div>
 
-                        {/* Section 3: Reports Monitoring (Equal height h-[240px] - matches Purchase Orders) */}
-                        <div className="h-[240px] shrink-0 flex flex-col">
+                        {/* Section 3: Reports Monitoring (Equal height - matches Purchase Orders) */}
+                        <div className="h-[230px] lg:h-[230px] flex flex-col shrink-0">
                             {reportsStats && reportsYear && reportsQuarter && (
                                 <ReportsMonitoringWidget 
                                     stats={reportsStats}
@@ -403,26 +396,28 @@ export default function Dashboard() {
                     </div>
 
                     {/* Right Column: Real-Time Operational Action Center + Purchase Orders (4 of 12 columns) */}
-                    <div className="lg:col-span-4 flex flex-col gap-3.5 min-h-0">
-                        {/* Action Center Wrapper: Aligned at top with the KPI boxes */}
-                        <div className="flex-1 min-h-[340px] flex flex-col gap-1.5">
+                    <div className="lg:col-span-4 flex flex-col gap-3.5 min-w-0 w-full">
+                        {/* Action Center Wrapper: Height synchronized with left top section (KPIs + Bar Chart) */}
+                        <div className="flex flex-col gap-1.5 shrink-0">
                             {/* Matching header spacer on desktop so the top panel is aligned with the KPI boxes */}
                             <div className="hidden lg:flex items-center justify-between h-[18px] select-none" aria-hidden="true" />
 
-                            <ActionCenterCard
-                                deliveries={deliveries}
-                                assignedTasks={assignedTasks}
-                                usersList={usersList}
-                                poNumbers={poNumbers}
-                                onOpenFollowUp={openFollowUpModal}
-                                activeTab={activeActionTab}
-                                onTabChange={setActiveActionTab}
-                            />
+                            <div className="h-[460px] lg:h-[489px] flex flex-col min-h-0">
+                                <ActionCenterCard
+                                    deliveries={deliveries}
+                                    assignedTasks={assignedTasks}
+                                    usersList={usersList}
+                                    poNumbers={poNumbers}
+                                    onOpenFollowUp={openFollowUpModal}
+                                    activeTab={activeActionTab}
+                                    onTabChange={setActiveActionTab}
+                                />
+                            </div>
                         </div>
 
-                        {/* Purchase Orders Status (Equal height h-[240px] - matches Reports Monitoring) */}
+                        {/* Purchase Orders Status (Equal height - matches Reports Monitoring) */}
                         {poStats && (
-                            <div className="h-[240px] shrink-0 flex flex-col">
+                            <div className="h-[230px] lg:h-[230px] flex flex-col shrink-0">
                                 <AnimatedChart className="w-full h-full flex flex-col">
                                     <PoPieChart stats={poStats} />
                                 </AnimatedChart>
@@ -651,223 +646,27 @@ export default function Dashboard() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isPendingModalOpen} onOpenChange={setIsPendingModalOpen}>
-                <DialogContent className="sm:max-w-3xl w-full max-h-[85vh] flex flex-col gap-0 p-0">
-                    <DialogHeader className="p-6 pb-4 border-b border-border/50 flex flex-row items-center justify-between pr-10">
-                        <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-                            <Truck className="size-5 text-blue-500" />
-                            Pending Deliveries ({pendingDeliveries ?? 0})
-                        </DialogTitle>
-                        <div className="flex items-center gap-2">
-                            <Button asChild variant="outline" size="sm" className="h-8 shadow-sm">
-                                <Link href="/delivery-follow-ups">
-                                    View Follow-ups
-                                </Link>
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 gap-2 shadow-sm"
-                                onClick={() => setPendingDeliveriesSort(prev => prev === 'desc' ? 'asc' : 'desc')}
-                                title={`Sort ${pendingDeliveriesSort === 'desc' ? 'Ascending' : 'Descending'}`}
-                            >
-                                {pendingDeliveriesSort === 'desc' ? (
-                                    <>
-                                        <ArrowDownWideNarrow className="size-4" />
-                                        Sort: Descending
-                                    </>
-                                ) : (
-                                    <>
-                                        <ArrowUpNarrowWide className="size-4" />
-                                        Sort: Ascending
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    </DialogHeader>
-                    
-                    <div className="flex-1 overflow-y-auto p-6 pt-2">
-                        {sortedPendingDeliveries && sortedPendingDeliveries.length > 0 ? (
-                            <div className="grid gap-3 mt-4">
-                                {sortedPendingDeliveries.map((delivery) => (
-                                    <div key={delivery.delivery_id} className="relative group flex items-center rounded-lg border border-l-4 border-l-blue-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-blue-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
-                                                <Link 
-                                                    href={`/deliveries?highlight_id=${delivery.delivery_id}`} 
-                                                    onClick={() => auditLogsHighlight(String(delivery.delivery_id), '/deliveries')}
-                                                    className="before:absolute before:inset-0 hover:underline"
-                                                >
-                                                    {delivery.po_number}
-                                                </Link>
-                                            </p>
-                                            <p className="truncate text-neutral-500 text-sm mt-0.5">
-                                                {delivery.supplier?.supplier_name || 'Unknown Supplier'}
-                                                {delivery.end_user && <span className="mx-1.5 text-neutral-300 dark:text-neutral-600">•</span>}
-                                                {delivery.end_user && <span>{delivery.end_user}</span>}
-                                            </p>
-                                            
-                                            <div className="mt-1.5 flex items-center gap-2">
-                                                <span className="rounded-md bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
-                                                    {delivery.status}
-                                                </span>
-                                                {delivery.due_date && (
-                                                    <span className="text-sm font-bold text-neutral-500">
-                                                        Due: {format(new Date(delivery.due_date), 'MMM d, yyyy')}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="shrink-0 ml-4 relative z-10">
-                                            <Button 
-                                                variant="outline" 
-                                                size="default"
-                                                className={`gap-2 text-sm px-4 border-dashed border-neutral-300 hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800 ${delivery.has_follow_up ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 cursor-default opacity-80' : ''}`}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    if (!delivery.has_follow_up) {
-                                                        openFollowUpModal(delivery.delivery_id);
-                                                    }
-                                                }}
-                                            >
-                                                {delivery.has_follow_up ? (
-                                                    <CheckCircle2 className="size-4" />
-                                                ) : (
-                                                    <MessageSquarePlus className="size-4" />
-                                                )}
-                                                <span className="hidden sm:inline">{delivery.has_follow_up ? 'Followed up' : 'Follow Up Supplier'}</span>
-                                                <span className="sm:hidden">{delivery.has_follow_up ? 'Logged' : 'Log'}</span>
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="flex h-32 items-center justify-center text-muted-foreground mt-4">
-                                No pending deliveries found.
-                            </div>
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={isPendingInspectionsModalOpen} onOpenChange={setIsPendingInspectionsModalOpen}>
-                <DialogContent className="sm:max-w-3xl w-full max-h-[85vh] flex flex-col gap-0 p-0">
-                    <DialogHeader className="p-6 pb-4 border-b border-border/50">
-                        <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-                            <ClipboardCheck className="size-5 text-amber-500" />
-                            Pending Inspections ({pendingInspections ?? 0})
-                        </DialogTitle>
-                    </DialogHeader>
-                    
-                    <div className="flex-1 overflow-y-auto p-6 pt-2">
-                        {allPendingInspections && allPendingInspections.length > 0 ? (
-                            <div className="grid gap-3 mt-4">
-                                {allPendingInspections.map((inspection) => (
-                                    <div key={inspection.po_number} className="relative group flex items-center rounded-lg border border-l-4 border-l-amber-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-amber-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
-                                                <Link 
-                                                    href={`/purchase-orders?search=${encodeURIComponent(inspection.po_number)}`}
-                                                    onClick={() => auditLogsHighlight(inspection.po_number, '/purchase-orders')}
-                                                    className="before:absolute before:inset-0 hover:underline"
-                                                >
-                                                    {inspection.po_number}
-                                                </Link>
-                                            </p>
-                                            <p className="truncate text-neutral-500 text-sm mt-0.5">
-                                                <span>{inspection.supplier?.supplier_name || 'Unknown Supplier'}</span>
-                                                {(inspection.iar_number || inspection.invoice_number) && (
-                                                    <span className="mx-1.5 text-neutral-300 dark:text-neutral-600">•</span>
-                                                )}
-                                                {inspection.iar_number && (
-                                                    <span>IAR: {inspection.iar_number}</span>
-                                                )}
-                                                {inspection.iar_number && inspection.invoice_number && (
-                                                    <span className="mx-1.5 text-neutral-300 dark:text-neutral-600">•</span>
-                                                )}
-                                                {inspection.invoice_number && (
-                                                    <span>Invoice: {inspection.invoice_number}</span>
-                                                )}
-                                            </p>
-                                            
-                                            <div className="mt-1.5 flex items-center gap-2">
-                                                <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                                                    PENDING
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="flex h-32 items-center justify-center text-muted-foreground mt-4">
-                                No pending inspections found.
-                            </div>
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={isPendingClearancesModalOpen} onOpenChange={setIsPendingClearancesModalOpen}>
-                <DialogContent className="sm:max-w-3xl w-full max-h-[85vh] flex flex-col gap-0 p-0">
-                    <DialogHeader className="p-6 pb-4 border-b border-border/50">
-                        <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-                            <FileText className="size-5 text-rose-500" />
-                            Pending Issuances ({pendingClearances ?? 0})
-                        </DialogTitle>
-                    </DialogHeader>
-                    
-                    <div className="flex-1 overflow-y-auto p-6 pt-2">
-                        {allPendingClearances && allPendingClearances.length > 0 ? (
-                            <div className="grid gap-3 mt-4">
-                                {allPendingClearances.map((issuance) => (
-                                    <div key={issuance.po_number} className="relative group flex items-center rounded-lg border border-l-4 border-l-rose-400 bg-white p-4 gap-4 shadow-sm transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:border-l-rose-500 dark:bg-neutral-900 dark:hover:bg-neutral-800">
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate font-bold text-neutral-800 dark:text-neutral-100 text-base">
-                                                <Link 
-                                                    href={`/purchase-orders?search=${encodeURIComponent(issuance.po_number)}`}
-                                                    onClick={() => auditLogsHighlight(issuance.po_number, '/purchase-orders')}
-                                                    className="before:absolute before:inset-0 hover:underline"
-                                                >
-                                                    {issuance.po_number}
-                                                </Link>
-                                            </p>
-                                            <p className="truncate text-neutral-500 text-sm mt-0.5">
-                                                <span>{issuance.supplier?.supplier_name || 'Unknown Supplier'}</span>
-                                                {(issuance.iar_number || issuance.invoice_number) && (
-                                                    <span className="mx-1.5 text-neutral-300 dark:text-neutral-600">•</span>
-                                                )}
-                                                {issuance.iar_number && (
-                                                    <span>IAR: {issuance.iar_number}</span>
-                                                )}
-                                                {issuance.iar_number && issuance.invoice_number && (
-                                                    <span className="mx-1.5 text-neutral-300 dark:text-neutral-600">•</span>
-                                                )}
-                                                {issuance.invoice_number && (
-                                                    <span>Invoice: {issuance.invoice_number}</span>
-                                                )}
-                                            </p>
-                                            
-                                            <div className="mt-1.5 flex items-center gap-2">
-                                                <span className="rounded-md bg-rose-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">
-                                                    PENDING
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="flex h-32 items-center justify-center text-muted-foreground mt-4">
-                                No pending issuances found.
-                            </div>
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
+            {/* Unified Structured Operational Records Modal */}
+            <OperationalRecordsModal
+                isOpen={operationalModalType !== null}
+                onClose={() => setOperationalModalType(null)}
+                type={operationalModalType || 'deliveries'}
+                totalCount={
+                    operationalModalType === 'deliveries'
+                        ? (pendingDeliveries ?? 0)
+                        : operationalModalType === 'inspections'
+                        ? (pendingInspections ?? 0)
+                        : (pendingClearances ?? 0)
+                }
+                initialRecords={
+                    operationalModalType === 'deliveries'
+                        ? allPendingDeliveries
+                        : operationalModalType === 'inspections'
+                        ? allPendingInspections
+                        : allPendingClearances
+                }
+                onOpenFollowUp={openFollowUpModal}
+            />
 
             <Dialog open={followUpModalOpen} onOpenChange={setFollowUpModalOpen}>
                 <DialogContent className="sm:max-w-md">

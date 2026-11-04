@@ -3,6 +3,7 @@ import { router, Link } from '@inertiajs/react';
 import { CheckCircle2, Clock, XCircle, ChevronDown, Info, Calendar, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ReportsMonitoringModal, type ReportStatusFilter } from '@/components/dashboard/ReportsMonitoringModal';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -41,6 +42,13 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
     const [isLoading, setIsLoading] = useState(false);
     const [isInfoOpen, setIsInfoOpen] = useState(false);
     const [infoTab, setInfoTab] = useState<'definitions' | 'triggers'>('definitions');
+    const [isRecordsModalOpen, setIsRecordsModalOpen] = useState(false);
+    const [selectedStatusFilter, setSelectedStatusFilter] = useState<ReportStatusFilter>('COMPLETED');
+
+    const handleOpenStatusRecords = (status: ReportStatusFilter) => {
+        setSelectedStatusFilter(status);
+        setIsRecordsModalOpen(true);
+    };
 
     const handleFilterChange = (type: 'year' | 'quarter', value: number) => {
         setIsLoading(true);
@@ -150,11 +158,18 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
             </div>
 
             {/* Status Metric Breakdown Cards */}
-            <div className="mt-3 flex-1 min-h-0 grid grid-cols-3 gap-2.5">
+            <div className="mt-3 flex-1 min-h-0 grid grid-cols-3 gap-2 sm:gap-2.5">
                 {/* Completed */}
-                <div className="flex flex-col justify-between rounded-lg border border-neutral-200/80 bg-neutral-50/70 p-3 sm:p-3.5 dark:border-neutral-800 dark:bg-neutral-800/40">
+                <div 
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenStatusRecords('COMPLETED')}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleOpenStatusRecords('COMPLETED')}
+                    title="Click to view Completed records in this quarter"
+                    className="flex flex-col justify-between rounded-lg border border-neutral-200/80 bg-neutral-50/70 p-2.5 sm:p-3.5 dark:border-neutral-800 dark:bg-neutral-800/40 hover:bg-white dark:hover:bg-neutral-800 hover:border-emerald-300 dark:hover:border-emerald-700/70 hover:shadow-2xs transition-all cursor-pointer group active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                >
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
                             <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
                             <span className="truncate">Completed</span>
                         </span>
@@ -162,7 +177,7 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
                             {completedPct}%
                         </span>
                     </div>
-                    <div className="my-1 text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+                    <div className="my-1 text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                         {stats.COMPLETED || 0}
                     </div>
                     {/* Progress Bar */}
@@ -175,9 +190,16 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
                 </div>
 
                 {/* Ongoing */}
-                <div className="flex flex-col justify-between rounded-lg border border-neutral-200/80 bg-neutral-50/70 p-3 sm:p-3.5 dark:border-neutral-800 dark:bg-neutral-800/40">
+                <div 
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenStatusRecords('ONGOING')}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleOpenStatusRecords('ONGOING')}
+                    title="Click to view Ongoing records in this quarter"
+                    className="flex flex-col justify-between rounded-lg border border-neutral-200/80 bg-neutral-50/70 p-2.5 sm:p-3.5 dark:border-neutral-800 dark:bg-neutral-800/40 hover:bg-white dark:hover:bg-neutral-800 hover:border-blue-300 dark:hover:border-blue-700/70 hover:shadow-2xs transition-all cursor-pointer group active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+                >
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
                             <Clock className="size-3.5 text-blue-600 dark:text-blue-400" />
                             <span className="truncate">Ongoing</span>
                         </span>
@@ -185,7 +207,7 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
                             {ongoingPct}%
                         </span>
                     </div>
-                    <div className="my-1 text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+                    <div className="my-1 text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {stats.ONGOING || 0}
                     </div>
                     {/* Progress Bar */}
@@ -198,9 +220,16 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
                 </div>
 
                 {/* Cancelled */}
-                <div className="flex flex-col justify-between rounded-lg border border-neutral-200/80 bg-neutral-50/70 p-3 sm:p-3.5 dark:border-neutral-800 dark:bg-neutral-800/40">
+                <div 
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenStatusRecords('CANCELLED')}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleOpenStatusRecords('CANCELLED')}
+                    title="Click to view Cancelled records in this quarter"
+                    className="flex flex-col justify-between rounded-lg border border-neutral-200/80 bg-neutral-50/70 p-2.5 sm:p-3.5 dark:border-neutral-800 dark:bg-neutral-800/40 hover:bg-white dark:hover:bg-neutral-800 hover:border-rose-300 dark:hover:border-rose-700/70 hover:shadow-2xs transition-all cursor-pointer group active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
+                >
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5 group-hover:text-rose-700 dark:group-hover:text-rose-300 transition-colors">
                             <XCircle className="size-3.5 text-rose-600 dark:text-rose-400" />
                             <span className="truncate">Cancelled</span>
                         </span>
@@ -208,7 +237,7 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
                             {cancelledPct}%
                         </span>
                     </div>
-                    <div className="my-1 text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+                    <div className="my-1 text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
                         {stats.CANCELLED || 0}
                     </div>
                     {/* Progress Bar */}
@@ -338,7 +367,7 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
                                                 Cancelled Records
                                             </h4>
                                             <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5 leading-relaxed">
-                                                Purchase orders terminated or revoked before completion during the fiscal period due to supplier default or administrative rescission.
+                                                Purchase orders terminated or revoked before completion, or where 100% of delivery batches were cancelled in Delivery Monitoring. Orders with partial cancellations where other shipments remain active are tracked under Ongoing.
                                             </p>
                                         </div>
                                     </div>
@@ -402,10 +431,10 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
                                             <span className="rounded bg-rose-50 text-rose-700 px-1.5 py-0.5 text-[10px] font-bold dark:bg-rose-950/40 dark:text-rose-300">Contract Terminated</span>
                                         </div>
                                         <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                                            <strong>Trigger:</strong> When a purchase order created in the quarter is officially revoked, rescinded, or voided before completion (<code>po_step = CANCELLED</code>).
+                                            <strong>Trigger:</strong> When a purchase order created in the quarter is officially revoked (<code>po_step = CANCELLED</code>) or 100% of its deliveries were cancelled in Delivery Monitoring.
                                         </p>
                                         <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                                            <strong>Scenario:</strong> A supplier was unable to source contracted equipment and defaulted. The contract was formally terminated by the supply office, moving the record to <strong>Cancelled</strong>.
+                                            <strong>Scenario:</strong> PO-5667-1182 had 2 scheduled delivery shipments and both were cancelled by the supplier with no active shipments remaining. Because all deliveries were cancelled, the order is counted under <strong>Cancelled</strong>. (If a PO had 1 cancelled delivery but other deliveries completed or pending, it remains under <strong>Ongoing</strong>).
                                         </p>
                                     </div>
                                 </div>
@@ -426,6 +455,16 @@ export function ReportsMonitoringWidget({ stats, year, quarter }: Props) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Interactive Reports Monitoring Records Modal */}
+            <ReportsMonitoringModal
+                isOpen={isRecordsModalOpen}
+                onClose={() => setIsRecordsModalOpen(false)}
+                year={year}
+                quarter={quarter}
+                initialStatus={selectedStatusFilter}
+                stats={stats}
+            />
         </div>
     );
 }
