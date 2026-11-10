@@ -7,6 +7,7 @@ use App\Models\Clearance;
 use App\Models\Delivery;
 use App\Models\PoLetterMonitoring;
 use App\Models\ServePo;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -118,7 +119,42 @@ class DocumentCenterController extends Controller
         return Inertia::render('document-center/index', [
             'purchaseOrders' => fn () => $getPurchaseOrders(),
             'clearances' => fn () => $getClearances(),
+            'galleryGroups' => fn () => collect($this->attachmentGalleryModules())
+                ->map(fn (array $module, string $key) => [
+                    'key' => $key,
+                    'label' => $module['label'],
+                    'items' => $this->getAttachmentGalleryItems($module),
+                ])
+                ->values(),
             'archives' => $archives,
+        ]);
+    }
+
+    public function galleryAttachments(string $module, string $id)
+    {
+        $modules = $this->attachmentGalleryModules();
+        abort_unless(isset($modules[$module]), 404);
+
+        $config = $modules[$module];
+        $modelClass = $config['model'];
+        $query = $modelClass::query();
+
+        if (isset($config['with'])) {
+            $query->with($config['with']);
+        }
+
+        $record = $query->findOrFail($id);
+        $attachments = Attachment::where('attachable_type', $modelClass)
+            ->where('attachable_id', $record->getKey())
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn (Attachment $attachment) => $this->formatAttachment($attachment, $config['source']));
+
+        return response()->json([
+            'label' => ($config['record_label'])($record),
+            'subtitle' => ($config['subtitle'])($record),
+            'stats' => $this->buildStats($attachments, ['from_module' => $config['source']]),
+            'attachments' => $attachments->values(),
         ]);
     }
 
@@ -378,6 +414,67 @@ class DocumentCenterController extends Controller
             'is_pdf' => $attachment->mime_type === 'application/pdf',
             'created_at' => optional($attachment->created_at)->format('Y-m-d H:i'),
         ];
+    }
+
+    private function attachmentGalleryModules(): array
+    {
+        return [
+            'rrsp' => [
+                'label' => 'RRSP',
+                'source' => 'RRSP',
+                'model' => \App\Models\RrspMonitoring::class,
+                'record_label' => fn (Model $record): string => $record->rrsp_no,
+                'subtitle' => fn (Model $record): ?string => $record->end_user_name,
+            ],
+            'rrppe' => [
+                'label' => 'RRPPE',
+                'source' => 'RRPPE',
+                'model' => \App\Models\RRPPEMonitoring::class,
+                'record_label' => fn (Model $record): string => $record->rrppe_no,
+                'subtitle' => fn (Model $record): ?string => $record->end_user_name,
+            ],
+            'wmr' => [
+                'label' => 'WMR',
+                'source' => 'WMR',
+                'model' => \App\Models\WmrMonitoring::class,
+                'record_label' => fn (Model $record): string => $record->wmr_no,
+                'subtitle' => fn (Model $record): ?string => $record->item_vehicle,
+            ],
+            'employee-files' => [
+                'label' => 'Employee Files',
+                'source' => 'Employee File Locator',
+                'model' => \App\Models\EmployeeFileLocator::class,
+                'record_label' => fn (Model $record): string => trim(implode(' ', array_filter([
+                    $record->first_name,
+                    $record->middle_name,
+                    $record->last_name,
+                ]))),
+                'subtitle' => fn (Model $record): ?string => $record->area,
+            ],
+        ];
+    }
+
+    private function getAttachmentGalleryItems(array $config)
+    {
+        $modelClass = $config['model'];
+        $counts = Attachment::where('attachable_type', $modelClass)
+            ->selectRaw('attachable_id, count(*) as count')
+            ->groupBy('attachable_id')
+            ->pluck('count', 'attachable_id');
+
+        $query = $modelClass::query();
+        if (isset($config['with'])) {
+            $query->with($config['with']);
+        }
+
+        return $query->get()
+            ->map(fn (Model $record) => [
+                'id' => $record->getKey(),
+                'label' => ($config['record_label'])($record),
+                'subtitle' => ($config['subtitle'])($record),
+                'attachment_count' => $counts[$record->getKey()] ?? 0,
+            ])
+            ->values();
     }
 
     private function buildStats($attachments, array $sourceKeyMap): array

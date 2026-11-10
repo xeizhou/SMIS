@@ -82,6 +82,12 @@ interface ItemOption {
     attachment_count: number;
 }
 
+interface GalleryGroup {
+    key: string;
+    label: string;
+    items: ItemOption[];
+}
+
 interface AttachmentItem {
     id: number;
     name: string;
@@ -129,6 +135,7 @@ const STAT_META: Record<string, { label: string; icon: React.ComponentType<{ cla
     from_po_letters: { label: 'From PO Letters', icon: Mail },
     from_po: { label: 'From PO', icon: FileIcon },
     from_clearance: { label: 'From Clearance', icon: FileIcon },
+    from_module: { label: 'From Module', icon: FileIcon },
 };
 
 function KpiCard({ statKey, value }: { statKey: string; value: number }) {
@@ -448,27 +455,36 @@ function ClientPagination({
 function GalleryTab({
     purchaseOrders,
     clearances,
+    galleryGroups,
 }: {
     purchaseOrders: ItemOption[];
     clearances: ItemOption[];
+    galleryGroups: GalleryGroup[];
 }) {
-    const [category, setCategory] = useState<'po' | 'clearance'>('po');
+    const [category, setCategory] = useState('po');
     const [selectedId, setSelectedId] = useState<string | number | null>(null);
     const [query, setQuery] = useState('');
+    const [hideEmptyRecords, setHideEmptyRecords] = useState(false);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
 
-    const items = category === 'po' ? purchaseOrders : clearances;
+    const categories = [
+        { key: 'po', label: 'Purchase Orders', items: purchaseOrders },
+        { key: 'clearance', label: 'Clearance', items: clearances },
+        ...galleryGroups,
+    ];
+    const items = categories.find((group) => group.key === category)?.items ?? [];
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
-        if (!q) return items;
         return items.filter(
             (item) =>
-                item.label.toLowerCase().includes(q) ||
-                item.subtitle?.toLowerCase().includes(q),
+                (!hideEmptyRecords || item.attachment_count > 0) &&
+                (!q ||
+                    item.label.toLowerCase().includes(q) ||
+                    item.subtitle?.toLowerCase().includes(q)),
         );
-    }, [items, query]);
+    }, [hideEmptyRecords, items, query]);
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -486,47 +502,65 @@ function GalleryTab({
 
     useEffect(() => {
         setPage(1);
-    }, [query]);
+    }, [hideEmptyRecords, query]);
 
     if (selectedId !== null) {
+        const encodedId = encodeURIComponent(String(selectedId));
         const endpoint =
             category === 'po'
-                ? `/document-center/po/${selectedId}/attachments`
-                : `/document-center/clearance/${selectedId}/attachments`;
+                ? `/document-center/po/${encodedId}/attachments`
+                : category === 'clearance'
+                  ? `/document-center/clearance/${encodedId}/attachments`
+                  : `/document-center/gallery/${category}/${encodedId}/attachments`;
 
         return <ItemDetail endpoint={endpoint} onBack={() => setSelectedId(null)} />;
     }
 
     return (
         <div className="animate-in fade-in space-y-4 duration-300 sm:space-y-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="bg-muted inline-flex w-full rounded-lg p-1 sm:w-fit">
-                    <button
-                        onClick={() => setCategory('po')}
-                        className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 sm:flex-none sm:px-4 ${
-                            category === 'po' ? 'bg-background shadow-sm' : 'text-muted-foreground'
-                        }`}
-                    >
-                        Purchase Orders
-                    </button>
-                    <button
-                        onClick={() => setCategory('clearance')}
-                        className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 sm:flex-none sm:px-4 ${
-                            category === 'clearance' ? 'bg-background shadow-sm' : 'text-muted-foreground'
-                        }`}
-                    >
-                        Clearance
-                    </button>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="bg-muted inline-flex w-fit max-w-full self-start flex-wrap gap-1 rounded-lg p-1">
+                    {categories.map((group) => (
+                        <button
+                            key={group.key}
+                            onClick={() => setCategory(group.key)}
+                            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 sm:px-4 ${
+                                category === group.key ? 'bg-background shadow-sm' : 'text-muted-foreground'
+                            }`}
+                        >
+                            {group.label}
+                        </button>
+                    ))}
                 </div>
 
-                <div className="relative w-full sm:w-72">
-                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-                    <input
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder={category === 'po' ? 'Search PO number or end user…' : 'Search clearance…'}
-                        className="border-input bg-background h-9 w-full rounded-lg border pl-9 pr-3 text-sm outline-none transition-colors focus:border-ring"
-                    />
+                <div className="flex w-full items-center gap-2 lg:w-auto">
+                    <div className="relative min-w-0 flex-1 lg:w-72 lg:flex-none">
+                        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                        <input
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder={
+                                category === 'po'
+                                    ? 'Search PO number or end user…'
+                                    : category === 'clearance'
+                                      ? 'Search clearance…'
+                                      : `Search ${categories.find((group) => group.key === category)?.label ?? 'records'}…`
+                            }
+                            className="border-input bg-background h-9 w-full rounded-lg border pl-9 pr-3 text-sm outline-none transition-colors focus:border-ring"
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        aria-pressed={hideEmptyRecords}
+                        onClick={() => setHideEmptyRecords((hidden) => !hidden)}
+                        className={`h-9 shrink-0 rounded-lg border px-3 text-sm font-medium transition-colors ${
+                            hideEmptyRecords
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : 'border-input bg-background hover:bg-muted'
+                        }`}
+                    >
+                        Hide empty
+                    </button>
                 </div>
             </div>
 
@@ -1886,10 +1920,12 @@ function ArchiveTab({ archives }: { archives: any }) {
 export default function DocumentCenterIndex({
     purchaseOrders,
     clearances,
+    galleryGroups,
     archives,
 }: {
     purchaseOrders: ItemOption[];
     clearances: ItemOption[];
+    galleryGroups: GalleryGroup[];
     archives: any;
 }) {
     const [activeTab, setActiveTab] = useState('archive');
@@ -1964,7 +2000,11 @@ export default function DocumentCenterIndex({
                     </TabsContent>
 
                     <TabsContent value="gallery" className="animate-in fade-in mt-0 duration-300 sm:mt-0">
-                        <GalleryTab purchaseOrders={purchaseOrders} clearances={clearances} />
+                        <GalleryTab
+                            purchaseOrders={purchaseOrders}
+                            clearances={clearances}
+                            galleryGroups={galleryGroups}
+                        />
                     </TabsContent>
 
                     <TabsContent value="scheduled-tasks" className="animate-in fade-in mt-0 duration-300 sm:mt-0">
