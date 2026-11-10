@@ -83,6 +83,7 @@ export interface AssignedTask {
 export interface UserOption {
     id: number;
     name: string;
+    full_name: string;
     role: string;
 }
 
@@ -1282,7 +1283,7 @@ export function AssignedTasks({
                                     <SelectContent className="max-h-56">
                                         {usersList.map((user) => (
                                             <SelectItem key={user.id} value={String(user.id)}>
-                                                {user.name} ({user.role})
+                                                {user.full_name} (@{user.name}, {user.role})
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -1427,7 +1428,7 @@ export function AssignedTasks({
                                     <SelectContent className="max-h-56">
                                         {usersList.map((user) => (
                                             <SelectItem key={user.id} value={String(user.id)}>
-                                                {user.name} ({user.role})
+                                                {user.full_name} (@{user.name}, {user.role})
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

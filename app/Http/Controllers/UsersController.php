@@ -15,8 +15,8 @@ class UsersController extends Controller
     public function index()
     {
         return Inertia::render('users/index', [
-            'users' => User::select('id', 'name', 'email', 'role', 'avatar_path', 'created_at')
-                ->orderBy('name')
+            'users' => User::select('id', 'name', 'full_name', 'email', 'role', 'avatar_path', 'created_at')
+                ->orderBy('full_name')
                 ->get()
                 ->map(fn (User $user) => [
                     ...$user->toArray(),
@@ -28,7 +28,8 @@ class UsersController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9_. ]+$/', Rule::unique('users', 'name')],
+            'full_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_STAFF])],
@@ -48,7 +49,8 @@ class UsersController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9_. ]+$/', Rule::unique('users', 'name')->ignore($user->id)],
+            'full_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_STAFF])],
             'password' => ['nullable', 'string', 'min:8'],

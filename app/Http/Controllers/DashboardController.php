@@ -77,8 +77,8 @@ class DashboardController extends Controller
                 }
 
                 return Task::with([
-                    'assignedTo:id,name',
-                    'assignedBy:id,name',
+                    'assignedTo:id,name,full_name',
+                    'assignedBy:id,name,full_name',
                     'servePo:po_number,supplier_id',
                     'servePo.supplier:id,supplier_name',
                 ])
@@ -120,11 +120,11 @@ class DashboardController extends Controller
                         'days_due' => $daysDue,
                         'assigned_to' => $task->assignedTo ? [
                             'id' => $task->assignedTo->id,
-                            'name' => $task->assignedTo->name,
+                            'name' => $task->assignedTo->full_name,
                         ] : null,
                         'assigned_by' => $task->assignedBy ? [
                             'id' => $task->assignedBy->id,
-                            'name' => $task->assignedBy->name,
+                            'name' => $task->assignedBy->full_name,
                         ] : null,
                         'created_at' => $task->created_at?->diffForHumans(),
                         'created_at_raw' => $task->created_at?->toISOString(),
@@ -133,7 +133,7 @@ class DashboardController extends Controller
                 })
                 ->values();
             },
-            'usersList' => fn () => User::select('id', 'name', 'role')->orderBy('name')->get(),
+            'usersList' => fn () => User::select('id', 'name', 'full_name', 'role')->orderBy('full_name')->get(),
             'poNumbers' => fn () => ServePo::select('po_number')->latest()->take(50)->pluck('po_number'),
         ]);
     }
@@ -681,4 +681,3 @@ class DashboardController extends Controller
         return $poStats;
     }
 }
-

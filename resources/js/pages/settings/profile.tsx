@@ -88,13 +88,17 @@ export default function Profile() {
 
     // Controlled profile fields (needed so we can show a confirm modal before submitting)
     const [name, setName] = useState(auth.user.name);
+    const [fullName, setFullName] = useState(auth.user.full_name);
     const [email, setEmail] = useState(auth.user.email);
-    const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
+    const [errors, setErrors] = useState<{ name?: string; full_name?: string; email?: string }>({});
     const [processing, setProcessing] = useState(false);
     const [recentlySuccessful, setRecentlySuccessful] = useState(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
 
-    const hasChanges = name !== auth.user.name || email !== auth.user.email;
+    const hasChanges =
+        fullName !== auth.user.full_name ||
+        name !== auth.user.name ||
+        email !== auth.user.email;
 
     // Stage the picked file and show a confirm modal before actually uploading it
     const stageAvatarFile = (file: File) => {
@@ -189,11 +193,11 @@ export default function Profile() {
         setRecentlySuccessful(false);
         router.patch(
             update(),
-            { name, email },
+            { name, full_name: fullName, email },
             {
                 preserveScroll: true,
                 onSuccess: () => setRecentlySuccessful(true),
-                onError: (err) => setErrors(err as { name?: string; email?: string }),
+                onError: (err) => setErrors(err as { name?: string; full_name?: string; email?: string }),
                 onFinish: () => {
                     setProcessing(false);
                     setConfirmOpen(false);
@@ -212,7 +216,7 @@ export default function Profile() {
                 <Heading
                     variant="small"
                     title="Profile"
-                    description="Update your profile picture, username, and email"
+                    description="Update your profile picture, full name, username, and email"
                 />
 
                 <div className="rounded-xl border border-border bg-card p-6">
@@ -240,12 +244,12 @@ export default function Profile() {
                                     src={`${String(auth.user.avatar_url)}${
                                         String(auth.user.avatar_url).includes('?') ? '&' : '?'
                                     }v=${Date.now()}`}
-                                    alt={auth.user.name}
+                                    alt={auth.user.full_name}
                                     className="size-24 rounded-full object-cover"
                                 />
                             ) : (
                                 <div className="flex size-24 items-center justify-center rounded-full bg-gray-200 text-2xl font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                                    {auth.user.name.charAt(0).toUpperCase()}
+                                    {auth.user.full_name.charAt(0).toUpperCase()}
                                 </div>
                             )}
 
@@ -272,7 +276,8 @@ export default function Profile() {
                         </div>
 
                         <div className="flex flex-1 flex-col items-center gap-2 sm:items-start">
-                            <p className="text-sm font-medium text-foreground">{auth.user.name}</p>
+                            <p className="text-sm font-medium text-foreground">{auth.user.full_name}</p>
+                            <p className="text-xs text-muted-foreground">@{auth.user.name}</p>
                             <p className="text-xs text-muted-foreground">
                                 Click or drag a photo onto your picture to update it — JPG, PNG or WEBP, max 2MB.
                             </p>
@@ -315,6 +320,29 @@ export default function Profile() {
 
                 <div className="rounded-xl border border-border bg-card p-6">
                     <form onSubmit={handleSaveClick} className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="full_name">
+                                Full Name <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                                id="full_name"
+                                name="full_name"
+                                value={fullName}
+                                onChange={(e) => {
+                                    setFullName(e.target.value);
+                                    if (errors.full_name) {
+                                        setErrors((prev) => ({ ...prev, full_name: undefined }));
+                                    }
+                                }}
+                                required
+                                maxLength={255}
+                                autoComplete="name"
+                                placeholder="Full name"
+                                className={cn(errors.full_name && 'border-red-500')}
+                            />
+                            <InputError message={errors.full_name} />
+                        </div>
+
                         <div className="grid gap-2">
                             <Label htmlFor="name">
                                 Username <span className="text-red-500">*</span>
@@ -491,6 +519,16 @@ export default function Profile() {
                     </DialogHeader>
 
                     <div className="space-y-3 py-2 text-sm">
+                        {fullName !== auth.user.full_name && (
+                            <div className="flex flex-col gap-1">
+                                <span className="text-muted-foreground">Full Name</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground line-through">{auth.user.full_name}</span>
+                                    <span>→</span>
+                                    <span className="font-medium">{fullName}</span>
+                                </div>
+                            </div>
+                        )}
                         {name !== auth.user.name && (
                             <div className="flex flex-col gap-1">
                                 <span className="text-muted-foreground">Username</span>
