@@ -17,8 +17,8 @@ class TaskController extends Controller
         }
 
         $query = Task::with([
-                'assignedTo:id,name',
-                'assignedBy:id,name',
+                'assignedTo:id,name,full_name',
+                'assignedBy:id,name,full_name',
             ])
             ->where(function ($q) {
                 $q->where('status', 'archived')
@@ -104,11 +104,11 @@ class TaskController extends Controller
                 'archived_at_formatted' => $archivedAt ? $archivedAt->format('M d, Y g:i A') : null,
                 'assigned_to' => $task->assignedTo ? [
                     'id' => $task->assignedTo->id,
-                    'name' => $task->assignedTo->name,
+                    'name' => $task->assignedTo->full_name,
                 ] : null,
                 'assigned_by' => $task->assignedBy ? [
                     'id' => $task->assignedBy->id,
-                    'name' => $task->assignedBy->name,
+                    'name' => $task->assignedBy->full_name,
                 ] : null,
             ];
         });
@@ -124,8 +124,8 @@ class TaskController extends Controller
         }
 
         $query = Task::with([
-                'assignedTo:id,name',
-                'assignedBy:id,name',
+                'assignedTo:id,name,full_name',
+                'assignedBy:id,name,full_name',
             ])
             ->where(function ($q) {
                 $q->where('status', 'archived')
@@ -203,8 +203,8 @@ class TaskController extends Controller
                     $task->description,
                     $task->po_number,
                     strtoupper($task->priority),
-                    $task->assignedTo?->name,
-                    $task->assignedBy?->name,
+                    $task->assignedTo?->full_name,
+                    $task->assignedBy?->full_name,
                     $task->due_date ? \Carbon\Carbon::parse($task->due_date)->format('Y-m-d') : '',
                     $task->completed_at ? \Carbon\Carbon::parse($task->completed_at)->format('Y-m-d H:i:s') : '',
                 ]);
@@ -489,4 +489,3 @@ class TaskController extends Controller
         return back()->with('success', 'Task deleted.');
     }
 }
-

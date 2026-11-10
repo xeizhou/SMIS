@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 interface User {
     id: number;
     name: string;
+    full_name: string;
     email: string;
     role: 'admin' | 'staff';
     avatar_url: string | null;
@@ -243,6 +244,7 @@ export default function Index({ users }: IndexProps) {
 
     const { data, setData, post, put, reset, processing, errors, clearErrors } = useForm({
         name: '',
+        full_name: '',
         email: '',
         password: '',
         role: 'staff' as 'admin' | 'staff',
@@ -262,6 +264,7 @@ export default function Index({ users }: IndexProps) {
          .filter((user) => {
              const term = search.toLowerCase();
              return (
+                 user.full_name.toLowerCase().includes(term) ||
                  user.name.toLowerCase().includes(term) ||
                  user.email.toLowerCase().includes(term)
              );
@@ -276,6 +279,7 @@ export default function Index({ users }: IndexProps) {
         setEditing(null);
         setData({
             name: '',
+            full_name: '',
             email: '',
             password: '',
             role: 'staff',
@@ -287,6 +291,7 @@ export default function Index({ users }: IndexProps) {
         setEditing(user);
         setData({
             name: user.name,
+            full_name: user.full_name,
             email: user.email,
             password: '',
             role: user.role,
@@ -312,6 +317,7 @@ export default function Index({ users }: IndexProps) {
                 onSuccess: () => {
                     setData({
                         name: '',
+                        full_name: '',
                         email: '',
                         password: '',
                         role: 'staff',
@@ -489,19 +495,20 @@ export default function Index({ users }: IndexProps) {
                                             <AvatarImage
                                                 key={user.avatar_url ?? 'none'}
                                                 src={withVersion(user.avatar_url, avatarVersions[user.id] ?? 0)}
-                                                alt={user.name}
+                                                alt={user.full_name}
                                             />
                                             <AvatarFallback
                                                 className="text-sm font-semibold text-white"
                                                 style={{ backgroundColor: '#370001' }}
                                             >
-                                                {initials(user.name)}
+                                                {initials(user.full_name)}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="min-w-0">
                                             <p className="truncate font-semibold text-foreground">
-                                                {user.name}
+                                                {user.full_name}
                                             </p>
+                                            <p className="truncate text-xs text-muted-foreground">@{user.name}</p>
                                             <Badge
                                                 variant={user.role === 'admin' ? 'default' : 'secondary'}
                                                 className="mt-1"
@@ -573,13 +580,13 @@ export default function Index({ users }: IndexProps) {
                                         <AvatarImage
                                             key={editing.avatar_url ?? 'none'}
                                             src={withVersion(editing.avatar_url, avatarVersions[editing.id] ?? 0)}
-                                            alt={editing.name}
+                                            alt={editing.full_name}
                                         />
                                         <AvatarFallback
                                             className="text-lg font-semibold text-white"
                                             style={{ backgroundColor: '#370001' }}
                                         >
-                                            {initials(editing.name)}
+                                            {initials(editing.full_name)}
                                         </AvatarFallback>
                                     </Avatar>
                                     <button
@@ -616,12 +623,30 @@ export default function Index({ users }: IndexProps) {
                         )}
 
                         <div>
+                            <Label htmlFor="full_name">
+                                Full Name <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                                id="full_name"
+                                placeholder="Juan Dela Cruz"
+                                value={data.full_name}
+                                onChange={(e) => {
+                                    setData('full_name', e.target.value);
+                                    if (errors.full_name) clearErrors('full_name');
+                                }}
+                                className={cn(errors.full_name && "border-red-500")}
+                            />
+                            {errors.full_name && <p className="text-sm text-red-500 mt-1">{errors.full_name}</p>}
+                        </div>
+
+                        <div>
                             <Label htmlFor="name">
-                                Name <span className="text-red-500">*</span>
+                                Username <span className="text-red-500">*</span>
                             </Label>
                             <Input
                                 id="name"
-                                placeholder="Juan Dela Cruz"
+                                placeholder="juan.delacruz"
+                                autoComplete="username"
                                 value={data.name}
                                 onChange={(e) => {
                                     setData('name', e.target.value);
@@ -720,9 +745,19 @@ export default function Index({ users }: IndexProps) {
                     <div className="space-y-3 py-2 text-sm">
                         {editing ? (
                             <>
+                                {data.full_name !== editing.full_name && (
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-muted-foreground">Full Name</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-muted-foreground line-through">{editing.full_name}</span>
+                                            <span>→</span>
+                                            <span className="font-medium">{data.full_name}</span>
+                                        </div>
+                                    </div>
+                                )}
                                 {data.name !== editing.name && (
                                     <div className="flex flex-col gap-1">
-                                        <span className="text-muted-foreground">Name</span>
+                                        <span className="text-muted-foreground">Username</span>
                                         <div className="flex items-center gap-2">
                                             <span className="text-muted-foreground line-through">{editing.name}</span>
                                             <span>→</span>
@@ -758,7 +793,8 @@ export default function Index({ users }: IndexProps) {
                                         <span className="font-medium">Will be changed</span>
                                     </div>
                                 )}
-                                {data.name === editing.name &&
+                                {data.full_name === editing.full_name &&
+                                    data.name === editing.name &&
                                     data.email === editing.email &&
                                     data.role === editing.role &&
                                     !data.password && (
@@ -768,7 +804,11 @@ export default function Index({ users }: IndexProps) {
                         ) : (
                             <>
                                 <div className="flex flex-col gap-1">
-                                    <span className="text-muted-foreground">Name</span>
+                                    <span className="text-muted-foreground">Full Name</span>
+                                    <span className="font-medium">{data.full_name}</span>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-muted-foreground">Username</span>
                                     <span className="font-medium">{data.name}</span>
                                 </div>
                                 <div className="flex flex-col gap-1">
@@ -804,7 +844,7 @@ export default function Index({ users }: IndexProps) {
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
                 userId={deleteTarget?.id ?? null}
-                userName={deleteTarget?.name ?? null}
+                userName={deleteTarget?.full_name ?? null}
             />
 
             {/* Crop & confirm new avatar before uploading */}

@@ -3,8 +3,8 @@
 use App\Models\User;
 use App\Models\WmrMonitoring;
 use Database\Seeders\WmrMonitoringSeeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 it('seeds WMR monitoring records with numbered items idempotently', function () {
@@ -126,7 +126,10 @@ it('renumbers WMR items when an existing record is edited', function () {
 });
 
 it('provides browser-print and PDF versions of a WMR report', function () {
-    $user = User::factory()->create(['name' => 'WMR Printer Account']);
+    $user = User::factory()->create([
+        'name' => 'wmrprinter',
+        'full_name' => 'WMR Printer Full Name',
+    ]);
 
     $this->actingAs($user)->post(route('wmr-monitoring.store'), [
         'wmr_no' => '2026110004',
@@ -146,7 +149,8 @@ it('provides browser-print and PDF versions of a WMR report', function () {
         ->assertSee('FRONT AXLE BEARING')
         ->assertSee('2026110004-01')
         ->assertSee('usep-logo.png')
-        ->assertSee('WMR Printer Account')
+        ->assertSee('WMR Printer Full Name')
+        ->assertDontSee('wmrprinter')
         ->assertSee('Staff, Supply Management Unit')
         ->assertSee('@page { size: A4 portrait;');
 

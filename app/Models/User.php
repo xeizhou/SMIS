@@ -18,6 +18,7 @@ use App\Models\Concerns\HasSingleSession;
 /**
  * @property int $id
  * @property string $name
+ * @property string $full_name
  * @property string $email
  * @property Carbon|null $email_verified_at
  * @property string $password
@@ -30,7 +31,7 @@ use App\Models\Concerns\HasSingleSession;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'role', 'avatar_path', 'last_active_at'])]
+#[Fillable(['name', 'full_name', 'email', 'password', 'role', 'avatar_path', 'last_active_at'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {

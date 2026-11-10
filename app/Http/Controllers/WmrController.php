@@ -22,7 +22,7 @@ class WmrController extends Controller
 
         return view('wmr-monitoring.print', [
             'wmr' => $wmr,
-            'printedBy' => $request->user()->name,
+            'printedBy' => $request->user()->full_name,
             'forPdf' => false,
         ]);
     }
@@ -33,7 +33,7 @@ class WmrController extends Controller
 
         $pdf = Pdf::loadView('wmr-monitoring.print', [
             'wmr' => $wmr,
-            'printedBy' => $request->user()->name,
+            'printedBy' => $request->user()->full_name,
             'forPdf' => true,
         ])->setPaper('A4', 'portrait');
 
