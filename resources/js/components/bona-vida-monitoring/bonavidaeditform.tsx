@@ -437,7 +437,7 @@ export default function BonaVidaEditForm({ open, onOpenChange, record, offices }
                                                     <tr>
                                                         <th className="px-3 py-2 text-left font-medium w-[250px]">Office <span className="text-red-500">*</span></th>
                                                         <th className="px-3 py-2 text-left font-medium w-[120px]">Qty <span className="text-red-500">*</span></th>
-                                                        <th className="px-3 py-2 text-left font-medium w-[140px]">Price Override</th>
+                                                        <th className="px-3 py-2 text-left font-medium w-[140px]">Price</th>
                                                         <th className="px-3 py-2 text-left font-medium w-[150px]">Total Amount</th>
                                                         <th className="px-3 py-2 text-left font-medium">Remarks</th>
                                                         <th className="px-3 py-2 text-left font-medium w-[60px]"></th>
