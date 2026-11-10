@@ -6,6 +6,7 @@ use App\Traits\LogsActivity;
 use App\Traits\SerializesDatesWithoutTimezoneShift;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -72,9 +73,14 @@ class WmrMonitoring extends Model
         return $this->belongsTo(FundCluster::class, 'fund_cluster_id', 'fund_cluster_id');
     }
 
+    public function items(): HasMany
+    {
+        return $this->hasMany(WmrItem::class, 'wmr_monitoring_id')->orderBy('item_number');
+    }
+
     public function getActivityUrl()
     {
-        return route('wmr-monitoring.index') . '?highlight_id=' . $this->getKey();
+        return route('wmr-monitoring.index').'?highlight_id='.$this->getKey();
     }
 
     public function archiveMetadata(): MorphOne
