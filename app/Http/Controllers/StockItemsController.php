@@ -89,8 +89,8 @@ class StockItemsController extends Controller
         ]);
 
         $stockItem = StockItem::create($request->except('units') + [
-            'is_pending_setup' => false,
-        ]);
+        'is_pending_setup' => str_starts_with($validated['stock_no'], 'TEMP-'),
+    ]);
 
         // Prepare data for the pivot table
         $syncData = [];
@@ -251,5 +251,14 @@ class StockItemsController extends Controller
             'unit_name' => $unit?->unit_name,
             'unit_short_name' => $unit?->unit_short_name,
         ]);
+    }
+
+    public function generateTempId()
+    {
+        do {
+            $stockNo = 'TEMP-' . strtoupper(\Illuminate\Support\Str::random(6));
+        } while (StockItem::where('stock_no', $stockNo)->exists());
+
+        return response()->json(['stock_no' => $stockNo]);
     }
 }

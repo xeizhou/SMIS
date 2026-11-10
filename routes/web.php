@@ -331,6 +331,7 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
     // Stock Cards (sidebar: "Stock Cards")
     // ==========================================================
 
+    Route::get('/stock-items/generate-temp-id', [StockItemsController::class, 'generateTempId']);
     Route::get('/stock-items-dashboard', [StockItemDashboardController::class, 'index'])
         ->name('stock-items-dashboard.index');
 

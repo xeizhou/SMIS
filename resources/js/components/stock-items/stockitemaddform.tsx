@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
-import { Plus, Archive, Check, ChevronsUpDown, RefreshCw } from 'lucide-react';
+import { Plus, Archive, Check, ChevronsUpDown, RefreshCw, HelpCircle, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -57,6 +57,7 @@ interface FieldProps {
     placeholder?: string;
     type?: string;
     min?: string;
+    labelAction?: React.ReactNode;
 }
 
 const labelClass = 'mb-1 block text-sm font-medium text-foreground';
@@ -72,13 +73,17 @@ function Field({
     placeholder = '',
     type = 'text',
     min,
+    labelAction 
 }: FieldProps) {
     return (
         <div>
-            <label className={labelClass}>
-                {label}
-                {required && <span className="text-red-500"> *</span>}
-            </label>
+            <div className="flex items-center justify-between">
+                <label className={labelClass}>
+                    {label}
+                    {required && <span className="text-red-500"> *</span>}
+                </label>
+                {labelAction}
+            </div>
             <Input
                 name={name}
                 type={type}
@@ -240,6 +245,23 @@ export default function StockItemAddForm({
         }
     };
 
+    const generateTempId = async () => {
+        try {
+            const res = await fetch('/stock-items/generate-temp-id', {
+                headers: { Accept: 'application/json' },
+            });
+            const { stock_no } = await res.json();
+            setData((prev) => ({ ...prev, stock_no }));
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next.stock_no;
+                return next;
+            });
+        } catch {
+            setErrors((prev) => ({ ...prev, stock_no: 'Failed to generate ID. Try again.' }));
+        }
+    };
+
     // Functions for handling the dynamic units array
     const handleUnitChange = (index: number, newUnitID: string) => {
         const newUnits = [...data.units];
@@ -321,6 +343,35 @@ export default function StockItemAddForm({
                                         error={errors.stock_no}
                                         required
                                         placeholder="Enter stock number"
+                                        labelAction={
+                                            <div className="mb-1 flex items-center gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={generateTempId}
+                                                    className="flex items-center gap-1 text-xs font-medium text-[#612A35] hover:underline"
+                                                >
+                                                    <Wand2 className="size-3.5" />
+                                                    Generate temporary ID
+                                                </button>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <button
+                                                            type="button"
+                                                            className="text-muted-foreground hover:text-foreground"
+                                                            aria-label="What is a temporary ID?"
+                                                        >
+                                                            <HelpCircle className="size-3.5" />
+                                                        </button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-72 text-xs leading-relaxed" side="top">
+                                                        <p className="mb-1 font-semibold">Temporary Stock No.</p>
+                                                        Creates a placeholder stock number (e.g. <span className="font-mono">TEMP-A7K2QX</span>)
+                                                        for items that don't have an official one yet. The item will be flagged as
+                                                        "Needs Attention" until you replace it with the real stock number by editing the item.
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+                                        }
                                     />
                                   
                                     <Field
