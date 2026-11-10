@@ -28,6 +28,13 @@ interface Supplier {
     supplier_name: string;
 }
 
+interface Attachment {
+    id: number;
+    original_name: string;
+    url: string;
+    file_size?: number;
+}
+
 interface WmrRecord {
     id: number;
     wmr_no: string;
@@ -66,6 +73,7 @@ interface WmrRecord {
     received_date: string | null;
     remarks: string | null;
     supplier?: Supplier | null;
+    attachments?: Attachment[];
 }
 
 // 'YYYY-MM-DD' -> local date string without the timezone shift new Date('YYYY-MM-DD') causes

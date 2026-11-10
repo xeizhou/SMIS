@@ -2,7 +2,59 @@
 
 use App\Models\User;
 use App\Models\WmrMonitoring;
+use Database\Seeders\WmrMonitoringSeeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+
+it('seeds WMR monitoring records with numbered items idempotently', function () {
+    $this->seed(WmrMonitoringSeeder::class);
+    $this->seed(WmrMonitoringSeeder::class);
+
+    expect(WmrMonitoring::query()->count())->toBe(40)
+        ->and(DB::table('wmr_items')->count())->toBeGreaterThanOrEqual(40);
+
+    $wmr = WmrMonitoring::query()->with('items')->firstOrFail();
+    expect($wmr->items)->not->toBeEmpty()
+        ->and($wmr->items->first()->item_control_no)->toBe($wmr->wmr_no.'-01');
+});
+
+it('uploads and removes WMR attachments through the add and edit flows', function () {
+    Storage::fake('public');
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post(route('wmr-monitoring.store'), [
+        'wmr_no' => '2026110005',
+        'wmr_date' => '2026-11-10',
+        'items' => [
+            ['quantity' => '1', 'unit' => 'PC', 'description' => 'TEST ITEM'],
+        ],
+    ])->assertSessionHasNoErrors();
+
+    $wmr = WmrMonitoring::query()->where('wmr_no', '2026110005')->firstOrFail();
+    $this->assertSame($wmr->id, session('newRecordId'));
+
+    $file = UploadedFile::fake()->create('wmr-report.pdf', 120, 'application/pdf');
+    $this->post(route('wmr-monitoring.attachments.upload', $wmr), [
+        'files' => [$file],
+    ])->assertSessionHasNoErrors();
+
+    $attachment = $wmr->attachments()->firstOrFail();
+    expect($attachment->original_name)->toBe('wmr-report.pdf');
+    Storage::disk('public')->assertExists($attachment->file_path);
+
+    $this->put(route('wmr-monitoring.update', $wmr), [
+        'wmr_no' => $wmr->wmr_no,
+        'wmr_date' => '2026-11-10',
+        'items' => [
+            ['quantity' => '1', 'unit' => 'PC', 'description' => 'TEST ITEM'],
+        ],
+        'deleted_attachment_ids' => [$attachment->id],
+    ])->assertSessionHasNoErrors();
+
+    $this->assertDatabaseMissing('attachments', ['id' => $attachment->id]);
+    Storage::disk('public')->assertMissing($attachment->file_path);
+});
 
 it('stores multiple WMR complaint items with automatically numbered control numbers', function () {
     $user = User::factory()->create();

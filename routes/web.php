@@ -206,6 +206,8 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
     Route::get('/wmr-monitoring/{wmr}/print-html', [WmrController::class, 'printHtml'])->name('wmr-monitoring.print-html');
     Route::post('/wmr-monitoring', [WmrController::class, 'store'])->name('wmr-monitoring.store');
     Route::put('/wmr-monitoring/{wmr}', [WmrController::class, 'update'])->name('wmr-monitoring.update');
+    Route::post('/wmr-monitoring/{wmr}/attachments', [WmrController::class, 'uploadAttachments'])
+        ->name('wmr-monitoring.attachments.upload');
     Route::delete('/wmr-monitoring/{wmr}', [WmrController::class, 'destroy'])->name('wmr-monitoring.destroy');
 
     // ==========================================================

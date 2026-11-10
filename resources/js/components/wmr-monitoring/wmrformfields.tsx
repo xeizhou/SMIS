@@ -99,12 +99,7 @@ export default function WmrFormFields({
     );
 
     const dateField = (
-        field:
-            | 'wmr_date'
-            | 'job_order_date'
-            | 'inspection_date'
-            | 'invoice_date'
-            | 'acquisition_date',
+        field: 'wmr_date' | 'job_order_date' | 'inspection_date',
         label: string,
         required = false,
     ) => (
@@ -186,7 +181,11 @@ export default function WmrFormFields({
                     {textField('serial_engine_no', 'Serial / Engine No.')}
                     {textField('property_no', 'Property No.')}
 
-                    {dateField('acquisition_date', 'Acquisition Date')}
+                    {textField(
+                        'acquisition_date',
+                        'Acquisition Date',
+                        'Year or date (e.g. 2018)',
+                    )}
                     <div>
                         <Label className={labelClass} htmlFor="wmr_labor_cost">
                             Amount
@@ -210,7 +209,11 @@ export default function WmrFormFields({
                     </div>
 
                     {textField('invoice_no', 'Invoice No.')}
-                    {dateField('invoice_date', 'Invoice Date')}
+                    {textField(
+                        'invoice_date',
+                        'Invoice Date',
+                        'Date or multiple dates',
+                    )}
                 </div>
             </section>
 
