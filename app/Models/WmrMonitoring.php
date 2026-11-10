@@ -4,15 +4,17 @@ namespace App\Models;
 
 use App\Traits\LogsActivity;
 use App\Traits\SerializesDatesWithoutTimezoneShift;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class WmrMonitoring extends Model
 {
-    use LogsActivity, SerializesDatesWithoutTimezoneShift, SoftDeletes;
+    use HasFactory, LogsActivity, SerializesDatesWithoutTimezoneShift, SoftDeletes;
 
     const LOG_NAME = 'WMR Monitoring';
 
@@ -76,6 +78,11 @@ class WmrMonitoring extends Model
     public function items(): HasMany
     {
         return $this->hasMany(WmrItem::class, 'wmr_monitoring_id')->orderBy('item_number');
+    }
+
+    public function attachments(): MorphMany
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
     }
 
     public function getActivityUrl()

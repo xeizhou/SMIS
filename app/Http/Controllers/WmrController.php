@@ -9,6 +9,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -56,7 +57,7 @@ class WmrController extends Controller
             $sortField = 'wmr_date';
         }
 
-        $records = WmrMonitoring::with(['supplier', 'items'])
+        $records = WmrMonitoring::with(['supplier', 'items', 'attachments'])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('wmr_no', 'like', "%{$search}%")
@@ -97,7 +98,7 @@ class WmrController extends Controller
     {
         $data = $request->validate($this->rules(), $this->messages());
 
-        DB::transaction(function () use ($data) {
+        $wmr = DB::transaction(function () use ($data) {
             $items = $data['items'];
             unset($data['items']);
             $descriptions = collect($items)->pluck('description')->implode(PHP_EOL);
@@ -109,9 +110,14 @@ class WmrController extends Controller
             ]);
 
             $this->saveItems($wmr, $items);
+
+            return $wmr;
         });
 
-        return redirect()->back()->with('success', 'WMR record added successfully.');
+        return redirect()->back()->with([
+            'success' => 'WMR record added successfully.',
+            'newRecordId' => $wmr->id,
+        ]);
     }
 
     /**
@@ -119,12 +125,29 @@ class WmrController extends Controller
      */
     public function update(Request $request, WmrMonitoring $wmr): RedirectResponse
     {
-        $data = $request->validate($this->rules($wmr->id), $this->messages());
+        $rules = $this->rules($wmr->id);
+        $rules['deleted_attachment_ids'] = ['nullable', 'array'];
+        $rules['deleted_attachment_ids.*'] = [
+            'integer',
+            Rule::exists('attachments', 'id')->where(fn ($query) => $query
+                ->where('attachable_type', WmrMonitoring::class)
+                ->where('attachable_id', (string) $wmr->id)),
+        ];
+        $data = $request->validate($rules, $this->messages());
 
-        DB::transaction(function () use ($wmr, $data) {
+        $deletedAttachmentPaths = DB::transaction(function () use ($wmr, $data) {
             $items = $data['items'];
             unset($data['items']);
             $descriptions = collect($items)->pluck('description')->implode(PHP_EOL);
+            $deletedAttachmentIds = $data['deleted_attachment_ids'] ?? [];
+            unset($data['deleted_attachment_ids']);
+            $deletedPaths = [];
+
+            foreach ($deletedAttachmentIds as $attachmentId) {
+                $attachment = $wmr->attachments()->findOrFail($attachmentId);
+                $deletedPaths[] = $attachment->file_path;
+                $attachment->delete();
+            }
 
             $wmr->update([
                 ...$data,
@@ -133,9 +156,38 @@ class WmrController extends Controller
             ]);
             $wmr->items()->delete();
             $this->saveItems($wmr, $items);
+
+            return $deletedPaths;
         });
 
+        foreach ($deletedAttachmentPaths as $path) {
+            Storage::disk('public')->delete($path);
+        }
+
         return redirect()->back()->with('success', 'WMR record updated successfully.');
+    }
+
+    /**
+     * Upload attachments for a WMR record.
+     */
+    public function uploadAttachments(Request $request, WmrMonitoring $wmr): RedirectResponse
+    {
+        $request->validate([
+            'files' => ['required', 'array'],
+            'files.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+        ]);
+
+        foreach ($request->file('files') as $file) {
+            $path = $file->store('wmr-attachments/'.$wmr->id, 'public');
+            $wmr->attachments()->create([
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Attachment(s) uploaded successfully.');
     }
 
     /**

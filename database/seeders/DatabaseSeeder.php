@@ -179,6 +179,8 @@ class DatabaseSeeder extends Seeder
 
             PirMonitoring::factory()->forServePo($po)->create();
         });
+
+        $this->call(WmrMonitoringSeeder::class);
         });
     }
 }
