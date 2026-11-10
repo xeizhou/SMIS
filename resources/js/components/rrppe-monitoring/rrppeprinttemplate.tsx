@@ -23,6 +23,10 @@ interface RRPPEMonitoring {
     items?: RrppeItem[];
 }
 
+const FULL_PAGE_ROWS = 16; // item rows on a page without signatures
+const LAST_PAGE_ROWS = 12; // max (and padded minimum) item rows on the page with signatures
+const RECEIVER_NAME = 'ATTY. ROMMIL P. NUÑEZ';
+
 export default function RrppePrintTemplate({ rrppe }: { rrppe: RRPPEMonitoring }) {
     const dateReceived = rrppe.dateReceived
         ? new Date(rrppe.dateReceived).toLocaleDateString('en-US', {
@@ -30,161 +34,160 @@ export default function RrppePrintTemplate({ rrppe }: { rrppe: RRPPEMonitoring }
               day: '2-digit',
               year: 'numeric',
           })
-        : '_______________';
+        : '';
 
-    const formatCurrency = (amount: number | string | null | undefined) => {
-        if (amount === null || amount === undefined || amount === '') {
-            return '—';
-        }
-        const num = Number(amount);
-        if (isNaN(num)) {
-            return '—';
-        }
-        return new Intl.NumberFormat('en-PH', {
-            style: 'currency',
-            currency: 'PHP',
-        }).format(num);
-    };
+    const items = rrppe.items ?? [];
+    const office = Array.from(new Set(items.map((i) => i.area).filter(Boolean))).join(', ');
+
+    // Split items into pages. The last page stays short so the signatures always fit on it.
+    const pages: RrppeItem[][] = [];
+    let rest = items;
+    while (rest.length > LAST_PAGE_ROWS) {
+        pages.push(rest.slice(0, FULL_PAGE_ROWS));
+        rest = rest.slice(FULL_PAGE_ROWS);
+    }
+    pages.push(rest);
+
+    const remarksFor = (item: RrppeItem) =>
+        item.remarks ||
+        (item.status === 'UNSERVICEABLE' ? 'Unserviceable' : item.status === 'SERVICEABLE' ? 'Serviceable' : '');
 
     return (
-        <div className="py-8 bg-white text-black font-sans print:py-0">
+        <div className="bg-white py-8 text-black print:py-0" style={{ fontFamily: "'Aptos Narrow','Arial Narrow',Arial,sans-serif" }}>
             <style>
                 {`
                     @media print {
-                        body {
-                            background: white;
-                            margin: 0;
-                            padding: 0;
-                        }
-                        @page {
-                            size: A4;
-                            margin: 15mm;
-                        }
+                        body { background: white; margin: 0; padding: 0; }
+                        @page { size: A4; margin: 8mm; }
                     }
-                    .custom-table {
-                        border-collapse: collapse;
-                        width: 100%;
-                    }
-                    .custom-table th, .custom-table td {
-                        border: 1px solid #000;
-                        padding: 8px;
-                        text-align: left;
-                    }
-                    .custom-table th {
-                        text-align: center;
-                        font-weight: bold;
-                    }
+                    .rrppe-table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 11pt; }
+                    .rrppe-table th, .rrppe-table td { border: 1px solid #000; padding: 1px 4px; text-align: center; height: 18px; word-wrap: break-word; }
+                    .rrppe-table tr { break-inside: avoid; page-break-inside: avoid; }
+                    .rrppe-table th { font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; }
+                    .rrppe-sign { break-inside: avoid; page-break-inside: avoid; }
                 `}
             </style>
-            <div className="max-w-[210mm] mx-auto bg-white p-[20mm] shadow-md print:shadow-none print:p-0 print:m-0 print:max-w-none">
-                {/* Header Section */}
-                <div className="text-center mb-8">
-                    <p className="text-sm font-semibold uppercase">Republic of the Philippines</p>
-                    <h1 className="text-xl font-bold uppercase mt-2">Report of Returned Property, Plant and Equipment</h1>
-                    <p className="text-sm">(RRPPE)</p>
-                </div>
 
-                {/* Meta Information */}
-                <div className="flex justify-between items-end mb-4 text-sm">
-                    <div>
-                        <p>
-                            <strong>Entity Name:</strong> _________________________
-                        </p>
-                        <p className="mt-2">
-                            <strong>Fund Cluster:</strong> _________________________
-                        </p>
-                    </div>
-                    <div>
-                        <p>
-                            <strong>RRPPE No.:</strong>{' '}
-                            <span className="border-b border-black">{rrppe.rrppeNo}</span>
-                        </p>
-                        <p className="mt-2">
-                            <strong>Date:</strong>{' '}
-                            <span className="border-b border-black">{dateReceived}</span>
-                        </p>
-                    </div>
-                </div>
+            {pages.map((pageItems, pageIdx) => {
+                const isLast = pageIdx === pages.length - 1;
+                const emptyRows = isLast ? Math.max(0, LAST_PAGE_ROWS - pageItems.length) : 0;
 
-                {/* Items Table */}
-                <table className="custom-table mt-4 text-sm">
-                    <thead>
-                        <tr>
-                            <th rowSpan={2}>Item Name</th>
-                            <th rowSpan={2}>Description</th>
-                            <th rowSpan={2}>Property No.</th>
-                            <th rowSpan={2}>Quantity</th>
-                            <th rowSpan={2}>Cost</th>
-                            <th rowSpan={2}>Area</th>
-                            <th colSpan={2}>Status</th>
-                        </tr>
-                        <tr>
-                            <th>Serviceable</th>
-                            <th>Unserviceable / Remarks</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rrppe.items && rrppe.items.length > 0 ? (
-                            rrppe.items.map((item, idx) => (
-                                <tr key={item.id ?? idx}>
-                                    <td className="text-center">{item.itemName ?? 'N/A'}</td>
-                                    <td>{item.itemDescription}</td>
-                                    <td className="text-center">{item.propertyNo ?? '—'}</td>
-                                    <td className="text-center">{item.quantity}</td>
-                                    <td className="text-right">{formatCurrency(item.cost)}</td>
-                                    <td className="text-center">{item.area ?? '—'}</td>
-                                    <td className="text-center">{item.status === 'SERVICEABLE' ? '✔' : ''}</td>
-                                    <td className="text-center">
-                                        {item.status === 'UNSERVICEABLE' ? (
-                                            <>
-                                                ✔ <br /> <span className="text-xs italic">{item.remarks}</span>
-                                            </>
-                                        ) : (
-                                            ''
-                                        )}
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan={8} className="text-center py-4">
-                                    No items recorded.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                return (
+                    <div
+                        key={pageIdx}
+                        className="mx-auto max-w-[190mm] bg-white print:max-w-none"
+                        style={isLast ? undefined : { breakAfter: 'page', pageBreakAfter: 'always' }}
+                    >
+                        {/* Logo + Header */}
+                        <div className="flex h-[72px] items-center justify-center">
+                            <img src="/usep-logo.png" alt="USeP Logo" className="h-[66px] w-auto object-contain" />
+                        </div>
+                        <h2 className="text-center text-[14pt] font-bold" style={{ fontFamily: "Cinzel,'Times New Roman',serif" }}>
+                            University of Southeastern Philippines
+                        </h2>
+                        <p className="text-center text-[12pt] italic" style={{ fontFamily: "'Times New Roman',serif" }}>
+                            Supply Management Unit
+                        </p>
 
-                {/* Signatures Section */}
-                <div className="mt-12 flex justify-between text-sm">
-                    <div className="w-1/2 pr-4">
-                        <p className="mb-8 font-semibold">Returned By:</p>
-                        <div className="text-center">
-                            <p className="border-b border-black font-bold pb-1">
-                                {rrppe.returnBy ?? '__________________________________'}
+                        {/* Title */}
+                        <div className="mt-2 border border-black py-0.5 text-center text-[16pt] font-bold">
+                            RECEIPT OF RETURNED PROPERTY PLANT, AND EQUIPMENT
+                        </div>
+
+                        <div className="mt-1 border-2 border-black">
+                            {/* Entity / No. / Office / Date */}
+                            <div className="flex border-b border-black text-[11pt]">
+                                <div className="w-[63%] border-r border-black px-1 font-bold">
+                                    <p>
+                                        Entity Name: <span className="italic underline">University of Southeastern Philippines</span>
+                                    </p>
+                                    <p className="border-t border-black">
+                                        Office: <span className="font-normal">{office}</span>
+                                    </p>
+                                </div>
+                                <div className="w-[37%] font-bold">
+                                    <p className="border-b border-black px-1">
+                                        RRPPE No.: <span className="font-normal">{rrppe.rrppeNo}</span>
+                                    </p>
+                                    <p className="px-1">
+                                        DATE: <span className="font-normal">{dateReceived}</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <p className="border-b border-black py-1 text-center text-[11pt] font-bold">
+                                This is to acknowledge receipt of the return Property, Plant, and Equipment
                             </p>
-                            <p className="text-xs mt-1">Signature over Printed Name</p>
-                            <p className="mt-6 border-b border-black w-full pb-1">
-                                &nbsp;
-                            </p>
-                            <p className="text-xs mt-1">Position / Office</p>
+
+                            {/* Items Table */}
+                            <table className="rrppe-table">
+                                <colgroup>
+                                    <col style={{ width: '35%' }} />
+                                    <col style={{ width: '9%' }} />
+                                    <col style={{ width: '19%' }} />
+                                    <col style={{ width: '18%' }} />
+                                    <col style={{ width: '19%' }} />
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th style={{ borderLeft: 0 }}>Item Description</th>
+                                        <th style={{ fontSize: '10pt' }}>Quantity</th>
+                                        <th>PAR No.</th>
+                                        <th>End-User</th>
+                                        <th style={{ borderRight: 0 }}>Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {pageItems.map((item, idx) => (
+                                        <tr key={item.id ?? idx}>
+                                            <td style={{ borderLeft: 0, textAlign: 'left' }}>
+                                                {[item.itemName, item.itemDescription].filter(Boolean).join(' - ')}
+                                            </td>
+                                            <td>{item.quantity}</td>
+                                            <td>{item.propertyNo ?? ''}</td>
+                                            <td>{rrppe.endUserName ?? ''}</td>
+                                            <td style={{ borderRight: 0, fontSize: '9pt' }}>{remarksFor(item)}</td>
+                                        </tr>
+                                    ))}
+                                    {Array.from({ length: emptyRows }).map((_, i) => (
+                                        <tr key={`empty-${i}`}>
+                                            <td style={{ borderLeft: 0 }}>&nbsp;</td>
+                                            <td />
+                                            <td />
+                                            <td />
+                                            <td style={{ borderRight: 0 }} />
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            {/* Signatures: last page only */}
+                            {isLast && (
+                                <div className="rrppe-sign flex border-t-2 border-black px-2 pt-1 text-[11pt]">
+                                    <div className="w-1/2 pr-4">
+                                        <p>Returned by:</p>
+                                        <div className="mt-4 border-b border-black text-center font-bold">
+                                            {rrppe.returnBy ?? <>&nbsp;</>}
+                                        </div>
+                                        <p className="border-b border-black text-center">End-User</p>
+                                        <p className="mt-4 border-b border-black text-center">&nbsp;</p>
+                                        <p className="mb-2 text-center">Date</p>
+                                    </div>
+                                    <div className="w-1/2 pl-4">
+                                        <p className="text-center">Received by:</p>
+                                        <div className="mt-4 border-b border-black text-center font-bold">{RECEIVER_NAME}</div>
+                                        <p className="border-b border-black text-center text-[9pt]">
+                                            Head, Property and/ or Supply Division Unit
+                                        </p>
+                                        <p className="mt-4 border-b border-black text-center">&nbsp;</p>
+                                        <p className="mb-2 text-center">Date</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
-                    <div className="w-1/2 pl-4">
-                        <p className="mb-8 font-semibold">Received By:</p>
-                        <div className="text-center">
-                            <p className="border-b border-black font-bold pb-1">
-                                {rrppe.endUserName ?? '__________________________________'}
-                            </p>
-                            <p className="text-xs mt-1">Signature over Printed Name</p>
-                            <p className="mt-6 border-b border-black w-full pb-1">
-                                &nbsp;
-                            </p>
-                            <p className="text-xs mt-1">Position / Office</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                );
+            })}
         </div>
     );
 }
