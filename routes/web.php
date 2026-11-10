@@ -448,6 +448,8 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
         ->name('document-center.po-attachments');
     Route::get('/document-center/clearance/{id}/attachments', [DocumentCenterController::class, 'clearanceAttachments'])
         ->name('document-center.clearance-attachments');
+    Route::get('/document-center/gallery/{module}/{id}/attachments', [DocumentCenterController::class, 'galleryAttachments'])
+        ->name('document-center.gallery-attachments');
     Route::get('/document-center/archive/{id}/attachments', [DocumentCenterController::class, 'archiveAttachments'])
         ->name('document-center.archive-attachments');
     Route::get('/document-center/archive/{id}/details', [DocumentCenterController::class, 'archiveOriginalDetails'])

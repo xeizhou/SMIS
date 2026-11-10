@@ -1283,7 +1283,7 @@ export function AssignedTasks({
                                     <SelectContent className="max-h-56">
                                         {usersList.map((user) => (
                                             <SelectItem key={user.id} value={String(user.id)}>
-                                                {user.full_name} (@{user.name}, {user.role})
+                                                {user.name} ({user.role})
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
