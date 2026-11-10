@@ -11,6 +11,7 @@ import PoLetterAddForm from '@/components/po-letter-monitoring/poletteraddform';
 import PoLetterDeleteModal from '@/components/po-letter-monitoring/poletterdeletemodal';
 import PoLetterEditForm from '@/components/po-letter-monitoring/polettereditform';
 import PoLetterViewForm from '@/components/po-letter-monitoring/poletterviewform';
+import PoLetterWorkflowModal from '@/components/po-letter-monitoring/PoLetterWorkflowModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,6 +29,12 @@ interface Supplier {
 
 interface PoNumberOption {
     po_number: string;
+    po_date?: string | null;
+    supplier_id?: number | string | null;
+    po_received_date?: string | null;
+    due_date?: string | null;
+    end_user?: string | null;
+    item_description?: string | null;
 }
 
 interface PoLetterRecord {
@@ -125,6 +132,7 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
     const [type, setType] = useState(filters.type ?? 'all');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedPoLetter, setSelectedPoLetter] = useState<PoLetterRecord | null>(null);
@@ -187,6 +195,11 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
     const handleEdit = (record: PoLetterRecord) => {
         setSelectedPoLetter(record);
         setEditDialogOpen(true);
+    };
+
+    const handleWorkflow = (record: PoLetterRecord) => {
+        setSelectedPoLetter(record);
+        setWorkflowDialogOpen(true);
     };
 
     const handleView = (record: PoLetterRecord) => {
@@ -382,6 +395,9 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
                                                         <button type="button" onClick={() => handleEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
                                                             <Pencil className="size-4" />
                                                         </button>
+                                                        <button type="button" onClick={() => handleWorkflow(record)} className="text-blue-600 hover:text-blue-800" title="Workflow Steps">
+                                                            <Plus className="size-4" />
+                                                        </button>
                                                         <button type="button" onClick={() => handleDelete(record)} className="text-red-600 hover:text-red-800" title="Archive">
                                                             <Archive className="size-4" />
                                                         </button>
@@ -407,6 +423,7 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
 
             <PoLetterAddForm open={addDialogOpen} onOpenChange={setAddDialogOpen} suppliers={suppliers} poNumbers={poNumbers} />
             <PoLetterEditForm open={editDialogOpen} onOpenChange={setEditDialogOpen} poLetter={selectedPoLetter} suppliers={suppliers} poNumbers={poNumbers} />
+            <PoLetterWorkflowModal open={workflowDialogOpen} onOpenChange={setWorkflowDialogOpen} poLetter={selectedPoLetter} />
             <PoLetterViewForm open={viewDialogOpen} onOpenChange={setViewDialogOpen} poLetter={selectedPoLetter} />
             <PoLetterDeleteModal open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} poLetterId={poLetterToDelete?.id ?? null} referenceNo={poLetterToDelete?.reference_no ?? null} />
         </>

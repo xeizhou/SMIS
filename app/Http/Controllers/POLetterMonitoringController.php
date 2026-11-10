@@ -11,6 +11,7 @@ use App\Services\PoLetterImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -79,7 +80,15 @@ class POLetterMonitoringController extends Controller
             'suppliers' => fn () => Supplier::select('supplier_id', 'supplier_name')
                 ->orderByDesc('supplier_id')
                 ->get(),
-            'poNumbers' => fn () => ServePo::select('po_number', 'supplier_id', 'po_received_date', 'due_date', 'end_user')
+            'poNumbers' => fn () => ServePo::select(
+                'po_number',
+                'po_date',
+                'supplier_id',
+                'po_received_date',
+                'due_date',
+                'end_user',
+                'item_description',
+            )
                 ->orderByDesc('created_at')
                 ->get(),
         ]);
@@ -91,35 +100,97 @@ class POLetterMonitoringController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'reference_no' => ['nullable', 'string', 'max:50'],
-            'supplier_id' => ['nullable', 'exists:supplier_list,supplier_id'],
             'po_number' => ['required', 'string', 'exists:serve_po,po_number'],
-            'po_date' => ['required', 'date'],
-            'date_received_by_supplier' => ['nullable', 'date'],
-            'delivery_term' => ['nullable', 'integer', 'min:0'],
-            'due_date' => ['nullable', 'date'],
-            'office_end_user' => ['required', 'string', 'max:100'],
-            'type_of_letter' => ['required', 'string', 'in:EXTENSION,WAIVER,CANCELLATION,REPLACEMENT/ALTERNATIVE OFFER'],
-            'date_received_by_smu' => ['nullable', 'date'],
-            'date_forwarded_to_ovpad' => ['nullable', 'date'],
-            'received_by' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
-            'status_of_the_letter' => ['required', 'string', 'max:50'],
-            'document_link' => ['nullable', 'string', 'max:500', 'regex:' . ValidationHelper::pattern('documentLink')],
-            'date_forwarded_to_end_user' => ['nullable', 'date'],
-            'remarks' => ['nullable', 'string'],
-        ], [
-            'received_by.regex' => ValidationHelper::message('names'),
-            'document_link.regex' => ValidationHelper::message('documentLink'),
+            'type_of_letter' => ['required', 'string', 'in:EXTENSION,WAIVER,CANCELLATION,REPLACEMENT/ALTERNATIVE OFFER,RELEASE OF RETENTION'],
         ]);
 
-        $poLetterMonitoring = PoLetterMonitoring::create($validated);
+        $purchaseOrder = ServePo::findOrFail($validated['po_number']);
+        $deliveryTerm = $purchaseOrder->po_received_date && $purchaseOrder->due_date
+            ? max(0, (int) $purchaseOrder->po_received_date->diffInDays($purchaseOrder->due_date))
+            : 0;
+
+        $poLetterMonitoring = PoLetterMonitoring::create([
+            'po_number' => $purchaseOrder->po_number,
+            'supplier_id' => $purchaseOrder->supplier_id,
+            'po_date' => $purchaseOrder->po_date,
+            'date_received_by_supplier' => $purchaseOrder->po_received_date,
+            'delivery_term' => $deliveryTerm,
+            'due_date' => $purchaseOrder->due_date,
+            'office_end_user' => $purchaseOrder->end_user,
+            'type_of_letter' => $validated['type_of_letter'],
+            'status_of_the_letter' => 'PENDING',
+        ]);
 
         // id doesn't exist until after create — the frontend needs it back
-        // to upload any attachments staged before the record existed.
-            return redirect()->back()->with([
-                'success' => 'PO letter record added successfully.',
-                'newRecordId' => $poLetterMonitoring->id,
+        return redirect()->back()->with([
+            'success' => 'PO letter record added successfully.',
+            'newRecordId' => $poLetterMonitoring->id,
+        ]);
+    }
+
+    /**
+     * Save one sequential PO letter workflow step.
+     */
+    public function updateWorkflow(Request $request, PoLetterMonitoring $poLetterMonitoring): RedirectResponse
+    {
+        $step = $request->input('step');
+        if ($step === 'final_section') {
+            $validated = $request->validate([
+                'step' => ['required', 'in:final_section'],
+                'value' => ['required', 'array'],
+                'value.date_forwarded_to_end_user' => ['required', 'date'],
+                'value.status_of_the_letter' => ['required', 'in:APPROVED,DISAPPROVED'],
+                'value.remarks' => ['nullable', 'string'],
             ]);
+
+            if (! $poLetterMonitoring->date_received_by_smu || ! $poLetterMonitoring->date_forwarded_to_ovpad) {
+                throw ValidationException::withMessages([
+                    'step' => 'Complete the previous workflow steps before continuing.',
+                ]);
+            }
+
+            $poLetterMonitoring->update($validated['value']);
+
+            return redirect()->back()->with('success', 'PO letter workflow updated successfully.');
+        }
+
+        $stepRules = [
+            'date_received_by_smu' => ['required', 'date'],
+            'date_forwarded_to_ovpad' => ['required', 'date'],
+            'status_of_the_letter' => ['required', 'in:APPROVED,DISAPPROVED'],
+            'date_forwarded_to_end_user' => ['required', 'date'],
+            'remarks' => ['nullable', 'string'],
+        ];
+
+        if (! is_string($step) || ! array_key_exists($step, $stepRules)) {
+            throw ValidationException::withMessages(['step' => 'Choose a valid workflow step.']);
+        }
+
+        $validated = $request->validate([
+            'step' => ['required', 'in:date_received_by_smu,date_forwarded_to_ovpad,status_of_the_letter,date_forwarded_to_end_user,remarks'],
+            'value' => $stepRules[$step],
+        ]);
+
+        $prerequisites = [
+            'date_received_by_smu' => [],
+            'date_forwarded_to_ovpad' => ['date_received_by_smu'],
+            'status_of_the_letter' => ['date_received_by_smu', 'date_forwarded_to_ovpad'],
+            'date_forwarded_to_end_user' => ['date_received_by_smu', 'date_forwarded_to_ovpad', 'status_of_the_letter'],
+            'remarks' => ['date_received_by_smu', 'date_forwarded_to_ovpad', 'status_of_the_letter', 'date_forwarded_to_end_user'],
+        ];
+
+        foreach ($prerequisites[$step] as $requiredStep) {
+            $value = $poLetterMonitoring->getAttribute($requiredStep);
+            if (! $value || ($requiredStep === 'status_of_the_letter' && $value === 'PENDING')) {
+                throw ValidationException::withMessages([
+                    'step' => 'Complete the previous workflow steps before continuing.',
+                ]);
+            }
+        }
+
+        $poLetterMonitoring->update([$step => $validated['value'] ?? null]);
+
+        return redirect()->back()->with('success', 'PO letter workflow updated successfully.');
     }
 
     /**
@@ -136,19 +207,17 @@ class POLetterMonitoringController extends Controller
             'delivery_term' => ['nullable', 'integer', 'min:0'],
             'due_date' => ['nullable', 'date'],
             'office_end_user' => ['required', 'string', 'max:100'],
-            'type_of_letter' => ['required', 'string', 'in:EXTENSION,WAIVER,CANCELLATION,REPLACEMENT/ALTERNATIVE OFFER'],
+            'type_of_letter' => ['required', 'string', 'in:EXTENSION,WAIVER,CANCELLATION,REPLACEMENT/ALTERNATIVE OFFER,RELEASE OF RETENTION'],
             'date_received_by_smu' => ['nullable', 'date'],
             'date_forwarded_to_ovpad' => ['nullable', 'date'],
             'received_by' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
             'status_of_the_letter' => ['required', 'string', 'max:50'],
-            'document_link' => ['nullable', 'string', 'max:500', 'regex:' . ValidationHelper::pattern('documentLink')],
             'date_forwarded_to_end_user' => ['nullable', 'date'],
             'remarks' => ['nullable', 'string'],
             'deleted_attachment_ids' => ['nullable', 'array'],
             'deleted_attachment_ids.*' => ['integer'],
         ], [
             'received_by.regex' => ValidationHelper::message('names'),
-            'document_link.regex' => ValidationHelper::message('documentLink'),
         ]);
 
         // Handle deleted attachments before updating the record

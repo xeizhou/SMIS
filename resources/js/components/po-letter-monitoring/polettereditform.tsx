@@ -39,6 +39,7 @@ interface Supplier {
 
 interface PoNumberOption {
     po_number: string;
+    po_date?: string | null;
     supplier_id?: number | string | null;
     po_received_date?: string | null;
     due_date?: string | null;
@@ -67,7 +68,6 @@ interface PoLetterRecord {
     date_forwarded_to_ovpad: string | null;
     received_by: string | null;
     status_of_the_letter: string;
-    document_link: string | null;
     date_forwarded_to_end_user: string | null;
     remarks: string | null;
     attachments?: Attachment[];
@@ -348,6 +348,7 @@ const TYPE_OPTIONS = [
     { value: 'WAIVER', label: 'WAIVER' },
     { value: 'CANCELLATION', label: 'CANCELLATION' },
     { value: 'REPLACEMENT/ALTERNATIVE OFFER', label: 'REPLACEMENT/ALTERNATIVE OFFER' },
+    { value: 'RELEASE OF RETENTION', label: 'RELEASE OF RETENTION' },
 ];
 
 const STATUS_OPTIONS = [
@@ -369,7 +370,6 @@ const emptyForm = {
     date_forwarded_to_ovpad: '',
     received_by: '',
     status_of_the_letter: '',
-    document_link: '',
     date_forwarded_to_end_user: '',
     remarks: '',
 };
@@ -408,7 +408,6 @@ function toFormData(poLetter: PoLetterRecord | null) {
         date_forwarded_to_ovpad: toDateInputValue(poLetter.date_forwarded_to_ovpad),
         received_by: poLetter.received_by ?? '',
         status_of_the_letter: poLetter.status_of_the_letter ?? '',
-        document_link: poLetter.document_link ?? '',
         date_forwarded_to_end_user: toDateInputValue(poLetter.date_forwarded_to_end_user),
         remarks: poLetter.remarks ?? '',
     };
@@ -510,6 +509,7 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
             setData({
                 ...data,
                 po_number: value,
+                po_date: toDateInputValue(chosenPo?.po_date ?? null),
                 supplier_id: supplierId,
                 date_received_by_supplier: dateReceivedBySupplier,
                 due_date: dueDate,
@@ -756,17 +756,6 @@ export default function PoLetterEditForm({ open, onOpenChange, poLetter, supplie
                                 error={errors.status_of_the_letter}
                                 placeholder="Select status"
                                 options={STATUS_OPTIONS}
-                            />
-
-                            <Field
-                                label="Document Link"
-                                name="document_link"
-                                value={data.document_link}
-                                onChange={handleChange}
-                                error={errors.document_link}
-                                placeholder="https://"
-                                pattern={PATTERNS.documentLink.source}
-                                title={MESSAGES.documentLink}
                             />
 
                             <DatePicker

@@ -233,6 +233,7 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
 
     Route::get('/po-letter-monitoring', [POLetterMonitoringController::class, 'index'])->name('po-letter-monitoring.index');
     Route::post('/po-letter-monitoring', [POLetterMonitoringController::class, 'store'])->name('po-letter-monitoring.store');
+    Route::put('/po-letter-monitoring/{poLetterMonitoring}/workflow', [POLetterMonitoringController::class, 'updateWorkflow'])->name('po-letter-monitoring.workflow.update');
     Route::post('/po-letter-monitoring/import', [POLetterMonitoringController::class, 'import'])->name('po-letter-monitoring.import');
     Route::get('/po-letter-monitoring/import/template', [POLetterMonitoringController::class, 'importTemplate'])->name('po-letter-monitoring.import.template');
     Route::put('/po-letter-monitoring/{poLetterMonitoring}', [POLetterMonitoringController::class, 'update'])->name('po-letter-monitoring.update');
