@@ -20,6 +20,7 @@ import WmrAddForm from '@/components/wmr-monitoring/wmraddform';
 import WmrDeleteModal from '@/components/wmr-monitoring/wmrdeletemodal';
 import WmrEditForm from '@/components/wmr-monitoring/wmreditform';
 import WmrViewForm from '@/components/wmr-monitoring/wmrviewform';
+import WmrPrintButton from '@/components/wmr-monitoring/wmrprintbutton';
 import { buildFilterUrl } from '@/lib/filterUrl';
 
 interface Supplier {
@@ -27,24 +28,14 @@ interface Supplier {
     supplier_name: string;
 }
 
-interface Office {
-    office_code: string;
-    office_name: string | null;
-}
-
-interface FundCluster {
-    fund_cluster_id: string;
-    fund_description: string | null;
-}
-
 interface WmrRecord {
     id: number;
     wmr_no: string;
     wmr_date: string;
-    supplier_id: number;
+    supplier_id: number | null;
     iar_no: string | null;
     iar_date: string | null;
-    item_vehicle: string;
+    item_vehicle: string | null;
     job_order_no: string | null;
     job_order_date: string | null;
     fund_cluster_id: string | null;
@@ -62,14 +53,19 @@ interface WmrRecord {
     defects_complaints: string | null;
     materials: string | null;
     labor_cost: string | null;
+    items: {
+        item_number: number;
+        quantity: string;
+        unit: string;
+        description: string;
+        item_control_no: string;
+    }[];
     office_code: string | null;
     requested_by: string | null;
     received_by: string | null;
     received_date: string | null;
     remarks: string | null;
     supplier?: Supplier | null;
-    office?: Office | null;
-    fund_cluster?: FundCluster | null;
 }
 
 // 'YYYY-MM-DD' -> local date string without the timezone shift new Date('YYYY-MM-DD') causes
@@ -118,26 +114,18 @@ interface Props {
     records: PaginatedRecords;
     filters: Filters;
     suppliers: Supplier[];
-    offices: Office[];
-    fundClusters: FundCluster[];
 }
 
 const WMR_COLUMNS = [
     { key: 'wmr_no', label: 'WMR No.', locked: true },
     { key: 'wmr_date', label: 'WMR Date' },
     { key: 'supplier', label: 'Supplier' },
-    { key: 'item_vehicle', label: 'Item / Vehicle' },
+    { key: 'item_vehicle', label: 'Vehicle / Item' },
     { key: 'job_order_no', label: 'Job Order No.' },
-    { key: 'labor_cost', label: 'Labor Cost' },
+    { key: 'labor_cost', label: 'Amount' },
 ];
 
-export default function Index({
-    records,
-    filters,
-    suppliers,
-    offices,
-    fundClusters,
-}: Props) {
+export default function Index({ records, filters, suppliers }: Props) {
     const columnVisibility = useColumnVisibility({
         storageKey: 'smis_wmr_visible_columns',
         columns: WMR_COLUMNS,
@@ -231,9 +219,15 @@ export default function Index({
         },
         {
             key: 'item_vehicle',
-            label: 'Item / Vehicle',
+            label: 'Vehicle / Item',
             sortable: true,
             width: 'w-[22%]',
+            render: (record) =>
+                [record.brand_name, record.model, record.plate_no]
+                    .filter(Boolean)
+                    .join(' ') ||
+                record.item_vehicle ||
+                '—',
         },
         {
             key: 'job_order_no',
@@ -244,7 +238,7 @@ export default function Index({
         },
         {
             key: 'labor_cost',
-            label: 'Labor Cost',
+            label: 'Amount',
             sortable: true,
             width: 'w-[12%]',
             render: (record) => fmtMoney(record.labor_cost),
@@ -280,6 +274,7 @@ export default function Index({
                     >
                         <Eye className="size-4" />
                     </button>
+                    <WmrPrintButton record={record} />
                 </div>
             ),
         },
@@ -355,8 +350,6 @@ export default function Index({
                         </div>
 
                         <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row">
-
-
                             <Button
                                 type="button"
                                 onClick={() => setIsAddOpen(true)}
@@ -409,16 +402,12 @@ export default function Index({
                 open={isAddOpen}
                 onOpenChange={setIsAddOpen}
                 suppliers={suppliers}
-                offices={offices}
-                fundClusters={fundClusters}
             />
             <WmrEditForm
                 open={isEditOpen}
                 onOpenChange={setIsEditOpen}
                 record={selectedRecord}
                 suppliers={suppliers}
-                offices={offices}
-                fundClusters={fundClusters}
             />
             <WmrViewForm
                 open={isViewOpen}
@@ -430,7 +419,6 @@ export default function Index({
                 onOpenChange={setIsDeleteOpen}
                 record={selectedRecord}
             />
-
         </>
     );
 }

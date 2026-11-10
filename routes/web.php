@@ -202,6 +202,8 @@ Route::middleware(['auth', 'verified', 'single-session', PreventBackHistory::cla
     Route::delete('/bona-vida-monitoring/{bonavida}', [BonaVidaController::class, 'destroy'])->name('bona-vida-monitoring.destroy');
 
     Route::get('/wmr-monitoring', [WmrController::class, 'index'])->name('wmr-monitoring.index');
+    Route::get('/wmr-monitoring/{wmr}/print', [WmrController::class, 'printPdf'])->name('wmr-monitoring.print');
+    Route::get('/wmr-monitoring/{wmr}/print-html', [WmrController::class, 'printHtml'])->name('wmr-monitoring.print-html');
     Route::post('/wmr-monitoring', [WmrController::class, 'store'])->name('wmr-monitoring.store');
     Route::put('/wmr-monitoring/{wmr}', [WmrController::class, 'update'])->name('wmr-monitoring.update');
     Route::delete('/wmr-monitoring/{wmr}', [WmrController::class, 'destroy'])->name('wmr-monitoring.destroy');

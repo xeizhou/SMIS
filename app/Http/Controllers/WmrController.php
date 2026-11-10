@@ -2,20 +2,43 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\FundCluster;
-use App\Models\Office;
+use App\Helpers\ValidationHelper;
 use App\Models\Supplier;
 use App\Models\WmrMonitoring;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Helpers\ValidationHelper;
 
 class WmrController extends Controller
 {
+    public function printHtml(Request $request, WmrMonitoring $wmr)
+    {
+        $wmr->load(['supplier', 'items']);
+
+        return view('wmr-monitoring.print', [
+            'wmr' => $wmr,
+            'printedBy' => $request->user()->name,
+            'forPdf' => false,
+        ]);
+    }
+
+    public function printPdf(Request $request, WmrMonitoring $wmr)
+    {
+        $wmr->load(['supplier', 'items']);
+
+        $pdf = Pdf::loadView('wmr-monitoring.print', [
+            'wmr' => $wmr,
+            'printedBy' => $request->user()->name,
+            'forPdf' => true,
+        ])->setPaper('A4', 'portrait');
+
+        return $pdf->stream("WMR-{$wmr->wmr_no}.pdf");
+    }
+
     /**
      * Display the WMR Monitoring page.
      */
@@ -33,11 +56,13 @@ class WmrController extends Controller
             $sortField = 'wmr_date';
         }
 
-        $records = WmrMonitoring::with(['supplier', 'office', 'fundCluster'])
+        $records = WmrMonitoring::with(['supplier', 'items'])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('wmr_no', 'like', "%{$search}%")
                         ->orWhere('item_vehicle', 'like', "%{$search}%")
+                        ->orWhere('brand_name', 'like', "%{$search}%")
+                        ->orWhere('model', 'like', "%{$search}%")
                         ->orWhere('plate_no', 'like', "%{$search}%")
                         ->orWhere('job_order_no', 'like', "%{$search}%")
                         ->orWhere('property_no', 'like', "%{$search}%")
@@ -62,8 +87,6 @@ class WmrController extends Controller
                 'per_page' => $perPage,
             ],
             'suppliers' => Supplier::orderBy('supplier_name')->get(['supplier_id', 'supplier_name']),
-            'offices' => Office::orderBy('office_name')->get(['office_code', 'office_name']),
-            'fundClusters' => FundCluster::orderBy('fund_cluster_id')->get(['fund_cluster_id', 'fund_description']),
         ]);
     }
 
@@ -72,7 +95,21 @@ class WmrController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        WmrMonitoring::create($request->validate($this->rules(), $this->messages()));
+        $data = $request->validate($this->rules(), $this->messages());
+
+        DB::transaction(function () use ($data) {
+            $items = $data['items'];
+            unset($data['items']);
+            $descriptions = collect($items)->pluck('description')->implode(PHP_EOL);
+
+            $wmr = WmrMonitoring::create([
+                ...$data,
+                'defects_complaints' => $descriptions,
+                'materials' => $descriptions,
+            ]);
+
+            $this->saveItems($wmr, $items);
+        });
 
         return redirect()->back()->with('success', 'WMR record added successfully.');
     }
@@ -82,9 +119,40 @@ class WmrController extends Controller
      */
     public function update(Request $request, WmrMonitoring $wmr): RedirectResponse
     {
-        $wmr->update($request->validate($this->rules($wmr->id), $this->messages()));
+        $data = $request->validate($this->rules($wmr->id), $this->messages());
+
+        DB::transaction(function () use ($wmr, $data) {
+            $items = $data['items'];
+            unset($data['items']);
+            $descriptions = collect($items)->pluck('description')->implode(PHP_EOL);
+
+            $wmr->update([
+                ...$data,
+                'defects_complaints' => $descriptions,
+                'materials' => $descriptions,
+            ]);
+            $wmr->items()->delete();
+            $this->saveItems($wmr, $items);
+        });
 
         return redirect()->back()->with('success', 'WMR record updated successfully.');
+    }
+
+    /**
+     * Save submitted lines with server-generated item control numbers.
+     */
+    private function saveItems(WmrMonitoring $wmr, array $items): void
+    {
+        foreach (array_values($items) as $index => $item) {
+            $itemNumber = $index + 1;
+            $wmr->items()->create([
+                'item_number' => $itemNumber,
+                'quantity' => $item['quantity'],
+                'unit' => $item['unit'],
+                'description' => $item['description'],
+                'item_control_no' => sprintf('%s-%02d', $wmr->wmr_no, $itemNumber),
+            ]);
+        }
     }
 
     /**
@@ -112,7 +180,7 @@ class WmrController extends Controller
     {
         return [
             'wmr_no' => [
-                'required', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('wmrNo'),
+                'required', 'string', 'max:50', 'regex:'.ValidationHelper::pattern('wmrNo'),
                 Rule::unique('wmr_monitoring', 'wmr_no')->whereNull('deleted_at')->ignore($ignoreId),
             ],
             'wmr_date' => ['required', 'date'],
@@ -120,40 +188,42 @@ class WmrController extends Controller
                 'nullable', 'integer',
                 Rule::exists('supplier_list', 'supplier_id')->whereNull('deleted_at'),
             ],
-            'iar_no' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('iarNo')],
+            'iar_no' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('iarNo')],
             'iar_date' => ['nullable', 'date'],
-            'item_vehicle' => ['required', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('vehicleType')],
+            'item_vehicle' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('vehicleType')],
 
-            'job_order_no' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('jobOrderNo')],
+            'job_order_no' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('jobOrderNo')],
             'job_order_date' => ['nullable', 'date'],
             'fund_cluster_id' => [
                 'nullable', 'string', 'max:20',
                 Rule::exists('fund_clusters', 'fund_cluster_id')->whereNull('deleted_at'),
             ],
 
-            'vehicle_type' => ['nullable', 'string', 'max:50', 'regex:' . ValidationHelper::pattern('vehicleType')],
-            'brand_name' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('vehicleType')],
-            'model' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('vehicleType')],
+            'vehicle_type' => ['nullable', 'string', 'max:50', 'regex:'.ValidationHelper::pattern('vehicleType')],
+            'brand_name' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('vehicleType')],
+            'model' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('vehicleType')],
             'plate_no' => ['nullable', 'string', 'max:50'],
             'serial_engine_no' => ['nullable', 'string', 'max:100'],
-            'acquisition_date' => ['nullable', 'string', 'max:20'],
-            'property_no' => ['nullable', 'string', 'max:100', 'regex:' . ValidationHelper::pattern('propertyNo')],
+            'acquisition_date' => ['nullable', 'date'],
+            'property_no' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('propertyNo')],
 
-            'inspector_name' => ['nullable', 'string', 'max:150', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'inspector_name' => ['nullable', 'string', 'max:150', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'inspection_date' => ['nullable', 'date'],
-            'invoice_no' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('invoiceNumberComma')],
-            'invoice_date' => ['nullable', 'string', 'max:255', 'regex:' . ValidationHelper::pattern('invoiceNumberComma')],
+            'invoice_no' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('invoiceNumberComma')],
+            'invoice_date' => ['nullable', 'date'],
 
-            'defects_complaints' => ['nullable', 'string'],
-            'materials' => ['nullable', 'string'],
             'labor_cost' => ['nullable', 'numeric', 'min:0'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.quantity' => ['required', 'numeric', 'gt:0'],
+            'items.*.unit' => ['required', 'string', 'max:30'],
+            'items.*.description' => ['required', 'string', 'max:1000'],
 
             'office_code' => [
                 'nullable', 'string', 'max:20',
                 Rule::exists('offices', 'office_code')->whereNull('deleted_at'),
             ],
             'requested_by' => ['nullable', 'string', 'max:150'],
-            'received_by' => ['nullable', 'string', 'max:150', 'regex:' . ValidationHelper::pattern('nameOrOffice')],
+            'received_by' => ['nullable', 'string', 'max:150', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'received_date' => ['nullable', 'date'],
             'remarks' => ['nullable', 'string'],
         ];
@@ -172,7 +242,6 @@ class WmrController extends Controller
             'property_no.regex' => ValidationHelper::message('numbersAndHyphens'),
             'inspector_name.regex' => ValidationHelper::message('names'),
             'invoice_no.regex' => ValidationHelper::message('invoiceNumberComma'),
-            'invoice_date.regex' => ValidationHelper::message('invoiceNumberComma'),
             'received_by.regex' => ValidationHelper::message('names'),
         ];
     }
