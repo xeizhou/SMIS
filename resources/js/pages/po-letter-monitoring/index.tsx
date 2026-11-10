@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
+import { preservePerPage } from '@/lib/filterUrl';
 import { Eye, Pencil, Search, Archive, ExternalLink, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useColumnVisibility } from '@/hooks/useColumnVisibility';
@@ -141,13 +142,13 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
     const runSearch = (nextStatus?: string, nextType?: string, sortField = filters.sort_field, sortDirection = filters.sort_direction) => {
         router.get(
             '/po-letter-monitoring',
-            {
+            preservePerPage({
                 search,
                 status: (nextStatus ?? status) === 'all' ? undefined : nextStatus ?? status,
                 type: (nextType ?? type) === 'all' ? undefined : nextType ?? type,
                 sort_field: sortField || undefined,
                 sort_direction: sortDirection || undefined,
-            },
+            }),
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -183,7 +184,7 @@ export default function Index({ poLetters, filters, suppliers, poNumbers }: Prop
 
         router.get(
             '/po-letter-monitoring',
-            {},
+            preservePerPage({}),
             {
                 preserveState: true,
                 preserveScroll: true,

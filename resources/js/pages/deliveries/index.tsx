@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
+import { preservePerPage } from '@/lib/filterUrl';
 import { Eye, Pencil, Search, Archive, ExternalLink, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useColumnVisibility } from '@/hooks/useColumnVisibility';
@@ -162,13 +163,13 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
     const runSearch = (nextStatus?: string, nextPoNumber?: string, sortField = filters.sort_field, sortDirection = filters.sort_direction) => {
         router.get(
             '/deliveries',
-            {
+            preservePerPage({
                 search,
                 status: (nextStatus ?? status) === 'all' ? undefined : nextStatus ?? status,
                 po_number: (nextPoNumber ?? poNumber) === 'all' ? undefined : nextPoNumber ?? poNumber,
                 sort_field: sortField || undefined,
                 sort_direction: sortDirection || undefined,
-            },
+            }),
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -202,7 +203,7 @@ export default function Index({ deliveries, filters, purchaseOrders, statuses, s
         setStatus('all');
         setPoNumber('all');
 
-        router.get('/deliveries', {}, {
+        router.get('/deliveries', preservePerPage({}), {
             preserveState: true,
             preserveScroll: true,
             replace: true,

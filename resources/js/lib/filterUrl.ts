@@ -4,3 +4,9 @@ export function buildFilterUrl(overrides: Record<string, any> = {}) {
         ...overrides,
     };
 }
+
+export function preservePerPage<T extends Record<string, unknown>>(params: T) {
+    const perPage = new URLSearchParams(window.location.search).get('per_page');
+
+    return perPage ? { ...params, per_page: perPage } : params;
+}

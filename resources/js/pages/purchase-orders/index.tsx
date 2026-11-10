@@ -38,6 +38,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import Pagination from '@/components/Pagination';
+import { preservePerPage } from '@/lib/filterUrl';
 
 interface Supplier {
     supplier_id: number;
@@ -263,7 +264,7 @@ export default function Index({
     ) => {
         router.get(
             '/purchase-orders',
-            {
+            preservePerPage({
                 search,
                 fund_cluster: (nextFundCluster ?? fundCluster) === 'all' ? undefined : nextFundCluster ?? fundCluster,
                 office: (nextOffice ?? officeFilter) === 'all' ? undefined : nextOffice ?? officeFilter,
@@ -271,7 +272,7 @@ export default function Index({
                 operational_impact: (nextOpImpact ?? opImpactFilter) === 'all' ? undefined : nextOpImpact ?? opImpactFilter,
                 sort_field: sortField || undefined,
                 sort_direction: sortDirection || undefined,
-            },
+            }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -315,7 +316,7 @@ export default function Index({
 
         router.get(
             '/purchase-orders',
-            {},
+            preservePerPage({}),
             {
                 preserveState: true,
                 preserveScroll: true,

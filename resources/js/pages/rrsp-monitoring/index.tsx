@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
+import { preservePerPage } from '@/lib/filterUrl';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Eye, Pencil, Search, Archive, Plus } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
@@ -155,14 +156,14 @@ export default function Index({ rrspMonitorings, filters, areas, stockItems }: P
 
     const handleSort = (field: string) => {
         const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
-        router.get('/rrsp-monitoring', { search, status: status === 'all' ? undefined : status, sort_field: field, sort_direction: direction }, { preserveState: true, preserveScroll: true, replace: true });
+        router.get('/rrsp-monitoring', preservePerPage({ search, status: status === 'all' ? undefined : status, sort_field: field, sort_direction: direction }), { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         router.get(
             '/rrsp-monitoring',
-            { search, status: status === 'all' ? undefined : status },
+            preservePerPage({ search, status: status === 'all' ? undefined : status }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -171,7 +172,7 @@ export default function Index({ rrspMonitorings, filters, areas, stockItems }: P
         setStatus(value);
         router.get(
             '/rrsp-monitoring',
-            { search, status: value === 'all' ? undefined : value },
+            preservePerPage({ search, status: value === 'all' ? undefined : value }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -181,7 +182,7 @@ export default function Index({ rrspMonitorings, filters, areas, stockItems }: P
         setStatus('all');
         router.get(
             '/rrsp-monitoring',
-            { search: '', status: undefined },
+            preservePerPage({ search: '', status: undefined }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };

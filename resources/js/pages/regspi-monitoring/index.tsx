@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
+import { preservePerPage } from '@/lib/filterUrl';
 
 import { Eye, Pencil, Search, Archive, Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -94,18 +95,18 @@ export default function Index({ regspis, filters, rrsps, fundClusters, stockItem
 
     const handleSort = (field: string) => {
         const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
-        router.get('/regspi-monitoring', { search, rrsp_no: rrspNo === 'all' ? undefined : rrspNo, fund_cluster_id: fundClusterId === 'all' ? undefined : fundClusterId, sort_field: field, sort_direction: direction }, { preserveState: true, preserveScroll: true, replace: true });
+        router.get('/regspi-monitoring', preservePerPage({ search, rrsp_no: rrspNo === 'all' ? undefined : rrspNo, fund_cluster_id: fundClusterId === 'all' ? undefined : fundClusterId, sort_field: field, sort_direction: direction }), { preserveState: true, preserveScroll: true, replace: true });
     };
 
 
     const runSearch = (nextRrspNo?: string, nextFundClusterId?: string) => {
         router.get(
             '/regspi-monitoring',
-            {
+            preservePerPage({
                 search,
                 rrsp_no: (nextRrspNo ?? rrspNo) === 'all' ? undefined : nextRrspNo ?? rrspNo,
                 fund_cluster_id: (nextFundClusterId ?? fundClusterId) === 'all' ? undefined : nextFundClusterId ?? fundClusterId,
-            },
+            }),
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -141,7 +142,7 @@ export default function Index({ regspis, filters, rrsps, fundClusters, stockItem
 
         router.get(
             '/regspi-monitoring',
-            {},
+            preservePerPage({}),
             {
                 preserveState: true,
                 preserveScroll: true,

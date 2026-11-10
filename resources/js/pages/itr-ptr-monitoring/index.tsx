@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
+import { preservePerPage } from '@/lib/filterUrl';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Archive, Eye, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -77,7 +78,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
 
     const handleSort = (field: string) => {
         const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
-        router.get('/itr-ptr-monitoring', { search: searchQuery, condition_of_ppe: conditionFilter === 'all' ? undefined : conditionFilter, sort_field: field, sort_direction: direction }, { preserveState: true, preserveScroll: true, replace: true });
+        router.get('/itr-ptr-monitoring', preservePerPage({ search: searchQuery, condition_of_ppe: conditionFilter === 'all' ? undefined : conditionFilter, sort_field: field, sort_direction: direction }), { preserveState: true, preserveScroll: true, replace: true });
     };
 
     
@@ -95,12 +96,12 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
     const handleClear = () => {
         setSearchQuery('');
         setConditionFilter('all');
-        router.get('/itr-ptr-monitoring', {}, { preserveState: true, preserveScroll: true, replace: true });
+        router.get('/itr-ptr-monitoring', preservePerPage({}), { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get('/itr-ptr-monitoring', { search: searchQuery, condition_of_ppe: conditionFilter === 'all' ? undefined : conditionFilter }, {
+        router.get('/itr-ptr-monitoring', preservePerPage({ search: searchQuery, condition_of_ppe: conditionFilter === 'all' ? undefined : conditionFilter }), {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -157,7 +158,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                 setConditionFilter(val);
                                 router.get(
                                     window.location.pathname,
-                                    { search: searchQuery, condition_of_ppe: val === 'all' ? undefined : val },
+                                    preservePerPage({ search: searchQuery, condition_of_ppe: val === 'all' ? undefined : val }),
                                     { preserveState: true, preserveScroll: true, replace: true }
                                 );
                             }}>
