@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { AnimatedTableRow } from '@/components/animated-table-row';
 import Pagination from '@/components/Pagination';
+import { preservePerPage } from '@/lib/filterUrl';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Archive, Eye } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -95,7 +96,7 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
 
     const handleSort = (field: string) => {
         const direction = filters.sort_field === field && filters.sort_direction === 'asc' ? 'desc' : 'asc';
-        router.get('/for-disposal-monitoring', { search: searchQuery, source_type: sourceTypeFilter === 'all' ? undefined : sourceTypeFilter, sort_field: field, sort_direction: direction }, { preserveState: true, preserveScroll: true, replace: true });
+        router.get('/for-disposal-monitoring', preservePerPage({ search: searchQuery, source_type: sourceTypeFilter === 'all' ? undefined : sourceTypeFilter, sort_field: field, sort_direction: direction }), { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const openEditModal = (item: ForDisposalMonitoring) => {
@@ -106,15 +107,15 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
     const handleClear = () => {
         setSearchQuery('');
         setSourceTypeFilter('all');
-        router.get('/for-disposal-monitoring', {}, { preserveState: true, preserveScroll: true, replace: true });
+        router.get('/for-disposal-monitoring', preservePerPage({}), { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get('/for-disposal-monitoring', {
+        router.get('/for-disposal-monitoring', preservePerPage({
             search: searchQuery,
             source_type: sourceTypeFilter === 'all' ? undefined : sourceTypeFilter
-        }, {
+        }), {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -171,10 +172,10 @@ export default function Index({ data = { data: [], links: [], current_page: 1, l
                                 setSourceTypeFilter(val);
                                 router.get(
                                     window.location.pathname,
-                                    {
+                                    preservePerPage({
                                         search: searchQuery,
                                         source_type: val === 'all' ? undefined : val
-                                    },
+                                    }),
                                     { preserveState: true, preserveScroll: true, replace: true }
                                 );
                             }}>

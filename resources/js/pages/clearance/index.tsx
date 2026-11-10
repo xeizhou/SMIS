@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
+import { preservePerPage } from '@/lib/filterUrl';
 import { Search, Pencil, Archive, ClipboardCheck, Eye, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useColumnVisibility } from '@/hooks/useColumnVisibility';
@@ -99,13 +100,13 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
     const updateFilters = (newSearch: string, newStatus: string, newType: string) => {
         router.get(
             '/clearance',
-            {
+            preservePerPage({
                 search: newSearch,
                 status: newStatus === 'all' ? '' : newStatus,
                 form_attribute: newType === 'all' ? '' : newType,
                 sort_field: filters.sort_field,
                 sort_direction: filters.sort_direction,
-            },
+            }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -129,7 +130,7 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
         setSearch('');
         setStatusFilter('all');
         setTypeFilter('all');
-        router.get('/clearance', {}, { preserveState: true, preserveScroll: true, replace: true });
+        router.get('/clearance', preservePerPage({}), { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const openEdit = (record: ClearanceRecord) => {

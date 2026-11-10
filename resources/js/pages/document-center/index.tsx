@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { preservePerPage } from '@/lib/filterUrl';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     FileText,
@@ -1578,7 +1579,7 @@ function ArchiveTab({ archives }: { archives: any }) {
         setQuery('');
         setModuleFilter('All');
         setSelectedIds([]);
-        router.get(window.location.pathname, {}, { preserveState: true, preserveScroll: true });
+        router.get(window.location.pathname, preservePerPage({}), { preserveState: true, preserveScroll: true });
     };
 
     return (

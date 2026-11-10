@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { preservePerPage } from '@/lib/filterUrl';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Area, AreaChart, Line, LineChart, ReferenceLine, Cell } from 'recharts';
@@ -309,12 +310,12 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
         (overrides: Record<string, string> = {}) => {
             router.get(
                 window.location.pathname,
-                {
+                preservePerPage({
                     office_code: overrides.office_code ?? officeFilter,
                     fund_cluster: overrides.fund_cluster ?? fundClusterFilter,
                     quarter: overrides.quarter ?? quarterFilter,
                     page: 1,
-                },
+                }),
                 { preserveState: true, preserveScroll: true, only: ['transactions', 'movement'] }
             );
         },
@@ -325,7 +326,7 @@ export default function Index({ kpis, stockItems, transactions, movement, itemsB
         (page: number) => {
             router.get(
                 window.location.pathname,
-                { office_code: officeFilter, fund_cluster: fundClusterFilter, quarter: quarterFilter, page },
+                preservePerPage({ office_code: officeFilter, fund_cluster: fundClusterFilter, quarter: quarterFilter, page }),
                 { preserveState: true, preserveScroll: true, only: ['transactions', 'movement'] }
             );
         },

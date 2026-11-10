@@ -3,6 +3,7 @@ import { AnimatedTableRow } from '@/components/animated-table-row';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Head, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
+import { preservePerPage } from '@/lib/filterUrl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Pencil, Archive, Eye, Plus } from 'lucide-react';
@@ -196,7 +197,7 @@ export default function Index({
         e.preventDefault();
         router.get(
             '/iar',
-            { search, status },
+            preservePerPage({ search, status }),
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -210,7 +211,7 @@ export default function Index({
         setStatus('all');
         router.get(
             '/iar',
-            {},
+            preservePerPage({}),
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -274,7 +275,7 @@ export default function Index({
                                 setStatus(value);
                                 router.get(
                                     '/iar',
-                                    { search, status: value },
+                                    preservePerPage({ search, status: value }),
                                     {
                                         preserveState: true,
                                         preserveScroll: true,

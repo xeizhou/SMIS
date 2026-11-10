@@ -1,5 +1,6 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
+import { preservePerPage } from '@/lib/filterUrl';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Pencil, Archive, Plus } from 'lucide-react';
 import React, { useState } from 'react';
@@ -61,7 +62,7 @@ export default function Areas({ areas, filters }: Props) {
     const runSearch = () => {
         router.get(
             '/rrppe-monitoring/areas',
-            { search },
+            preservePerPage({ search }),
             { preserveState: true, preserveScroll: true, replace: true }
         );
     };
@@ -159,7 +160,7 @@ export default function Areas({ areas, filters }: Props) {
                             </div>
                             <Button type="submit" variant="secondary">Search</Button>
                             {search && (
-                                <Button type="button" variant="ghost" onClick={() => { setSearch(''); router.get('/rrppe-monitoring/areas'); }}>
+                                <Button type="button" variant="ghost" onClick={() => { setSearch(''); router.get('/rrppe-monitoring/areas', preservePerPage({})); }}>
                                     Clear
                                 </Button>
                             )}
