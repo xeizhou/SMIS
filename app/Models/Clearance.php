@@ -61,6 +61,11 @@ class Clearance extends Model
         return $this->morphMany(Attachment::class, 'attachable');
     }
 
+    public function tasks(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Task::class, 'clearance_id', 'clearance_id');
+    }
+
     public function getActivityUrl()
     {
         return route('clearance.index') . '?highlight_id=' . $this->getKey();

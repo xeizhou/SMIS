@@ -35,6 +35,7 @@ const clearanceTypes = [
     'external campus',
     'transfer',
     'faculty clearance',
+    'on leave',
     'others',
 ];
 

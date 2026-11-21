@@ -96,6 +96,9 @@ public function index(Request $request): Response
             'offices' => fn () => ClearanceOffice::select('id', 'clearance_office_name')
                 ->orderByRaw('LOWER(clearance_office_name)')
                 ->get(),
+            'usersList' => fn () => \App\Models\User::select('id', 'name', 'role')
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 

@@ -324,7 +324,8 @@ const STEPS = [
     'For COA Stamp',
     'For Release',
     'Payment Processing',
-    'Forwarded to Finance'
+    'Forwarded to Finance',
+    'Disbursement Voucher'
 ];
 
 interface Props {
@@ -371,13 +372,14 @@ export default function PoWorkflowModal({
     const isRetentionValid = !isRetentionInputted || (!isNaN(Number(retentionAmount)) && Number(retentionAmount) >= 0 && Number(retentionAmount) <= poTotal && !retentionError);
 
     const isDateCompletedFilled = Boolean(data.date_completed) || Boolean(purchaseOrder?.date_completed);
-    const canExport = hasDeliveryRecord && (dvTemplate === 'neither'
+
+    const isDvAccessible = hasDeliveryRecord;
+
+    const canExport = isDvAccessible && (dvTemplate === 'neither'
         ? isDateCompletedFilled
         : (dvTemplate === 'retention_only'
             ? (isRetentionValid && isDateCompletedFilled)
-            : (dvTemplate === 'ld_and_retention'
-                ? (isLdValid && isRetentionValid && isDateCompletedFilled)
-                : (isLdValid && isDateCompletedFilled))));
+            : (isLdValid && isDateCompletedFilled)));
 
     const validateLdAmount = (val: string): boolean => {
         if (!val || val.trim() === '') {
@@ -453,8 +455,10 @@ export default function PoWorkflowModal({
         try {
             const check = await axios.get(`/purchase-orders/${encodeURIComponent(purchaseOrder.po_number)}/dv-eligibility`);
             if (!check.data?.eligible) {
-                setHasDeliveryRecord(false);
-                alert('Disbursement Voucher export restricted: No matching Delivery Monitoring record was found for this Purchase Order.');
+                if (check.data?.has_delivery === false) {
+                    setHasDeliveryRecord(false);
+                }
+                alert(check.data?.message || 'Disbursement Voucher export restricted: A Delivery Monitoring record is required.');
                 return;
             }
         } catch (e) {
@@ -473,27 +477,16 @@ export default function PoWorkflowModal({
             if (retentionAmount.trim() !== '' && !validateRetentionAmount(retentionAmount)) {
                 return;
             }
-        } else if (dvTemplate === 'ld_and_retention') {
-            if (!isLdInputted) {
-                setLdError('Please enter an LD amount.');
-                return;
-            }
-            if (!validateLdAmount(ldAmount)) {
-                return;
-            }
-            if (retentionAmount.trim() !== '' && !validateRetentionAmount(retentionAmount)) {
-                return;
-            }
         }
         const params = new URLSearchParams();
         params.append('template', dvTemplate);
-        if (dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') {
+        if (dvTemplate === 'ld_only') {
             const effectiveLd = ldAmount.trim() !== '' ? ldAmount.trim() : (purchaseOrder?.ld_amount != null ? String(purchaseOrder.ld_amount) : '0');
             if (effectiveLd !== '') {
                 params.append('ld_amount', effectiveLd);
             }
         }
-        if (dvTemplate === 'retention_only' || dvTemplate === 'ld_and_retention') {
+        if (dvTemplate === 'retention_only') {
             const defaultOnePercent = poTotal > 0 ? (poTotal * 0.01).toFixed(2) : '0';
             const effectiveRetention = retentionAmount.trim() !== ''
                 ? retentionAmount.trim()
@@ -561,11 +554,12 @@ export default function PoWorkflowModal({
             }
 
             const initialLd = purchaseOrder.ld_amount != null ? String(purchaseOrder.ld_amount) : '';
-            const initialTemplate = purchaseOrder.dv_template || '';
+            const rawTemplate = purchaseOrder.dv_template || '';
+            const initialTemplate = (rawTemplate === 'ld_and_retention' || rawTemplate === 'both') ? 'ld_only' : rawTemplate;
             const defaultRetention = poTotal > 0 ? (poTotal * 0.01).toFixed(2) : '';
             const initialRetention = purchaseOrder.retention_amount != null && String(purchaseOrder.retention_amount).trim() !== ''
                 ? String(purchaseOrder.retention_amount)
-                : ((initialTemplate === 'retention_only' || initialTemplate === 'ld_and_retention') ? defaultRetention : '');
+                : (initialTemplate === 'retention_only' ? defaultRetention : '');
             setLdAmount(initialLd);
             setRetentionAmount(initialRetention);
             setDvTemplate(initialTemplate || 'ld_only');
@@ -791,6 +785,7 @@ export default function PoWorkflowModal({
         'Forwarded to Finance': [
             { name: 'date_forwarded_to_finance', label: 'Date Forwarded to Finance', required: true },
         ],
+        'Disbursement Voucher': [],
     };
 
     const validateStep = (stepName: string, showErrors = false): boolean => {
@@ -817,6 +812,18 @@ export default function PoWorkflowModal({
                     }
                 });
             });
+        }
+
+        if (stepName === 'Disbursement Voucher') {
+            if (!hasDeliveryRecord) {
+                stepErrors['dv_template'] = 'A Delivery Monitoring record is required before processing DV.';
+            }
+            if (dvTemplate === 'ld_only' && !isLdValid) {
+                stepErrors['ld_amount'] = ldError || 'A valid LD amount is required.';
+            }
+            if (dvTemplate === 'retention_only' && !isRetentionValid) {
+                stepErrors['retention_amount'] = retentionError || 'A valid Retention amount is required.';
+            }
         }
 
         const stepKeys = rules.map((r) => r.name);
@@ -855,8 +862,8 @@ export default function PoWorkflowModal({
             }
         }
 
-        if (ldAmount.trim() !== '' && !validateLdAmount(ldAmount)) {
-            setActiveTab('Payment Processing');
+        if (activeTab === 'Disbursement Voucher' && ldAmount.trim() !== '' && !validateLdAmount(ldAmount)) {
+            setActiveTab('Disbursement Voucher');
             return;
         }
 
@@ -902,9 +909,9 @@ export default function PoWorkflowModal({
         };
         delete (payload as any).inspection_groups;
 
-        // If no delivery record exists or the user is saving a step prior to Payment Processing,
+        // If no delivery record exists or inspection is not completed or the user is saving a step prior to Disbursement Voucher,
         // do not send unconfigured/defaulted DV fields that would trigger backend validation.
-        if (!hasDeliveryRecord || (activeTab !== 'Payment Processing' && activeTab !== 'Forwarded to Finance')) {
+        if (!isDvAccessible || activeTab !== 'Disbursement Voucher') {
             if (purchaseOrder?.dv_template) {
                 payload.dv_template = purchaseOrder.dv_template;
             } else {
@@ -920,6 +927,10 @@ export default function PoWorkflowModal({
             } else {
                 delete (payload as any).retention_amount;
             }
+        } else {
+            payload.dv_template = dvTemplate;
+            payload.ld_amount = ldAmount.trim() !== '' ? Number(ldAmount) : null;
+            payload.retention_amount = retentionAmount.trim() !== '' ? Number(retentionAmount) : null;
         }
 
         router.put(`/purchase-orders/${purchaseOrder.po_number}`, payload, {
@@ -993,12 +1004,23 @@ export default function PoWorkflowModal({
             case 'For Release': return !!purchaseOrder?.date_received_by_supplier;
             case 'Payment Processing': return !!purchaseOrder?.date_completed;
             case 'Forwarded to Finance': return !!purchaseOrder?.date_forwarded_to_finance;
+            case 'Disbursement Voucher': return Boolean(purchaseOrder?.locked_steps?.['Disbursement Voucher']);
             default: return false;
         }
     };
 
     const isSequentiallyBlocked = (stepName: string) => {
         const targetStepIndex = STEPS.indexOf(stepName);
+        if (stepName === 'Disbursement Voucher') {
+            if (!isDvAccessible) {
+                return true;
+            }
+            for (let i = 0; i < targetStepIndex; i++) {
+                if (!isStepDone(STEPS[i])) {
+                    return true;
+                }
+            }
+        }
         if (targetStepIndex > 0) {
             const previousStep = STEPS[targetStepIndex - 1];
             if (!isStepDone(previousStep)) {
@@ -1118,7 +1140,9 @@ export default function PoWorkflowModal({
                                     <span>
                                         {isSavedLocked(activeTab)
                                             ? "This step has already been saved. Only an admin can edit it."
-                                            : "This step is currently locked because the previous workflow step has not been completed yet."}
+                                            : activeTab === 'Disbursement Voucher' && !isDvAccessible
+                                                ? "This step is locked. A Delivery Monitoring record and completion of preceding steps are required before accessing or exporting the Disbursement Voucher."
+                                                : "This step is currently locked because the previous workflow step has not been completed yet."}
                                     </span>
                                 </div>
                             )}
@@ -1750,8 +1774,28 @@ export default function PoWorkflowModal({
                                             />
                                         </div>
 
-                                        {/* Disbursement Voucher (DV) Section */}
-                                        <div className="col-span-1 md:col-span-2 mt-2 pt-5 border-t border-border/60 space-y-4">
+                                    </div>
+                                )}
+
+                                {/* 6. Forwarded to Finance */}
+                                {activeTab === 'Forwarded to Finance' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <Field
+                                            label="Date Forwarded to Finance"
+                                            name="date_forwarded_to_finance"
+                                            type="date"
+                                            value={data.date_forwarded_to_finance}
+                                            onChange={handleChange}
+                                            error={errors.date_forwarded_to_finance}
+                                            required={true}
+                                        />
+                                        </div>
+                                    )}
+
+                                {/* 7. Disbursement Voucher */}
+                                {activeTab === 'Disbursement Voucher' && (
+                                    <div className="space-y-6 animate-in fade-in duration-300">
+                                        <div className="space-y-4">
                                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                                 <div>
                                                     <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -1759,40 +1803,42 @@ export default function PoWorkflowModal({
                                                         Disbursement Voucher (DV) Template
                                                     </h4>
                                                     <p className="text-xs text-muted-foreground mt-0.5">
-                                                        {hasDeliveryRecord
-                                                            ? "Choose a template configuration below."
-                                                            : "A Delivery Monitoring record is required before accessing or configuring this voucher."}
+                                                        {isDvAccessible
+                                                            ? "Choose a template configuration below and export to Excel."
+                                                            : "A Delivery Monitoring record is required before configuring or exporting this voucher."}
                                                     </p>
                                                 </div>
                                                 {/* Edit DV in Excel Button */}
-                                                {(dvTemplate === 'ld_only' || dvTemplate === 'neither' || dvTemplate === 'retention_only' || dvTemplate === 'ld_and_retention') && (
+                                                {(dvTemplate === 'ld_only' || dvTemplate === 'neither' || dvTemplate === 'retention_only') && (
                                                     <Button
                                                         type="button"
                                                         onClick={handleExportDv}
                                                         disabled={!canExport}
                                                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm transition-all flex items-center gap-2 shrink-0 self-start sm:self-auto disabled:opacity-50 disabled:cursor-not-allowed"
                                                         id="edit-dv-excel-btn"
-                                                        title={!hasDeliveryRecord ? (
+                                                        title={!isDvAccessible ? (
                                                             "A Delivery Monitoring record is required before accessing or exporting the Disbursement Voucher"
                                                         ) : (!canExport ? (
                                                             dvTemplate === 'neither' || dvTemplate === 'retention_only'
-                                                                ? "Complete Date Completed to export Excel"
-                                                                : "Enter an LD amount and complete Date Completed to export Excel"
+                                                                ? "Complete Payment Processing (Date Completed) to export Excel"
+                                                                : "Enter an LD amount and complete Payment Processing to export Excel"
                                                         ) : "Export Disbursement Voucher in Excel")}
                                                     >
-                                                        {!hasDeliveryRecord ? <Lock className="size-4" /> : <FileSpreadsheet className="size-4" />}
+                                                        {!isDvAccessible ? <Lock className="size-4" /> : <FileSpreadsheet className="size-4" />}
                                                         Edit DV in Excel
                                                     </Button>
                                                 )}
                                             </div>
 
-                                            {!hasDeliveryRecord && (
+                                            {!isDvAccessible && (
                                                 <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200">
                                                     <Lock className="size-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
                                                     <div className="space-y-1">
                                                         <h5 className="text-xs font-semibold text-amber-900 dark:text-amber-100 flex items-center gap-1.5">
                                                             <span>Disbursement Voucher Locked</span>
-                                                            <span className="text-[11px] font-normal px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-200">Delivery Record Required</span>
+                                                            <span className="text-[11px] font-normal px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-200">
+                                                                Delivery Record Required
+                                                            </span>
                                                         </h5>
                                                         <p className="text-xs text-amber-800/90 dark:text-amber-200/90 leading-relaxed">
                                                             The selected Purchase Order (<strong>{purchaseOrder?.po_number}</strong>) must have an existing record in <strong>Delivery Monitoring</strong> before the Disbursement Voucher can be fully accessed, configured, or exported.
@@ -1802,12 +1848,12 @@ export default function PoWorkflowModal({
                                             )}
 
                                             {/* Checklist of Templates */}
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                                 {/* 1. LD only */}
                                                 <label
                                                     className={cn(
                                                         "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all select-none",
-                                                        !hasDeliveryRecord
+                                                        !isDvAccessible
                                                             ? "border-border/40 bg-muted/20 opacity-60 cursor-not-allowed"
                                                             : dvTemplate === 'ld_only'
                                                                 ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30 cursor-pointer"
@@ -1818,9 +1864,9 @@ export default function PoWorkflowModal({
                                                         type="radio"
                                                         name="dv_template"
                                                         value="ld_only"
-                                                        disabled={!hasDeliveryRecord}
+                                                        disabled={!isDvAccessible}
                                                         checked={dvTemplate === 'ld_only'}
-                                                        onChange={() => hasDeliveryRecord && handleTemplateChange('ld_only')}
+                                                        onChange={() => isDvAccessible && handleTemplateChange('ld_only')}
                                                         className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     />
                                                     <div className="flex-1">
@@ -1828,11 +1874,11 @@ export default function PoWorkflowModal({
                                                             <span className="text-sm font-medium text-foreground">LD only</span>
                                                             <span className={cn(
                                                                 "inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold",
-                                                                !hasDeliveryRecord
+                                                                !isDvAccessible
                                                                     ? "bg-muted text-muted-foreground"
                                                                     : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                                                             )}>
-                                                                {!hasDeliveryRecord ? "Locked" : "Active"}
+                                                                {!isDvAccessible ? "Locked" : "Active"}
                                                             </span>
                                                         </div>
                                                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -1845,7 +1891,7 @@ export default function PoWorkflowModal({
                                                 <label
                                                     className={cn(
                                                         "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all select-none",
-                                                        !hasDeliveryRecord
+                                                        !isDvAccessible
                                                             ? "border-border/40 bg-muted/20 opacity-60 cursor-not-allowed"
                                                             : dvTemplate === 'retention_only'
                                                                 ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30 cursor-pointer"
@@ -1856,9 +1902,9 @@ export default function PoWorkflowModal({
                                                         type="radio"
                                                         name="dv_template"
                                                         value="retention_only"
-                                                        disabled={!hasDeliveryRecord}
+                                                        disabled={!isDvAccessible}
                                                         checked={dvTemplate === 'retention_only'}
-                                                        onChange={() => hasDeliveryRecord && handleTemplateChange('retention_only')}
+                                                        onChange={() => isDvAccessible && handleTemplateChange('retention_only')}
                                                         className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     />
                                                     <div className="flex-1">
@@ -1866,11 +1912,11 @@ export default function PoWorkflowModal({
                                                             <span className="text-sm font-medium text-foreground">Retention only</span>
                                                             <span className={cn(
                                                                 "inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold",
-                                                                !hasDeliveryRecord
+                                                                !isDvAccessible
                                                                     ? "bg-muted text-muted-foreground"
                                                                     : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                                                             )}>
-                                                                {!hasDeliveryRecord ? "Locked" : "Active"}
+                                                                {!isDvAccessible ? "Locked" : "Active"}
                                                             </span>
                                                         </div>
                                                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -1879,49 +1925,11 @@ export default function PoWorkflowModal({
                                                     </div>
                                                 </label>
 
-                                                {/* 3. LD and retention */}
+                                                {/* 3. Disbursement Voucher */}
                                                 <label
                                                     className={cn(
                                                         "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all select-none",
-                                                        !hasDeliveryRecord
-                                                            ? "border-border/40 bg-muted/20 opacity-60 cursor-not-allowed"
-                                                            : dvTemplate === 'ld_and_retention'
-                                                                ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30 cursor-pointer"
-                                                                : "border-border/60 hover:border-border hover:bg-muted/40 cursor-pointer"
-                                                    )}
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        name="dv_template"
-                                                        value="ld_and_retention"
-                                                        disabled={!hasDeliveryRecord}
-                                                        checked={dvTemplate === 'ld_and_retention'}
-                                                        onChange={() => hasDeliveryRecord && handleTemplateChange('ld_and_retention')}
-                                                        className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    />
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center justify-between gap-2">
-                                                            <span className="text-sm font-medium text-foreground">LD and retention</span>
-                                                            <span className={cn(
-                                                                "inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold",
-                                                                !hasDeliveryRecord
-                                                                    ? "bg-muted text-muted-foreground"
-                                                                    : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                                                            )}>
-                                                                {!hasDeliveryRecord ? "Locked" : "Active"}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xs text-muted-foreground mt-0.5">
-                                                            Disbursement Voucher with both Liquidated Damages and 1% retention deductions.
-                                                        </p>
-                                                    </div>
-                                                </label>
-
-                                                {/* 4. Neither LD nor retention */}
-                                                <label
-                                                    className={cn(
-                                                        "relative flex items-start gap-3 p-3.5 rounded-lg border transition-all select-none",
-                                                        !hasDeliveryRecord
+                                                        !isDvAccessible
                                                             ? "border-border/40 bg-muted/20 opacity-60 cursor-not-allowed"
                                                             : dvTemplate === 'neither'
                                                                 ? "border-emerald-500/80 bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30 cursor-pointer"
@@ -1932,33 +1940,33 @@ export default function PoWorkflowModal({
                                                         type="radio"
                                                         name="dv_template"
                                                         value="neither"
-                                                        disabled={!hasDeliveryRecord}
+                                                        disabled={!isDvAccessible}
                                                         checked={dvTemplate === 'neither'}
-                                                        onChange={() => hasDeliveryRecord && handleTemplateChange('neither')}
+                                                        onChange={() => isDvAccessible && handleTemplateChange('neither')}
                                                         className="mt-1 size-4 text-emerald-600 border-border focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     />
                                                     <div className="flex-1">
                                                         <div className="flex items-center justify-between gap-2">
-                                                            <span className="text-sm font-medium text-foreground">Neither LD nor retention</span>
+                                                            <span className="text-sm font-medium text-foreground">Disbursement Voucher</span>
                                                             <span className={cn(
                                                                 "inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold",
-                                                                !hasDeliveryRecord
+                                                                !isDvAccessible
                                                                     ? "bg-muted text-muted-foreground"
                                                                     : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                                                             )}>
-                                                                {!hasDeliveryRecord ? "Locked" : "Active"}
+                                                                {!isDvAccessible ? "Locked" : "Active"}
                                                             </span>
                                                         </div>
                                                         <p className="text-xs text-muted-foreground mt-0.5">
-                                                            Standard voucher without LD or retention deductions.
+                                                            Standard disbursement voucher without LD or retention deductions.
                                                         </p>
                                                     </div>
                                                 </label>
                                             </div>
 
-                                            {/* LD Amount Input for LD-only and Both templates */}
-                                            {(dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') && (
-                                                <div className={cn("p-4 rounded-lg border border-border/70 bg-card space-y-2", !hasDeliveryRecord && "opacity-60 cursor-not-allowed")}>
+                                            {/* LD Amount Input for LD-only template */}
+                                            {dvTemplate === 'ld_only' && (
+                                                <div className={cn("p-4 rounded-lg border border-border/70 bg-card space-y-2", !isDvAccessible && "opacity-60 cursor-not-allowed")}>
                                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                                         <div>
                                                             <label className="text-xs font-semibold text-foreground flex items-center gap-1.5" htmlFor="ld-amount-input">
@@ -1977,8 +1985,8 @@ export default function PoWorkflowModal({
                                                                 min="0"
                                                                 max={poTotal}
                                                                 value={ldAmount}
-                                                                disabled={!hasDeliveryRecord}
-                                                                onChange={(e) => hasDeliveryRecord && handleLdChange(e.target.value)}
+                                                                disabled={!isDvAccessible}
+                                                                onChange={(e) => isDvAccessible && handleLdChange(e.target.value)}
                                                                 placeholder="0.00"
                                                                 className={cn(
                                                                     "text-right font-medium",
@@ -1993,9 +2001,9 @@ export default function PoWorkflowModal({
                                                 </div>
                                             )}
 
-                                            {/* Retention Amount Input for Retention-only and Both templates */}
-                                            {(dvTemplate === 'retention_only' || dvTemplate === 'ld_and_retention') && (
-                                                <div className={cn("p-4 rounded-lg border border-border/70 bg-card space-y-2", !hasDeliveryRecord && "opacity-60 cursor-not-allowed")}>
+                                            {/* Retention Amount Input for Retention-only template */}
+                                            {dvTemplate === 'retention_only' && (
+                                                <div className={cn("p-4 rounded-lg border border-border/70 bg-card space-y-2", !isDvAccessible && "opacity-60 cursor-not-allowed")}>
                                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                                         <div>
                                                             <label className="text-xs font-semibold text-foreground flex items-center gap-1.5" htmlFor="retention-amount-input">
@@ -2014,8 +2022,8 @@ export default function PoWorkflowModal({
                                                                 min="0"
                                                                 max={poTotal}
                                                                 value={retentionAmount}
-                                                                disabled={!hasDeliveryRecord}
-                                                                onChange={(e) => hasDeliveryRecord && handleRetentionChange(e.target.value)}
+                                                                disabled={!isDvAccessible}
+                                                                onChange={(e) => isDvAccessible && handleRetentionChange(e.target.value)}
                                                                 placeholder={poTotal > 0 ? (poTotal * 0.01).toFixed(2) : "0.00"}
                                                                 className={cn(
                                                                     "text-right font-medium",
@@ -2031,10 +2039,10 @@ export default function PoWorkflowModal({
                                             )}
 
                                             {/* Hints only shown when eligible */}
-                                            {hasDeliveryRecord && (
+                                            {isDvAccessible && (
                                                 <>
                                                     {/* Hint when LD amount is not yet inputted */}
-                                                    {(dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') && !isLdInputted && (
+                                                    {dvTemplate === 'ld_only' && !isLdInputted && (
                                                         <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs">
                                                             <Info className="size-4 shrink-0" />
                                                             <span>Enter a value in the <strong>Liquidated Damages (LD) Amount</strong> field (e.g. 0.00 or penalty amount) to enable the <strong>Edit DV in Excel</strong> button.</span>
@@ -2042,10 +2050,10 @@ export default function PoWorkflowModal({
                                                     )}
 
                                                     {/* Hint when required information is not yet completed for LD template */}
-                                                    {(dvTemplate === 'ld_only' || dvTemplate === 'ld_and_retention') && isLdInputted && !isDateCompletedFilled && (
+                                                    {dvTemplate === 'ld_only' && isLdInputted && !isDateCompletedFilled && (
                                                         <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
                                                             <Info className="size-4 shrink-0" />
-                                                            <span>Complete the required <strong>Date Completed</strong> field above to enable the <strong>Edit DV in Excel</strong> button.</span>
+                                                            <span>Complete <strong>Date Completed</strong> in Payment Processing to enable the <strong>Edit DV in Excel</strong> button.</span>
                                                         </div>
                                                     )}
 
@@ -2053,7 +2061,7 @@ export default function PoWorkflowModal({
                                                     {dvTemplate === 'retention_only' && !isDateCompletedFilled && (
                                                         <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
                                                             <Info className="size-4 shrink-0" />
-                                                            <span>Complete the required <strong>Date Completed</strong> field above to enable the <strong>Edit DV in Excel</strong> button.</span>
+                                                            <span>Complete <strong>Date Completed</strong> in Payment Processing to enable the <strong>Edit DV in Excel</strong> button.</span>
                                                         </div>
                                                     )}
 
@@ -2061,7 +2069,7 @@ export default function PoWorkflowModal({
                                                     {dvTemplate === 'neither' && !isDateCompletedFilled && (
                                                         <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
                                                             <Info className="size-4 shrink-0" />
-                                                            <span>Complete the required <strong>Date Completed</strong> field above to enable the <strong>Edit DV in Excel</strong> button.</span>
+                                                            <span>Complete <strong>Date Completed</strong> in Payment Processing to enable the <strong>Edit DV in Excel</strong> button.</span>
                                                         </div>
                                                     )}
                                                 </>
@@ -2069,21 +2077,6 @@ export default function PoWorkflowModal({
                                         </div>
                                     </div>
                                 )}
-
-                                {/* 6. Forwarded to Finance */}
-                                {activeTab === 'Forwarded to Finance' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <Field
-                                            label="Date Forwarded to Finance"
-                                            name="date_forwarded_to_finance"
-                                            type="date"
-                                            value={data.date_forwarded_to_finance}
-                                            onChange={handleChange}
-                                            error={errors.date_forwarded_to_finance}
-                                            required={true}
-                                        />
-                                        </div>
-                                    )}
 
                                 </div>
                             

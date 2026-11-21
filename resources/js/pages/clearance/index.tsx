@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import Pagination from '@/components/Pagination';
 import { preservePerPage } from '@/lib/filterUrl';
-import { Search, Pencil, Archive, ClipboardCheck, Eye, Plus } from 'lucide-react';
+import { Search, Pencil, Archive, ClipboardCheck, Eye, Plus, ListTodo } from 'lucide-react';
 import { useState } from 'react';
 import { useColumnVisibility } from '@/hooks/useColumnVisibility';
 import TableColumnsPopover from '@/components/table/TableColumnsPopover';
@@ -11,6 +11,7 @@ import ClearanceDeleteModal from '@/components/clearance/clearancedeletemodal';
 import ClearanceEditForm from '@/components/clearance/clearanceeditform';
 import ClearanceProcessModal from '@/components/clearance/clearanceprocessmodal';
 import ClearanceViewForm from '@/components/clearance/clearanceviewform';
+import { AssignTaskModal } from '@/components/assigned-tasks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -66,6 +67,7 @@ interface Props {
     statuses: string[];
     forms: string[];
     offices: OfficeOption[];
+    usersList?: Array<{ id: number; name: string; role: string }>;
 }
 
 const CLEARANCE_COLUMNS = [
@@ -79,7 +81,7 @@ const CLEARANCE_COLUMNS = [
     { key: 'actions', label: 'Actions', locked: true },
 ];
 
-export default function Index({ records, filters, statuses, forms, offices }: Props) {
+export default function Index({ records, filters, statuses, forms, offices, usersList = [] }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [statusFilter, setStatusFilter] = useState(filters.status ?? 'all');
     const [typeFilter, setTypeFilter] = useState(filters.form_attribute ?? 'all');
@@ -89,7 +91,9 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isProcessOpen, setIsProcessOpen] = useState(false);
     const [isViewOpen, setIsViewOpen] = useState(false);
+    const [isAssignTaskOpen, setIsAssignTaskOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<ClearanceRecord | null>(null);
+    const [taskRecord, setTaskRecord] = useState<ClearanceRecord | null>(null);
 
     const columnVisibility = useColumnVisibility({
         storageKey: 'smis_clearance_visible_columns',
@@ -153,6 +157,11 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
         setIsViewOpen(true);
     };
 
+    const openAssignTask = (record: ClearanceRecord) => {
+        setTaskRecord(record);
+        setIsAssignTaskOpen(true);
+    };
+
     const columns: ColumnDef<ClearanceRecord>[] = [
         { key: 'name', label: 'Name', sortable: true, width: 'w-[15%]' },
         {
@@ -205,9 +214,12 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
             key: 'actions',
             label: 'Actions',
             sortable: false,
-            width: 'w-[13%]',
+            width: 'w-[14%]',
             render: (record) => (
-                <div className="flex items-center justify-start gap-4">
+                <div className="flex items-center justify-start gap-3">
+                    <button type="button" onClick={() => openAssignTask(record)} className="text-indigo-600 hover:text-indigo-800" title="Assign Task">
+                        <ListTodo className="size-4" />
+                    </button>
                     <button type="button" onClick={() => openEdit(record)} className="text-blue-600 hover:text-blue-800" title="Edit">
                         <Pencil className="size-4" />
                     </button>
@@ -344,6 +356,16 @@ export default function Index({ records, filters, statuses, forms, offices }: Pr
                 field, while this page's ClearanceRecord has `offices` (array) —
                 see note below. Casting here until that type is reconciled. */}
             <ClearanceViewForm open={isViewOpen} onOpenChange={setIsViewOpen} record={selectedRecord as any} />
+            <AssignTaskModal
+                open={isAssignTaskOpen}
+                onOpenChange={setIsAssignTaskOpen}
+                usersList={usersList}
+                initialData={taskRecord ? {
+                    title: `Clearance - ${taskRecord.name}`,
+                    clearance_id: taskRecord.clearance_id,
+                    description: `Process clearance requirements for ${taskRecord.name}${taskRecord.form_attribute ? ` (${taskRecord.form_attribute.toUpperCase()})` : ''}.${taskRecord.remarks ? ` Remarks: ${taskRecord.remarks}` : ''}`,
+                } : undefined}
+            />
         </>
     );
 }

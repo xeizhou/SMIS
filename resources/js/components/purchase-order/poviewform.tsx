@@ -518,11 +518,11 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                                         const hasDeliveryRecord = Boolean(po.has_delivery_record ?? (po.deliveries && po.deliveries.length > 0));
                                         const templateLabels: Record<string, string> = {
                                             ld_only: 'LD Only',
-                                            neither: 'Neither LD nor retention',
+                                            neither: 'Disbursement Voucher',
+                                            neither_ld_nor_retention: 'Disbursement Voucher',
                                             retention_only: 'Retention Only',
-                                            ld_and_retention: 'LD and Retention',
                                         };
-                                        const templateLabel = templateLabels[selectedTemplate] || 'LD Only';
+                                        const templateLabel = templateLabels[selectedTemplate] || 'Disbursement Voucher';
 
                                         return (
                                             <>
