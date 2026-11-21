@@ -19,6 +19,7 @@ class Task extends Model
         'title',
         'description',
         'po_number',
+        'clearance_id',
         'assigned_to',
         'assigned_by',
         'priority',
@@ -47,6 +48,11 @@ class Task extends Model
     public function servePo(): BelongsTo
     {
         return $this->belongsTo(ServePo::class, 'po_number', 'po_number');
+    }
+
+    public function clearance(): BelongsTo
+    {
+        return $this->belongsTo(Clearance::class, 'clearance_id', 'clearance_id');
     }
 }
 

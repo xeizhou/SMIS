@@ -264,16 +264,6 @@ export function AssignedTasks({
     const [archivingTaskId, setArchivingTaskId] = useState<string | null>(null);
     const [isBulkArchiving, setIsBulkArchiving] = useState(false);
 
-    // Form state for "Assign Task"
-    const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        po_number: '',
-        assigned_to: currentUserId ? String(currentUserId) : '',
-        priority: 'normal' as TaskPriority,
-        due_date: new Date().toISOString().split('T')[0],
-    });
-
     // Reset selection when changing scope or status filter
     const handleSetTaskScope = (scope: 'to_me' | 'by_me') => {
         setTaskScope(scope);
@@ -345,34 +335,6 @@ export function AssignedTasks({
     }, [scopedTasks, statusFilter]);
 
     // Handlers
-    const handleCreateTask = useCallback((e: React.FormEvent) => {
-        e.preventDefault();
-        if (!formData.title.trim() || !formData.assigned_to) return;
-
-        setIsSubmitting(true);
-        router.post('/tasks', formData, {
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: () => {
-                toast.success('Task assigned successfully.', { id: 'task-assigned-success' });
-                setIsAssignModalOpen(false);
-                setFormData({
-                    title: '',
-                    description: '',
-                    po_number: '',
-                    assigned_to: currentUserId ? String(currentUserId) : '',
-                    priority: 'normal',
-                    due_date: new Date().toISOString().split('T')[0],
-                });
-            },
-            onError: (errors) => {
-                const first = Object.values(errors)[0] as string;
-                toast.error(first || 'Failed to assign task. Please check the inputs.');
-            },
-            onFinish: () => setIsSubmitting(false),
-        });
-    }, [formData, currentUserId]);
-
     const handleToggleStatus = useCallback((task: AssignedTask, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
         // Guard: Only the assignee can mark complete/uncomplete
@@ -673,13 +635,13 @@ export function AssignedTasks({
             {/* Top Clean Header */}
             <div className="flex flex-col gap-2 pb-2.5 border-b border-neutral-100 dark:border-neutral-800 shrink-0">
                 {/* Row 1: Scope toggle & Primary Action Buttons */}
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center justify-between gap-1.5">
                     <div className="flex items-center gap-1 rounded-lg bg-neutral-100 p-0.5 dark:bg-neutral-800">
                         <button
                             type="button"
                             onClick={() => handleSetTaskScope('to_me')}
                             className={cn(
-                                "rounded-md px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer",
+                                "rounded-md px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
                                 taskScope === 'to_me'
                                     ? "bg-white text-indigo-700 shadow-xs dark:bg-neutral-900 dark:text-indigo-400"
                                     : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
@@ -691,7 +653,7 @@ export function AssignedTasks({
                             type="button"
                             onClick={() => handleSetTaskScope('by_me')}
                             className={cn(
-                                "rounded-md px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer",
+                                "rounded-md px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
                                 taskScope === 'by_me'
                                     ? "bg-white text-indigo-700 shadow-xs dark:bg-neutral-900 dark:text-indigo-400"
                                     : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
@@ -705,9 +667,9 @@ export function AssignedTasks({
                         size="sm"
                         variant="default"
                         onClick={() => setIsAssignModalOpen(true)}
-                        className="h-7 gap-1 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-2.5 dark:bg-indigo-700 dark:hover:bg-indigo-800 cursor-pointer"
+                        className="h-6.5 gap-1 text-[11px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-2 dark:bg-indigo-700 dark:hover:bg-indigo-800 cursor-pointer"
                     >
-                        <Plus className="size-3.5" />
+                        <Plus className="size-3" />
                         <span>Assign Task</span>
                     </Button>
                 </div>
@@ -820,20 +782,20 @@ export function AssignedTasks({
             )}
 
             {/* Task Items List */}
-            <ScrollArea className="flex-1 min-h-0 pr-2 pt-2">
+            <ScrollArea className="flex-1 min-h-0 pr-2 pt-1.5">
                 {filteredTasks.length === 0 ? (
-                    <div className="flex h-48 flex-col items-center justify-center text-center p-4">
-                        <div className="flex size-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 mb-2">
-                            <CheckCircle2 className="size-5" />
+                    <div className="flex h-36 flex-col items-center justify-center text-center p-3">
+                        <div className="flex size-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 mb-1.5">
+                            <CheckCircle2 className="size-4" />
                         </div>
-                        <h4 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+                        <h4 className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">
                             {statusFilter === 'completed' 
                                 ? 'No completed tasks' 
                                 : taskScope === 'by_me'
                                     ? 'No tasks currently assigned by you'
                                     : 'No pending tasks!'}
                         </h4>
-                        <p className="mt-0.5 text-xs text-neutral-400 max-w-xs">
+                        <p className="mt-0.5 text-[11px] text-neutral-400 max-w-xs">
                             {taskScope === 'by_me'
                                 ? 'Tasks you assign to team members will appear here so you can monitor their progress.'
                                 : statusFilter === 'completed' 
@@ -842,7 +804,7 @@ export function AssignedTasks({
                         </p>
                     </div>
                 ) : (
-                    <div className="space-y-2 pb-2">
+                    <div className="space-y-1.5 pb-2">
                         {filteredTasks.map((task) => {
                             const isCompleted = task.status?.toLowerCase() === 'completed' || task.status?.toLowerCase() === 'archived' || Boolean(task.completed_at);
                             const isUpdating = updatingTaskId === task.id;
@@ -857,7 +819,7 @@ export function AssignedTasks({
                                     data-record-id={task.id}
                                     data-task-id={task.id}
                                     onClick={() => handleOpenDetail(task)}
-                                    className={`group rounded-lg border p-2.5 transition-all cursor-pointer ${
+                                    className={`group rounded-lg border p-2 transition-all cursor-pointer ${
                                         isSelected
                                             ? 'bg-indigo-50/70 border-indigo-300 dark:bg-indigo-950/40 dark:border-indigo-700 shadow-2xs'
                                             : isCompleted
@@ -936,13 +898,13 @@ export function AssignedTasks({
 
                                             {/* Notes / Description */}
                                             {task.description && (
-                                                <p className="mt-1 text-[11px] text-neutral-500 dark:text-neutral-400 line-clamp-1 leading-relaxed">
+                                                <p className="mt-0.5 text-[11px] text-neutral-500 dark:text-neutral-400 line-clamp-1 leading-normal">
                                                     {task.description}
                                                 </p>
                                             )}
 
                                             {/* Footer: Metadata & Actions */}
-                                            <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-neutral-100 dark:border-neutral-800/80 pt-1 text-[11px] text-neutral-400 flex-wrap">
+                                            <div className="mt-1 flex items-center justify-between gap-1.5 border-t border-neutral-100 dark:border-neutral-800/80 pt-1 text-[11px] text-neutral-400 flex-wrap">
                                                 {/* Left: Attribution & PO */}
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     {taskScope === 'by_me' ? (
@@ -1241,150 +1203,13 @@ export function AssignedTasks({
             </Dialog>
 
             {/* "Assign Task" Dialog */}
-            <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <form onSubmit={handleCreateTask}>
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-                                <ListTodo className="size-4 text-indigo-600" />
-                                Assign New Task
-                            </DialogTitle>
-                            <DialogDescription className="text-xs text-neutral-500">
-                                Assign operational responsibility to a staff member or colleague.
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="space-y-3.5 py-3">
-                            <div>
-                                <Label htmlFor="title" className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                                    Task Title <span className="text-rose-500">*</span>
-                                </Label>
-                                <Input
-                                    id="title"
-                                    placeholder="e.g. Follow up on supplier delivery"
-                                    value={formData.title}
-                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    className="mt-1"
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <Label htmlFor="assigned_to" className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                                    Assign To <span className="text-rose-500">*</span>
-                                </Label>
-                                <Select
-                                    value={formData.assigned_to}
-                                    onValueChange={(val) => setFormData({ ...formData, assigned_to: val })}
-                                >
-                                    <SelectTrigger id="assigned_to" className="mt-1 h-9">
-                                        <SelectValue placeholder="Select staff..." />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-56">
-                                        {usersList.map((user) => (
-                                            <SelectItem key={user.id} value={String(user.id)}>
-                                                {user.name} ({user.role})
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div>
-                                <Label htmlFor="po_number" className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                                    Related P.O Number (Optional)
-                                </Label>
-                                {poNumbers && poNumbers.length > 0 ? (
-                                    <SearchablePoSelect
-                                        id="po_number"
-                                        value={formData.po_number || ''}
-                                        onChange={(val) => setFormData({ ...formData, po_number: val })}
-                                        poNumbers={poNumbers}
-                                        placeholder="Search PO Number..."
-                                    />
-                                ) : (
-                                    <Input
-                                        id="po_number"
-                                        placeholder="e.g. PO-6772-3114"
-                                        value={formData.po_number}
-                                        onChange={(e) => setFormData({ ...formData, po_number: e.target.value })}
-                                        className="mt-1 h-9"
-                                    />
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <Label htmlFor="priority" className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                                        Priority
-                                    </Label>
-                                    <Select
-                                        value={formData.priority}
-                                        onValueChange={(val: TaskPriority) => setFormData({ ...formData, priority: val })}
-                                    >
-                                        <SelectTrigger id="priority" className="mt-1 h-9">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="urgent">Urgent</SelectItem>
-                                            <SelectItem value="high">High</SelectItem>
-                                            <SelectItem value="normal">Normal</SelectItem>
-                                            <SelectItem value="low">Low</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div>
-                                    <Label htmlFor="due_date" className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                                        Due Date
-                                    </Label>
-                                    <Input
-                                        id="due_date"
-                                        type="date"
-                                        value={formData.due_date}
-                                        onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                                        className="mt-1 h-9"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <Label htmlFor="description" className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                                    Notes / Instructions (Optional)
-                                </Label>
-                                <Textarea
-                                    id="description"
-                                    rows={2}
-                                    placeholder="Add any specific details or steps..."
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="mt-1 text-xs"
-                                />
-                            </div>
-                        </div>
-
-                        <DialogFooter className="flex flex-row items-center justify-end gap-2.5 pt-3 border-t border-neutral-100 dark:border-neutral-800">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsAssignModalOpen(false)}
-                                disabled={isSubmitting}
-                                className="cursor-pointer"
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={isSubmitting || !formData.title.trim() || !formData.assigned_to}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 cursor-pointer"
-                            >
-                                {isSubmitting && <Loader2 className="size-3.5 animate-spin" />}
-                                <span>Assign Task</span>
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            <AssignTaskModal
+                open={isAssignModalOpen}
+                onOpenChange={setIsAssignModalOpen}
+                usersList={usersList}
+                poNumbers={poNumbers}
+                initialData={{ assigned_to: currentUserId ? String(currentUserId) : '' }}
+            />
 
             {/* "Edit & Transfer Task" Dialog (For Assigner) */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
@@ -1652,5 +1477,236 @@ export function AssignedTasks({
                 currentUserId={currentUserId}
             />
         </div>
+    );
+}
+
+export interface AssignTaskModalUserOption {
+    id: number;
+    name: string;
+    role?: string;
+    full_name?: string;
+}
+
+export interface AssignTaskModalProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    usersList?: AssignTaskModalUserOption[];
+    poNumbers?: string[];
+    initialData?: {
+        title?: string;
+        description?: string;
+        po_number?: string;
+        assigned_to?: string;
+        priority?: TaskPriority;
+        due_date?: string;
+        clearance_id?: number | null;
+    };
+    onSuccess?: () => void;
+}
+
+export function AssignTaskModal({
+    open,
+    onOpenChange,
+    usersList = [],
+    poNumbers = [],
+    initialData,
+    onSuccess,
+}: AssignTaskModalProps) {
+    const [formData, setFormData] = useState({
+        title: '',
+        description: '',
+        po_number: '',
+        assigned_to: '',
+        priority: 'normal' as TaskPriority,
+        due_date: new Date().toISOString().split('T')[0],
+        clearance_id: null as number | null,
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (open) {
+            setFormData({
+                title: initialData?.title || '',
+                description: initialData?.description || '',
+                po_number: initialData?.po_number || '',
+                assigned_to: initialData?.assigned_to || '',
+                priority: (initialData?.priority || 'normal') as TaskPriority,
+                due_date: initialData?.due_date || new Date().toISOString().split('T')[0],
+                clearance_id: initialData?.clearance_id ?? null,
+            });
+        }
+    }, [open, initialData]);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formData.title.trim() || !formData.assigned_to) {
+            toast.error('Please enter a task title and select an assignee.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        router.post('/tasks', formData, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                toast.success('Task assigned successfully.', { id: 'task-assigned-success' });
+                onOpenChange(false);
+                onSuccess?.();
+            },
+            onError: (errors) => {
+                const first = Object.values(errors)[0] as string;
+                toast.error(first || 'Failed to assign task. Please check the inputs.');
+            },
+            onFinish: () => setIsSubmitting(false),
+        });
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <form onSubmit={handleSubmit}>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+                            <ListTodo className="size-4 text-indigo-600" />
+                            Assign New Task
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-neutral-500">
+                            Assign operational responsibility to a staff member or colleague.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-3.5 py-3">
+                        <div>
+                            <Label htmlFor="assign_modal_title" className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                                Task Title <span className="text-rose-500">*</span>
+                            </Label>
+                            <Input
+                                id="assign_modal_title"
+                                placeholder="e.g. Follow up on supplier delivery"
+                                value={formData.title}
+                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                className="mt-1"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="assign_modal_assigned_to" className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                                Assign To <span className="text-rose-500">*</span>
+                            </Label>
+                            <Select
+                                value={formData.assigned_to}
+                                onValueChange={(val) => setFormData({ ...formData, assigned_to: val })}
+                            >
+                                <SelectTrigger id="assign_modal_assigned_to" className="mt-1 h-9">
+                                    <SelectValue placeholder="Select staff..." />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-56">
+                                    {usersList.map((user) => (
+                                        <SelectItem key={user.id} value={String(user.id)}>
+                                            {user.name} {user.role ? `(${user.role})` : ''}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {!formData.clearance_id && (
+                            <div>
+                                <Label htmlFor="assign_modal_po_number" className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                                    Related P.O Number (Optional)
+                                </Label>
+                                {poNumbers && poNumbers.length > 0 ? (
+                                    <SearchablePoSelect
+                                        id="assign_modal_po_number"
+                                        value={formData.po_number || ''}
+                                        onChange={(val) => setFormData({ ...formData, po_number: val })}
+                                        poNumbers={poNumbers}
+                                        placeholder="Search PO Number..."
+                                    />
+                                ) : (
+                                    <Input
+                                        id="assign_modal_po_number"
+                                        placeholder="e.g. PO-6772-3114"
+                                        value={formData.po_number}
+                                        onChange={(e) => setFormData({ ...formData, po_number: e.target.value })}
+                                        className="mt-1 h-9"
+                                    />
+                                )}
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label htmlFor="assign_modal_priority" className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                                    Priority
+                                </Label>
+                                <Select
+                                    value={formData.priority}
+                                    onValueChange={(val: TaskPriority) => setFormData({ ...formData, priority: val })}
+                                >
+                                    <SelectTrigger id="assign_modal_priority" className="mt-1 h-9">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="urgent">Urgent</SelectItem>
+                                        <SelectItem value="high">High</SelectItem>
+                                        <SelectItem value="normal">Normal</SelectItem>
+                                        <SelectItem value="low">Low</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div>
+                                <Label htmlFor="assign_modal_due_date" className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                                    Due Date
+                                </Label>
+                                <Input
+                                    id="assign_modal_due_date"
+                                    type="date"
+                                    value={formData.due_date}
+                                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                                    className="mt-1 h-9"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="assign_modal_description" className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                                Notes / Instructions (Optional)
+                            </Label>
+                            <Textarea
+                                id="assign_modal_description"
+                                rows={2}
+                                placeholder="Add any specific details or steps..."
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                className="mt-1 text-xs"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="flex flex-row items-center justify-end gap-2.5 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => onOpenChange(false)}
+                            disabled={isSubmitting}
+                            className="cursor-pointer"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={isSubmitting || !formData.title.trim() || !formData.assigned_to}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 cursor-pointer"
+                        >
+                            {isSubmitting && <Loader2 className="size-3.5 animate-spin" />}
+                            <span>Assign Task</span>
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }

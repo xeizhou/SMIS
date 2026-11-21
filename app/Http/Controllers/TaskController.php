@@ -222,6 +222,7 @@ class TaskController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'po_number' => 'nullable|string|max:100',
+            'clearance_id' => 'nullable|exists:clearance,clearance_id',
             'assigned_to' => 'required|exists:users,id',
             'priority' => 'nullable|in:urgent,high,normal,low',
             'due_date' => 'nullable|date',
@@ -231,6 +232,7 @@ class TaskController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'po_number' => $validated['po_number'] ?? null,
+            'clearance_id' => $validated['clearance_id'] ?? null,
             'assigned_to' => $validated['assigned_to'],
             'assigned_by' => Auth::id(),
             'priority' => $validated['priority'] ?? 'normal',
@@ -242,7 +244,7 @@ class TaskController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Task assigned successfully.',
-                'task' => $task->load(['assignedTo', 'assignedBy', 'servePo']),
+                'task' => $task->load(['assignedTo', 'assignedBy', 'servePo', 'clearance']),
             ]);
         }
 

@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->string('po_number')->nullable()->index();
+            $table->unsignedBigInteger('clearance_id')->nullable()->index();
+            $table->foreign('clearance_id')->references('clearance_id')->on('clearance')->nullOnDelete();
             $table->foreignId('assigned_to')->constrained('users')->cascadeOnDelete();
             $table->foreignId('assigned_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('priority')->default('normal'); // 'urgent', 'high', 'normal', 'low'

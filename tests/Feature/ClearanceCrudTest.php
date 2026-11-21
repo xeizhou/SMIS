@@ -1,28 +1,23 @@
 <?php
 
 use App\Models\Clearance;
-use App\Models\Office;
+use App\Models\ClearanceOffice;
+use App\Models\Task;
 use App\Models\User;
 
-it('stores, updates, and deletes a clearance record', function () {
+it('stores, updates, and deletes a clearance record with task assignment and on leave status', function () {
     $user = User::factory()->create();
 
-    $office = Office::create([
-        'office_code' => 'HR01',
-        'office_name' => 'Human Resources',
-        'entity_name' => 'SMU',
-        'office_head' => 'Jane Doe',
+    $office = ClearanceOffice::create([
+        'clearance_office_name' => 'Human Resources',
     ]);
 
     $response = $this->actingAs($user)->post(route('clearance.store'), [
         'name' => 'John Smith',
-        'office' => $office->office_code,
-        'claim_date' => '2026-07-20',
+        'offices' => [$office->id],
         'received_by' => 'Maria Cruz',
-        'status' => 'Active',
-        'cleared' => true,
-        'pending' => false,
         'remarks' => 'Ready',
+        'form_attribute' => 'on leave',
     ]);
 
     $response->assertRedirect();
@@ -31,26 +26,39 @@ it('stores, updates, and deletes a clearance record', function () {
 
     expect($record)->not->toBeNull();
     expect($record->name)->toBe('John Smith');
-    expect($record->office)->toBe($office->office_code);
+    expect($record->form_attribute)->toBe('on leave');
+    expect($record->offices)->toHaveCount(1);
+
+    // Test task assignment linked to this clearance record
+    $taskResponse = $this->actingAs($user)->postJson(route('tasks.store'), [
+        'title' => 'Sign leave clearance form',
+        'assigned_to' => $user->id,
+        'priority' => 'high',
+        'due_date' => now()->addDays(2)->toDateString(),
+        'clearance_id' => $record->clearance_id,
+        'notes' => 'Urgent clearance signoff',
+    ]);
+
+    $taskResponse->assertOk();
+
+    $assignedTask = Task::where('clearance_id', $record->clearance_id)->first();
+    expect($assignedTask)->not->toBeNull();
+    expect($assignedTask->clearance->clearance_id)->toBe($record->clearance_id);
+    expect($record->tasks)->toHaveCount(1);
 
     $updateResponse = $this->actingAs($user)->put(route('clearance.update', $record), [
         'name' => 'John Smith',
-        'office' => $office->office_code,
-        'claim_date' => '2026-07-21',
+        'offices' => [$office->id],
         'received_by' => 'Maria Cruz',
-        'status' => 'Retired',
-        'cleared' => true,
-        'pending' => false,
         'remarks' => 'Completed',
+        'form_attribute' => 'on leave',
     ]);
 
     $updateResponse->assertRedirect();
 
     $record->refresh();
-    expect($record->status)->toBe('Retired');
-    expect($record->cleared)->toBeTrue();
-    expect($record->pending)->toBeFalse();
     expect($record->remarks)->toBe('Completed');
+    expect($record->form_attribute)->toBe('on leave');
 
     $deleteResponse = $this->actingAs($user)->delete(route('clearance.destroy', $record));
 

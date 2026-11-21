@@ -265,9 +265,18 @@ class DisbursementVoucherService
                 $sheet->setCellValue('R63', null);
             }
 
-            // Ensure designated printed names in C, D remain empty
-            $sheet->setCellValue('D53', null); // Section C Printed Name
-            $sheet->setCellValue('V53', null); // Section D Printed Name
+            // 13. Designated Printed Names in Section C and Section D
+            $sheet->setCellValue('D53', 'ABIGAIL F. FRANCISCO');
+            $sheet->getStyle('D53')->getFont()->setName('Cambria')->setSize(10)->setBold(true);
+            $sheet->getStyle('D53')->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
+
+            $sheet->setCellValue('V53', 'MA. LUISA B. FAUNILLAN');
+            $sheet->getStyle('V53')->getFont()->setName('Cambria')->setSize(10)->setBold(true);
+            $sheet->getStyle('V53')->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
 
             // Recalculate calculation cache
             Calculation::getInstance($spreadsheet)->disableCalculationCache();
@@ -471,14 +480,14 @@ class DisbursementVoucherService
 
             // 11. Section D: Approved for Payment - Amount in Words
             if ($finalPayable > 0) {
-                $sheet->setCellValue('R44', $amountInWords);
-                $sheet->getStyle('R44')->getFont()->setName('Cambria')->setSize(10)->setBold(true);
-                $sheet->getStyle('R44')->getAlignment()
+                $sheet->setCellValue('R43', $amountInWords);
+                $sheet->getStyle('R43')->getFont()->setName('Cambria')->setSize(10)->setBold(true);
+                $sheet->getStyle('R43')->getAlignment()
                     ->setWrapText(true)
                     ->setHorizontal(Alignment::HORIZONTAL_CENTER)
                     ->setVertical(Alignment::VERTICAL_CENTER);
             } else {
-                $sheet->setCellValue('R44', null);
+                $sheet->setCellValue('R43', null);
             }
 
             // 12. Section E: Receipt of Payment - Supplier Printed Name in R62
@@ -492,6 +501,19 @@ class DisbursementVoucherService
             } else {
                 $sheet->setCellValue('R62', null);
             }
+
+            // 13. Designated Printed Names in Section C and Section D
+            $sheet->setCellValue('D52', 'ABIGAIL F. FRANCISCO');
+            $sheet->getStyle('D52')->getFont()->setName('Cambria')->setSize(10)->setBold(true);
+            $sheet->getStyle('D52')->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
+
+            $sheet->setCellValue('V52', 'MA. LUISA B. FAUNILLAN');
+            $sheet->getStyle('V52')->getFont()->setName('Cambria')->setSize(10)->setBold(true);
+            $sheet->getStyle('V52')->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
 
             // Recalculate calculation cache
             Calculation::getInstance($spreadsheet)->disableCalculationCache();
@@ -728,6 +750,19 @@ class DisbursementVoucherService
             } else {
                 $sheet->setCellValue('R62', null);
             }
+
+            // 13. Designated Printed Names in Section C and Section D
+            $sheet->setCellValue('D53', 'ABIGAIL F. FRANCISCO');
+            $sheet->getStyle('D53')->getFont()->setName('Cambria')->setSize(10)->setBold(true);
+            $sheet->getStyle('D53')->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
+
+            $sheet->setCellValue('V53', 'MA. LUISA B. FAUNILLAN');
+            $sheet->getStyle('V53')->getFont()->setName('Cambria')->setSize(10)->setBold(true);
+            $sheet->getStyle('V53')->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
 
             // Recalculate calculation cache
             Calculation::getInstance($spreadsheet)->disableCalculationCache();
@@ -990,6 +1025,19 @@ class DisbursementVoucherService
                 $sheet->setCellValue('R64', null);
             }
 
+            // 13. Designated Printed Names in Section C and Section D
+            $sheet->setCellValue('D54', 'ABIGAIL F. FRANCISCO');
+            $sheet->getStyle('D54')->getFont()->setName('Cambria')->setSize(10)->setBold(true);
+            $sheet->getStyle('D54')->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
+
+            $sheet->setCellValue('V54', 'MA. LUISA B. FAUNILLAN');
+            $sheet->getStyle('V54')->getFont()->setName('Cambria')->setSize(10)->setBold(true);
+            $sheet->getStyle('V54')->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
+
             // Recalculate calculation cache
             Calculation::getInstance($spreadsheet)->disableCalculationCache();
             Calculation::getInstance($spreadsheet)->clearCalculationCache();
@@ -1038,8 +1086,14 @@ class DisbursementVoucherService
      */
     public function amountToWords(float $amount): string
     {
+        $amount = round($amount, 2);
         $pesos = (int) floor($amount);
         $centavos = (int) round(($amount - $pesos) * 100);
+
+        if ($centavos === 100) {
+            $pesos += 1;
+            $centavos = 0;
+        }
 
         if (class_exists('\NumberFormatter')) {
             $formatter = new \NumberFormatter('en_US', \NumberFormatter::SPELLOUT);
@@ -1048,15 +1102,10 @@ class DisbursementVoucherService
             $pesosWords = $this->fallbackNumberToWords($pesos);
         }
 
-        if ($pesos > 0 && $centavos > 0) {
-            return "{$pesosWords} PESOS & {$centavos}/100 ONLY.";
-        } elseif ($pesos > 0 && $centavos === 0) {
-            return "{$pesosWords} PESOS ONLY.";
-        } elseif ($pesos === 0 && $centavos > 0) {
-            return "ZERO PESOS & {$centavos}/100 ONLY.";
-        }
+        $pesoUnit = ($pesos === 1) ? 'PESO' : 'PESOS';
+        $centavosStr = sprintf('%02d', $centavos);
 
-        return 'ZERO PESOS ONLY.';
+        return "{$pesosWords} {$pesoUnit} & {$centavosStr}/100 ONLY";
     }
 
     /**

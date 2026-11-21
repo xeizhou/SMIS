@@ -121,7 +121,8 @@ export default function Dashboard() {
 
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [operationalModalType, setOperationalModalType] = useState<OperationalType | null>(null);
-    const [activeActionTab, setActiveActionTab] = useState<'tasks' | 'deliveries'>('tasks');
+    const [activeActionTab, setActiveActionTab] = useState<'tasks' | 'deliveries'>('deliveries');
+    const [isTasksModalOpen, setIsTasksModalOpen] = useState(false);
     const [isKpiInfoOpen, setIsKpiInfoOpen] = useState(false);
     const [kpiInfoTab, setKpiInfoTab] = useState<'definitions' | 'triggers'>('definitions');
 
@@ -333,7 +334,7 @@ export default function Dashboard() {
                                     label="My Active Tasks"
                                     value={assignedTasksCount}
                                     change="Assigned to me"
-                                    onClick={() => setActiveActionTab('tasks')}
+                                    onClick={() => setIsTasksModalOpen(true)}
                                     index={0}
                                     brandColor="#6366f1"
                                 />
@@ -388,8 +389,8 @@ export default function Dashboard() {
                                     usersList={usersList}
                                     poNumbers={poNumbers}
                                     onOpenFollowUp={openFollowUpModal}
-                                    activeTab={activeActionTab}
-                                    onTabChange={setActiveActionTab}
+                                    isTasksModalOpen={isTasksModalOpen}
+                                    onTasksModalOpenChange={setIsTasksModalOpen}
                                 />
                             </div>
                         </div>

@@ -885,6 +885,7 @@ class PurchaseOrdersController extends Controller
 
         return response()->json([
             'eligible' => $hasDelivery,
+            'has_delivery' => $hasDelivery,
             'po_number' => $purchaseOrder->po_number,
             'delivery_count' => $count,
             'message' => $hasDelivery
