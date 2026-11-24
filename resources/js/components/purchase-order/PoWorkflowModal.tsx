@@ -364,6 +364,9 @@ export default function PoWorkflowModal({
     );
 
     const poTotal = Number(purchaseOrder?.total_amount_po ?? 0);
+    const deliveryCount = Number(purchaseOrder?.delivery_count ?? 0);
+    const totalDeliveredAmount = Number(purchaseOrder?.total_delivered_amount ?? 0);
+    const isDeliveryComplete = deliveryCount > 0 && poTotal > 0 && totalDeliveredAmount >= poTotal;
 
     const isLdInputted = ldAmount !== null && ldAmount !== undefined && ldAmount.trim() !== '';
     const isLdValid = isLdInputted && !isNaN(Number(ldAmount)) && Number(ldAmount) >= 0 && Number(ldAmount) <= poTotal && !ldError;
@@ -601,7 +604,7 @@ export default function PoWorkflowModal({
                 workflow_remarks: purchaseOrder.workflow_remarks || '',
                 invoice_number: purchaseOrder.invoice_number || '',
                 invoice_date: toDateInputValue(purchaseOrder.invoice_date),
-                delivery_receipt: purchaseOrder.delivery_receipt || '',
+                delivery_receipt: purchaseOrder.delivery_receipt || `DR-${purchaseOrder.po_number}-001`,
                 par_ics_number: purchaseOrder.par_ics_number || '',
                 ris_number: purchaseOrder.ris_number || '',
                 date_completed: toDateInputValue(purchaseOrder.date_completed),
@@ -790,7 +793,10 @@ export default function PoWorkflowModal({
 
     const validateStep = (stepName: string, showErrors = false): boolean => {
         const stepErrors: Record<string, string> = {};
-        const rules = STEP_RULES[stepName] || [];
+        const rules = [...(STEP_RULES[stepName] || [])];
+        if (stepName === 'Payment Processing' && isDeliveryComplete && deliveryCount > 1) {
+            rules.push({ name: 'invoice_number', label: 'Invoice Number', required: true });
+        }
 
         rules.forEach(({ name, label, required, pattern, message }) => {
             const val = (data[name] ?? '').toString().trim();
@@ -885,6 +891,7 @@ export default function PoWorkflowModal({
 
         const payload = {
             ...data,
+            workflow_step: activeTab,
             po_step: nextStep,
             locked_steps: updatedLockedSteps,
             ld_amount: ldAmount.trim() !== '' ? Number(ldAmount) : null,
@@ -1708,9 +1715,16 @@ export default function PoWorkflowModal({
                                             onChange={handleChange}
                                             error={errors.invoice_number}
                                             placeholder="e.g. 3452 / SOA No.: 2026-0001"
+                                            required={isDeliveryComplete && deliveryCount > 1}
+                                            disabled={!isDeliveryComplete}
                                             pattern={PATTERNS.invoiceDocumentRef.source}
                                             title={MESSAGES.invoiceDocumentRef}
                                         />
+                                        {!isDeliveryComplete && (
+                                            <p className="text-xs text-muted-foreground md:col-span-2">
+                                                Invoice entry is locked until the cumulative delivered amount reaches the PO total.
+                                            </p>
+                                        )}
                                         <Field
                                             label="Invoice Date"
                                             name="invoice_date"
@@ -1725,7 +1739,8 @@ export default function PoWorkflowModal({
                                             value={data.delivery_receipt}
                                             onChange={handleChange}
                                             error={errors.delivery_receipt}
-                                            placeholder="e.g. ROXI26-00294"
+                                            placeholder="Auto-generated from PO number"
+                                            readOnly
                                             pattern={PATTERNS.deliveryReceiptRef.source}
                                             title={MESSAGES.deliveryReceiptRef}
                                         />
@@ -1771,6 +1786,7 @@ export default function PoWorkflowModal({
                                                 onChange={handleChange}
                                                 error={errors.date_completed}
                                                 required={true}
+                                                readOnly
                                             />
                                         </div>
 

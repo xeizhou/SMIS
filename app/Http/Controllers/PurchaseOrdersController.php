@@ -73,6 +73,8 @@ class PurchaseOrdersController extends Controller
                 'items:stock_no,item_name,description',
                 'inspectionEntries',
             ])
+            ->withCount(['deliveries as delivery_count' => fn ($query) => $query->whereRaw("UPPER(COALESCE(status, '')) <> 'CANCELLED'")])
+            ->withSum(['deliveries as total_delivered_amount' => fn ($query) => $query->whereRaw("UPPER(COALESCE(status, '')) <> 'CANCELLED'")], 'total_amount_delivered')
             ->withExists('deliveries')
             ->withExists(['deliveries as has_cancelled_delivery' => fn ($q) => $q->whereNull('deleted_at')->whereRaw("UPPER(COALESCE(status, '')) = 'CANCELLED'")])
             ->withExists('letterMonitorings')
@@ -132,6 +134,11 @@ class PurchaseOrdersController extends Controller
     public static function getItemDescriptionsList(): array
     {
         return PoItemDescription::orderBy('name')->pluck('name')->toArray();
+    }
+
+    private function generatedDeliveryReceipt(string $poNumber): string
+    {
+        return 'DR-'.$poNumber.'-001';
     }
 
     /**
@@ -283,6 +290,10 @@ class PurchaseOrdersController extends Controller
             $validated['operational_impact'] = strtoupper(trim($validated['operational_impact']));
         }
 
+        if (empty(trim((string) ($validated['delivery_receipt'] ?? '')))) {
+            $validated['delivery_receipt'] = $this->generatedDeliveryReceipt($validated['po_number']);
+        }
+
         $po = ServePo::create($validated);
         $po->items()->sync($itemStockNos);
 
@@ -347,6 +358,10 @@ class PurchaseOrdersController extends Controller
 
             // Workflow tracking fields
             'po_step' => ['nullable', 'string'],
+            'workflow_step' => ['nullable', Rule::in([
+                'PO From VPAD', 'End User', 'For COA Stamp', 'For Release',
+                'Payment Processing', 'Forwarded to Finance', 'Disbursement Voucher',
+            ])],
             'po_vpad_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
             'date_forwarded_to_end_user' => ['nullable', 'date'],
             'end_user_forwarded_by' => ['nullable', 'string', 'max:255', 'regex:'.ValidationHelper::pattern('nameOrOffice')],
@@ -422,6 +437,37 @@ class PurchaseOrdersController extends Controller
         ]);
 
         \Log::info('Validation passed for PO: '.$servePo->po_number);
+
+        $workflowStep = $validated['workflow_step'] ?? null;
+        unset($validated['workflow_step']);
+
+        $activeDeliveries = $servePo->deliveries()
+            ->whereRaw("UPPER(COALESCE(status, '')) <> 'CANCELLED'");
+        $deliveryCount = (clone $activeDeliveries)->count();
+        $totalDelivered = (float) (clone $activeDeliveries)->sum('total_amount_delivered');
+        $poTotal = (float) ($validated['total_amount_po'] ?? $servePo->total_amount_po ?? 0);
+        $isDeliveryComplete = $deliveryCount > 0 && $poTotal > 0 && $totalDelivered >= $poTotal;
+        $requestedInvoice = (string) ($validated['invoice_number'] ?? '');
+        $existingInvoice = (string) ($servePo->invoice_number ?? '');
+
+        if (! $isDeliveryComplete && array_key_exists('invoice_number', $validated) && $requestedInvoice !== $existingInvoice) {
+            throw ValidationException::withMessages([
+                'invoice_number' => 'Invoice number is locked until all deliveries are complete.',
+            ]);
+        }
+
+        if ($workflowStep === 'Payment Processing' && $isDeliveryComplete && $deliveryCount > 1 && trim($requestedInvoice) === '') {
+            throw ValidationException::withMessages([
+                'invoice_number' => 'Invoice number is required when the PO is completed across multiple deliveries.',
+            ]);
+        }
+
+        $oldGeneratedReceipt = $this->generatedDeliveryReceipt($servePo->po_number);
+        if (empty(trim((string) $servePo->delivery_receipt)) || $servePo->delivery_receipt === $oldGeneratedReceipt) {
+            $validated['delivery_receipt'] = $this->generatedDeliveryReceipt($validated['po_number']);
+        } else {
+            $validated['delivery_receipt'] = $servePo->delivery_receipt;
+        }
 
         $itemStockNos = $request->has('item_stock_nos') ? ($validated['item_stock_nos'] ?? []) : null;
         unset($validated['item_stock_nos']);

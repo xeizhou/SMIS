@@ -32,6 +32,7 @@ interface PurchaseOrderOption {
     supplier_id: number | null;
     supplier: Supplier | null;
     total_amount_po: string | number | null;
+    total_delivered_amount: string | number | null;
     end_user: string | null;
     delivery_term: number | string | null;
     po_received_date: string | null;

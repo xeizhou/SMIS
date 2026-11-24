@@ -29,7 +29,7 @@ it('stores and updates a delivery record linked to a purchase order', function (
         'supplier_id' => $supplier->supplier_id,
         'delivery_date' => '2026-01-20',
         'po_date_received' => '2026-01-16',
-        'delivery_term' => 'FOB',
+        'delivery_term' => 14,
         'due_date' => '2026-01-30',
         'no_of_days_ld' => 0,
         'received_by_1' => 'Alvin',
@@ -56,7 +56,7 @@ it('stores and updates a delivery record linked to a purchase order', function (
         'supplier_id' => $supplier->supplier_id,
         'delivery_date' => '2026-01-22',
         'po_date_received' => '2026-01-16',
-        'delivery_term' => 'FOB',
+        'delivery_term' => 14,
         'due_date' => '2026-01-30',
         'no_of_days_ld' => 0,
         'received_by_1' => 'Alvin',
@@ -73,6 +73,87 @@ it('stores and updates a delivery record linked to a purchase order', function (
     $updateResponse->assertRedirect();
 
     $delivery->refresh();
-    expect($delivery->status)->toBe('COMPLETED');
+    expect($delivery->status)->toBe('COMPLETE');
     expect($delivery->remarks)->toBe('Completed delivery');
+});
+
+it('marks a delivery complete when cumulative delivered amounts reach the PO total', function () {
+    $user = User::factory()->create();
+    $po = ServePo::create([
+        'po_number' => 'PO-2002',
+        'total_amount_po' => 1000,
+    ]);
+
+    $firstResponse = $this->actingAs($user)->post(route('deliveries.store'), [
+        'po_number' => $po->po_number,
+        'delivery_dates' => ['2026-03-01'],
+        'total_amount_delivered' => 600,
+    ]);
+    $firstResponse->assertRedirect();
+
+    $firstDelivery = Delivery::where('po_number', $po->po_number)->firstOrFail();
+    expect($firstDelivery->status)->toBe('PARTIAL');
+    expect($po->fresh()->date_completed)->toBeNull();
+
+    $secondResponse = $this->actingAs($user)->post(route('deliveries.store'), [
+        'po_number' => $po->po_number,
+        'delivery_dates' => ['2026-03-02'],
+        'total_amount_delivered' => 400,
+    ]);
+    $secondResponse->assertRedirect();
+
+    $secondDelivery = Delivery::where('po_number', $po->po_number)
+        ->where('delivery_id', '<>', $firstDelivery->delivery_id)
+        ->firstOrFail();
+
+    expect($secondDelivery->status)->toBe('COMPLETE')
+        ->and($po->fresh()->date_completed?->format('Y-m-d'))->toBe(today()->toDateString());
+});
+
+it('locks the PO invoice until deliveries are complete and requires it for multiple deliveries', function () {
+    $user = User::factory()->create();
+    $po = ServePo::create([
+        'po_number' => '2026-2003',
+        'total_amount_po' => 1000,
+    ]);
+
+    $this->actingAs($user)->post(route('deliveries.store'), [
+        'po_number' => $po->po_number,
+        'delivery_dates' => ['2026-03-01'],
+        'total_amount_delivered' => 600,
+    ])->assertRedirect();
+
+    $this->actingAs($user)->put(route('purchase-orders.update', $po), [
+        'po_number' => $po->po_number,
+        'workflow_step' => 'Payment Processing',
+        'invoice_number' => 'INV-001',
+    ])->assertSessionHasErrors('invoice_number');
+
+    $this->actingAs($user)->post(route('deliveries.store'), [
+        'po_number' => $po->po_number,
+        'delivery_dates' => ['2026-03-02'],
+        'total_amount_delivered' => 400,
+    ])->assertRedirect();
+
+    $this->actingAs($user)->put(route('purchase-orders.update', $po), [
+        'po_number' => $po->po_number,
+        'workflow_step' => 'Payment Processing',
+        'invoice_number' => '',
+    ])->assertSessionHasErrors('invoice_number');
+
+    $this->actingAs($user)->put(route('purchase-orders.update', $po), [
+        'po_number' => $po->po_number,
+        'workflow_step' => 'Payment Processing',
+        'invoice_number' => 'INV-001',
+    ])->assertRedirect()->assertSessionHasNoErrors();
+});
+
+it('generates the PO delivery receipt reference from the PO number', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post(route('purchase-orders.store'), [
+        'po_number' => '2026-3001',
+    ])->assertRedirect();
+
+    expect(ServePo::findOrFail('2026-3001')->delivery_receipt)->toBe('DR-2026-3001-001');
 });

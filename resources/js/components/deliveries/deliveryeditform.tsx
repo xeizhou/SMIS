@@ -51,6 +51,7 @@ interface PurchaseOrderOption {
     supplier_id: number | null;
     supplier: SupplierOption | null;
     total_amount_po: string | number | null;
+    total_delivered_amount: string | number | null;
     end_user: string | null;
     delivery_term: number | string | null;
     po_received_date: string | null;
@@ -488,6 +489,13 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
     }, []);
 
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
+    const previousDeliveredAmount = Math.max(
+        0,
+        Number(selectedPo?.total_delivered_amount ?? 0) -
+            (delivery && selectedPo?.po_number === delivery.po_number && delivery.status !== 'CANCELLED'
+                ? Number(delivery.total_amount_delivered ?? 0)
+                : 0),
+    );
 
     // Latest non-empty delivery date drives the "days late" calculation,
     // same convention used to pick delivery_date on the backend (sort().last()).
@@ -511,8 +519,8 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
             if (!anyDate) {
                 nextStatus = 'PENDING';
             } else {
-                const delivered = parseFloat(prev.total_amount_delivered);
-                const poTotal = parseFloat(prev.po_total_amount);
+                const delivered = previousDeliveredAmount + (parseFloat(prev.total_amount_delivered) || 0);
+                const poTotal = Number(prev.po_total_amount);
                 const bothValid =
                     prev.total_amount_delivered !== '' &&
                     prev.po_total_amount !== '' &&
@@ -520,7 +528,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                     !Number.isNaN(poTotal);
 
                 if (bothValid) {
-                    nextStatus = delivered !== poTotal ? 'PARTIAL' : 'COMPLETE';
+                    nextStatus = poTotal > 0 && delivered >= poTotal ? 'COMPLETE' : 'PARTIAL';
                 }
             }
 
@@ -530,7 +538,7 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
 
             return { ...prev, status: nextStatus };
         });
-    }, [data.delivery_dates, data.total_amount_delivered, data.po_total_amount]);
+    }, [data.delivery_dates, data.total_amount_delivered, data.po_total_amount, previousDeliveredAmount]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -1039,23 +1047,9 @@ export default function DeliveryEditForm({ open, onOpenChange, delivery, purchas
                                                 placeholder="Auto-determined"
                                                 className="bg-muted text-muted-foreground flex-1"
                                             />
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="shrink-0"
-                                                onClick={() =>
-                                                    setData((prev) => ({
-                                                        ...prev,
-                                                        status: prev.status === 'CANCELLED' ? '' : 'CANCELLED',
-                                                    }))
-                                                }
-                                            >
-                                                {data.status === 'CANCELLED' ? 'Undo Cancel' : 'Mark Cancelled'}
-                                            </Button>
                                         </div>
                                         <p className="mt-1 text-xs text-muted-foreground">
-                                            PENDING until a delivery date is set; PARTIAL if amounts don't match; COMPLETE if they do.
+                                            PENDING until a delivery date is set; PARTIAL until cumulative delivered amount reaches the PO total.
                                         </p>
                                         {errors.status && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.status}</p>}
                                     </div>
