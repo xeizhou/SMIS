@@ -88,6 +88,8 @@ interface PurchaseOrder {
     has_delivery_record?: boolean;
     has_cancelled_delivery?: boolean;
     has_po_letter_record?: boolean;
+    delivery_count?: number;
+    total_delivered_amount?: string | number | null;
     delivery_term?: number | string | null;
     po_step?: string | null;
     locked_steps?: Record<string, string> | null;

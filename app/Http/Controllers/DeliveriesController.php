@@ -10,6 +10,7 @@ use App\Models\Attachment;
 use App\Services\DeliveryImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -70,6 +71,8 @@ class DeliveriesController extends Controller
             ],
             'purchaseOrders' => fn () => ServePo::query()
                 ->select(['po_number', 'supplier_id', 'total_amount_po', 'end_user', 'delivery_term', 'po_received_date'])
+                ->withCount(['deliveries as delivery_count' => fn ($query) => $query->whereRaw("UPPER(COALESCE(status, '')) <> 'CANCELLED'")])
+                ->withSum(['deliveries as total_delivered_amount' => fn ($query) => $query->whereRaw("UPPER(COALESCE(status, '')) <> 'CANCELLED'")], 'total_amount_delivered')
                 ->with(['supplier:supplier_id,supplier_name'])
                 ->orderByDesc('created_at')
                 ->get(),
@@ -116,14 +119,19 @@ class DeliveriesController extends Controller
 
     $validated['delivery_id'] ??= now()->format('YmdHis').'-'.substr(md5(uniqid()), 0, 6);
     $validated['total_amount_delivered'] ??= 0;
-    $validated['po_total_amount'] ??= 0;
     $validated['delivery_date'] = $dates->sort()->last();
 
-    $delivery = Delivery::create($validated);
+    DB::transaction(function () use ($validated, $dates) {
+        $po = ServePo::query()->whereKey($validated['po_number'])->lockForUpdate()->firstOrFail();
+        $validated['po_total_amount'] = $po->total_amount_po ?? 0;
+        $delivery = Delivery::create($validated);
 
-    foreach ($dates as $date) {
-        $delivery->deliveryDates()->create(['delivery_date' => $date]);
-    }
+        foreach ($dates as $date) {
+            $delivery->deliveryDates()->create(['delivery_date' => $date]);
+        }
+
+        $this->syncDeliveryCompletion($po, $delivery);
+    });
 
     return redirect()->back()->with('success', 'Delivery record added successfully.');
     }
@@ -165,20 +173,34 @@ class DeliveriesController extends Controller
         unset($validated['delivery_dates']);
 
         $validated['total_amount_delivered'] ??= 0;
-        $validated['po_total_amount'] ??= 0;
+        $previousPoNumber = $delivery->po_number;
 
-        if ($dates->isNotEmpty()) {
-            $validated['delivery_date'] = $dates->sort()->last();
-        }
+        DB::transaction(function () use ($validated, $dates, $delivery, $previousPoNumber) {
+            $po = ServePo::query()->whereKey($validated['po_number'])->lockForUpdate()->firstOrFail();
+            $validated['po_total_amount'] = $po->total_amount_po ?? 0;
 
-        $delivery->update($validated);
-
-        if ($dates->isNotEmpty()) {
-            $delivery->deliveryDates()->delete();
-            foreach ($dates as $date) {
-                $delivery->deliveryDates()->create(['delivery_date' => $date]);
+            if ($dates->isNotEmpty()) {
+                $validated['delivery_date'] = $dates->sort()->last();
             }
-        }
+
+            $delivery->update($validated);
+
+            if ($dates->isNotEmpty()) {
+                $delivery->deliveryDates()->delete();
+                foreach ($dates as $date) {
+                    $delivery->deliveryDates()->create(['delivery_date' => $date]);
+                }
+            }
+
+            $this->syncDeliveryCompletion($po, $delivery->fresh());
+
+            if ($previousPoNumber !== $po->po_number) {
+                $previousPo = ServePo::query()->find($previousPoNumber);
+                if ($previousPo) {
+                    $this->syncDeliveryCompletion($previousPo);
+                }
+            }
+        });
 
         return redirect()->back()->with('success', 'Delivery record updated successfully.');
     }
@@ -188,6 +210,8 @@ class DeliveriesController extends Controller
      */
     public function destroy(Request $request, Delivery $delivery): RedirectResponse
     {
+        $po = $delivery->servePo;
+
         // Create an archive record before soft deleting
         $delivery->archiveMetadata()->create([
             'identity_document' => $delivery->po_number,
@@ -197,7 +221,40 @@ class DeliveriesController extends Controller
 
         $delivery->delete();
 
+        if ($po) {
+            $this->syncDeliveryCompletion($po);
+        }
+
         return redirect()->back()->with('success', 'Delivery record archived successfully.');
+    }
+
+    private function syncDeliveryCompletion(ServePo $po, ?Delivery $currentDelivery = null): void
+    {
+        $activeDeliveries = $po->deliveries()
+            ->whereRaw("UPPER(COALESCE(status, '')) <> 'CANCELLED'");
+        $deliveryCount = (clone $activeDeliveries)->count();
+        $deliveredAmount = (float) (clone $activeDeliveries)->sum('total_amount_delivered');
+        $poAmount = (float) ($po->total_amount_po ?? 0);
+        $isComplete = $deliveryCount > 0 && $poAmount > 0 && $deliveredAmount >= $poAmount;
+
+        $deliveryToUpdate = $currentDelivery && strtoupper((string) $currentDelivery->status) !== 'CANCELLED'
+            ? $currentDelivery
+            : null;
+        if (! $deliveryToUpdate && $deliveryCount > 0) {
+            $deliveryToUpdate = (clone $activeDeliveries)
+                ->orderByDesc('data_entry_timestamp')
+                ->first();
+        }
+
+        if ($deliveryToUpdate && strtoupper((string) $deliveryToUpdate->status) !== 'CANCELLED') {
+            $deliveryToUpdate->update([
+                'status' => $isComplete ? 'COMPLETE' : ($deliveryToUpdate->delivery_date ? 'PARTIAL' : 'PENDING'),
+            ]);
+        }
+
+        if ($isComplete && ! $po->date_completed) {
+            $po->update(['date_completed' => now()->toDateString()]);
+        }
     }
 
     /**

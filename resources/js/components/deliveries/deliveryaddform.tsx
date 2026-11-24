@@ -42,6 +42,7 @@ interface PurchaseOrderOption {
     supplier_id: number | null;
     supplier: SupplierOption | null;
     total_amount_po: string | number | null;
+    total_delivered_amount: string | number | null;
     end_user: string | null;
     delivery_term: number | string | null;
     po_received_date: string | null;
@@ -324,6 +325,13 @@ function generateDeliveryId() {
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function getTodayDate() {
+    const today = new Date();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${today.getFullYear()}-${month}-${day}`;
+}
+
 function formatBytes(bytes: number) {
     const kb = bytes / 1024;
     return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`;
@@ -357,7 +365,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
 
     useEffect(() => {
         if (open) {
-            setData(emptyForm);
+            setData({ ...emptyForm, delivery_dates: [getTodayDate()] });
             setErrors({});
             files.forEach((f) => {
                 if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
@@ -387,7 +395,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
     };
 
     const selectedPo = purchaseOrders.find((po) => po.po_number === data.po_number) ?? null;
-    const hasDeliveryDate = data.delivery_dates.some((d) => d.trim() !== '');
+    const previousDeliveredAmount = Number(selectedPo?.total_delivered_amount ?? 0);
 
     // Latest non-empty delivery date drives the "days late" calculation,
     // same convention used to pick delivery_date on the backend (sort().last()).
@@ -411,15 +419,15 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
             if (!anyDate) {
                 nextStatus = 'PENDING';
             } else {
-                const delivered = parseFloat(prev.total_amount_delivered);
-                const poTotal = parseFloat(prev.po_total_amount);
+                const delivered = previousDeliveredAmount + (parseFloat(prev.total_amount_delivered) || 0);
+                const poTotal = Number(prev.po_total_amount);
 
                 if (
                     prev.total_amount_delivered !== '' &&
                     prev.po_total_amount !== '' &&
                     !Number.isNaN(delivered) &&
                     !Number.isNaN(poTotal) &&
-                    delivered !== poTotal
+                    (poTotal <= 0 || delivered < poTotal)
                 ) {
                     nextStatus = 'PARTIAL';
                 } else if (
@@ -427,7 +435,8 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                     prev.po_total_amount !== '' &&
                     !Number.isNaN(delivered) &&
                     !Number.isNaN(poTotal) &&
-                    delivered === poTotal
+                    poTotal > 0 &&
+                    delivered >= poTotal
                 ) {
                     nextStatus = 'COMPLETE';
                 }
@@ -439,7 +448,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
 
             return { ...prev, status: nextStatus };
         });
-    }, [data.delivery_dates, data.total_amount_delivered, data.po_total_amount]);
+    }, [data.delivery_dates, data.total_amount_delivered, data.po_total_amount, previousDeliveredAmount]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -497,7 +506,7 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
     const addDeliveryDate = () => {
         setData((prev) => ({
             ...prev,
-            delivery_dates: [...prev.delivery_dates, ''],
+            delivery_dates: [...prev.delivery_dates, getTodayDate()],
         }));
     };
 
@@ -935,23 +944,9 @@ export default function DeliveryAddForm({ open, onOpenChange, purchaseOrders, st
                                         placeholder="Auto-determined"
                                         className="bg-muted text-muted-foreground flex-1"
                                     />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className="shrink-0"
-                                        onClick={() =>
-                                            setData((prev) => ({
-                                                ...prev,
-                                                status: prev.status === 'CANCELLED' ? '' : 'CANCELLED',
-                                            }))
-                                        }
-                                    >
-                                        {data.status === 'CANCELLED' ? 'Undo Cancel' : 'Mark Cancelled'}
-                                    </Button>
                                 </div>
                                 <p className="mt-1 text-xs text-muted-foreground">
-                                    PENDING until a delivery date is set; PARTIAL if amounts don't match; COMPLETE if they do.
+                                    PENDING until a delivery date is set; PARTIAL until cumulative delivered amount reaches the PO total.
                                 </p>
                                 {errors.status && <p className="mt-1 text-[11px] text-red-500 font-medium">{errors.status}</p>}
                             </div>
