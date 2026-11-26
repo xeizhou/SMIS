@@ -29,6 +29,17 @@ export function toDateInputValue(value: string | null | undefined): string {
 }
 
 /**
+ * Returns today's date formatted as YYYY-MM-DD in local time.
+ */
+export function getTodayDateString(): string {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+/**
  * Number of whole days between two date-only (YYYY-MM-DD) strings.
  * Returns 0 if either date is missing or invalid.
  */

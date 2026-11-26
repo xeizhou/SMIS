@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Paperclip, X, RefreshCw, ChevronsUpDown, Check, Plus, File, FileImage, FileText, FileSpreadsheet, FileArchive, ExternalLink } from 'lucide-react';
+import { Paperclip, X, RefreshCw, ChevronsUpDown, Check, Plus, File, FileImage, FileText, FileSpreadsheet, FileArchive, ExternalLink, Maximize2, Minimize2 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -527,6 +527,7 @@ export default function PurchaseOrderEditForm({
     const clearErrors = (field: string) => setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
     const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
     const [processing, setProcessing] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [newFiles, setNewFiles] = useState<StagedFile[]>([]);
     const [itemStockNos, setItemStockNos] = useState<string[]>([]);
@@ -600,19 +601,39 @@ export default function PurchaseOrderEditForm({
     const originalPoNumber = purchaseOrder?.po_number ?? '';
     const poNumberChanged = data.po_number.trim() !== originalPoNumber.trim();
 
+    const validatePrDateOrder = (formData: typeof data): string | null => {
+        if (!formData.pr_date) return null;
+        if (formData.po_date && formData.pr_date > formData.po_date) {
+            return 'The PR Date cannot be later than the PO Date.';
+        }
+        if (formData.ors_burs_date && formData.pr_date > formData.ors_burs_date) {
+            return 'The PR Date cannot be later than the ORS/BURS Date.';
+        }
+        return null;
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const fieldName = e.target.name;
-        setData({
+        const nextData = {
             ...data,
             [fieldName]: e.target.value,
+        };
+        setData(nextData);
+
+        setErrors((prev) => {
+            const next = { ...prev };
+            delete next[fieldName];
+
+            if (fieldName === 'pr_date' || fieldName === 'po_date' || fieldName === 'ors_burs_date') {
+                const prError = validatePrDateOrder(nextData);
+                if (prError) {
+                    next.pr_date = prError;
+                } else if (next.pr_date && (next.pr_date.includes('PO Date') || next.pr_date.includes('ORS/BURS Date'))) {
+                    delete next.pr_date;
+                }
+            }
+            return next;
         });
-        if (errors[fieldName]) {
-            setErrors((prev) => {
-                const next = { ...prev };
-                delete next[fieldName];
-                return next;
-            });
-        }
     };
 
     const handleSelectChange = (name: string) => (value: string) => {
@@ -761,6 +782,12 @@ export default function PurchaseOrderEditForm({
             return;
         }
 
+        const prDateError = validatePrDateOrder(data);
+        if (prDateError) {
+            setErrors((prev) => ({ ...prev, pr_date: prDateError }));
+            return;
+        }
+
         if (poNumberChanged) {
             setShowConfirmModal(true);
             return;
@@ -792,13 +819,29 @@ export default function PurchaseOrderEditForm({
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent
-                    className="w-[95vw] max-h-[95vh] overflow-hidden p-0"
-                    style={{ maxWidth: '1200px' }}
+                    className={cn(
+                        "p-0 overflow-hidden bg-background transition-all duration-200 flex flex-col",
+                        isFullscreen
+                            ? "!fixed !inset-0 !top-0 !left-0 !translate-x-0 !translate-y-0 !w-screen !h-screen !max-w-none !max-h-none !rounded-none !border-0 z-50"
+                            : "w-[95vw] max-h-[95vh] rounded-lg border shadow-lg"
+                    )}
+                    style={isFullscreen ? undefined : { maxWidth: '1200px' }}
                 >
-                    <ScrollArea className="max-h-[95vh] w-full">
-                        <div className="p-6">
+                    <div className={cn("w-full overflow-y-auto min-h-0", isFullscreen ? "flex-1 h-full" : "max-h-[95vh]")}>
+                        <div className={cn("p-6", isFullscreen && "max-w-7xl mx-auto w-full")}>
                             <DialogHeader>
-                                <DialogTitle>Edit Purchase Order Record</DialogTitle>
+                                <div className="flex items-center justify-between pr-8">
+                                    <DialogTitle>Edit Purchase Order Record</DialogTitle>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsFullscreen(!isFullscreen)}
+                                        className="rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 p-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                                        title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                                    >
+                                        {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+                                        <span className="sr-only">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
+                                    </button>
+                                </div>
                             </DialogHeader>
 
                             <form onSubmit={handleSubmit} onBlur={handleBlur} onChange={handleValidationChange} noValidate className="mt-6 space-y-8">
@@ -1198,7 +1241,7 @@ export default function PurchaseOrderEditForm({
                                 </div>
                             </form>
                         </div>
-                    </ScrollArea>
+                    </div>
                 </DialogContent>
             </Dialog>
 
