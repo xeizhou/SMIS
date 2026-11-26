@@ -270,6 +270,23 @@ class PurchaseOrdersController extends Controller
             'receipt_claimed_notified_via.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
+        $prDate = $validated['pr_date'] ?? null;
+        $poDate = $validated['po_date'] ?? null;
+        $orsBursDate = $validated['ors_burs_date'] ?? null;
+
+        if ($prDate) {
+            if ($poDate && $prDate > $poDate) {
+                throw ValidationException::withMessages([
+                    'pr_date' => 'The PR Date cannot be later than the PO Date.',
+                ]);
+            }
+            if ($orsBursDate && $prDate > $orsBursDate) {
+                throw ValidationException::withMessages([
+                    'pr_date' => 'The PR Date cannot be later than the ORS/BURS Date.',
+                ]);
+            }
+        }
+
         $itemStockNos = $validated['item_stock_nos'] ?? [];
         unset($validated['item_stock_nos']);
 
@@ -438,6 +455,27 @@ class PurchaseOrdersController extends Controller
 
         \Log::info('Validation passed for PO: '.$servePo->po_number);
 
+        $prDateVal = array_key_exists('pr_date', $validated) ? $validated['pr_date'] : $servePo->pr_date;
+        $poDateVal = array_key_exists('po_date', $validated) ? $validated['po_date'] : $servePo->po_date;
+        $orsBursDateVal = array_key_exists('ors_burs_date', $validated) ? $validated['ors_burs_date'] : $servePo->ors_burs_date;
+
+        if ($prDateVal) {
+            $prDateStr = is_string($prDateVal) ? substr($prDateVal, 0, 10) : ($prDateVal instanceof \DateTimeInterface ? $prDateVal->format('Y-m-d') : null);
+            $poDateStr = is_string($poDateVal) ? substr($poDateVal, 0, 10) : ($poDateVal instanceof \DateTimeInterface ? $poDateVal->format('Y-m-d') : null);
+            $orsDateStr = is_string($orsBursDateVal) ? substr($orsBursDateVal, 0, 10) : ($orsBursDateVal instanceof \DateTimeInterface ? $orsBursDateVal->format('Y-m-d') : null);
+
+            if ($prDateStr && $poDateStr && $prDateStr > $poDateStr) {
+                throw ValidationException::withMessages([
+                    'pr_date' => 'The PR Date cannot be later than the PO Date.',
+                ]);
+            }
+            if ($prDateStr && $orsDateStr && $prDateStr > $orsDateStr) {
+                throw ValidationException::withMessages([
+                    'pr_date' => 'The PR Date cannot be later than the ORS/BURS Date.',
+                ]);
+            }
+        }
+
         $workflowStep = $validated['workflow_step'] ?? null;
         unset($validated['workflow_step']);
 
@@ -478,6 +516,10 @@ class PurchaseOrdersController extends Controller
         $existingLocked = is_array($servePo->locked_steps) ? $servePo->locked_steps : [];
         if ($request->has('locked_steps')) {
             $incomingLocked = is_array($validated['locked_steps'] ?? null) ? $validated['locked_steps'] : [];
+            // Preserve release_notices if already present in locked_steps and not in incoming
+            if (isset($existingLocked['release_notices']) && ! isset($incomingLocked['release_notices'])) {
+                $incomingLocked['release_notices'] = $existingLocked['release_notices'];
+            }
             if ($request->user() && $request->user()->isStaff()) {
                 // Staff cannot unlock steps; merge incoming with existing locked steps
                 $validated['locked_steps'] = array_merge($existingLocked, $incomingLocked);
@@ -501,7 +543,7 @@ class PurchaseOrdersController extends Controller
                 'For Release' => [
                     'date_received_by_supplier', 'receipt_receiving_date', 'receipt_claimed_by',
                     'items_receiving_date', 'items_claimed_by', 'receipt_claimed_notified_date',
-                    'receipt_claimed_notified_via',
+                    'receipt_claimed_notified_via', 'par_ics_number', 'ris_number',
                 ],
                 'Payment Processing' => [
                     'payment_status', 'ld_amount', 'retention_amount', 'dv_template',
@@ -781,11 +823,13 @@ class PurchaseOrdersController extends Controller
     {
         $request->validate([
             'email' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
+            'contact' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
         ], [
             'email.regex' => ValidationHelper::message('contactInfo'),
+            'contact.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
-        $email = $request->input('email');
+        $email = $request->input('email') ?: $request->input('contact');
 
         if (! $email) {
             $office = $purchaseOrder->office;
@@ -793,7 +837,7 @@ class PurchaseOrdersController extends Controller
         }
 
         if (! $email) {
-            return back()->with('error', 'No email address found for the office and none provided.');
+            return back()->with('error', 'Please provide an email or phone number to notify the office.');
         }
 
         // We check if the email is an actual email address (using string validation to allow phone numbers in the DB field, but only email here if it has an @)
@@ -813,11 +857,13 @@ class PurchaseOrdersController extends Controller
     {
         $request->validate([
             'email' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
+            'contact' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
         ], [
             'email.regex' => ValidationHelper::message('contactInfo'),
+            'contact.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
-        $email = $request->input('email');
+        $email = $request->input('email') ?: $request->input('contact');
 
         if (! $email) {
             $office = $purchaseOrder->office;
@@ -825,7 +871,7 @@ class PurchaseOrdersController extends Controller
         }
 
         if (! $email) {
-            return back()->with('error', 'No email address found for the office and none provided.');
+            return back()->with('error', 'Please provide an email or phone number to notify COA.');
         }
 
         if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -840,35 +886,93 @@ class PurchaseOrdersController extends Controller
         return back()->with('success', 'COA/Office notified successfully.');
     }
 
-    public function notifyRelease(Request $request, ServePo $purchaseOrder): RedirectResponse
+    public function notifyRelease(Request $request, ServePo $purchaseOrder)
     {
         $request->validate([
             'email' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
+            'contact' => ['nullable', 'string', 'max:100', 'regex:'.ValidationHelper::pattern('contactInfo')],
+            'method' => ['nullable', 'string', 'in:Email,Phone Number,Phone'],
+            'date' => ['nullable', 'date'],
         ], [
             'email.regex' => ValidationHelper::message('contactInfo'),
+            'contact.regex' => ValidationHelper::message('contactInfo'),
         ]);
 
-        $email = $request->input('email');
+        $contact = $request->input('email') ?: $request->input('contact');
 
-        if (! $email) {
+        if (! $contact) {
             $office = $purchaseOrder->office;
-            $email = $office ? $office->email : null;
+            $contact = $office ? $office->email : null;
         }
 
-        if (! $email) {
-            return back()->with('error', 'No email address found for the office and none provided.');
+        if (! $contact) {
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Please provide an email or phone number to notify end user/recipient.'], 422);
+            }
+            return back()->with('error', 'Please provide an email or phone number to notify end user/recipient.');
         }
 
-        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            Mail::to($email)->send(new OfficeNotificationMail($purchaseOrder));
+        $method = $request->input('method');
+        if (! $method) {
+            $method = filter_var($contact, FILTER_VALIDATE_EMAIL) ? 'Email' : 'Phone Number';
         }
+
+        if (filter_var($contact, FILTER_VALIDATE_EMAIL)) {
+            try {
+                Mail::to($contact)->send(new OfficeNotificationMail($purchaseOrder));
+            } catch (\Throwable $e) {
+                \Log::warning('Failed sending email to end user: '.$e->getMessage());
+            }
+        }
+
+        $locked = is_array($purchaseOrder->locked_steps) ? $purchaseOrder->locked_steps : [];
+        $notices = $locked['release_notices'] ?? [];
+        if (! is_array($notices)) {
+            $notices = [];
+        }
+
+        // If no notices array yet but legacy receipt_claimed_notified_date exists, preserve as first notice
+        if (empty($notices) && ! empty($purchaseOrder->receipt_claimed_notified_date)) {
+            $notices[] = [
+                'date' => $purchaseOrder->receipt_claimed_notified_date instanceof \DateTimeInterface
+                    ? $purchaseOrder->receipt_claimed_notified_date->format('Y-m-d')
+                    : (string) $purchaseOrder->receipt_claimed_notified_date,
+                'method' => filter_var($purchaseOrder->receipt_claimed_notified_via, FILTER_VALIDATE_EMAIL) ? 'Email' : 'Phone Number',
+                'contact' => (string) $purchaseOrder->receipt_claimed_notified_via,
+                'created_at' => $purchaseOrder->receipt_claimed_notified_date instanceof \DateTimeInterface
+                    ? $purchaseOrder->receipt_claimed_notified_date->format('Y-m-d H:i:s')
+                    : (string) $purchaseOrder->receipt_claimed_notified_date,
+            ];
+        }
+
+        $noticeDate = $request->filled('date') ? \Carbon\Carbon::parse($request->input('date'))->toDateString() : now()->toDateString();
+        $newNotice = [
+            'date' => $noticeDate,
+            'method' => $method,
+            'contact' => $contact,
+            'created_at' => now()->format('Y-m-d H:i:s'),
+        ];
+        $notices[] = $newNotice;
+        $locked['release_notices'] = $notices;
 
         $purchaseOrder->update([
-            'receipt_claimed_notified_date' => now(),
-            'receipt_claimed_notified_via' => $email,
+            'receipt_claimed_notified_date' => $noticeDate,
+            'receipt_claimed_notified_via' => $contact,
+            'locked_steps' => $locked,
         ]);
 
-        return back()->with('success', 'Recipient/Office notified successfully.');
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'End user notified successfully.',
+                'notice' => $newNotice,
+                'release_notices' => $notices,
+                'receipt_claimed_notified_date' => $noticeDate,
+                'receipt_claimed_notified_via' => $contact,
+            ]);
+        }
+
+        return back()->with('success', 'End user notified successfully.');
     }
 
     /**

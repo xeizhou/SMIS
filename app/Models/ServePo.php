@@ -31,6 +31,7 @@ class ServePo extends Model
         'has_delivery_record',
         'has_cancelled_delivery',
         'has_po_letter_record',
+        'release_notices',
     ];
 
     protected $fillable = [
@@ -271,5 +272,34 @@ class ServePo extends Model
     public function getHasPoLetterRecordAttribute(): bool
     {
         return $this->hasPoLetterRecord();
+    }
+
+    /**
+     * Accessor for 'release_notices' attribute.
+     * Returns the list of end-user notifications stored in locked_steps['release_notices'].
+     */
+    public function getReleaseNoticesAttribute(): array
+    {
+        $locked = is_array($this->locked_steps) ? $this->locked_steps : [];
+        $notices = $locked['release_notices'] ?? [];
+        if (! is_array($notices)) {
+            $notices = [];
+        }
+
+        // If there are no notices stored in locked_steps yet, fallback to legacy single notice
+        if (empty($notices) && ! empty($this->receipt_claimed_notified_date)) {
+            $notices[] = [
+                'date' => $this->receipt_claimed_notified_date instanceof \DateTimeInterface
+                    ? $this->receipt_claimed_notified_date->format('Y-m-d')
+                    : (string) $this->receipt_claimed_notified_date,
+                'method' => filter_var($this->receipt_claimed_notified_via, FILTER_VALIDATE_EMAIL) ? 'Email' : 'Phone Number',
+                'contact' => (string) $this->receipt_claimed_notified_via,
+                'created_at' => $this->receipt_claimed_notified_date instanceof \DateTimeInterface
+                    ? $this->receipt_claimed_notified_date->format('Y-m-d H:i:s')
+                    : (string) $this->receipt_claimed_notified_date,
+            ];
+        }
+
+        return $notices;
     }
 }

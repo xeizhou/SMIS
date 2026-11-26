@@ -23,6 +23,8 @@ import {
     Download,
     Lock,
     AlertTriangle,
+    Maximize2,
+    Minimize2,
 } from "lucide-react";
 import {
     ItemDescriptionBadge,
@@ -319,6 +321,7 @@ function FadeScrollList({
 
 export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrder }: Props) {
     const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     if (!purchaseOrder) return null;
 
@@ -329,12 +332,31 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="w-[95vw] max-h-[95vh] overflow-hidden p-0" style={{ maxWidth: '800px' }}>
-                    <ScrollArea className="max-h-[95vh] w-full">
-                        <div className="p-6">
-                    <DialogHeader>
-                        <DialogTitle>Purchase Order Details — {po.po_number}</DialogTitle>
-                    </DialogHeader>
+                <DialogContent
+                    className={cn(
+                        "p-0 overflow-hidden bg-background transition-all duration-200 flex flex-col",
+                        isFullscreen
+                            ? "!fixed !inset-0 !top-0 !left-0 !translate-x-0 !translate-y-0 !w-screen !h-screen !max-w-none !max-h-none !rounded-none !border-0 z-50"
+                            : "w-[95vw] max-h-[95vh] rounded-lg border shadow-lg"
+                    )}
+                    style={isFullscreen ? undefined : { maxWidth: '800px' }}
+                >
+                    <div className={cn("w-full overflow-y-auto min-h-0", isFullscreen ? "flex-1 h-full" : "max-h-[95vh]")}>
+                        <div className={cn("p-6", isFullscreen && "max-w-4xl mx-auto w-full")}>
+                            <DialogHeader>
+                                <div className="flex items-center justify-between pr-8">
+                                    <DialogTitle>Purchase Order Details — {po.po_number}</DialogTitle>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsFullscreen(!isFullscreen)}
+                                        className="rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 p-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                                        title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                                    >
+                                        {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+                                        <span className="sr-only">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
+                                    </button>
+                                </div>
+                            </DialogHeader>
 
                     {po.has_cancelled_delivery && (
                         <div className="mt-3 flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 p-3 text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
@@ -503,11 +525,12 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                                 <div>
                                     <h4 className="text-sm font-semibold mb-2 text-foreground/80 border-b border-border/50 pb-1">For Release</h4>
                                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                                        <Detail label="Date Received by Supplier" value={formatDate(po.date_received_by_supplier)} />
                                         <Detail label="Receipt Receiving Date" value={formatDate(po.receipt_receiving_date)} />
                                         <Detail label="Receipt Claimed By" value={po.receipt_claimed_by ?? '—'} />
                                         <Detail label="Items Receiving Date" value={formatDate(po.items_receiving_date)} />
                                         <Detail label="Items Claimed By" value={po.items_claimed_by ?? '—'} />
+                                        <Detail label={Number(po.total_amount_po ?? 0) < 50000 ? "ICS Number" : "PAR Number"} value={po.par_ics_number ?? '—'} />
+                                        <Detail label="RIS Number" value={po.ris_number ?? '—'} />
                                     </div>
                                 </div>
 
@@ -684,8 +707,8 @@ export default function PurchaseOrderViewForm({ open, onOpenChange, purchaseOrde
                             <Separator className="mt-4" />
                         </section>
                     </div>
+                    </div>
                 </div>
-                    </ScrollArea>
                 </DialogContent>
             </Dialog>
 

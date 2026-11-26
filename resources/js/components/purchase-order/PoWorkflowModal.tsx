@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from '@/lib/utils';
 import DatePicker from '@/components/date-picker';
-import { Plus, Trash2, Mail, Lock, X, Check, ChevronsUpDown, FileSpreadsheet, Info, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, Mail, Phone, Lock, X, Check, ChevronsUpDown, FileSpreadsheet, Info, AlertTriangle, ExternalLink, Maximize2, Minimize2, CheckCircle2, Bell } from 'lucide-react';
+import { getTodayDateString } from '@/lib/date';
 import { auditLogsHighlight } from '@/pages/audit-logs/auditLogsHighlight';
 import {
     Select,
@@ -121,11 +122,20 @@ function Field({
     title,
     disabled,
 }: FieldProps) {
+    const isTodayValue = type === 'date' && Boolean(value) && value === getTodayDateString();
+
     return (
         <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground" htmlFor={name}>
-                {label} {required && <span className="text-red-500">*</span>}
-            </label>
+            <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground flex items-center gap-1.5" htmlFor={name}>
+                    <span>{label}</span> {required && <span className="text-red-500">*</span>}
+                    {isTodayValue && (
+                        <span className="text-[11px] font-medium text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-neutral-700">
+                            Today
+                        </span>
+                    )}
+                </label>
+            </div>
             {type === 'date' ? (
                 <DatePicker
                     id={name}
@@ -318,6 +328,145 @@ function SearchableSelect({
     );
 }
 
+interface NotificationCardProps {
+    title: string;
+    description?: string;
+    notifiedDate?: string;
+    notifiedVia?: string;
+    onNotifiedDateChange: (val: string) => void;
+    onNotifiedViaChange: (val: string) => void;
+    onNotify: () => void;
+    isNotified: boolean;
+    processing: boolean;
+    errorDate?: string;
+    errorVia?: string;
+    disabled?: boolean;
+    buttonLabel?: string;
+}
+
+function NotificationCard({
+    title,
+    description,
+    notifiedDate,
+    notifiedVia,
+    onNotifiedDateChange,
+    onNotifiedViaChange,
+    onNotify,
+    isNotified,
+    processing,
+    errorDate,
+    errorVia,
+    disabled,
+    buttonLabel = 'Notify Office',
+}: NotificationCardProps) {
+    const [contactMethod, setContactMethod] = useState<'email' | 'phone'>(() => {
+        if (notifiedVia && !notifiedVia.includes('@') && /^[0-9+\s\-()]+$/.test(notifiedVia)) {
+            return 'phone';
+        }
+        return 'email';
+    });
+
+    return (
+        <div className="rounded-lg border p-4 bg-muted/20 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-2">
+                <div>
+                    <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <Mail className="size-3.5 text-primary" />
+                        {title}
+                    </h5>
+                    {description && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>
+                    )}
+                </div>
+                {isNotified && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 self-start sm:self-auto">
+                        <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>Notified on {notifiedDate || getTodayDateString()}</span>
+                    </div>
+                )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                {/* Contact Method & Recipient Field */}
+                <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                        <label className="text-xs font-medium text-foreground">Contact Method</label>
+                        <div className="inline-flex items-center rounded border border-border p-0.5 bg-muted/60 text-[11px]">
+                            <button
+                                type="button"
+                                onClick={() => setContactMethod('email')}
+                                className={cn(
+                                    "px-2 py-0.5 rounded transition-colors cursor-pointer",
+                                    contactMethod === 'email'
+                                        ? "bg-background text-foreground shadow-xs font-semibold"
+                                        : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                Email
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setContactMethod('phone')}
+                                className={cn(
+                                    "px-2 py-0.5 rounded transition-colors cursor-pointer",
+                                    contactMethod === 'phone'
+                                        ? "bg-background text-foreground shadow-xs font-semibold"
+                                        : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                Phone
+                            </button>
+                        </div>
+                    </div>
+                    <Input
+                        type={contactMethod === 'email' ? 'email' : 'text'}
+                        value={notifiedVia ?? ''}
+                        onChange={(e) => onNotifiedViaChange(e.target.value)}
+                        placeholder={
+                            contactMethod === 'email'
+                                ? "Enter email (e.g. office@smu.edu.ph)"
+                                : "Enter phone (e.g. 0917-123-4567)"
+                        }
+                        disabled={disabled}
+                        className={cn("h-9", errorVia && 'border-red-500')}
+                    />
+                    {errorVia && <p className="text-[11px] font-medium text-red-500">{errorVia}</p>}
+                </div>
+
+                {/* Notified Date */}
+                <div className="space-y-1">
+                    <Field
+                        label="Notified Date"
+                        name="notified_date"
+                        type="date"
+                        value={notifiedDate}
+                        onChange={(e: any) => onNotifiedDateChange(e.target.value)}
+                        error={errorDate}
+                        disabled={disabled}
+                    />
+                </div>
+
+                {/* Action Button */}
+                <div className="flex flex-col justify-end">
+                    <Button
+                        type="button"
+                        variant={isNotified ? "outline" : "default"}
+                        onClick={onNotify}
+                        disabled={disabled || processing}
+                        className={cn(
+                            "w-full gap-2 h-9",
+                            !isNotified && "bg-primary text-primary-foreground hover:bg-primary/90"
+                        )}
+                    >
+                        {contactMethod === 'email' ? <Mail className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
+                        {buttonLabel}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 const STEPS = [
     'PO From VPAD',
     'End User',
@@ -353,7 +502,9 @@ export default function PoWorkflowModal({
     const clearErrors = (field: string) => setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
     const { handleBlur, handleChange: handleValidationChange } = useNativeValidation(errors, setError, clearErrors);
     const [processing, setProcessing] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const [activeTab, setActiveTab] = useState('PO From VPAD');
+    const [notifiedSteps, setNotifiedSteps] = useState<Record<string, boolean>>({});
     const [dvTemplate, setDvTemplate] = useState<string>('ld_only');
     const [ldAmount, setLdAmount] = useState<string>('');
     const [ldError, setLdError] = useState<string | null>(null);
@@ -362,6 +513,10 @@ export default function PoWorkflowModal({
     const [hasDeliveryRecord, setHasDeliveryRecord] = useState<boolean>(() =>
         Boolean(purchaseOrder?.has_delivery_record ?? (purchaseOrder?.deliveries && purchaseOrder.deliveries.length > 0))
     );
+    const [releaseNotices, setReleaseNotices] = useState<Array<{ date: string; method: string; contact: string; created_at?: string }>>([]);
+    const [releaseMethod, setReleaseMethod] = useState<'email' | 'phone'>('email');
+    const [releaseNoticeDate, setReleaseNoticeDate] = useState<string>(getTodayDateString());
+    const [releaseContact, setReleaseContact] = useState<string>('');
 
     const poTotal = Number(purchaseOrder?.total_amount_po ?? 0);
     const deliveryCount = Number(purchaseOrder?.delivery_count ?? 0);
@@ -375,7 +530,6 @@ export default function PoWorkflowModal({
     const isRetentionValid = !isRetentionInputted || (!isNaN(Number(retentionAmount)) && Number(retentionAmount) >= 0 && Number(retentionAmount) <= poTotal && !retentionError);
 
     const isDateCompletedFilled = Boolean(data.date_completed) || Boolean(purchaseOrder?.date_completed);
-
     const isDvAccessible = hasDeliveryRecord;
 
     const canExport = isDvAccessible && (dvTemplate === 'neither'
@@ -448,6 +602,16 @@ export default function PoWorkflowModal({
         }
     };
 
+    const handleTemplateChange = (template: string) => {
+        setDvTemplate(template);
+        setData((prev: any) => ({ ...prev, dv_template: template }));
+        if ((template === 'retention_only' || template === 'ld_and_retention') && retentionAmount.trim() === '' && poTotal > 0) {
+            const onePercent = (poTotal * 0.01).toFixed(2);
+            setRetentionAmount(onePercent);
+            setData((prev: any) => ({ ...prev, retention_amount: onePercent }));
+        }
+    };
+
     const handleExportDv = async () => {
         if (!purchaseOrder?.po_number) return;
         if (!hasDeliveryRecord) {
@@ -501,16 +665,6 @@ export default function PoWorkflowModal({
         window.location.href = `/purchase-orders/${encodeURIComponent(purchaseOrder.po_number)}/export-dv?${params.toString()}`;
     };
 
-    const handleTemplateChange = (template: string) => {
-        setDvTemplate(template);
-        setData((prev: any) => ({ ...prev, dv_template: template }));
-        if ((template === 'retention_only' || template === 'ld_and_retention') && retentionAmount.trim() === '' && poTotal > 0) {
-            const onePercent = (poTotal * 0.01).toFixed(2);
-            setRetentionAmount(onePercent);
-            setData((prev: any) => ({ ...prev, retention_amount: onePercent }));
-        }
-    };
-
     const [itemDescList, setItemDescList] = useState<string[]>(() => {
         return Array.from(new Set([...DEFAULT_ITEM_DESCRIPTIONS, ...(itemDescriptions || [])]));
     });
@@ -556,6 +710,27 @@ export default function PoWorkflowModal({
                     .catch(() => {});
             }
 
+            const initialNotices: Array<{ date: string; method: string; contact: string; created_at?: string }> =
+                purchaseOrder.release_notices && Array.isArray(purchaseOrder.release_notices) && purchaseOrder.release_notices.length > 0
+                    ? purchaseOrder.release_notices
+                    : (purchaseOrder.receipt_claimed_notified_date
+                        ? [{
+                            date: toDateInputValue(purchaseOrder.receipt_claimed_notified_date),
+                            method: (purchaseOrder.receipt_claimed_notified_via && purchaseOrder.receipt_claimed_notified_via.includes('@')) ? 'Email' : 'Phone Number',
+                            contact: purchaseOrder.receipt_claimed_notified_via || '',
+                            created_at: purchaseOrder.receipt_claimed_notified_date,
+                        }]
+                        : []);
+            setReleaseNotices(initialNotices);
+            setReleaseContact(purchaseOrder.receipt_claimed_notified_via || purchaseOrder.office?.email || '');
+            setReleaseNoticeDate(getTodayDateString());
+
+            setNotifiedSteps({
+                'PO From VPAD': Boolean(purchaseOrder.po_vpad_notified_date),
+                'For COA Stamp': Boolean(purchaseOrder.coa_stamp_notified_date),
+                'For Release': Boolean(purchaseOrder.receipt_claimed_notified_date || (initialNotices && initialNotices.length > 0)),
+            });
+
             const initialLd = purchaseOrder.ld_amount != null ? String(purchaseOrder.ld_amount) : '';
             const rawTemplate = purchaseOrder.dv_template || '';
             const initialTemplate = (rawTemplate === 'ld_and_retention' || rawTemplate === 'both') ? 'ld_only' : rawTemplate;
@@ -568,6 +743,7 @@ export default function PoWorkflowModal({
             setDvTemplate(initialTemplate || 'ld_only');
             setLdError(null);
             setRetentionError(null);
+
             setData({
                 po_number: purchaseOrder.po_number || '',
                 po_step: purchaseOrder.po_step || 'PO From VPAD',
@@ -575,12 +751,14 @@ export default function PoWorkflowModal({
                 operational_impact: purchaseOrder.operational_impact || '',
                 po_received_date: toDateInputValue(purchaseOrder.po_received_date),
                 po_vpad_forwarded_by: purchaseOrder.po_vpad_forwarded_by || '',
-                date_forwarded_to_end_user: toDateInputValue(purchaseOrder.date_forwarded_to_end_user),
+                date_forwarded_to_end_user: toDateInputValue(purchaseOrder.date_forwarded_to_end_user) || getTodayDateString(),
+                end_user_forwarded_by: purchaseOrder.end_user_forwarded_by || '',
                 date_forwarded_supplier: toDateInputValue(purchaseOrder.date_forwarded_supplier),
                 forwarded_by_supplier: purchaseOrder.forwarded_by_supplier || '',
                 claimed_by_supplier: purchaseOrder.claimed_by_supplier || '',
                 supplier_signature_date: toDateInputValue(purchaseOrder.supplier_signature_date),
-                date_forwarded_coa: toDateInputValue(purchaseOrder.date_forwarded_coa),
+                date_forwarded_coa: toDateInputValue(purchaseOrder.date_forwarded_coa) || getTodayDateString(),
+                forwarded_by_coa: purchaseOrder.forwarded_by_coa || '',
                 date_returned_from_coa: toDateInputValue(purchaseOrder.date_returned_from_coa),
                 coa_date: toDateInputValue(purchaseOrder.coa_date),
                 coa_processed_date: toDateInputValue(purchaseOrder.coa_processed_date),
@@ -592,15 +770,14 @@ export default function PoWorkflowModal({
                 coa_stamp_notified_via: purchaseOrder.coa_stamp_notified_via || '',
                 receipt_claimed_notified_date: toDateInputValue(purchaseOrder.receipt_claimed_notified_date),
                 receipt_claimed_notified_via: purchaseOrder.receipt_claimed_notified_via || '',
-                date_received_by_supplier: toDateInputValue(purchaseOrder.date_received_by_supplier),
-                receipt_receiving_date: toDateInputValue(purchaseOrder.receipt_receiving_date),
+                receipt_receiving_date: toDateInputValue(purchaseOrder.receipt_receiving_date || purchaseOrder.date_received_by_supplier) || getTodayDateString(),
                 receipt_claimed_by: purchaseOrder.receipt_claimed_by || '',
                 items_receiving_date: toDateInputValue(purchaseOrder.items_receiving_date),
                 items_claimed_by: purchaseOrder.items_claimed_by || '',
                 payment_status: purchaseOrder.payment_status || '',
                 ld_amount: initialLd,
                 retention_amount: initialRetention,
-                dv_template: purchaseOrder.dv_template || '',
+                dv_template: purchaseOrder.dv_template || initialTemplate || 'ld_only',
                 workflow_remarks: purchaseOrder.workflow_remarks || '',
                 invoice_number: purchaseOrder.invoice_number || '',
                 invoice_date: toDateInputValue(purchaseOrder.invoice_date),
@@ -609,6 +786,7 @@ export default function PoWorkflowModal({
                 ris_number: purchaseOrder.ris_number || '',
                 date_completed: toDateInputValue(purchaseOrder.date_completed),
                 date_forwarded_to_finance: toDateInputValue(purchaseOrder.date_forwarded_to_finance),
+                finance_forwarded_by: purchaseOrder.finance_forwarded_by || '',
                 inspection_groups: groupInspectionEntries(purchaseOrder.inspection_entries),
             });
             let stepToSet = purchaseOrder.po_step === "For Supplier's Signature" 
@@ -765,18 +943,27 @@ export default function PoWorkflowModal({
         ],
         'End User': [
             { name: 'date_forwarded_to_end_user', label: 'Date Forwarded to End User', required: true },
+            { name: 'end_user_forwarded_by', label: 'Forwarded By / Claimed By', pattern: PATTERNS.nameOrOffice, message: MESSAGES.names },
         ],
         'For COA Stamp': [
             { name: 'supplier_signature_date', label: 'Supplier Signature Date', required: true },
             { name: 'coa_date', label: 'COA Date', required: true },
             { name: 'claimed_by_coa', label: 'Claimed By (COA)', pattern: PATTERNS.nameOrOffice, message: MESSAGES.names },
+            { name: 'forwarded_by_coa', label: 'Forwarded By (COA)', pattern: PATTERNS.nameOrOffice, message: MESSAGES.names },
             { name: 'coa_stamp_notified_via', label: 'Notified via Email or Number', pattern: PATTERNS.contactInfo, message: MESSAGES.contactInfo },
         ],
         'For Release': [
-            { name: 'date_received_by_supplier', label: 'Date Received by Supplier', required: true },
+            { name: 'receipt_receiving_date', label: 'Receipt Receiving Date', required: true },
             { name: 'receipt_claimed_by', label: 'Receipt Claimed By', pattern: PATTERNS.nameOrOffice, message: MESSAGES.names },
             { name: 'items_claimed_by', label: 'Items Claimed By', pattern: PATTERNS.nameOrOffice, message: MESSAGES.names },
-            { name: 'receipt_claimed_notified_via', label: 'Notified via Email or Number', pattern: PATTERNS.contactInfo, message: MESSAGES.contactInfo },
+            {
+                name: 'par_ics_number',
+                label: poTotal < 50000 ? 'ICS Number' : 'PAR Number',
+                required: true,
+                pattern: PATTERNS.parIcsMultiRef,
+                message: MESSAGES.parIcsMultiRef,
+            },
+            { name: 'ris_number', label: 'RIS / IRS Number', pattern: PATTERNS.risMultiRef, message: MESSAGES.risMultiRef },
         ],
         'Payment Processing': [
             { name: 'date_completed', label: 'Date Completed', required: true },
@@ -808,16 +995,46 @@ export default function PoWorkflowModal({
         });
 
         if (stepName === 'For Release') {
-            data.inspection_groups?.forEach((group: any, gIdx: number) => {
-                if (group.iar_number?.trim() && !PATTERNS.iarNumber.test(group.iar_number.trim())) {
-                    stepErrors[`inspection_groups.${gIdx}.iar_number`] = MESSAGES.numbersOnly;
-                }
-                group.inspectors?.forEach((inspector: string, iIdx: number) => {
-                    if (inspector?.trim() && !PATTERNS.nameOrOffice.test(inspector.trim())) {
-                        stepErrors[`inspection_groups.${gIdx}.inspectors.${iIdx}`] = MESSAGES.names;
+            const propertySlipVal = (data.par_ics_number ?? '').toString().trim();
+            if (!propertySlipVal) {
+                stepErrors['par_ics_number'] = poTotal < 50000
+                    ? 'ICS Number is required for items under ₱50,000.'
+                    : 'PAR Number is required for items ₱50,000 and above.';
+            } else if (!PATTERNS.parIcsMultiRef.test(propertySlipVal)) {
+                stepErrors['par_ics_number'] = MESSAGES.parIcsMultiRef;
+            }
+
+            const groups = data.inspection_groups || [];
+            if (groups.length === 0) {
+                stepErrors['inspection_groups'] = 'Inspection details (IAR Number, Inspector Name, and Date) are required.';
+            } else {
+                groups.forEach((group: any, gIdx: number) => {
+                    const iarVal = (group.iar_number ?? '').toString().trim();
+                    if (!iarVal) {
+                        stepErrors[`inspection_groups.${gIdx}.iar_number`] = 'IAR Number is required.';
+                    } else if (!PATTERNS.iarNumber.test(iarVal)) {
+                        stepErrors[`inspection_groups.${gIdx}.iar_number`] = MESSAGES.numbersOnly;
+                    }
+
+                    const validInspectors = (group.inspectors || []).filter((i: string) => i && i.trim() !== '');
+                    if (validInspectors.length === 0) {
+                        stepErrors[`inspection_groups.${gIdx}.inspectors.0`] = 'Inspector name is required.';
+                    } else {
+                        group.inspectors?.forEach((inspector: string, iIdx: number) => {
+                            if (!inspector?.trim()) {
+                                stepErrors[`inspection_groups.${gIdx}.inspectors.${iIdx}`] = 'Inspector name is required.';
+                            } else if (!PATTERNS.nameOrOffice.test(inspector.trim())) {
+                                stepErrors[`inspection_groups.${gIdx}.inspectors.${iIdx}`] = MESSAGES.names;
+                            }
+                        });
+                    }
+
+                    const validDates = (group.inspection_dates || []).filter((d: string) => d && d.trim() !== '');
+                    if (validDates.length === 0) {
+                        stepErrors[`inspection_groups.${gIdx}.inspection_dates.0`] = 'Inspection date is required.';
                     }
                 });
-            });
+            }
         }
 
         if (stepName === 'Disbursement Voucher') {
@@ -844,37 +1061,33 @@ export default function PoWorkflowModal({
         return Object.keys(stepErrors).length === 0 && !hasExistingErrors;
     };
 
+    const isNotifyRequired = (stepName: string) => {
+        return ['PO From VPAD', 'For COA Stamp', 'For Release'].includes(stepName);
+    };
+
+    const isNotifyDone = (stepName: string) => {
+        if (stepName === 'PO From VPAD') {
+            return Boolean(notifiedSteps['PO From VPAD'] || data.po_vpad_notified_date || purchaseOrder?.po_vpad_notified_date);
+        }
+        if (stepName === 'For COA Stamp') {
+            return Boolean(notifiedSteps['For COA Stamp'] || data.coa_stamp_notified_date || purchaseOrder?.coa_stamp_notified_date);
+        }
+        if (stepName === 'For Release') {
+            return Boolean(
+                notifiedSteps['For Release'] ||
+                data.receipt_claimed_notified_date ||
+                purchaseOrder?.receipt_claimed_notified_date ||
+                (releaseNotices && releaseNotices.length > 0)
+            );
+        }
+        return true;
+    };
+
     const isStepDone = (stepName: string) =>
         (activeTab !== stepName && isStepSavedAsDone(stepName)) || validateStep(stepName, false);
 
-    const handleNextStep = () => {
-        if (!validateStep(activeTab, true)) return;
-        const currentIdx = STEPS.indexOf(activeTab);
-        if (currentIdx < STEPS.length - 1) {
-            const nextStep = STEPS[currentIdx + 1];
-            setActiveTab(nextStep);
-            handleSelectChange('po_step')(nextStep);
-        }
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        const currentIdx = STEPS.indexOf(activeTab);
-        for (let i = 0; i <= currentIdx; i++) {
-            if (!validateStep(STEPS[i], true)) {
-                setActiveTab(STEPS[i]);
-                return;
-            }
-        }
-
-        if (activeTab === 'Disbursement Voucher' && ldAmount.trim() !== '' && !validateLdAmount(ldAmount)) {
-            setActiveTab('Disbursement Voucher');
-            return;
-        }
-
-        setProcessing(true);
-
+    const buildWorkflowPayload = (targetNextStep: string, currentStepToLock: string) => {
+        const currentIdx = STEPS.indexOf(currentStepToLock);
         const now = new Date().toISOString();
         const updatedLockedSteps: Record<string, string> = {
             ...(purchaseOrder?.locked_steps || {}),
@@ -887,14 +1100,11 @@ export default function PoWorkflowModal({
             }
         }
 
-        const nextStep = currentIdx < STEPS.length - 1 ? STEPS[currentIdx + 1] : activeTab;
-
-        const payload = {
+        const payload: any = {
             ...data,
-            workflow_step: activeTab,
-            po_step: nextStep,
+            workflow_step: currentStepToLock,
+            po_step: targetNextStep,
             locked_steps: updatedLockedSteps,
-            ld_amount: ldAmount.trim() !== '' ? Number(ldAmount) : null,
             inspection_entries: (data.inspection_groups || []).flatMap((group: any) => {
                 const inspectors = (group.inspectors || []).filter((v: string) => v.trim() !== '');
                 const dates = (group.inspection_dates || []).filter((v: string) => v.trim() !== '');
@@ -914,31 +1124,81 @@ export default function PoWorkflowModal({
                 );
             }),
         };
-        delete (payload as any).inspection_groups;
+        delete payload.inspection_groups;
 
-        // If no delivery record exists or inspection is not completed or the user is saving a step prior to Disbursement Voucher,
-        // do not send unconfigured/defaulted DV fields that would trigger backend validation.
-        if (!isDvAccessible || activeTab !== 'Disbursement Voucher') {
+        if (!isDvAccessible || currentStepToLock !== 'Disbursement Voucher') {
             if (purchaseOrder?.dv_template) {
                 payload.dv_template = purchaseOrder.dv_template;
             } else {
-                delete (payload as any).dv_template;
+                delete payload.dv_template;
             }
             if (purchaseOrder?.ld_amount != null) {
                 payload.ld_amount = purchaseOrder.ld_amount;
             } else {
-                delete (payload as any).ld_amount;
+                delete payload.ld_amount;
             }
             if (purchaseOrder?.retention_amount != null) {
                 payload.retention_amount = purchaseOrder.retention_amount;
             } else {
-                delete (payload as any).retention_amount;
+                delete payload.retention_amount;
             }
         } else {
             payload.dv_template = dvTemplate;
             payload.ld_amount = ldAmount.trim() !== '' ? Number(ldAmount) : null;
             payload.retention_amount = retentionAmount.trim() !== '' ? Number(retentionAmount) : null;
         }
+
+        return payload;
+    };
+
+    const handleNextStep = () => {
+        if (!validateStep(activeTab, true)) return;
+        if (!isNotifyDone(activeTab)) return;
+
+        const currentIdx = STEPS.indexOf(activeTab);
+        if (currentIdx >= STEPS.length - 1) return;
+        const nextStep = STEPS[currentIdx + 1];
+
+        setProcessing(true);
+        const payload = buildWorkflowPayload(nextStep, activeTab);
+
+        router.put(`/purchase-orders/${purchaseOrder.po_number}`, payload, {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setActiveTab(nextStep);
+                setData((prev: any) => ({ ...prev, po_step: nextStep }));
+                setProcessing(false);
+            },
+            onError: (errs) => {
+                setProcessing(false);
+                setErrors(errs);
+            },
+            onFinish: () => {
+                setProcessing(false);
+            }
+        });
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        const currentIdx = STEPS.indexOf(activeTab);
+        for (let i = 0; i <= currentIdx; i++) {
+            if (!validateStep(STEPS[i], true)) {
+                setActiveTab(STEPS[i]);
+                return;
+            }
+        }
+
+        if (activeTab === 'Disbursement Voucher' && ldAmount.trim() !== '' && !validateLdAmount(ldAmount)) {
+            setActiveTab('Disbursement Voucher');
+            return;
+        }
+
+        setProcessing(true);
+        const nextStep = currentIdx < STEPS.length - 1 ? STEPS[currentIdx + 1] : activeTab;
+        const payload = buildWorkflowPayload(nextStep, activeTab);
 
         router.put(`/purchase-orders/${purchaseOrder.po_number}`, payload, {
             onSuccess: () => {
@@ -956,48 +1216,107 @@ export default function PoWorkflowModal({
     };
 
     const handleNotifyOffice = () => {
+        const today = getTodayDateString();
+        const contactVal = data.po_vpad_notified_via || purchaseOrder?.office?.email || '';
+        setNotifiedSteps((prev) => ({ ...prev, 'PO From VPAD': true }));
+        setData((prev: any) => ({
+            ...prev,
+            po_vpad_notified_date: today,
+            po_vpad_notified_via: contactVal || prev.po_vpad_notified_via,
+        }));
         setProcessing(true);
         router.post(`/purchase-orders/${purchaseOrder.po_number}/notify-office`, {
-            email: data.po_vpad_notified_via
+            email: contactVal,
+            contact: contactVal,
         }, {
+            preserveState: true,
+            preserveScroll: true,
             onSuccess: () => {
-                setData((prev: any) => ({ ...prev, po_vpad_notified_date: new Date().toISOString().split('T')[0] }));
+                setData((prev: any) => ({ ...prev, po_vpad_notified_date: today }));
                 setProcessing(false);
             },
             onError: (errs) => {
                 setErrors(errs);
+                setProcessing(false);
+            },
+            onFinish: () => {
                 setProcessing(false);
             }
         });
     };
 
     const handleNotifyCoa = () => {
+        const today = getTodayDateString();
+        const contactVal = data.coa_stamp_notified_via || purchaseOrder?.office?.email || '';
+        setNotifiedSteps((prev) => ({ ...prev, 'For COA Stamp': true }));
+        setData((prev: any) => ({
+            ...prev,
+            coa_stamp_notified_date: today,
+            coa_stamp_notified_via: contactVal || prev.coa_stamp_notified_via,
+        }));
         setProcessing(true);
         router.post(`/purchase-orders/${purchaseOrder.po_number}/notify-coa`, {
-            email: data.coa_stamp_notified_via
+            email: contactVal,
+            contact: contactVal,
         }, {
+            preserveState: true,
+            preserveScroll: true,
             onSuccess: () => {
-                setData((prev: any) => ({ ...prev, coa_stamp_notified_date: new Date().toISOString().split('T')[0] }));
+                setData((prev: any) => ({ ...prev, coa_stamp_notified_date: today }));
                 setProcessing(false);
             },
             onError: (errs) => {
                 setErrors(errs);
+                setProcessing(false);
+            },
+            onFinish: () => {
                 setProcessing(false);
             }
         });
     };
 
     const handleNotifyRelease = () => {
+        const today = getTodayDateString();
+        const targetContact = releaseContact.trim() || data.receipt_claimed_notified_via?.trim() || purchaseOrder?.office?.email || '';
+        if (!targetContact) {
+            setError('receipt_claimed_notified_via', 'Please enter an email or phone number to notify the end user.');
+            return;
+        }
+        clearErrors('receipt_claimed_notified_via');
+
+        const noticeDateVal = releaseNoticeDate || today;
+        const methodLabel = releaseMethod === 'email' ? 'Email' : 'Phone Number';
+
         setProcessing(true);
         router.post(`/purchase-orders/${purchaseOrder.po_number}/notify-release`, {
-            email: data.receipt_claimed_notified_via
+            email: targetContact,
+            contact: targetContact,
+            method: methodLabel,
+            date: noticeDateVal,
         }, {
+            preserveState: true,
+            preserveScroll: true,
             onSuccess: () => {
-                setData((prev: any) => ({ ...prev, receipt_claimed_notified_date: new Date().toISOString().split('T')[0] }));
+                const newNotice = {
+                    date: noticeDateVal,
+                    method: methodLabel,
+                    contact: targetContact,
+                    created_at: new Date().toISOString(),
+                };
+                setReleaseNotices((prev) => [...prev, newNotice]);
+                setNotifiedSteps((prev) => ({ ...prev, 'For Release': true }));
+                setData((prev: any) => ({
+                    ...prev,
+                    receipt_claimed_notified_date: noticeDateVal,
+                    receipt_claimed_notified_via: targetContact,
+                }));
                 setProcessing(false);
             },
             onError: (errs) => {
                 setErrors(errs);
+                setProcessing(false);
+            },
+            onFinish: () => {
                 setProcessing(false);
             }
         });
@@ -1008,7 +1327,12 @@ export default function PoWorkflowModal({
             case 'PO From VPAD': return !!purchaseOrder?.po_received_date;
             case 'End User': return !!purchaseOrder?.date_forwarded_to_end_user;
             case 'For COA Stamp': return !!purchaseOrder?.coa_date;
-            case 'For Release': return !!purchaseOrder?.date_received_by_supplier;
+            case 'For Release':
+                return Boolean(
+                    purchaseOrder?.receipt_receiving_date ||
+                    purchaseOrder?.date_received_by_supplier ||
+                    purchaseOrder?.par_ics_number
+                );
             case 'Payment Processing': return !!purchaseOrder?.date_completed;
             case 'Forwarded to Finance': return !!purchaseOrder?.date_forwarded_to_finance;
             case 'Disbursement Voucher': return Boolean(purchaseOrder?.locked_steps?.['Disbursement Voucher']);
@@ -1063,13 +1387,31 @@ export default function PoWorkflowModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[98vw] sm:max-w-[1400px] max-h-[95vh] overflow-hidden p-0 bg-background">
-                <ScrollArea className="max-h-[95vh] w-full">
-                    <div className="p-6">
+            <DialogContent
+                className={cn(
+                    "p-0 overflow-hidden bg-background transition-all duration-200 flex flex-col",
+                    isFullscreen
+                        ? "!fixed !inset-0 !top-0 !left-0 !translate-x-0 !translate-y-0 !w-screen !h-screen !max-w-none !max-h-none !rounded-none !border-0 z-50"
+                        : "w-[98vw] sm:max-w-[1400px] max-h-[95vh] rounded-lg border shadow-lg"
+                )}
+            >
+                <div className={cn("w-full overflow-y-auto min-h-0", isFullscreen ? "flex-1 h-full" : "max-h-[95vh]")}>
+                    <div className={cn("p-6", isFullscreen && "max-w-7xl mx-auto w-full")}>
                         <DialogHeader>
-                            <DialogTitle className="text-xl">
-                                Workflow Tracking — {purchaseOrder?.po_number}
-                            </DialogTitle>
+                            <div className="flex items-center justify-between pr-8">
+                                <DialogTitle className="text-xl">
+                                    Workflow Tracking — {purchaseOrder?.po_number}
+                                </DialogTitle>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsFullscreen(!isFullscreen)}
+                                    className="rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 p-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                                    title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                                >
+                                    {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+                                    <span className="sr-only">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
+                                </button>
+                            </div>
                         </DialogHeader>
 
                         {purchaseOrder?.has_cancelled_delivery && (
@@ -1304,251 +1646,441 @@ export default function PoWorkflowModal({
                                                 pattern={PATTERNS.nameOrOffice.source}
                                                 title={MESSAGES.names}
                                             />
-                                            <Field
-                                                label="Notified Date"
-                                                name="po_vpad_notified_date"
-                                                type="date"
-                                                value={data.po_vpad_notified_date}
-                                                onChange={handleChange}
-                                                error={errors.po_vpad_notified_date}
-                                            />
-                                            <Field
-                                                label="Notified via Email or Number"
-                                                name="po_vpad_notified_via"
-                                                value={data.po_vpad_notified_via}
-                                                onChange={handleChange}
-                                                error={errors.po_vpad_notified_via}
-                                                placeholder="Enter email or number"
-                                                pattern={PATTERNS.contactInfo.source}
-                                                title={MESSAGES.contactInfo}
-                                            />
-                                            <div className="flex flex-col justify-end">
-                                                <p className="text-xs text-muted-foreground font-medium uppercase mb-2">Email OVPAD</p>
-                                                <Button 
-                                                    type="button" 
-                                                    variant="outline" 
-                                                    onClick={handleNotifyOffice}
-                                                    disabled={processing}
-                                                    className="w-full gap-2 h-9 border-border text-foreground hover:bg-muted"
-                                                >
-                                                    <Mail className="h-4 w-4" />
-                                                    Notify Office
-                                                </Button>
-                                            </div>
                                         </div>
+
+                                        <NotificationCard
+                                            title="Office Notification (VPAD)"
+                                            description="Notify the VPAD office via Email or Phone Number."
+                                            notifiedDate={data.po_vpad_notified_date}
+                                            notifiedVia={data.po_vpad_notified_via}
+                                            onNotifiedDateChange={(val) => setData((prev: any) => ({ ...prev, po_vpad_notified_date: val }))}
+                                            onNotifiedViaChange={(val) => setData((prev: any) => ({ ...prev, po_vpad_notified_via: val }))}
+                                            onNotify={handleNotifyOffice}
+                                            isNotified={Boolean(notifiedSteps['PO From VPAD'] || data.po_vpad_notified_date)}
+                                            processing={processing}
+                                            errorDate={errors.po_vpad_notified_date}
+                                            errorVia={errors.po_vpad_notified_via}
+                                            disabled={isStepLocked('PO From VPAD')}
+                                            buttonLabel="Notify Office"
+                                        />
                                     </div>
                                 )}
 
                                 {/* 1. End User */}
                                 {activeTab === 'End User' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <Field
-                                            label="Date Forwarded to End User"
-                                            name="date_forwarded_to_end_user"
-                                            type="date"
-                                            value={data.date_forwarded_to_end_user}
-                                            onChange={handleChange}
-                                            error={errors.date_forwarded_to_end_user}
-                                            required={true}
-                                        />
+                                    <div className="space-y-6 animate-in fade-in duration-300">
+                                        <div className="rounded-lg border p-5 bg-card space-y-4">
+                                            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2 border-b border-border/60 pb-2">
+                                                End-User Hand-Off & Claim Tracking
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <Field
+                                                    label="Date Forwarded to End User"
+                                                    name="date_forwarded_to_end_user"
+                                                    type="date"
+                                                    value={data.date_forwarded_to_end_user}
+                                                    onChange={handleChange}
+                                                    error={errors.date_forwarded_to_end_user}
+                                                    required={true}
+                                                />
+                                                <Field
+                                                    label="Forwarded By / Claimed By"
+                                                    name="end_user_forwarded_by"
+                                                    value={data.end_user_forwarded_by}
+                                                    onChange={handleChange}
+                                                    error={errors.end_user_forwarded_by}
+                                                    placeholder="Enter officer or recipient name"
+                                                    pattern={PATTERNS.nameOrOffice.source}
+                                                    title={MESSAGES.names}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
 
                                 {/* 3. For COA Stamp */}
                                 {activeTab === 'For COA Stamp' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <Field
-                                            label="Supplier Signature Date"
-                                            name="supplier_signature_date"
-                                            type="date"
-                                            value={data.supplier_signature_date}
-                                            onChange={handleChange}
-                                            error={errors.supplier_signature_date}
-                                            required={true}
-                                        />
-                                        <Field
-                                            label="Date Forwarded to COA"
-                                            name="date_forwarded_coa"
-                                            type="date"
-                                            value={data.date_forwarded_coa}
-                                            onChange={handleChange}
-                                            error={errors.date_forwarded_coa}
-                                        />
-                                        <Field
-                                            label="Date Returned from COA"
-                                            name="date_returned_from_coa"
-                                            type="date"
-                                            value={data.date_returned_from_coa}
-                                            onChange={handleChange}
-                                            error={errors.date_returned_from_coa}
-                                        />
-                                        <Field
-                                            label="COA Date"
-                                            name="coa_date"
-                                            type="date"
-                                            value={data.coa_date}
-                                            onChange={handleChange}
-                                            error={errors.coa_date}
-                                            required={true}
-                                        />
-                                        <Field
-                                            label="COA Processed Date"
-                                            name="coa_processed_date"
-                                            type="date"
-                                            value={data.coa_processed_date}
-                                            onChange={handleChange}
-                                            error={errors.coa_processed_date}
-                                        />
-                                        <Field
-                                            label="Claim Date"
-                                            name="claim_date"
-                                            type="date"
-                                            value={data.claim_date}
-                                            onChange={handleChange}
-                                            error={errors.claim_date}
-                                        />
-                                        <Field
-                                            label="Claimed By (COA)"
-                                            name="claimed_by_coa"
-                                            value={data.claimed_by_coa}
-                                            onChange={handleChange}
-                                            error={errors.claimed_by_coa}
-                                            pattern={PATTERNS.nameOrOffice.source}
-                                            title={MESSAGES.names}
-                                        />
-                                        
-                                        {/* Notification Block */}
-                                        <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-border/50">
-                                            <Field
-                                                label="Notified Date"
-                                                name="coa_stamp_notified_date"
-                                                type="date"
-                                                value={data.coa_stamp_notified_date}
-                                                onChange={handleChange}
-                                                error={errors.coa_stamp_notified_date}
-                                            />
-                                            <Field
-                                                label="Notified via Email or Number"
-                                                name="coa_stamp_notified_via"
-                                                value={data.coa_stamp_notified_via}
-                                                onChange={handleChange}
-                                                error={errors.coa_stamp_notified_via}
-                                                placeholder="Enter email or number"
-                                                pattern={PATTERNS.contactInfo.source}
-                                                title={MESSAGES.contactInfo}
-                                            />
-                                            <div className="flex flex-col justify-end">
-                                                <p className="text-xs text-muted-foreground font-medium uppercase mb-2">Email COA</p>
-                                                <Button 
-                                                    type="button" 
-                                                    variant="outline" 
-                                                    onClick={handleNotifyCoa}
-                                                    disabled={processing}
-                                                    className="w-full gap-2 h-9 border-border text-foreground hover:bg-muted"
-                                                >
-                                                    <Mail className="h-4 w-4" />
-                                                    Notify Office
-                                                </Button>
+                                    <div className="space-y-6 animate-in fade-in duration-300">
+                                        {/* Card 1: COA Stamp & Hand-Off */}
+                                        <div className="rounded-lg border p-5 bg-card space-y-4">
+                                            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2 border-b border-border/60 pb-2">
+                                                COA Stamp & Hand-Off
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                <Field
+                                                    label="Supplier Signature Date"
+                                                    name="supplier_signature_date"
+                                                    type="date"
+                                                    value={data.supplier_signature_date}
+                                                    onChange={handleChange}
+                                                    error={errors.supplier_signature_date}
+                                                    required={true}
+                                                />
+                                                <Field
+                                                    label="Date Forwarded to COA"
+                                                    name="date_forwarded_coa"
+                                                    type="date"
+                                                    value={data.date_forwarded_coa}
+                                                    onChange={handleChange}
+                                                    error={errors.date_forwarded_coa}
+                                                />
+                                                <Field
+                                                    label="Forwarded By (COA)"
+                                                    name="forwarded_by_coa"
+                                                    value={data.forwarded_by_coa}
+                                                    onChange={handleChange}
+                                                    error={errors.forwarded_by_coa}
+                                                    placeholder="Enter name"
+                                                    pattern={PATTERNS.nameOrOffice.source}
+                                                    title={MESSAGES.names}
+                                                />
                                             </div>
                                         </div>
+
+                                        {/* Card 2: Receive from COA */}
+                                        <div className="rounded-lg border p-5 bg-card space-y-4">
+                                            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2 border-b border-border/60 pb-2">
+                                                Receive from COA
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                <Field
+                                                    label="Date Returned from COA"
+                                                    name="date_returned_from_coa"
+                                                    type="date"
+                                                    value={data.date_returned_from_coa}
+                                                    onChange={handleChange}
+                                                    error={errors.date_returned_from_coa}
+                                                />
+                                                <Field
+                                                    label="COA Date"
+                                                    name="coa_date"
+                                                    type="date"
+                                                    value={data.coa_date}
+                                                    onChange={handleChange}
+                                                    error={errors.coa_date}
+                                                    required={true}
+                                                />
+                                                <Field
+                                                    label="COA Processed Date"
+                                                    name="coa_processed_date"
+                                                    type="date"
+                                                    value={data.coa_processed_date}
+                                                    onChange={handleChange}
+                                                    error={errors.coa_processed_date}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Card 3: Claim Audit */}
+                                        <div className="rounded-lg border p-5 bg-card space-y-4">
+                                            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2 border-b border-border/60 pb-2">
+                                                Claim Audit
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <Field
+                                                    label="Claim Date"
+                                                    name="claim_date"
+                                                    type="date"
+                                                    value={data.claim_date}
+                                                    onChange={handleChange}
+                                                    error={errors.claim_date}
+                                                />
+                                                <Field
+                                                    label="Claimed By (COA)"
+                                                    name="claimed_by_coa"
+                                                    value={data.claimed_by_coa}
+                                                    onChange={handleChange}
+                                                    error={errors.claimed_by_coa}
+                                                    placeholder="Enter claimant name"
+                                                    pattern={PATTERNS.nameOrOffice.source}
+                                                    title={MESSAGES.names}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Card 4: Office Notification */}
+                                        <NotificationCard
+                                            title="Office Notification (COA)"
+                                            description="Notify COA or office of document hand-off."
+                                            notifiedDate={data.coa_stamp_notified_date}
+                                            notifiedVia={data.coa_stamp_notified_via}
+                                            onNotifiedDateChange={(val) => setData((prev: any) => ({ ...prev, coa_stamp_notified_date: val }))}
+                                            onNotifiedViaChange={(val) => setData((prev: any) => ({ ...prev, coa_stamp_notified_via: val }))}
+                                            onNotify={handleNotifyCoa}
+                                            isNotified={Boolean(notifiedSteps['For COA Stamp'] || data.coa_stamp_notified_date)}
+                                            processing={processing}
+                                            errorDate={errors.coa_stamp_notified_date}
+                                            errorVia={errors.coa_stamp_notified_via}
+                                            disabled={isStepLocked('For COA Stamp')}
+                                            buttonLabel="Notify Office"
+                                        />
                                     </div>
                                 )}
 
                                 {/* 4. For Release */}
                                 {activeTab === 'For Release' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <Field
-                                            label="Date Received by Supplier"
-                                            name="date_received_by_supplier"
-                                            type="date"
-                                            value={data.date_received_by_supplier}
-                                            onChange={handleChange}
-                                            error={errors.date_received_by_supplier}
-                                            required={true}
-                                        />
-                                        <Field
-                                            label="Receipt Receiving Date"
-                                            name="receipt_receiving_date"
-                                            type="date"
-                                            value={data.receipt_receiving_date}
-                                            onChange={handleChange}
-                                            error={errors.receipt_receiving_date}
-                                        />
-                                        <Field
-                                            label="Receipt Claimed By"
-                                            name="receipt_claimed_by"
-                                            value={data.receipt_claimed_by}
-                                            onChange={handleChange}
-                                            error={errors.receipt_claimed_by}
-                                            placeholder="Enter name"
-                                            pattern={PATTERNS.nameOrOffice.source}
-                                            title={MESSAGES.names}
-                                        />
-                                        <Field
-                                            label="Items Receiving Date"
-                                            name="items_receiving_date"
-                                            type="date"
-                                            value={data.items_receiving_date}
-                                            onChange={handleChange}
-                                            error={errors.items_receiving_date}
-                                        />
-                                        <Field
-                                            label="Items Claimed By"
-                                            name="items_claimed_by"
-                                            value={data.items_claimed_by}
-                                            onChange={handleChange}
-                                            error={errors.items_claimed_by}
-                                            placeholder="Enter name"
-                                            pattern={PATTERNS.nameOrOffice.source}
-                                            title={MESSAGES.names}
-                                        />
-                                        
-                                        {/* Notification Block */}
-                                        <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-border/50">
-                                            <Field
-                                                label="Notified Date"
-                                                name="receipt_claimed_notified_date"
-                                                type="date"
-                                                value={data.receipt_claimed_notified_date}
-                                                onChange={handleChange}
-                                                error={errors.receipt_claimed_notified_date}
-                                            />
-                                            <Field
-                                                label="Notified via Email or Number"
-                                                name="receipt_claimed_notified_via"
-                                                value={data.receipt_claimed_notified_via}
-                                                onChange={handleChange}
-                                                error={errors.receipt_claimed_notified_via}
-                                                placeholder="Enter email or number"
-                                                pattern={PATTERNS.contactInfo.source}
-                                                title={MESSAGES.contactInfo}
-                                            />
-                                            <div className="flex flex-col justify-end">
-                                                <p className="text-xs text-muted-foreground font-medium uppercase mb-2">Email Release</p>
-                                                <Button 
-                                                    type="button" 
-                                                    variant="outline" 
-                                                    onClick={handleNotifyRelease}
-                                                    disabled={processing}
-                                                    className="w-full gap-2 h-9 border-border text-foreground hover:bg-muted"
-                                                >
-                                                    <Mail className="h-4 w-4" />
-                                                    Notify Office
-                                                </Button>
+                                    <div className="space-y-6 animate-in fade-in duration-300">
+                                        {/* Card 1: End-User Notification (Support Multiple Notices) */}
+                                        <div className="rounded-lg border p-5 bg-card space-y-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                                        <Bell className="size-4 text-primary" />
+                                                        End-User Notification
+                                                    </h4>
+                                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                                        Notify end-user before releasing items. Log multiple notices if following up several times.
+                                                    </p>
+                                                </div>
+                                                {releaseNotices.length > 0 ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 self-start sm:self-auto">
+                                                        <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                                                        {releaseNotices.length} Notice{releaseNotices.length > 1 ? 's' : ''} Logged
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800 self-start sm:self-auto">
+                                                        Notification Required Before Releasing
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Notification Form */}
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                                                {/* Contact Method & Recipient Field */}
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="text-xs font-medium text-foreground">Contact Method</label>
+                                                        <div className="inline-flex items-center rounded border border-border p-0.5 bg-muted/60 text-[11px]">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setReleaseMethod('email')}
+                                                                className={cn(
+                                                                    "px-2 py-0.5 rounded transition-colors cursor-pointer",
+                                                                    releaseMethod === 'email'
+                                                                        ? "bg-background text-foreground shadow-xs font-semibold"
+                                                                        : "text-muted-foreground hover:text-foreground"
+                                                                )}
+                                                            >
+                                                                Email
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setReleaseMethod('phone')}
+                                                                className={cn(
+                                                                    "px-2 py-0.5 rounded transition-colors cursor-pointer",
+                                                                    releaseMethod === 'phone'
+                                                                        ? "bg-background text-foreground shadow-xs font-semibold"
+                                                                        : "text-muted-foreground hover:text-foreground"
+                                                                )}
+                                                            >
+                                                                Phone
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <Input
+                                                        type={releaseMethod === 'email' ? 'email' : 'text'}
+                                                        value={releaseContact}
+                                                        onChange={(e) => {
+                                                            setReleaseContact(e.target.value);
+                                                            setData((prev: any) => ({ ...prev, receipt_claimed_notified_via: e.target.value }));
+                                                        }}
+                                                        placeholder={
+                                                            releaseMethod === 'email'
+                                                                ? "Enter email (e.g. office@smu.edu.ph)"
+                                                                : "Enter phone (e.g. 0917-123-4567)"
+                                                        }
+                                                        disabled={isStepLocked('For Release')}
+                                                        className={cn("h-9", errors.receipt_claimed_notified_via && 'border-red-500')}
+                                                    />
+                                                    {errors.receipt_claimed_notified_via && (
+                                                        <p className="text-[11px] font-medium text-red-500">{errors.receipt_claimed_notified_via}</p>
+                                                    )}
+                                                </div>
+
+                                                {/* Notice Date */}
+                                                <div className="space-y-1">
+                                                    <Field
+                                                        label="Notice Date"
+                                                        name="release_notice_date"
+                                                        type="date"
+                                                        value={releaseNoticeDate}
+                                                        onChange={(e: any) => setReleaseNoticeDate(e.target.value)}
+                                                        disabled={isStepLocked('For Release')}
+                                                    />
+                                                </div>
+
+                                                {/* Action Button */}
+                                                <div className="flex flex-col justify-end">
+                                                    <Button
+                                                        type="button"
+                                                        variant={releaseNotices.length > 0 ? "outline" : "default"}
+                                                        onClick={handleNotifyRelease}
+                                                        disabled={isStepLocked('For Release') || processing}
+                                                        className={cn(
+                                                            "w-full gap-2 h-9",
+                                                            releaseNotices.length === 0 && "bg-primary text-primary-foreground hover:bg-primary/90"
+                                                        )}
+                                                    >
+                                                        {releaseMethod === 'email' ? <Mail className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
+                                                        {releaseNotices.length > 0 ? "Log Follow-Up Notice" : "Notify End-User"}
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            {/* Multiple Notices History Timeline */}
+                                            {releaseNotices.length > 0 && (
+                                                <div className="mt-3 pt-3 border-t border-border/60 space-y-2">
+                                                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                                        Notice History ({releaseNotices.length})
+                                                    </span>
+                                                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                                                        {releaseNotices.map((notice, idx) => (
+                                                            <div
+                                                                key={idx}
+                                                                className="flex items-center justify-between text-xs p-2.5 rounded-md bg-muted/40 border border-border/60 hover:bg-muted/60 transition-colors"
+                                                            >
+                                                                <div className="flex items-center gap-2.5">
+                                                                    <div className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                                                        {notice.method === 'Email' ? <Mail className="size-3.5" /> : <Phone className="size-3.5" />}
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="font-semibold text-foreground">
+                                                                            {idx === 0 ? '1st Notice' : `Notice #${idx + 1} (Follow-Up)`}
+                                                                        </span>
+                                                                        <span className="text-muted-foreground ml-2">via {notice.method}</span>
+                                                                        <p className="text-[11px] text-muted-foreground font-mono">{notice.contact}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right shrink-0">
+                                                                    <span className="font-medium text-foreground">{notice.date}</span>
+                                                                    {notice.created_at && (
+                                                                        <p className="text-[10px] text-muted-foreground">
+                                                                            {new Date(notice.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Card 2: Receipt & Items Claiming (Cleaned Up Fields) */}
+                                        <div className="rounded-lg border p-5 bg-card space-y-4">
+                                            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2 border-b border-border/60 pb-2">
+                                                Receipt & Items Hand-Off
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <Field
+                                                    label="Receipt Receiving Date"
+                                                    name="receipt_receiving_date"
+                                                    type="date"
+                                                    value={data.receipt_receiving_date}
+                                                    onChange={handleChange}
+                                                    error={errors.receipt_receiving_date}
+                                                    required={true}
+                                                    disabled={isStepLocked('For Release')}
+                                                />
+                                                <Field
+                                                    label="Receipt Claimed By"
+                                                    name="receipt_claimed_by"
+                                                    value={data.receipt_claimed_by}
+                                                    onChange={handleChange}
+                                                    error={errors.receipt_claimed_by}
+                                                    placeholder="Enter claimant name"
+                                                    pattern={PATTERNS.nameOrOffice.source}
+                                                    title={MESSAGES.names}
+                                                    disabled={isStepLocked('For Release')}
+                                                />
+                                                <Field
+                                                    label="Items Receiving Date"
+                                                    name="items_receiving_date"
+                                                    type="date"
+                                                    value={data.items_receiving_date}
+                                                    onChange={handleChange}
+                                                    error={errors.items_receiving_date}
+                                                    disabled={isStepLocked('For Release')}
+                                                />
+                                                <Field
+                                                    label="Items Claimed By"
+                                                    name="items_claimed_by"
+                                                    value={data.items_claimed_by}
+                                                    onChange={handleChange}
+                                                    error={errors.items_claimed_by}
+                                                    placeholder="Enter claimant name"
+                                                    pattern={PATTERNS.nameOrOffice.source}
+                                                    title={MESSAGES.names}
+                                                    disabled={isStepLocked('For Release')}
+                                                />
                                             </div>
                                         </div>
 
-                                        {/* Inspection Details */}
-                                        <div className="col-span-1 md:col-span-2 mt-4 space-y-4">
+                                        {/* Card 3: Property Receipts (ICS / PAR Rules) */}
+                                        <div className="rounded-lg border p-5 bg-card space-y-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-2">
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                                        Property Receipts ({poTotal < 50000 ? 'ICS' : 'PAR'})
+                                                    </h4>
+                                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                                        {poTotal < 50000
+                                                            ? 'Item cost is under ₱50,000: Inventory Custodian Slip (ICS) is required.'
+                                                            : 'Item cost is ₱50,000 or above: Property Acknowledgement Receipt (PAR) is required.'}
+                                                    </p>
+                                                </div>
+                                                <span className={cn(
+                                                    "text-[11px] font-semibold px-2.5 py-0.5 rounded-full border self-start sm:self-auto",
+                                                    poTotal < 50000
+                                                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                                                        : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                                                )}>
+                                                    {poTotal < 50000 ? 'Cost < ₱50k (ICS Required)' : 'Cost ≥ ₱50k (PAR Required)'}
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <Field
+                                                    label={poTotal < 50000 ? "ICS Number" : "PAR Number"}
+                                                    name="par_ics_number"
+                                                    value={data.par_ics_number}
+                                                    onChange={handleChange}
+                                                    error={errors.par_ics_number}
+                                                    required={true}
+                                                    placeholder={poTotal < 50000 ? "e.g. ICS-2026-0001" : "e.g. PAR-2026-0001"}
+                                                    pattern={PATTERNS.parIcsMultiRef.source}
+                                                    title={MESSAGES.parIcsMultiRef}
+                                                    disabled={isStepLocked('For Release')}
+                                                />
+                                                <Field
+                                                    label="RIS Number (Optional)"
+                                                    name="ris_number"
+                                                    value={data.ris_number}
+                                                    onChange={handleChange}
+                                                    error={errors.ris_number}
+                                                    placeholder="e.g. RIS-2026-0001"
+                                                    pattern={PATTERNS.risMultiRef.source}
+                                                    title={MESSAGES.risMultiRef}
+                                                    disabled={isStepLocked('For Release')}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Card 4: Inspection Details */}
+                                        <div className="rounded-lg border p-5 bg-card space-y-4">
                                             <div className="flex items-center justify-between border-b border-border pb-2 mb-2">
-                                                <h4 className="text-sm font-semibold text-foreground">
-                                                    Inspection Details
-                                                    {data.inspection_groups.length > 0 && (
-                                                        <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                                            {data.inspection_groups.length} Group{data.inspection_groups.length > 1 ? 's' : ''}
-                                                        </span>
-                                                    )}
-                                                </h4>
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-foreground">
+                                                        Inspection Details (IAR)
+                                                        {data.inspection_groups.length > 0 && (
+                                                            <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                                                {data.inspection_groups.length} Group{data.inspection_groups.length > 1 ? 's' : ''}
+                                                            </span>
+                                                        )}
+                                                    </h4>
+                                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                                        Inspection details (IAR Number, Inspector Name, Date) are required.
+                                                    </p>
+                                                </div>
                                                 <Button
                                                     type="button"
                                                     variant="outline"
@@ -1572,7 +2104,7 @@ export default function PoWorkflowModal({
                                                             {/* IAR Number */}
                                                             <div className="min-w-0 w-full md:w-1/4">
                                                                 <Field
-                                                                    label="IAR Number (Optional)"
+                                                                    label="IAR Number"
                                                                     name={`inspection_groups.${groupIndex}.iar_number`}
                                                                     value={group.iar_number}
                                                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateInspectionGroup(groupIndex, e.target.value)}
@@ -1581,13 +2113,14 @@ export default function PoWorkflowModal({
                                                                     placeholder="e.g. 202512200001"
                                                                     pattern={PATTERNS.iarNumber.source}
                                                                     title={MESSAGES.numbersOnly}
+                                                                    required={true}
                                                                 />
                                                             </div>
 
                                                             {/* Inspectors */}
                                                             <div className="min-w-0 flex-1 w-full md:w-auto">
-                                                                <label className="mb-1 block text-xs text-muted-foreground">
-                                                                    Inspected By
+                                                                <label className="mb-1 block text-xs font-medium text-foreground flex items-center gap-1">
+                                                                    Inspected By <span className="text-red-500">*</span>
                                                                 </label>
                                                                 <div className="flex flex-wrap items-center gap-1.5">
                                                                     {group.inspectors.map((inspector: string, inspectorIndex: number) => (
@@ -1644,8 +2177,8 @@ export default function PoWorkflowModal({
 
                                                             {/* Dates */}
                                                             <div className="min-w-0 flex-1 w-full md:w-auto">
-                                                                <label className="mb-1 block text-xs text-muted-foreground">
-                                                                    Inspection Date
+                                                                <label className="mb-1 block text-xs font-medium text-foreground flex items-center gap-1">
+                                                                    Inspection Date <span className="text-red-500">*</span>
                                                                 </label>
                                                                 <div className="flex flex-wrap items-center gap-1.5">
                                                                     {group.inspection_dates.map((date: string, dateIndex: number) => (
@@ -1857,7 +2390,7 @@ export default function PoWorkflowModal({
                                                             </span>
                                                         </h5>
                                                         <p className="text-xs text-amber-800/90 dark:text-amber-200/90 leading-relaxed">
-                                                            The selected Purchase Order (<strong>{purchaseOrder?.po_number}</strong>) must have an existing record in <strong>Delivery Monitoring</strong> before the Disbursement Voucher can be fully accessed, configured, or exported.
+                                                            The selected Purchase Order (<strong>{purchaseOrder?.po_number}</strong>) must have an existing record in <strong>Delivery Monitoring</strong> before the Disbursement Voucher can be fully accessed or exported.
                                                         </p>
                                                     </div>
                                                 </div>
@@ -2109,19 +2642,33 @@ export default function PoWorkflowModal({
                                 <div className="flex items-center gap-3">
                                     {!isStepLocked(activeTab) && (
                                         <>
+                                            {isNotifyRequired(activeTab) && !isNotifyDone(activeTab) && (
+                                                <span className="text-xs text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                                                    <Info className="size-3.5" />
+                                                    Click "Notify Office" to enable next step
+                                                </span>
+                                            )}
                                             {STEPS.indexOf(activeTab) < STEPS.length - 1 && (
                                                 <Button
                                                     type="button"
                                                     variant="secondary"
                                                     onClick={handleNextStep}
+                                                    disabled={!isStepDone(activeTab) || !isNotifyDone(activeTab) || processing}
                                                     className={cn(
                                                         "transition-all duration-300",
-                                                        isStepDone(activeTab)
+                                                        (isStepDone(activeTab) && isNotifyDone(activeTab))
                                                             ? "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
                                                             : "opacity-60 hover:bg-secondary cursor-not-allowed"
                                                     )}
+                                                    title={
+                                                        !isNotifyDone(activeTab)
+                                                            ? "Click 'Notify Office' before proceeding to the next step."
+                                                            : !isStepDone(activeTab)
+                                                                ? "Please complete the required fields in this step."
+                                                                : "Move to next step and auto-save"
+                                                    }
                                                 >
-                                                    Next Step
+                                                    {processing ? 'Saving...' : 'Next Step'}
                                                 </Button>
                                             )}
                                             <Button type="submit" disabled={processing}>
@@ -2133,7 +2680,7 @@ export default function PoWorkflowModal({
                             </div>
                         </form>
                     </div>
-                </ScrollArea>
+                </div>
             </DialogContent>
         </Dialog>
     );
